@@ -74,7 +74,10 @@ public readonly record struct CornerTransforms(
     public bool HasBottomLeftRotation => !BottomLeftRotation.IsAlmostZero();
 }
 
-public readonly struct MGTexturedBorderBrush : IBorderBrush
+/// <summary>Freezable (ADR-0009, W3): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
+/// <see cref="Copy"/> always returns an unfrozen instance. All fields are value types (<see cref="MGTextureData"/> shared by reference
+/// like the other texture-holding brushes), so there is no nested paint to propagate <see cref="Freeze"/> to.</summary>
+public sealed class MGTexturedBorderBrush : UIFreezableBrush, IBorderBrush
 {
     private static UIDrawFlip ToDrawFlip(SpriteEffects effects)
     {
@@ -93,21 +96,56 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
         return result;
     }
 
-    public readonly MGTextureData EdgeTexture;
-    public readonly Color EdgeColor;
-    public readonly MGTextureData CornerTexture;
-    public readonly Color CornerColor;
-    public readonly float Opacity;
-    public readonly TextureTransforms Transforms;
+    private MGTextureData _EdgeTexture;
+    public MGTextureData EdgeTexture
+    {
+        get => _EdgeTexture;
+        set => SetProperty(ref _EdgeTexture, value);
+    }
+
+    private Color _EdgeColor;
+    public Color EdgeColor
+    {
+        get => _EdgeColor;
+        set => SetProperty(ref _EdgeColor, value);
+    }
+
+    private MGTextureData _CornerTexture;
+    public MGTextureData CornerTexture
+    {
+        get => _CornerTexture;
+        set => SetProperty(ref _CornerTexture, value);
+    }
+
+    private Color _CornerColor;
+    public Color CornerColor
+    {
+        get => _CornerColor;
+        set => SetProperty(ref _CornerColor, value);
+    }
+
+    private float _Opacity;
+    public float Opacity
+    {
+        get => _Opacity;
+        set => SetProperty(ref _Opacity, value);
+    }
+
+    private TextureTransforms _Transforms;
+    public TextureTransforms Transforms
+    {
+        get => _Transforms;
+        set => SetProperty(ref _Transforms, value);
+    }
 
     public MGTexturedBorderBrush()
     {
-        EdgeTexture = default;
-        EdgeColor = Color.White;
-        CornerTexture = default;
-        CornerColor = Color.White;
-        Opacity = 1.0f;
-        Transforms = new();
+        _EdgeTexture = default;
+        _EdgeColor = Color.White;
+        _CornerTexture = default;
+        _CornerColor = Color.White;
+        _Opacity = 1.0f;
+        _Transforms = new();
     }
 
     public MGTexturedBorderBrush(MGDesktop Desktop, string EdgeTextureName, string CornerTextureName, Color? EdgeColor = null, Color? CornerColor = null, TextureTransforms? Transforms = null, float Opacity = 1.0f)
@@ -119,12 +157,12 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
     public MGTexturedBorderBrush(MGTextureData EdgeTexture, Color? EdgeColor, MGTextureData CornerTexture, Color? CornerColor,
         TextureTransforms? Transforms = null, float Opacity = 1.0f)
     {
-        this.EdgeTexture = EdgeTexture;
-        this.EdgeColor = EdgeColor ?? Color.White;
-        this.CornerTexture = CornerTexture;
-        this.CornerColor = CornerColor ?? Color.White;
-        this.Opacity = Opacity;
-        this.Transforms = Transforms ?? new();
+        _EdgeTexture = EdgeTexture;
+        _EdgeColor = EdgeColor ?? Color.White;
+        _CornerTexture = CornerTexture;
+        _CornerColor = CornerColor ?? Color.White;
+        _Opacity = Opacity;
+        _Transforms = Transforms ?? new();
     }
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds, Thickness BT)
@@ -476,4 +514,15 @@ public readonly struct MGTexturedBorderBrush : IBorderBrush
     }
 
     public IBorderBrush Copy() => new MGTexturedBorderBrush(EdgeTexture, EdgeColor, CornerTexture, CornerColor, Transforms, Opacity);
+
+    /// <summary>Value equality (ADR-0009, W3): two textured border brushes are equal when <see cref="EdgeTexture"/>/<see cref="CornerTexture"/>
+    /// (record structs: compare their <see cref="MGTextureData.Image"/> by reference, the same underlying texture, plus their other fields
+    /// by value), their colours, <see cref="Opacity"/> and <see cref="Transforms"/> all match, regardless of frozen state or instance identity.</summary>
+    public bool ValueEquals(IBorderBrush other) => other is MGTexturedBorderBrush t
+        && t.EdgeTexture.Equals(EdgeTexture) && t.EdgeColor == EdgeColor
+        && t.CornerTexture.Equals(CornerTexture) && t.CornerColor == CornerColor
+        && t.Opacity == Opacity && t.Transforms == Transforms;
+
+    public override bool Equals(object obj) => ValueEquals(obj as IBorderBrush);
+    public override int GetHashCode() => HashCode.Combine(EdgeTexture, EdgeColor, CornerTexture, CornerColor, Opacity, Transforms);
 }

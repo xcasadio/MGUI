@@ -8,16 +8,42 @@ using MonoGame.Extended;
 
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
-/// <summary>An <see cref="IFillBrush"/> that fills its bounds with a <see cref="Texture2D"/></summary>
-public readonly struct MGTextureFillBrush : IFillBrush
+/// <summary>An <see cref="IFillBrush"/> that fills its bounds with a <see cref="Texture2D"/>. Freezable (ADR-0009, W3): a sealed
+/// mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen; <see cref="Copy"/> always returns an
+/// unfrozen instance. <see cref="Source"/> is shared by reference on <see cref="Copy"/> (the underlying texture data, not owned by
+/// this brush).</summary>
+public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
 {
-    public readonly MGTextureData Source;
-    public readonly Stretch Stretch;
-    public readonly Color Color;
+    private MGTextureData _Source;
+    public MGTextureData Source
+    {
+        get => _Source;
+        set => SetProperty(ref _Source, value);
+    }
+
+    private Stretch _Stretch;
+    public Stretch Stretch
+    {
+        get => _Stretch;
+        set => SetProperty(ref _Stretch, value);
+    }
+
+    private Color _Color;
+    public Color Color
+    {
+        get => _Color;
+        set => SetProperty(ref _Color, value);
+    }
+
+    private bool _Tile;
     /// <summary>If true, the texture is drawn at its natural pixel size (<see cref="MGTextureData.RenderSize"/>) and tiled
     /// repeatedly to fill the entire bounds. When true, <see cref="Stretch"/> is ignored.<para/>
     /// Default value: false</summary>
-    public readonly bool Tile;
+    public bool Tile
+    {
+        get => _Tile;
+        set => SetProperty(ref _Tile, value);
+    }
 
     /// <param name="SourceName">The name of the <see cref="MGTextureData"/> in <see cref="MGResources.Textures"/> that should be drawn by this <see cref="MGTextureFillBrush"/>.<para/>
     /// See also: <see cref="MGElement.GetResources"/>, <see cref="MGResources.Textures"/>, <see cref="MGResources.AddTexture(string, MGTextureData)"/></param>
@@ -38,18 +64,18 @@ public readonly struct MGTextureFillBrush : IFillBrush
             throw new InvalidOperationException($"No Texture was found with the name '{SourceName}' in {nameof(MGResources)}.{nameof(MGResources.Textures)}.");
         }
 
-        this.Source = Source;
-        this.Stretch = Stretch;
-        this.Color = Color ?? Microsoft.Xna.Framework.Color.White;
-        this.Tile = Tile;
+        _Source = Source;
+        _Stretch = Stretch;
+        _Color = Color ?? Microsoft.Xna.Framework.Color.White;
+        _Tile = Tile;
     }
 
     public MGTextureFillBrush(MGTextureData Source, Stretch Stretch = Stretch.Fill, Color? Color = null, bool Tile = false)
     {
-        this.Source = Source;
-        this.Stretch = Stretch;
-        this.Color = Color ?? Microsoft.Xna.Framework.Color.White;
-        this.Tile = Tile;
+        _Source = Source;
+        _Stretch = Stretch;
+        _Color = Color ?? Microsoft.Xna.Framework.Color.White;
+        _Tile = Tile;
     }
 
     private int UnstretchedWidth => Source.RenderSize.Width;
@@ -318,4 +344,15 @@ public readonly struct MGTextureFillBrush : IFillBrush
     }
 
     public IFillBrush Copy() => new MGTextureFillBrush(Source, Stretch, Color, Tile);
+
+    /// <summary>Value equality (ADR-0009, W3): two texture brushes are equal when <see cref="Source"/> (a record struct: this compares its
+    /// <see cref="MGTextureData.Image"/> by reference, the same underlying texture data, plus its other fields by value), <see cref="Stretch"/>,
+    /// <see cref="Color"/> and <see cref="Tile"/> all match, regardless of frozen state or instance identity.</summary>
+    public bool ValueEquals(IFillBrush other) => other is MGTextureFillBrush t
+        && t.Source.Equals(Source) && t.Stretch == Stretch && t.Color == Color && t.Tile == Tile;
+
+    /// <summary>Decision taken during delivery (ADR-0009, W3): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
+    public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
+    public override int GetHashCode() => HashCode.Combine(Source, Stretch, Color, Tile);
 }

@@ -17,9 +17,27 @@ public readonly record struct MGBorderBand(IBorderBrush Brush, double ThicknessW
 
 /// <summary>An <see cref="IBorderBrush"/> that draws several nested <see cref="IBorderBrush"/>es starting from the outside and moving inwards.<para/>
 /// See also: <see cref="MGUniformBorderBrush"/>, <see cref="MGDockedBorderBrush"/>, <see cref="MGTexturedBorderBrush"/>, <see cref="MGHighlightBorderBrush"/>, <see cref="MGCompositedBorderBrush"/></summary>
-public readonly struct MGBandedBorderBrush : IBorderBrush
+public sealed class MGBandedBorderBrush : UIFreezableBrush, IBorderBrush
 {
+    /// <summary>Kept read-only (ADR-0009, W3): the previous <see langword="readonly struct"/> exposed no way to replace the whole
+    /// collection after construction, so this slice does not introduce a public setter for it either - freezing this brush freezes every
+    /// band's <see cref="MGBorderBand.Brush"/> instead (see <see cref="OnFreeze"/>).</summary>
     public readonly ReadOnlyCollection<MGBorderBand> Bands;
+
+    /// <summary>False when any band's <see cref="MGBorderBand.Brush"/> cannot itself freeze (ADR-0009, W3).</summary>
+    public override bool CanFreeze => Bands.All(x => x.Brush is not IUIFreezable freezable || freezable.CanFreeze);
+
+    /// <summary>Freezes every band's <see cref="MGBorderBand.Brush"/> (ADR-0009, W3).</summary>
+    protected override void OnFreeze()
+    {
+        foreach (var Band in Bands)
+        {
+            if (Band.Brush is IUIFreezable freezable)
+            {
+                freezable.Freeze();
+            }
+        }
+    }
 
     public MGBandedBorderBrush(IList<Color> Colors, IList<double> Weights)
     {
@@ -129,4 +147,23 @@ public readonly struct MGBandedBorderBrush : IBorderBrush
     }
 
     public IBorderBrush Copy() => new MGBandedBorderBrush(Bands.Select(x => new MGBorderBand(x.Brush.Copy(), x.ThicknessWeight)).ToArray());
+
+    /// <summary>Value equality (ADR-0009, W3): two banded border brushes are equal when they hold the same number of bands, each equal
+    /// by <see cref="MGBorderBand.ThicknessWeight"/> and by value on <see cref="MGBorderBand.Brush"/>
+    /// (<see cref="UIBrushEquality.ValueEquals(IBorderBrush, IBorderBrush)"/>), regardless of frozen state or instance identity.</summary>
+    public bool ValueEquals(IBorderBrush other) => other is MGBandedBorderBrush b
+        && b.Bands.Count == Bands.Count
+        && Bands.Zip(b.Bands, (x, y) => x.ThicknessWeight == y.ThicknessWeight && UIBrushEquality.ValueEquals(x.Brush, y.Brush)).All(x => x);
+
+    public override bool Equals(object obj) => ValueEquals(obj as IBorderBrush);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var Band in Bands)
+        {
+            hash.Add(Band.Brush);
+            hash.Add(Band.ThicknessWeight);
+        }
+        return hash.ToHashCode();
+    }
 }

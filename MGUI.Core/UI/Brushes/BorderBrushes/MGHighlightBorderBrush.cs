@@ -29,9 +29,26 @@ public enum HighlightFlowDirection : byte
 
 /// <summary>An <see cref="IBorderBrush"/> that draws a simple animation (using a <see cref="HighlightColor"/>) overtop of the border, typically to direct the user's attention
 /// to the bordered element. <see cref="MGHighlightBorderBrush"/>es are particularly useful for tutorials or directing the user's focus to a newly-unlocked piece of content on the UI.<para/>
-/// See also: <see cref="MGUniformBorderBrush"/>, <see cref="MGDockedBorderBrush"/>, <see cref="MGTexturedBorderBrush"/>, <see cref="MGBandedBorderBrush"/>, <see cref="MGCompositedBorderBrush"/></summary>
-public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
+/// See also: <see cref="MGUniformBorderBrush"/>, <see cref="MGDockedBorderBrush"/>, <see cref="MGTexturedBorderBrush"/>, <see cref="MGBandedBorderBrush"/>, <see cref="MGCompositedBorderBrush"/><para/>
+/// Freezable (ADR-0009, W3, contract only - the animation behaviour change is W6): derives from <see cref="UIFreezableBrush"/> (it was already
+/// a <see cref="ViewModelBase"/>, so nothing is lost) instead of implementing <see cref="IUIFreezable"/> by hand. Every setter below calls
+/// <see cref="UIFreezableBrush.ThrowIfFrozen"/> and throws once frozen, EXCEPT <see cref="AnimationProgress"/> (its accumulator, updated every
+/// frame by the animation itself rather than by application code, is W6). <see cref="Freeze"/> also freezes <see cref="Underlay"/>;
+/// <see cref="Copy"/> keeps its pre-existing semantics (unchanged by this slice).</summary>
+public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 {
+	/// <summary>False when <see cref="Underlay"/> cannot itself freeze (ADR-0009, W3).</summary>
+	public override bool CanFreeze => _Underlay is not IUIFreezable freezable || freezable.CanFreeze;
+
+	/// <summary>Freezes <see cref="Underlay"/> (ADR-0009, W3).</summary>
+	protected override void OnFreeze()
+	{
+		if (_Underlay is IUIFreezable freezable)
+		{
+			freezable.Freeze();
+		}
+	}
+
 	[DebuggerBrowsable(DebuggerBrowsableState.Never)]
 	private IBorderBrush _Underlay;
 	/// <summary>The underlying border which the highlight will be rendered overtop of.</summary>
@@ -40,6 +57,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _Underlay;
 		set
 		{
+			ThrowIfFrozen();
 			if (_Underlay != value)
 			{
 				_Underlay = value;
@@ -56,6 +74,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _HighlightColor;
 		set
 		{
+			ThrowIfFrozen();
 			if (_HighlightColor != value)
 			{
 				_HighlightColor = value;
@@ -84,6 +103,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _AnimationType;
 		set
 		{
+			ThrowIfFrozen();
 			if (_AnimationType != value)
 			{
 				_AnimationType = value;
@@ -138,6 +158,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _PulseFadeDuration;
 		set
 		{
+			ThrowIfFrozen();
 			if (_PulseFadeDuration != value)
 			{
 				_PulseFadeDuration = value;
@@ -160,6 +181,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _PulseDelay;
 		set
 		{
+			ThrowIfFrozen();
 			if (_PulseDelay != value)
 			{
 				_PulseDelay = value;
@@ -186,6 +208,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _FlashShowDuration;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FlashShowDuration != value)
 			{
 				_FlashShowDuration = value;
@@ -208,6 +231,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _FlashHideDuration;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FlashHideDuration != value)
 			{
 				_FlashHideDuration = value;
@@ -231,6 +255,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _ProgressFlowDirection;
 		set
 		{
+			ThrowIfFrozen();
 			if (_ProgressFlowDirection != value)
 			{
 				_ProgressFlowDirection = value;
@@ -253,6 +278,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _ProgressDuration;
 		set
 		{
+			ThrowIfFrozen();
 			if (_ProgressDuration != value)
 			{
 				_ProgressDuration = value;
@@ -275,6 +301,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _ProgressSize;
 		set
 		{
+			ThrowIfFrozen();
 			if (_ProgressSize != value)
 			{
 				_ProgressSize = value;
@@ -298,6 +325,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _ScanOrientation;
 		set
 		{
+			ThrowIfFrozen();
 			if (_ScanOrientation != value)
 			{
 				_ScanOrientation = value;
@@ -318,6 +346,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _ScanIsReversed;
 		set
 		{
+			ThrowIfFrozen();
 			if (_ScanIsReversed != value)
 			{
 				_ScanIsReversed = value;
@@ -340,6 +369,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _ScanDuration;
 		set
 		{
+			ThrowIfFrozen();
 			if (_ScanDuration != value)
 			{
 				_ScanDuration = value;
@@ -364,6 +394,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _ScanSize;
 		set
 		{
+			ThrowIfFrozen();
 			if (_ScanSize != value)
 			{
 				_ScanSize = value;
@@ -382,6 +413,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _IsEnabled;
 		set
 		{
+			ThrowIfFrozen();
 			if (_IsEnabled != value)
 			{
 				_IsEnabled = value;
@@ -398,6 +430,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _Target;
 		set
 		{
+			ThrowIfFrozen();
 			if (_Target != value)
 			{
 				_Target = value;
@@ -414,6 +447,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _StopOnMouseOver;
 		set
 		{
+			ThrowIfFrozen();
 			if (_StopOnMouseOver != value)
 			{
 				_StopOnMouseOver = value;
@@ -431,6 +465,7 @@ public class MGHighlightBorderBrush : ViewModelBase, IBorderBrush
 		get => _StopOnClick;
 		set
 		{
+			ThrowIfFrozen();
 			if (_StopOnClick != value)
 			{
 				_StopOnClick = value;

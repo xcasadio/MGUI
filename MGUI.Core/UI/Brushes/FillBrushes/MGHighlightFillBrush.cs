@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Shapes;
@@ -10,10 +11,39 @@ namespace MGUI.Core.UI.Brushes.FillBrushes;
 
 /// <summary>A brush that directs the user's focus to a particular region either by brightening the focused region or by dimming the unfocused region.<para/>
 /// This brush is commonly used to apply a 35% transparent black color overlay to an entire window except for a particular rectangular region,
-/// so that the uncolored region stands out visually.</summary>
-public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush, 
-	IElementNameResolver, IResourcesResolver, IDesktopResolver
+/// so that the uncolored region stands out visually.<para/>
+/// Freezable (ADR-0009, W3), but NOT through <see cref="UIFreezableBrush"/>: this class already derives from <see cref="XAMLBindableBase"/> for
+/// its XAML data-binding support (<see cref="XAMLBindableBase.Bindings"/>, <see cref="XAMLBindableBase.DataContext"/>,
+/// <see cref="IObservableDataContext"/>), and C# has no multiple inheritance, so <see cref="IUIFreezable"/> is implemented explicitly here
+/// instead, duplicating <see cref="UIFreezableBrush"/>'s <c>ThrowIfFrozen</c> discipline: every setter below throws once <see cref="IsFrozen"/>
+/// is true. <see cref="CanFreeze"/> is always true (this brush owns no nested <see cref="IUIFreezable"/> paint to propagate to).</summary>
+public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
+	IElementNameResolver, IResourcesResolver, IDesktopResolver, IUIFreezable
 {
+	private bool _IsFrozen;
+	public bool IsFrozen => _IsFrozen;
+	public bool CanFreeze => true;
+
+	/// <summary>See <see cref="UIFreezableBrush.Freeze"/>: idempotent, throws when <see cref="CanFreeze"/> is false (never, here).</summary>
+	public void Freeze()
+	{
+		if (_IsFrozen)
+		{
+			return;
+		}
+
+		_IsFrozen = true;
+	}
+
+	/// <summary>See <see cref="UIFreezableBrush.ThrowIfFrozen"/>.</summary>
+	private void ThrowIfFrozen([CallerMemberName] string property = null)
+	{
+		if (_IsFrozen)
+		{
+			throw new InvalidOperationException($"Cannot set {GetType().Name}.{property}: the instance is frozen.");
+		}
+	}
+
 	/// <summary>Only used for databindings purposes in XAML. Do not modify.</summary>
 	internal MGElement SourceElement { get; set; }
 
@@ -40,6 +70,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _IsEnabled;
 		set
 		{
+			ThrowIfFrozen();
 			if (_IsEnabled != value)
 			{
 				_IsEnabled = value;
@@ -58,6 +89,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _FillFocusedRegion;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FillFocusedRegion != value)
 			{
 				_FillFocusedRegion = value;
@@ -76,6 +108,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _FocusedColor;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FocusedColor != value)
 			{
 				_FocusedColor = value;
@@ -95,6 +128,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _FillUnfocusedRegion;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FillUnfocusedRegion != value)
 			{
 				_FillUnfocusedRegion = value;
@@ -113,6 +147,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _UnfocusedColor;
 		set
 		{
+			ThrowIfFrozen();
 			if (_UnfocusedColor != value)
 			{
 				_UnfocusedColor = value;
@@ -137,6 +172,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _FocusedBounds;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FocusedBounds != value)
 			{
 				_FocusedBounds = value;
@@ -158,6 +194,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _FocusedElements;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FocusedElements != value)
 			{
 				void HandleLayoutBoundsChanged(object sender, EventArgs<Rectangle> e) => CachedUnfocusedRegions.Clear();
@@ -196,6 +233,7 @@ public class MGHighlightFillBrush : XAMLBindableBase, IFillBrush,
 		get => _FocusedElementPadding;
 		set
 		{
+			ThrowIfFrozen();
 			if (_FocusedElementPadding != value)
 			{
 				_FocusedElementPadding = value;

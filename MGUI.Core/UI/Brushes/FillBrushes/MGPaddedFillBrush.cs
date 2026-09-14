@@ -6,21 +6,89 @@ using MonoGame.Extended;
 
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
-/// <summary>A wrapper class that allows you to manipulate the rectangular region that the nested <see cref="IFillBrush"/> is applied to.</summary>
-public class MGPaddedFillBrush : IFillBrush
+/// <summary>A wrapper class that allows you to manipulate the rectangular region that the nested <see cref="IFillBrush"/> is applied to.
+/// Freezable (ADR-0009, W3): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
+/// <see cref="Freeze"/> also freezes the nested <see cref="Brush"/>; <see cref="Copy"/> always returns an unfrozen instance with an
+/// unfrozen deep copy of <see cref="Brush"/>.</summary>
+public sealed class MGPaddedFillBrush : UIFreezableBrush, IFillBrush
 {
-    public IFillBrush Brush { get; set; }
-    public Thickness Padding { get; set; }
+    private IFillBrush _Brush;
+    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (fix round, ADR-0009 W3-fix), not
+    /// <see cref="EqualityComparer{T}.Default"/>: a distinct-but-value-equal <see cref="IFillBrush"/> is still a real change, since the
+    /// caller may mutate that distinct instance afterwards (an element-owned brush, W4).</summary>
+    public IFillBrush Brush
+    {
+        get => _Brush;
+        set => SetProperty(ref _Brush, value, UIBrushEquality.ForSlots<IFillBrush>());
+    }
 
-    public float? Scale { get; set; }
+    private Thickness _Padding;
+    public Thickness Padding
+    {
+        get => _Padding;
+        set => SetProperty(ref _Padding, value);
+    }
 
-    public int? MinWidth { get; set; }
-    public int? MinHeight { get; set; }
-    public int? MaxWidth { get; set; }
-    public int? MaxHeight { get; set; }
+    private float? _Scale;
+    public float? Scale
+    {
+        get => _Scale;
+        set => SetProperty(ref _Scale, value);
+    }
 
-    public HorizontalAlignment? HorizontalAlignment { get; set; }
-    public VerticalAlignment? VerticalAlignment { get; set; }
+    private int? _MinWidth;
+    public int? MinWidth
+    {
+        get => _MinWidth;
+        set => SetProperty(ref _MinWidth, value);
+    }
+
+    private int? _MinHeight;
+    public int? MinHeight
+    {
+        get => _MinHeight;
+        set => SetProperty(ref _MinHeight, value);
+    }
+
+    private int? _MaxWidth;
+    public int? MaxWidth
+    {
+        get => _MaxWidth;
+        set => SetProperty(ref _MaxWidth, value);
+    }
+
+    private int? _MaxHeight;
+    public int? MaxHeight
+    {
+        get => _MaxHeight;
+        set => SetProperty(ref _MaxHeight, value);
+    }
+
+    private HorizontalAlignment? _HorizontalAlignment;
+    public HorizontalAlignment? HorizontalAlignment
+    {
+        get => _HorizontalAlignment;
+        set => SetProperty(ref _HorizontalAlignment, value);
+    }
+
+    private VerticalAlignment? _VerticalAlignment;
+    public VerticalAlignment? VerticalAlignment
+    {
+        get => _VerticalAlignment;
+        set => SetProperty(ref _VerticalAlignment, value);
+    }
+
+    /// <summary>False when the nested <see cref="Brush"/> cannot itself freeze (ADR-0009, W3).</summary>
+    public override bool CanFreeze => _Brush is not IUIFreezable freezable || freezable.CanFreeze;
+
+    /// <summary>Freezes the nested <see cref="Brush"/> (ADR-0009, W3).</summary>
+    protected override void OnFreeze()
+    {
+        if (_Brush is IUIFreezable freezable)
+        {
+            freezable.Freeze();
+        }
+    }
 
     /// <summary>Forwards the per-frame lifecycle call to the nested <see cref="Brush"/> via <see cref="PaintLifecycle"/>,
     /// deduplicated by reference against every other slot/element that references it for the frame.</summary>
@@ -29,18 +97,18 @@ public class MGPaddedFillBrush : IFillBrush
     public MGPaddedFillBrush(IFillBrush Brush, Thickness Padding, float? Scale = null, int? MinWidth = null, int? MinHeight = null, int? MaxWidth = null, int? MaxHeight = null,
         HorizontalAlignment? HorizontalAlignment = null, VerticalAlignment? VerticalAlignment = null)
     {
-        this.Brush = Brush;
-        this.Padding = Padding;
+        _Brush = Brush;
+        _Padding = Padding;
 
-        this.Scale = Scale;
+        _Scale = Scale;
 
-        this.MinWidth = MinWidth;
-        this.MinHeight = MinHeight;
-        this.MaxWidth = MaxWidth;
-        this.MaxHeight = MaxHeight;
+        _MinWidth = MinWidth;
+        _MinHeight = MinHeight;
+        _MaxWidth = MaxWidth;
+        _MaxHeight = MaxHeight;
 
-        this.HorizontalAlignment = HorizontalAlignment;
-        this.VerticalAlignment = VerticalAlignment;
+        _HorizontalAlignment = HorizontalAlignment;
+        _VerticalAlignment = VerticalAlignment;
     }
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
@@ -98,4 +166,15 @@ public class MGPaddedFillBrush : IFillBrush
     }
 
     public IFillBrush Copy() => new MGPaddedFillBrush(Brush?.Copy(), Padding, Scale, MinWidth, MinHeight, MaxWidth, MaxHeight, HorizontalAlignment, VerticalAlignment);
+
+    /// <summary>Value equality (ADR-0009, W3): two padded brushes are equal when the nested <see cref="Brush"/> is equal by value
+    /// (<see cref="UIBrushEquality.ValueEquals(IFillBrush, IFillBrush)"/>) and every scalar matches, regardless of frozen state or
+    /// instance identity.</summary>
+    public bool ValueEquals(IFillBrush other) => other is MGPaddedFillBrush p
+        && UIBrushEquality.ValueEquals(p.Brush, Brush) && p.Padding.Equals(Padding) && p.Scale == Scale
+        && p.MinWidth == MinWidth && p.MinHeight == MinHeight && p.MaxWidth == MaxWidth && p.MaxHeight == MaxHeight
+        && p.HorizontalAlignment == HorizontalAlignment && p.VerticalAlignment == VerticalAlignment;
+
+    public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
+    public override int GetHashCode() => HashCode.Combine(Brush, Padding, Scale, HashCode.Combine(MinWidth, MinHeight, MaxWidth, MaxHeight), HorizontalAlignment, VerticalAlignment);
 }

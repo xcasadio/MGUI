@@ -370,7 +370,7 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
         };
 
     /// <summary>Returns a <see cref="IBorderBrush"/> that should be rendered overtop of the border portion of the element's graphics.</summary>
-    public MGUniformBorderBrush? GetBorderOverlay(SecondaryVisualState State) =>
+    public MGUniformBorderBrush GetBorderOverlay(SecondaryVisualState State) =>
         State switch
         {
             SecondaryVisualState.Pressed => PressedBorderOverlay,
@@ -415,14 +415,20 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
     public VisualStateFillBrush(IFillBrush NormalBrush, IFillBrush SelectedBrush, IFillBrush FocusedBrush, IFillBrush DisabledBrush, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
         : base(NormalBrush, SelectedBrush, FocusedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { }
 
+    /// <summary>Returns <paramref name="Brush"/> unchanged when it is frozen (ADR-0009, W3: a frozen brush is immutable and safely
+    /// shareable by reference, so the copy constructor below does not need to clone it), otherwise an unfrozen deep copy via
+    /// <see cref="IFillBrush.Copy"/>, same as before this slice.</summary>
+    private static IFillBrush ShareIfFrozenElseCopy(IFillBrush Brush) => Brush is IUIFreezable { IsFrozen: true } ? Brush : Brush?.Copy();
+
     private VisualStateFillBrush(VisualStateFillBrush InheritFrom)
-        : base(InheritFrom.NormalValue?.Copy(), InheritFrom.SelectedValue?.Copy(), InheritFrom.FocusedValue?.Copy(), InheritFrom.DisabledValue?.Copy(),
+        : base(ShareIfFrozenElseCopy(InheritFrom.NormalValue), ShareIfFrozenElseCopy(InheritFrom.SelectedValue),
+            ShareIfFrozenElseCopy(InheritFrom.FocusedValue), ShareIfFrozenElseCopy(InheritFrom.DisabledValue),
             InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier)
     {
         OverlayOpacity = InheritFrom.OverlayOpacity;
         if (InheritFrom.HasCheckedValue)
         {
-            CheckedValue = InheritFrom.CheckedValue?.Copy();
+            CheckedValue = ShareIfFrozenElseCopy(InheritFrom.CheckedValue);
         }
     }
 
@@ -453,7 +459,7 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
-        overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds, BorderThickness);
+        overlay.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds, BorderThickness);
     }
 
     /// <summary>Rounded variant of <see cref="DrawBorderOverlay(ElementDrawArgs, SecondaryVisualState, MGElement, Rectangle, MonoGame.Extended.Thickness)"/>.</summary>
@@ -463,7 +469,7 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
-        overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
+        overlay.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
     }
 
     /// <summary>Forwards the per-frame lifecycle call to each distinct <see cref="IFillBrush"/> held by this wrapper

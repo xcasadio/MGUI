@@ -9,19 +9,77 @@ namespace MGUI.Core.UI.Brushes.FillBrushes;
 
 /// <summary>An <see cref="IFillBrush"/> that draws a nine-sliced (also called a nine-patch) texture to the destination bounds using a customizable margin to control how each patch scales to the bounds.<para/>
 /// See also: <see href="https://en.wikipedia.org/wiki/9-slice_scaling"/></summary>
-public readonly struct MGNineSliceFillBrush : IFillBrush
+public sealed class MGNineSliceFillBrush : UIFreezableBrush, IFillBrush
 {
-    public readonly Thickness TargetMargin;
+    private Thickness _TargetMargin;
+    public Thickness TargetMargin
+    {
+        get => _TargetMargin;
+        set => SetProperty(ref _TargetMargin, value);
+    }
 
-    public readonly MGTextureData TopLeft;
-    public readonly MGTextureData TopCenter;
-    public readonly MGTextureData TopRight;
-    public readonly MGTextureData MiddleLeft;
-    public readonly MGTextureData MiddleCenter;
-    public readonly MGTextureData MiddleRight;
-    public readonly MGTextureData BottomLeft;
-    public readonly MGTextureData BottomCenter;
-    public readonly MGTextureData BottomRight;
+    private MGTextureData _TopLeft;
+    public MGTextureData TopLeft
+    {
+        get => _TopLeft;
+        set => SetProperty(ref _TopLeft, value);
+    }
+
+    private MGTextureData _TopCenter;
+    public MGTextureData TopCenter
+    {
+        get => _TopCenter;
+        set => SetProperty(ref _TopCenter, value);
+    }
+
+    private MGTextureData _TopRight;
+    public MGTextureData TopRight
+    {
+        get => _TopRight;
+        set => SetProperty(ref _TopRight, value);
+    }
+
+    private MGTextureData _MiddleLeft;
+    public MGTextureData MiddleLeft
+    {
+        get => _MiddleLeft;
+        set => SetProperty(ref _MiddleLeft, value);
+    }
+
+    private MGTextureData _MiddleCenter;
+    public MGTextureData MiddleCenter
+    {
+        get => _MiddleCenter;
+        set => SetProperty(ref _MiddleCenter, value);
+    }
+
+    private MGTextureData _MiddleRight;
+    public MGTextureData MiddleRight
+    {
+        get => _MiddleRight;
+        set => SetProperty(ref _MiddleRight, value);
+    }
+
+    private MGTextureData _BottomLeft;
+    public MGTextureData BottomLeft
+    {
+        get => _BottomLeft;
+        set => SetProperty(ref _BottomLeft, value);
+    }
+
+    private MGTextureData _BottomCenter;
+    public MGTextureData BottomCenter
+    {
+        get => _BottomCenter;
+        set => SetProperty(ref _BottomCenter, value);
+    }
+
+    private MGTextureData _BottomRight;
+    public MGTextureData BottomRight
+    {
+        get => _BottomRight;
+        set => SetProperty(ref _BottomRight, value);
+    }
 
     /// <param name="Source">The texture that will be divided up into 9 rectangular regions.</param>
     /// <param name="TargetMargin">Determines the size of each slice when rendering the texture to the destination bounds.<para/>
@@ -30,7 +88,7 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
     /// If <see langword="null"/>, each region of the source texture is assumed to be equally-sized (and thus its dimensions should be an exact multiple of 3)</param>
     public MGNineSliceFillBrush(Thickness TargetMargin, MGTextureData Source, Thickness? SourceMargin = null)
     {
-        this.TargetMargin = TargetMargin;
+        _TargetMargin = TargetMargin;
 
         var Image = Source.Image;
         if (Image == null)
@@ -70,19 +128,19 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
         var CenterRowSize = Bounds.Height - TopRowSize - BottomRowSize;
 
         //  Compute the top row regions
-        TopLeft = new(Image, new(Bounds.Left, Bounds.Top, LeftColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
-        TopCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top, CenterColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
-        TopRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top, RightColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _TopLeft = new(Image, new(Bounds.Left, Bounds.Top, LeftColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _TopCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top, CenterColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _TopRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top, RightColumnSize, TopRowSize), Source.Opacity, Source.RenderSizeOverride);
 
         //  Compute the center row regions
-        MiddleLeft = new(Image, new(Bounds.Left, Bounds.Top + TopRowSize, LeftColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
-        MiddleCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize, CenterColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
-        MiddleRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize, RightColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _MiddleLeft = new(Image, new(Bounds.Left, Bounds.Top + TopRowSize, LeftColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _MiddleCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize, CenterColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _MiddleRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize, RightColumnSize, CenterRowSize), Source.Opacity, Source.RenderSizeOverride);
 
         //  Compute the bottom row regions
-        BottomLeft = new(Image, new(Bounds.Left, Bounds.Top + TopRowSize + CenterRowSize, LeftColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
-        BottomCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize + CenterRowSize, CenterColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
-        BottomRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize + CenterRowSize, RightColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _BottomLeft = new(Image, new(Bounds.Left, Bounds.Top + TopRowSize + CenterRowSize, LeftColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _BottomCenter = new(Image, new(Bounds.Left + LeftColumnSize, Bounds.Top + TopRowSize + CenterRowSize, CenterColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
+        _BottomRight = new(Image, new(Bounds.Left + LeftColumnSize + CenterColumnSize, Bounds.Top + TopRowSize + CenterRowSize, RightColumnSize, BottomRowSize), Source.Opacity, Source.RenderSizeOverride);
     }
 
     /// <param name="TargetMargin">Determines the size of each slice when rendering the texture to the destination bounds.<para/>
@@ -92,20 +150,48 @@ public readonly struct MGNineSliceFillBrush : IFillBrush
         MGTextureData MiddleLeft, MGTextureData MiddleCenter, MGTextureData MiddleRight,
         MGTextureData BottomLeft, MGTextureData BottomCenter, MGTextureData BottomRight)
     {
-        this.TargetMargin = TargetMargin;
+        _TargetMargin = TargetMargin;
 
-        this.TopLeft = TopLeft;
-        this.TopCenter = TopCenter;
-        this.TopRight = TopRight;
-        this.MiddleLeft = MiddleLeft;
-        this.MiddleCenter = MiddleCenter;
-        this.MiddleRight = MiddleRight;
-        this.BottomLeft = BottomLeft;
-        this.BottomCenter = BottomCenter;
-        this.BottomRight = BottomRight;
+        _TopLeft = TopLeft;
+        _TopCenter = TopCenter;
+        _TopRight = TopRight;
+        _MiddleLeft = MiddleLeft;
+        _MiddleCenter = MiddleCenter;
+        _MiddleRight = MiddleRight;
+        _BottomLeft = BottomLeft;
+        _BottomCenter = BottomCenter;
+        _BottomRight = BottomRight;
     }
 
     public IFillBrush Copy() => new MGNineSliceFillBrush(TargetMargin, TopLeft, TopCenter, TopRight, MiddleLeft, MiddleCenter, MiddleRight, BottomLeft, BottomCenter, BottomRight);
+
+    /// <summary>Value equality (ADR-0009, W3): two nine-slice brushes are equal when <see cref="TargetMargin"/> and all nine patches
+    /// match (each patch a record struct: compares its <see cref="MGTextureData.Image"/> by reference, the same underlying texture, plus
+    /// its other fields by value), regardless of frozen state or instance identity.</summary>
+    public bool ValueEquals(IFillBrush other) => other is MGNineSliceFillBrush n
+        && n.TargetMargin.Equals(TargetMargin)
+        && n.TopLeft.Equals(TopLeft) && n.TopCenter.Equals(TopCenter) && n.TopRight.Equals(TopRight)
+        && n.MiddleLeft.Equals(MiddleLeft) && n.MiddleCenter.Equals(MiddleCenter) && n.MiddleRight.Equals(MiddleRight)
+        && n.BottomLeft.Equals(BottomLeft) && n.BottomCenter.Equals(BottomCenter) && n.BottomRight.Equals(BottomRight);
+
+    /// <summary>Decision taken during delivery (ADR-0009, W3): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
+    public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(TargetMargin);
+        hash.Add(TopLeft);
+        hash.Add(TopCenter);
+        hash.Add(TopRight);
+        hash.Add(MiddleLeft);
+        hash.Add(MiddleCenter);
+        hash.Add(MiddleRight);
+        hash.Add(BottomLeft);
+        hash.Add(BottomCenter);
+        hash.Add(BottomRight);
+        return hash.ToHashCode();
+    }
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
     {

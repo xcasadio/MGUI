@@ -9,34 +9,86 @@ namespace MGUI.Core.UI.Brushes.BorderBrushes;
 
 /// <summary>An <see cref="IBorderBrush"/> that uses separate <see cref="IFillBrush"/>es for each side: Left, Top, Right, Bottom<para/>
 /// See also: <see cref="MGUniformBorderBrush"/>, <see cref="MGBandedBorderBrush"/>, <see cref="MGTexturedBorderBrush"/>, <see cref="MGHighlightBorderBrush"/>, <see cref="MGCompositedBorderBrush"/></summary>
-public readonly struct MGDockedBorderBrush : IBorderBrush
+public sealed class MGDockedBorderBrush : UIFreezableBrush, IBorderBrush
 {
-    public IFillBrush Left { get; }
-    public IFillBrush Top { get; }
-    public IFillBrush Right { get; }
-    public IFillBrush Bottom { get; }
+    private IFillBrush _Left;
+    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (fix round, ADR-0009 W3-fix): see
+    /// <see cref="MGUI.Core.UI.Brushes.FillBrushes.MGPaddedFillBrush.Brush"/> for the rationale. <see cref="UIFreezableBrush.ThrowIfFrozen"/>
+    /// is called explicitly first (fix round) so a frozen instance reports the frozen error instead of <see cref="ArgumentNullException"/>
+    /// when the caller passes <see langword="null"/>.</summary>
+    public IFillBrush Left
+    {
+        get => _Left;
+        set { ThrowIfFrozen(); if (SetProperty(ref _Left, value ?? throw new ArgumentNullException(nameof(value)), UIBrushEquality.ForSlots<IFillBrush>())) { RecomputeIsSolidColorsOnly(); } }
+    }
 
-    private bool IsSolidColorsOnly { get; }
+    private IFillBrush _Top;
+    /// <summary>See <see cref="Left"/> for the setter's rationale.</summary>
+    public IFillBrush Top
+    {
+        get => _Top;
+        set { ThrowIfFrozen(); if (SetProperty(ref _Top, value ?? throw new ArgumentNullException(nameof(value)), UIBrushEquality.ForSlots<IFillBrush>())) { RecomputeIsSolidColorsOnly(); } }
+    }
+
+    private IFillBrush _Right;
+    /// <summary>See <see cref="Left"/> for the setter's rationale.</summary>
+    public IFillBrush Right
+    {
+        get => _Right;
+        set { ThrowIfFrozen(); if (SetProperty(ref _Right, value ?? throw new ArgumentNullException(nameof(value)), UIBrushEquality.ForSlots<IFillBrush>())) { RecomputeIsSolidColorsOnly(); } }
+    }
+
+    private IFillBrush _Bottom;
+    /// <summary>See <see cref="Left"/> for the setter's rationale.</summary>
+    public IFillBrush Bottom
+    {
+        get => _Bottom;
+        set { ThrowIfFrozen(); if (SetProperty(ref _Bottom, value ?? throw new ArgumentNullException(nameof(value)), UIBrushEquality.ForSlots<IFillBrush>())) { RecomputeIsSolidColorsOnly(); } }
+    }
+
+    /// <summary>Cached flag (ADR-0009, W3: was computed once in the constructor of the previous <see langword="readonly struct"/>, now
+    /// recomputed by <see cref="RecomputeIsSolidColorsOnly"/> whenever any side changes) preserving the fast path used by
+    /// <see cref="Draw(ElementDrawArgs, MGElement, Rectangle, Thickness)"/> and <see cref="Draw(ElementDrawArgs, MGElement, MGBoxShape, MGBoxGeometry)"/>.</summary>
+    private bool IsSolidColorsOnly { get; set; }
+
+    private void RecomputeIsSolidColorsOnly() => IsSolidColorsOnly = _Left is MGSolidFillBrush && _Top is MGSolidFillBrush && _Right is MGSolidFillBrush && _Bottom is MGSolidFillBrush;
+
+    /// <summary>False when any side cannot itself freeze (ADR-0009, W3).</summary>
+    public override bool CanFreeze => (_Left is not IUIFreezable l || l.CanFreeze) && (_Top is not IUIFreezable t || t.CanFreeze)
+        && (_Right is not IUIFreezable r || r.CanFreeze) && (_Bottom is not IUIFreezable b || b.CanFreeze);
+
+    /// <summary>Freezes every side, deduplicated by reference the same way <see cref="Update"/> is (ADR-0009, W3).</summary>
+    protected override void OnFreeze()
+    {
+        HashSet<IFillBrush> frozen = new(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+        foreach (var side in new[] { _Left, _Top, _Right, _Bottom })
+        {
+            if (side is IUIFreezable freezable && frozen.Add(side))
+            {
+                freezable.Freeze();
+            }
+        }
+    }
 
     /// <summary>Uses an <see cref="MGSolidFillBrush"/> from the given Colors for each side.</summary>
     public MGDockedBorderBrush(Color Left, Color Top, Color Right, Color Bottom)
     {
-        this.Left = new MGSolidFillBrush(Left);
-        this.Top = new MGSolidFillBrush(Top);
-        this.Right = new MGSolidFillBrush(Right);
-        this.Bottom = new MGSolidFillBrush(Bottom);
+        _Left = new MGSolidFillBrush(Left);
+        _Top = new MGSolidFillBrush(Top);
+        _Right = new MGSolidFillBrush(Right);
+        _Bottom = new MGSolidFillBrush(Bottom);
 
         IsSolidColorsOnly = true;
     }
 
     public MGDockedBorderBrush(IFillBrush Left, IFillBrush Top, IFillBrush Right, IFillBrush Bottom)
     {
-        this.Left = Left ?? throw new ArgumentNullException(nameof(Left));
-        this.Top = Top ?? throw new ArgumentNullException(nameof(Top));
-        this.Right = Right ?? throw new ArgumentNullException(nameof(Right));
-        this.Bottom = Bottom ?? throw new ArgumentNullException(nameof(Bottom));
+        _Left = Left ?? throw new ArgumentNullException(nameof(Left));
+        _Top = Top ?? throw new ArgumentNullException(nameof(Top));
+        _Right = Right ?? throw new ArgumentNullException(nameof(Right));
+        _Bottom = Bottom ?? throw new ArgumentNullException(nameof(Bottom));
 
-        IsSolidColorsOnly = Left is MGSolidFillBrush && Top is MGSolidFillBrush && Right is MGSolidFillBrush && Bottom is MGSolidFillBrush;
+        RecomputeIsSolidColorsOnly();
     }
 
     private static IEnumerable<T> AsEnum<T>(params T[] values) => values;
@@ -211,4 +263,13 @@ public readonly struct MGDockedBorderBrush : IBorderBrush
         Bottom?.Copy() ?? SolidFillBrushes.Transparent);
 
     public static explicit operator MGDockedBorderBrush(MGUniformBorderBrush uniform) => new(uniform.Brush, uniform.Brush, uniform.Brush, uniform.Brush);
+
+    /// <summary>Value equality (ADR-0009, W3): two docked border brushes are equal when all four sides are equal by value
+    /// (<see cref="UIBrushEquality.ValueEquals(IFillBrush, IFillBrush)"/>), regardless of frozen state or instance identity.</summary>
+    public bool ValueEquals(IBorderBrush other) => other is MGDockedBorderBrush d
+        && UIBrushEquality.ValueEquals(d.Left, Left) && UIBrushEquality.ValueEquals(d.Top, Top)
+        && UIBrushEquality.ValueEquals(d.Right, Right) && UIBrushEquality.ValueEquals(d.Bottom, Bottom);
+
+    public override bool Equals(object obj) => ValueEquals(obj as IBorderBrush);
+    public override int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
 }
