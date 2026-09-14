@@ -3282,6 +3282,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             this.ParentWindow = parentWindow;
             this.ElementType = elementType;
 
+            //  ADR-0009, W6: the animation manager only cancels a run when its OWNER WINDOW closes, not when the element is merely
+            //  detached from a container while its window stays open (Animations are window-scoped, not visual-tree-scoped) -- so the
+            //  border highlight host run needs its own detach signal. OnParentChanged fires synchronously on both edges, unlike Update
+            //  (which simply stops being called once detached), so this catches the detach edge SyncBorderHighlightRun's own per-frame
+            //  Update-driven re-evaluation cannot.
+            OnParentChanged += (sender, e) => SyncBorderHighlightRun();
+
             SelfOrParentWindow.WindowDataContextChanged += (sender, e) =>
             {
                 if (DataContextOverride == null)
@@ -3755,6 +3762,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             shouldDisplayFocusedState);
         VisualState = new(newPVS, newSVS);
         _animationSlot?.VisualStatesOrNull?.Refresh();
+        SyncBorderHighlightRun();
 
         ElementUpdateEventArgs UpdateEventArgs = new(this, UA);
 
@@ -3968,6 +3976,244 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     /// <summary>The per-element animation state, or null while the element has never animated.</summary>
     internal Animation.UIElementAnimationSlot AnimationSlotOrNull => _animationSlot;
+
+    #region Border Highlight Run
+    /// <summary>The name of the engine run <see cref="SyncBorderHighlightRun"/> hosts on <c>BorderBrush.Highlight.Progress</c> while this
+    /// element's effective border brush (below any animation) is an <see cref="MGHighlightBorderBrush"/> with
+    /// <see cref="MGHighlightBorderBrush.AutoStart"/> and <see cref="MGHighlightBorderBrush.IsEnabled"/> both true (ADR-0009, W6).</summary>
+    public const string BorderHighlightAnimationName = "BorderBrush.Highlight";
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Animation.UIAnimation _borderHighlightRun;
+
+    /// <summary>True once <see cref="SyncBorderHighlightRun"/> has disabled the run-owned clone because <see cref="MGHighlightBorderBrush.StopOnMouseOver"/>
+    /// or <see cref="MGHighlightBorderBrush.StopOnClick"/> fired (ADR-0009, W6): like the pre-W6 behaviour, this does not clear itself back on
+    /// mouse-out -- only <see cref="ResumeBorderHighlight"/> does.</summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _borderHighlightSuppressed;
+
+    /// <summary>Re-evaluates the host-owned highlight run for this element's border, once per frame from <see cref="Update"/> (ADR-0009, W6;
+    /// design pass in Docs/Tasks/animation-v4-tasks.md, task W6). Cheap, and allocation-free, for the overwhelming common element whose
+    /// effective border brush is not an <see cref="MGHighlightBorderBrush"/>: one <see cref="GetBorder"/> call and a couple of reads, no
+    /// subscription to maintain.<para/>
+    /// Reads the effective border brush BELOW any <c>Animation</c> contribution (<see cref="TryGetResolvedPilotValueExcluding{T}"/>) rather than
+    /// the current effective value, so a base swap made while a run is active (which an active Animation contribution would otherwise shadow,
+    /// see <see cref="MGBorder.OnBorderBrushChanged"/>'s doc) is still noticed every frame: replacing the base with a non-highlight brush cancels
+    /// the run and releases the contribution so the new base reappears. This run does not share a conflict key with a colour animation on
+    /// <c>BorderBrush</c> (see <see cref="HighlightRun"/>'s own doc for why); the two are refused, not swapped, if both are attempted at
+    /// once.</summary>
+    private void SyncBorderHighlightRun()
+    {
+        var border = GetBorder();
+        if (border == null)
+        {
+            return;
+        }
+
+        if (IsComponent)
+        {
+            //  This element is itself a sub-component of another element (e.g. an MGButton's own internal MGBorder,
+            //  where GetBorder() unconditionally returns "this" -- MGBorder.GetBorder() => this): the OWNER (ComponentParent)
+            //  is what an app or a colour animation addresses through the GetBorder() facade (RequireBorder(element) =
+            //  element.GetBorder() everywhere else in the engine, matching this design's Owner = outer element), and hosts the
+            //  run itself through its own Update -> SyncBorderHighlightRun call. Hosting it here too would start a second,
+            //  independent run on the same clone's slot that nothing here ever cancels together with the owner's.
+            return;
+        }
+
+        if (!IsWindow && Parent == null)
+        {
+            //  Detached (see this method's own doc): stop advancing but keep the pose -- the clone, if any, is left exactly where it
+            //  was, contribution untouched, and OnParentChanged fires again on re-attach to restart from there.
+            if (_borderHighlightRun is { IsActive: true } detachedRun)
+            {
+                detachedRun.Cancel();
+            }
+            _borderHighlightRun = null;
+            return;
+        }
+
+        var hasBase = TryGetResolvedPilotValueExcluding<IBorderBrush>(UIPilotProperty.BorderBrush, UIValueSlot.Whole, UIValueSourceKind.Animation, out var below);
+        if (!hasBase || below is not MGHighlightBorderBrush baseHighlight)
+        {
+            if (_borderHighlightRun is { IsActive: true } activeRun)
+            {
+                activeRun.Cancel();
+            }
+            _borderHighlightRun = null;
+            _borderHighlightSuppressed = false;
+
+            if (hasBase && border.BorderBrush is MGHighlightBorderBrush)
+            {
+                //  An orphaned clone from a torn-down run still shadows the (now non-highlight) base under Animation: release it so the
+                //  new base becomes effective (ACCEPTANCE 5: replacing the border brush by a uniform brush cancels the run).
+                ClearPilotSource(UIPilotProperty.BorderBrush, UIValueSlot.Whole, UIValueSourceKind.Animation);
+            }
+
+            return;
+        }
+
+        if (_borderHighlightRun is { IsActive: true } run)
+        {
+            //  Base configuration reaches the run-owned clone every frame, not just at Begin (ACCEPTANCE recheck, fix round 2): a base
+            //  swap to a different MGHighlightBorderBrush, or a live edit of an unfrozen base's own properties, must still be visible on
+            //  the clone that is actually drawn -- EnsureClone (BorderBrushHighlightProgressTarget) deliberately keeps reusing the same
+            //  clone instance across ticks once one exists, so nothing else re-reads the base's configuration onto it. AnimationProgress
+            //  and IsEnabled are excluded: both are run/suppression-owned state handled below, not base configuration. baseHighlight is
+            //  never the clone itself here (a clone is a Copy(), never ReferenceEquals to its base), so this never targets a frozen
+            //  instance's own setters.
+            if (border.BorderBrush is MGHighlightBorderBrush activeClone && !ReferenceEquals(activeClone, baseHighlight))
+            {
+                activeClone.CopyConfigurationFrom(baseHighlight);
+            }
+
+            if (!baseHighlight.IsEnabled)
+            {
+                //  IsEnabled = false on the (live, unfrozen) base while the run is active: stop and freeze the pose (ACCEPTANCE 1:
+                //  no run, highlight not drawn) -- disables the clone itself since that is what the brush's own Draw checks, so it
+                //  actually stops being drawn rather than just stop advancing. Unlike StopOnMouseOver/StopOnClick below, this is not
+                //  latched through _borderHighlightSuppressed: IsEnabled going back to true restarts it on its own next frame, no
+                //  ResumeBorderHighlight call needed, matching the pre-W6 Update() gate of "if (IsEnabled)".
+                if (border.BorderBrush is MGHighlightBorderBrush disabledClone)
+                {
+                    disabledClone.IsEnabled = false;
+                }
+                run.Cancel();
+                return;
+            }
+
+            //  StopOnMouseOver/StopOnClick: evaluated only while a run is active (no cost otherwise), against THIS element's own visual
+            //  state -- Target is obsolete. Disables the clone (not the shared/frozen base) and does not auto re-enable, matching the
+            //  pre-W6 behaviour; ResumeBorderHighlight is the only way back.
+            if (border.BorderBrush is MGHighlightBorderBrush clone && clone.IsEnabled &&
+                ((baseHighlight.StopOnMouseOver && VisualState.Secondary == SecondaryVisualState.Hovered) ||
+                 (baseHighlight.StopOnClick && VisualState.Secondary == SecondaryVisualState.Pressed)))
+            {
+                clone.IsEnabled = false;
+                _borderHighlightSuppressed = true;
+                run.Cancel();
+                return;
+            }
+
+            //  A live CycleDuration edit while the run is active (ACCEPTANCE 3): pre-W6 Update() recomputed CycleDuration every
+            //  frame, so a duration change applied on the next frame -- cancel and restart from the current progress with the new
+            //  duration rather than silently keeping the value the run was started with.
+            var expectedDuration = baseHighlight.CycleDuration > TimeSpan.Zero ? baseHighlight.CycleDuration : TimeSpan.FromSeconds(1.0);
+            if (run.Duration != expectedDuration)
+            {
+                var liveProgress = border.BorderBrush is MGHighlightBorderBrush liveClone ? liveClone.AnimationProgress : baseHighlight.AnimationProgress;
+                run.Cancel();
+                StartBorderHighlightRun(liveProgress, baseHighlight.CycleDuration);
+            }
+
+            return;
+        }
+
+        if (_borderHighlightSuppressed || !baseHighlight.AutoStart || !baseHighlight.IsEnabled)
+        {
+            return;
+        }
+
+        if (GetDesktop()?.Animations == null)
+        {
+            //  No desktop yet: retried next frame, once attached.
+            return;
+        }
+
+        var existingBrush = border.BorderBrush as MGHighlightBorderBrush;
+        if (existingBrush != null && !ReferenceEquals(existingBrush, baseHighlight))
+        {
+            //  A run-owned clone left over from an earlier run (a base IsEnabled toggle, StopOnMouseOver/StopOnClick suppression, or a
+            //  replaced run adopted per EnsureClone's own doc), about to be resumed on the same clone instance (StartBorderHighlightRun
+            //  below does not re-clone): sync its configuration from the current base first, same as the active-run branch above, so a
+            //  base swap or a live edit made while the run was stopped is not lost. Never touches baseHighlight itself (the very first
+            //  start, before any clone exists, has border.BorderBrush == baseHighlight, which may be frozen).
+            existingBrush.CopyConfigurationFrom(baseHighlight);
+
+            if (!existingBrush.IsEnabled)
+            {
+                //  Re-enable it so the resumed run is actually drawn again, since MGHighlightBorderBrush.Draw checks its own IsEnabled.
+                existingBrush.IsEnabled = true;
+            }
+        }
+
+        var startProgress = existingBrush?.AnimationProgress ?? baseHighlight.AnimationProgress;
+
+        if (border.BorderBrush is not MGHighlightBorderBrush && border.BorderBrush != null)
+        {
+            //  The effective (with-animation) border brush is neither empty nor a highlight brush while the true base (below the
+            //  animation) is one: a different animation already owns the Whole/Animation slot with a non-highlight effective value
+            //  (e.g. a colour animation on BorderBrush started before this base became a highlight brush -- HighlightRun's own doc,
+            //  ADR-0009). Starting the host run now would make BorderBrushHighlightProgressTarget's RequireCurrent throw the moment
+            //  UIAnimation.Begin reads the current value, since the effective brush would still not be a highlight one at that
+            //  point -- and that throw would come from inside this per-frame, caller-less call, taking down the whole desktop's
+            //  Update() rather than being refused back to an application Start call. So this direction of the same conflict is
+            //  refused silently instead: retried next frame, and actually starts once the other animation ends and releases the
+            //  slot (or is cancelled), matching "refused, not swapped" without a caller able to catch anything.
+            return;
+        }
+
+        StartBorderHighlightRun(startProgress, baseHighlight.CycleDuration);
+    }
+
+    private void StartBorderHighlightRun(double startProgress, TimeSpan cycleDuration)
+    {
+        var run = new HighlightRun
+        {
+            From = startProgress,
+            To = startProgress + 1.0,
+            Duration = cycleDuration > TimeSpan.Zero ? cycleDuration : TimeSpan.FromSeconds(1.0),
+            Easing = Animation.Easing.UIEasing.Linear,
+            Name = BorderHighlightAnimationName,
+            RepeatForever = true,
+            FillBehavior = Animation.UIAnimationFillBehavior.HoldEnd,
+            CancelBehavior = Animation.UIAnimationCancelBehavior.KeepCurrent,
+            InheritsBaseValue = false,
+        };
+        _borderHighlightRun = run;
+        Animations.Start(run);
+    }
+
+    /// <summary>Re-enables the run-owned clone and restarts the host's highlight run after <see cref="MGHighlightBorderBrush.StopOnMouseOver"/>
+    /// or <see cref="MGHighlightBorderBrush.StopOnClick"/> stopped it (ADR-0009, W6). A no-op while nothing is suppressed.</summary>
+    public void ResumeBorderHighlight()
+    {
+        if (!_borderHighlightSuppressed)
+        {
+            return;
+        }
+
+        _borderHighlightSuppressed = false;
+        if (GetBorder()?.BorderBrush is MGHighlightBorderBrush clone)
+        {
+            clone.IsEnabled = true;
+        }
+
+        SyncBorderHighlightRun();
+    }
+
+    /// <summary>The engine run behind the highlight border brush's <c>AnimationProgress</c> (ADR-0009, W6): linear 0..1 over the brush's
+    /// <see cref="MGHighlightBorderBrush.CycleDuration"/>, repeating forever.<para/>
+    /// Does NOT share the colour <c>BorderBrush</c> path's conflict key, despite both ultimately writing the same Whole/Animation slot
+    /// through a run-owned clone (a design considered and rejected -- see Docs/decisions/0009-animation-v4-freezable-brushes.md): the
+    /// pre-existing (W5, out of this slice's perimeter) <c>UIColorAnimationTargets.BorderBrushTarget.GetValue</c> and this run's own
+    /// <c>BorderBrushHighlightProgressTarget.GetValue</c> both read the CURRENT effective border brush at <c>OnStarting</c>, not the value
+    /// below the animation; the manager's one-animation-per-(owner,path) rule cancels a same-key predecessor with
+    /// <see cref="Animation.UIAnimationCancelBehavior.KeepCurrent"/> (its clone stays as the effective value, not restored), so sharing a
+    /// key would make whichever animation starts second immediately fail its own strict type check against the OTHER one's leftover clone
+    /// -- in both directions. Since a uniform-over-solid border and an <see cref="MGHighlightBorderBrush"/> base are mutually exclusive
+    /// anyway (an element's Whole slot base is one or the other, never both), an application actually running a colour animation on
+    /// <c>BorderBrush</c> while this run is active is refused with the type check's existing, already-clear exception rather than silently
+    /// swapped -- there is no in-perimeter way to make that swap safe. A forced restore (element detached, window closed,
+    /// <see cref="Animation.UIAnimationCollection.Clear"/>) keeps the current progress, like <c>DurationRun</c>/<c>TextRevealRun</c>
+    /// (<see cref="MGProgressButton"/>, <see cref="MGTextBlock"/>) do for their own engine-owned runs.</summary>
+    private sealed class HighlightRun : Animation.UIPropertyAnimation<double>
+    {
+        public HighlightRun() : base(Animation.Targets.UIBuiltInAnimationTargets.Paths.BorderBrushHighlightProgress) { }
+
+        protected internal override void OnRestoreBaseValue() { }
+    }
+    #endregion Border Highlight Run
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Animation.UIRenderTransform _renderTransform;

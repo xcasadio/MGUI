@@ -241,7 +241,8 @@ namespace MGUI.Samples.Features
             Window.GetElementByName<MGButton>("V3ReplayText").AddCommandHandler((btn, e) => typewriter.TextProgress = 0);
 
             MGBorder highlight = Window.GetElementByName<MGBorder>("V3Highlight");
-            highlight.BorderBrush = new MGHighlightBorderBrush(highlight.BorderBrush, new Color(0xF1, 0xC4, 0x0F), HighlightAnimation.Progress, highlight);
+            //  W6: no target argument -- the engine hosts the run on this MGBorder itself once it is the effective border brush.
+            highlight.BorderBrush = new MGHighlightBorderBrush(highlight.BorderBrush, new Color(0xF1, 0xC4, 0x0F), HighlightAnimation.Progress);
             Window.GetElementByName<MGSlider>("V3TimeScale").ValueChanged += (sender, e) => Desktop.Animations.Clock.TimeScale = e.NewValue;
         }
 

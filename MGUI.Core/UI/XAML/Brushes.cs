@@ -551,11 +551,16 @@ public class HighlightBorderBrush : BorderBrush
     public bool? StopOnMouseOver { get; set; }
     public bool? StopOnClick { get; set; }
 
+    /// <summary>W6 (ADR-0009): see <see cref="MGHighlightBorderBrush.AutoStart"/>.</summary>
+    public bool? AutoStart { get; set; }
+
     public override IBorderBrush ToBorderBrush(MGDesktop Desktop, MGElement Element)
     {
         var ActualElement = Element is MGBorder && Element.IsComponent ? Element.ComponentParent : Element;
-        var Brush = new MGHighlightBorderBrush(Underlay?.ToBorderBrush(Desktop, ActualElement), HighlightColor?.ToXNAColor() ?? XNAColor.Yellow, 
+#pragma warning disable CS0618 // Target is obsolete since W6 (ADR-0009); kept here only so old markup keeps compiling, ignored by the engine.
+        var Brush = new MGHighlightBorderBrush(Underlay?.ToBorderBrush(Desktop, ActualElement), HighlightColor?.ToXNAColor() ?? XNAColor.Yellow,
             AnimationType ?? HighlightAnimation.Pulse, ActualElement);
+#pragma warning restore CS0618
 
         if (AnimationProgress.HasValue)
         {
@@ -630,6 +635,11 @@ public class HighlightBorderBrush : BorderBrush
         if (StopOnClick.HasValue)
         {
             Brush.StopOnClick = StopOnClick.Value;
+        }
+
+        if (AutoStart.HasValue)
+        {
+            Brush.AutoStart = AutoStart.Value;
         }
 
         return Brush;

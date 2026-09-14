@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Styling;
 using MonoGame.Extended;
 
@@ -34,6 +35,11 @@ public static class UIBuiltInAnimationTargets
         /// <summary>The typewriter reveal progress of an <see cref="MGTextBlock"/> (U10): what <see cref="MGTextBlock.TextCharactersPerSecond"/> drives;
         /// any other element is refused.</summary>
         public const string TextBlockTextProgress = "TextBlock.TextProgress";
+        /// <summary>The <see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush.AnimationProgress"/> of the effective border brush
+        /// (W6, ADR-0009): what <see cref="MGElement"/>'s host run drives automatically (<see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush.AutoStart"/>)
+        /// or an application drives itself when it is false. Any element whose effective border brush (below the animation) is not an
+        /// <see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush"/> is refused.</summary>
+        public const string BorderBrushHighlightProgress = "BorderBrush.Highlight.Progress";
     }
 
     private static bool _Registered;
@@ -61,6 +67,7 @@ public static class UIBuiltInAnimationTargets
             UIAnimationTargets.Register(new MinHeightTarget());
             UIAnimationTargets.Register(new ProgressButtonValueTarget());
             UIAnimationTargets.Register(new TextBlockTextProgressTarget());
+            UIAnimationTargets.Register(new BorderBrushHighlightProgressTarget());
             UIColorAnimationTargets.RegisterAll();
             UIExtraAnimationTargets.RegisterAll();
         }
@@ -200,6 +207,83 @@ public static class UIBuiltInAnimationTargets
         private static MGTextBlock Require(MGElement element)
             => element as MGTextBlock ?? throw new InvalidOperationException(
                 $"'{Paths.TextBlockTextProgress}' animates the text reveal of an {nameof(MGTextBlock)}; {element.GetType().Name} has none.");
+    }
+
+    /// <summary><c>BorderBrush.Highlight.Progress</c> (W6, ADR-0009): a plain target over the <c>AnimationProgress</c> of the run-owned clone of
+    /// an effective <see cref="MGHighlightBorderBrush"/> border brush (the same run-owned-clone idea as the W5 brush targets, but the animated
+    /// value here -- a <see cref="double"/> -- is a field of the clone rather than the clone itself, so this does not implement
+    /// <see cref="IUIBrushAnimationTarget{T}"/>: that interface's <c>BeginAnimatedValue</c>/<c>ApplyAnimatedValue</c>/<c>EndAnimatedValue</c> are
+    /// generic over the animated value being the brush, which does not fit). <see cref="EnsureClone"/> plays the same role as
+    /// <c>BeginAnimatedValue</c> instead, called lazily from <see cref="SetValue"/> on its first tick (idempotent afterwards: once the clone is
+    /// the effective value, later calls just reuse it, so a running animation never allocates or writes the store past its first tick).<para/>
+    /// Not observable and not <see cref="IUIStoreBackedAnimationTarget{T}"/>-implementing (a transition on this path would compete with the
+    /// host's own run the same way <c>ProgressButton.Value</c> refuses one), but reports <see cref="IsStoreBacked"/> true so a completed
+    /// <see cref="UIAnimationFillBehavior.HoldEnd"/> run holds its contribution and <see cref="RestoreBaseValue"/> is what releases it (clearing
+    /// the <c>Animation</c> contribution on <see cref="UIPilotProperty.BorderBrush"/> lets the true base reappear, exactly like the store-backed
+    /// targets' <c>ClearContribution</c>).<para/>
+    /// Refused (see <see cref="RequireCurrent"/>/<see cref="EnsureClone"/>) when the element's effective border brush is not (or, at the point
+    /// <see cref="EnsureClone"/> needs a base to clone, was not below the animation) an <see cref="MGHighlightBorderBrush"/>.<para/>
+    /// Does not share a conflict key with the colour <c>BorderBrush</c> path: both ultimately write the same Whole/Animation slot through a
+    /// run-owned clone, but the manager's one-animation-per-(owner,path) rule (<see cref="UIAnimationManager.Start"/>) cancels a same-key
+    /// predecessor with <see cref="UIAnimationCancelBehavior.KeepCurrent"/> (its clone stays as the effective value, not restored) -- which
+    /// would make whichever of the two starts second fail its own strict type check (this target's <see cref="RequireCurrent"/>, or the
+    /// colour target's own) against the OTHER one's leftover clone. A colour animation on <c>BorderBrush</c> while this element's own highlight
+    /// run is active is therefore refused (that existing type check's own exception), not swapped -- see <see cref="MGElement.HighlightRun"/>'s
+    /// doc and Docs/decisions/0009-animation-v4-freezable-brushes.md.</summary>
+    private sealed class BorderBrushHighlightProgressTarget : IUIAnimationTarget<double>
+    {
+        public string Path => Paths.BorderBrushHighlightProgress;
+        public bool IsStoreBacked => true;
+        public double GetValue(MGElement element) => RequireCurrent(element).AnimationProgress;
+        public void SetValue(MGElement element, double value, string animationName) => EnsureClone(element, animationName).AnimationProgress = value;
+        public void RestoreBaseValue(MGElement element, double baseValue)
+            => element.ClearPilotSource(UIPilotProperty.BorderBrush, UIValueSlot.Whole, UIValueSourceKind.Animation);
+
+        private static MGHighlightBorderBrush RequireCurrent(MGElement element)
+        {
+            var current = element.GetBorder()?.BorderBrush;
+            return current as MGHighlightBorderBrush ?? throw new InvalidOperationException(
+                $"'{Paths.BorderBrushHighlightProgress}' animates {nameof(MGHighlightBorderBrush)}.{nameof(MGHighlightBorderBrush.AnimationProgress)}; " +
+                $"the effective border brush of {element.GetType().Name} is {(current == null ? "empty" : "a " + current.GetType().Name)}.");
+        }
+
+        /// <summary>Returns the run-owned clone the host's writes land on, creating it (a <c>Copy()</c> of the highlight brush found below the
+        /// <c>Animation</c> contribution) the first time this element is written on this path, and reusing whatever the Whole slot already
+        /// holds afterwards -- either this target's own clone from a previous tick, or one a replaced run left behind (ADR-0009, W5 pattern:
+        /// nothing recoverable below the animation then, so the existing effective clone is adopted instead of building a fresh one).</summary>
+        private static MGHighlightBorderBrush EnsureClone(MGElement element, string animationName)
+        {
+            var border = element.GetBorder() ?? throw new InvalidOperationException(
+                $"'{Paths.BorderBrushHighlightProgress}' needs a border: {element.GetType().Name} exposes none ({nameof(MGElement.GetBorder)} is null).");
+
+            var current = border.BorderBrush;
+            var hasBelow = element.TryGetResolvedPilotValueExcluding<IBorderBrush>(UIPilotProperty.BorderBrush, UIValueSlot.Whole, UIValueSourceKind.Animation, out var below);
+
+            if (hasBelow && !ReferenceEquals(current, below))
+            {
+                // An Animation contribution is already the effective value: this target's own clone from a previous tick.
+                if (current is MGHighlightBorderBrush existingClone)
+                {
+                    return existingClone;
+                }
+            }
+            else if (!hasBelow && current is MGHighlightBorderBrush orphanClone)
+            {
+                // Nothing below: a replaced run's clone is still the only thing recorded (W5 pattern) -- adopt it.
+                return orphanClone;
+            }
+
+            if (hasBelow && below is MGHighlightBorderBrush baseHighlight)
+            {
+                var clone = (MGHighlightBorderBrush)baseHighlight.Copy();
+                element.SetBorderBrushTagged(clone, AnimationSource(UIPilotProperty.BorderBrush, animationName));
+                return clone;
+            }
+
+            throw new InvalidOperationException(
+                $"'{Paths.BorderBrushHighlightProgress}' animates {nameof(MGHighlightBorderBrush)}.{nameof(MGHighlightBorderBrush.AnimationProgress)}; " +
+                $"the effective border brush of {element.GetType().Name} is {(current == null ? "empty" : "a " + current.GetType().Name)}.");
+        }
     }
 
     private sealed class MarginTarget : IUIObservableAnimationTarget<Thickness>, IUIStoreBackedAnimationTarget<Thickness>

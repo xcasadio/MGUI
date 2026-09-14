@@ -75,8 +75,12 @@ public class FillBrushLifecycleTests
     }
 
     [Fact]
-    public void BorderedFillBrush_Update_AdvancesHighlightAnimation()
+    public void BorderedFillBrush_Update_ForwardsToHighlightBorderBrush_ButNoLongerAdvancesIt()
     {
+        //  ADR-0009, W6: MGHighlightBorderBrush.Update only forwards to its Underlay now -- AnimationProgress is written by an
+        //  MGElement-hosted engine run (SyncBorderHighlightRun) on the element's own run-owned clone, never by Update() itself.
+        //  A highlight nested inside an MGBorderedFillBrush (as here) is not the element's own effective BorderBrush pilot value,
+        //  so no host ever finds it either: Update() forwarding through it is a no-op for AnimationProgress, by design.
         MGHighlightBorderBrush highlight = new(MGUniformBorderBrush.Black, Color.Yellow, HighlightAnimation.Pulse);
         MGBorderedFillBrush brush = new(new Thickness(2), highlight, SolidFillBrushes.White, false);
         TimeSpan pulseCycle = highlight.PulseFadeDuration + highlight.PulseDelay;
@@ -85,7 +89,7 @@ public class FillBrushLifecycleTests
         Assert.Equal(0.0, highlight.AnimationProgress);
         brush.Update(new UpdateBaseArgs(quarterCycle, quarterCycle, default, default));
 
-        Assert.Equal(0.25, highlight.AnimationProgress, 6);
+        Assert.Equal(0.0, highlight.AnimationProgress, 6);
     }
 
     [Fact]
@@ -320,8 +324,16 @@ public class FillBrushLifecycleTests
     }
 
     [Fact]
-    public void Border_WithHighlightInsideUniformBorderBrush_AnimatesEachFrame()
+    public void Border_WithHighlightInsideUniformBorderBrush_NoLongerAnimatesOnItsOwn()
     {
+        //  ADR-0009, W6: the engine run that advances AnimationProgress is hosted by the MGElement whose OWN effective
+        //  BorderBrush pilot value is the MGHighlightBorderBrush (SyncBorderHighlightRun); this element's own BorderBrush is an
+        //  MGUniformBorderBrush wrapping a fill brush that happens to nest a highlight brush several levels down (a fill-brush
+        //  composition, not the pilot value), so no host ever finds it. Update() still forwards through the whole tree (see
+        //  Element_Update_TicksBackgroundOverlayAndBorderBrushes and BorderedFillBrush_Update_ForwardsToHighlightBorderBrush_ButNoLongerAdvancesIt),
+        //  it just no longer advances anything by itself: a nested highlight like this one only moves if application code writes
+        //  its AnimationProgress directly (it cannot be reached through the "BorderBrush.Highlight.Progress" animation target
+        //  either, which also requires the highlight to be the element's own direct BorderBrush).
         Harness harness = Harness.Create();
         MGHighlightBorderBrush highlight = new(MGUniformBorderBrush.Black, Color.Yellow, HighlightAnimation.Pulse);
         MGBorderedFillBrush bordered = new(new Thickness(1), highlight, SolidFillBrushes.White, false);
@@ -329,11 +341,10 @@ public class FillBrushLifecycleTests
         MGBorder element = new(harness.Window, new Thickness(2), (IFillBrush)bordered);
         harness.Show(element);
 
-        double afterWarmUp = highlight.AnimationProgress;
+        harness.Desktop.Update();
         harness.Desktop.Update();
 
-        Assert.True(afterWarmUp > 0.0, "the highlight must already have advanced during the warm-up frames");
-        Assert.True(highlight.AnimationProgress > afterWarmUp, "each frame must advance the highlight animation");
+        Assert.Equal(0.0, highlight.AnimationProgress);
     }
 
     [Fact]
