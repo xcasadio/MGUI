@@ -22,4 +22,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0006 | Animation system: render-only transform, desktop-owned engine and value model | Accepted | 2026-09-12 |
 | ADR-0007 | Animation V2: composition, keyframes, named visual states and style integration | Accepted | 2026-09-12 |
 | ADR-0008 | Animation V3: editor readiness, remaining pilot limits and ad hoc migrations | Accepted | 2026-09-13 |
-| ADR-0009 | Animation V4: brushes as freezable, animatable data objects | Proposed | 2026-09-14 |
+| ADR-0009 | Animation V4: brushes as freezable, animatable data objects | Accepted | 2026-09-14 |

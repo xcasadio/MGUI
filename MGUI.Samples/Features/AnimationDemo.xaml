@@ -1,269 +1,400 @@
 <Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
-        Left="80" Top="60" Width="1500" Height="600"
-        TitleText="SCN-ANIM-001 / SCN-ANIM-002 / SCN-ANIM-003 Animation Demo" Padding="12">
-    <!-- V2 (SCN-ANIM-002): every Button of this window gets a hover-scale transition from an implicit style -->
+        Left="440" Top="20" MinHeight="0" Width="600" Height="800" TitleText="Animation" Padding="10">
     <Window.Styles>
-        <Style TargetType="Button">
-            <Style.Transitions>
-                <Transition Property="RenderScale" Duration="0.1" Easing="CubicOut" />
-            </Style.Transitions>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="Expander">
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="Background" Value="White * 0.1" />
         </Style>
     </Window.Styles>
-    <DockPanel>
-        <Border Dock="Top" Padding="10" Margin="0,0,0,10" Background="#2B3440" CornerRadius="6">
-            <StackPanel Spacing="6">
-                <TextBlock Text="Animation system V1 + V2" FontSize="20" IsBold="True" Foreground="White" />
-                <TextBlock Text="Left: V1 (transitions, explicit animations, animated margin, popup, clock). Right: V2 (storyboard, fluent sequence, keyframes, named visual states with Checked, style transitions, theme timings, ProgressButton on the engine)."
-                           FontSize="12" Foreground="#C9D2DC" WrapText="True" />
+
+    <ScrollViewer Name="RootScrollViewer" VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Animation:" HorizontalAlignment="Center" />
+            <Separator/>
+            <TextBlock>
+                MGUI's animation engine drives [c=Turquoise][i]transitions[/i][/c] (automatic interpolation of every write to a property),
+                [c=Turquoise][i]explicit animations[/i][/c] started from code, [c=Turquoise][i]storyboards[/i][/c] and
+                [c=Turquoise][i]keyframes[/i][/c], and animatable [c=Turquoise][i]brushes[/i][/c] -- all driven by one desktop clock.
+                Every section below explains one capability and demonstrates it live.
+            </TextBlock>
+            <Separator/>
+
+            <!-- 1. Transitions -->
+            <TextBlock StyleNames="Header1" Text="1. Transitions" />
+            <TextBlock>
+                A [c=Turquoise][i]Transition[/i][/c] interpolates every write to its [c=Turquoise][i]Property[/i][/c] automatically:
+                [c=Turquoise][i]Duration[/i][/c], [c=Turquoise][i]Easing[/i][/c] (a name or a CSS [c=Turquoise][i]cubic-bezier(x1,y1,x2,y2)[/i][/c]
+                literal) and an optional [c=Turquoise][i]Delay[/i][/c] before it starts. A write while the transition is still running
+                retargets it from its current animated value, never from a jump.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <Button Name="TransitionsHoverButton" Content="Hover me" MinHeight="36" RenderScale="1.08" Background="#3D6C9E" HorizontalAlignment="Left">
+                    <Button.RenderTransform>
+                        <RenderTransform Origin="0.5,0.5" />
+                    </Button.RenderTransform>
+                    <Button.Transitions>
+                        <Transition Property="RenderScale" Duration="0.12" Easing="CubicOut" />
+                        <Transition Property="Background" Duration="0.4" Easing="cubic-bezier(0.42,0,0.58,1)" Delay="0.05" />
+                    </Button.Transitions>
+                </Button>
+                <Button Name="TransitionsRetargetButton" Content="Cycle background (retargets mid-run)" MinHeight="30" HorizontalAlignment="Left" />
             </StackPanel>
-        </Border>
+            <Separator/>
 
-        <StackPanel Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
-            <Button Name="PauseButton" Content="Pause clock" />
-            <Button Name="HalfSpeedButton" Content="Time scale x0.5" />
-            <Button Name="NormalSpeedButton" Content="Time scale x1" />
-            <TextBlock Name="ActiveCountText" Text="Active animations: 0" VerticalAlignment="Center" Margin="12,0,0,0" />
-        </StackPanel>
+            <!-- 2. Explicit animations and the fluent API -->
+            <TextBlock StyleNames="Header1" Text="2. Explicit animations and the fluent API" />
+            <TextBlock>
+                [c=Turquoise][i]element.Animate(path, from, to, seconds)[/i][/c] builds and starts a [c=Turquoise][i]UIPropertyAnimation[/i][/c];
+                [c=Turquoise][i].Ease(...)[/i][/c], [c=Turquoise][i].AutoReverse()[/i][/c], [c=Turquoise][i].Repeat(n)[/i][/c] and
+                [c=Turquoise][i].Then(...)[/i][/c]/[c=Turquoise][i].Wait(...)[/i][/c] configure it or chain a sequence. Only one animation can
+                run per (element, path): a new one cancels the previous with its [c=Turquoise][i]CancelBehavior[/i][/c]; a completed run keeps
+                its [c=Turquoise][i]FillBehavior[/i][/c] (hold the end value, or restore the base).
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="FluentFadeButton" Content="Fade" />
+                    <Button Name="FluentBounceButton" Content="Bounce" />
+                    <Button Name="FluentSequenceButton" Content="Sequence" />
+                    <Button Name="FluentCancelButton" Content="Cancel" />
+                </StackPanel>
+                <Border Name="FluentTarget" Width="120" Height="50" Background="#C0392B" CornerRadius="8" HorizontalAlignment="Left">
+                    <Border.RenderTransform>
+                        <RenderTransform Origin="0.5,0.5" />
+                    </Border.RenderTransform>
+                </Border>
+            </StackPanel>
+            <Separator/>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid ColumnLengths="*,*,*" ColumnSpacing="12">
-            <!-- V1 -->
-            <StackPanel GridColumn="0" Spacing="10">
-                <Grid ColumnLengths="*,*" ColumnSpacing="10">
-                    <!-- Hover and press: the state-driven scale and the background transition, declared in XAML -->
-                    <Border GridColumn="0" Padding="10" Background="#1F2933" CornerRadius="6">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Hover / press transitions (XAML)" IsBold="True" Foreground="White" />
-                            <Button Name="HoverButton" Content="Hover me" MinHeight="36" RenderScale="1.06" Background="#3D6C9E">
-                                <Button.RenderTransform>
-                                    <RenderTransform Origin="0.5,0.5" />
-                                </Button.RenderTransform>
-                                <Button.Transitions>
-                                    <Transition Property="RenderScale" Duration="0.12" Easing="CubicOut" />
-                                    <Transition Property="Background" Duration="0.2" Easing="QuadOut" />
-                                </Button.Transitions>
-                            </Button>
-                            <Button Name="ColorButton" Content="Cycle background" MinHeight="36" />
-                        </StackPanel>
+            <!-- 3. Render transform and state scale -->
+            <TextBlock StyleNames="Header1" Text="3. Render transform and state scale" />
+            <TextBlock>
+                [c=Turquoise][i]RenderTransform[/i][/c] carries [c=Turquoise][i]Translation[/i][/c], [c=Turquoise][i]Scale[/i][/c],
+                [c=Turquoise][i]Rotation[/i][/c] (degrees) and an [c=Turquoise][i]Origin[/i][/c] (relative to the element's own bounds,
+                [c=LightBlue][s=Blue]0.5,0.5[/s][/c] is the centre); it never affects layout. [c=Turquoise][i]RenderScale[/i][/c] is a
+                separate, state-driven scale (hover/press) always applied around the element's centre regardless of [c=Turquoise][i]Origin[/i][/c].
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <Border Name="TransformTarget" Width="80" Height="50" Background="#8E44AD" CornerRadius="8" HorizontalAlignment="Left">
+                    <Border.RenderTransform>
+                        <RenderTransform Origin="0.5,0.5" />
+                    </Border.RenderTransform>
+                </Border>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Rotation" VerticalAlignment="Center" MinWidth="55" />
+                    <Slider Name="TransformRotationSlider" Minimum="0" Maximum="360" Value="0" Width="160" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Scale" VerticalAlignment="Center" MinWidth="55" />
+                    <Slider Name="TransformScaleSlider" Minimum="0.5" Maximum="2" Value="1" Width="160" />
+                </StackPanel>
+                <Button Name="TransformHoverButton" Content="Hover me (RenderScale)" MinHeight="32" RenderScale="1.1" HorizontalAlignment="Left" />
+            </StackPanel>
+            <Separator/>
+
+            <!-- 4. Clock -->
+            <TextBlock StyleNames="Header1" Text="4. Clock" />
+            <TextBlock>
+                [c=Turquoise][i]Desktop.Animations.Clock[/i][/c] exposes [c=Turquoise][i]IsPaused[/i][/c] and [c=Turquoise][i]TimeScale[/i][/c];
+                every transition, explicit animation and engine-driven run (highlight, typewriter, [c=Turquoise][i]ProgressButton[/i][/c])
+                advances through it, so pausing or slowing the clock affects all of them at once.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <ToggleButton Name="ClockPauseToggle" Content="Pause clock" />
+                    <TextBlock Name="ClockActiveCountText" Text="Active animations: 0" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="TimeScale" VerticalAlignment="Center" MinWidth="65" />
+                    <Slider Name="ClockTimeScaleSlider" Minimum="0.25" Maximum="3" Value="1" Width="160" />
+                </StackPanel>
+            </StackPanel>
+            <Separator/>
+
+            <!-- 5. Composition -->
+            <TextBlock StyleNames="Header1" Text="5. Composition" />
+            <TextBlock>
+                A [c=Turquoise][i]UIStoryboard[/i][/c] starts every child at once, in parallel; a [c=Turquoise][i]UISequenceAnimation[/i][/c]
+                (or [c=Turquoise][i].Then(...)[/i][/c]) starts each child where the previous one ends, with a [c=Turquoise][i]UIDelayAnimation[/i][/c]
+                (or [c=Turquoise][i].Wait(...)[/i][/c]) as a pause with no target. A child can be preset to run on a different element than the
+                one the composite is started on.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Name="CompositionTargetA" Width="70" Height="50" Background="#16A085" CornerRadius="6">
+                        <Border.RenderTransform>
+                            <RenderTransform Origin="0.5,0.5" />
+                        </Border.RenderTransform>
                     </Border>
-
-                    <!-- Explicit animations from code -->
-                    <Border GridColumn="1" Padding="10" Background="#1F2933" CornerRadius="6">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Explicit animations (code)" IsBold="True" Foreground="White" />
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Button Name="FadeButton" Content="Fade" />
-                                <Button Name="SlideButton" Content="Slide" />
-                                <Button Name="SpinButton" Content="Spin" />
-                                <Button Name="PulseButton" Content="Pulse" />
-                            </StackPanel>
-                            <Border Name="Target" Width="120" Height="60" Background="#C0392B" CornerRadius="8" HorizontalAlignment="Left">
-                                <TextBlock Text="target" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
-                            </Border>
-                        </StackPanel>
+                    <Border Name="CompositionTargetB" Width="70" Height="50" Background="#2980B9" CornerRadius="6">
+                        <Border.RenderTransform>
+                            <RenderTransform Origin="0.5,0.5" />
+                        </Border.RenderTransform>
                     </Border>
-                </Grid>
-
-                <!-- Layout pilot: an animated margin re-lays out the row every frame -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Layout pilot (Margin, re-layout every tick)" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button Name="MarginButton" Content="Animate margin" />
-                            <Border Name="MarginTarget" Width="80" Height="28" Background="#27AE60" CornerRadius="4" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Popup opening: opacity + scale from the centre -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Popup opening (opacity + scale from the centre)" IsBold="True" Foreground="White" />
-                        <Button Name="PopupButton" Content="Open popup" />
-                    </StackPanel>
-                </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="CompositionStoryboardButton" Content="Play storyboard" />
+                    <Button Name="CompositionSequenceButton" Content="Play sequence" />
+                </StackPanel>
             </StackPanel>
+            <Separator/>
 
-            <!-- V2 -->
-            <StackPanel GridColumn="1" Spacing="10">
-                <!-- Composition: a storyboard (parallel), a fluent sequence, a keyframe pop -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Composition (storyboard, fluent sequence, keyframes)" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button Name="StoryboardButton" Content="Storyboard" />
-                            <Button Name="SequenceButton" Content="Sequence" />
-                            <Button Name="PopButton" Content="Keyframe pop" />
-                        </StackPanel>
-                        <Border Name="V2Target" Width="120" Height="60" Background="#8E44AD" CornerRadius="8" HorizontalAlignment="Left">
-                            <Border.RenderTransform>
-                                <RenderTransform Origin="0.5,0.5" />
-                            </Border.RenderTransform>
-                            <TextBlock Text="v2 target" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
-                        </Border>
-                    </StackPanel>
-                </Border>
-
-                <!-- Named visual states declared in XAML, Checked on a toggle, interpolated by transitions -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Named visual states (Hover, Pressed, Checked) with transitions" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <ToggleButton Name="StateToggle" Content="Check me" MinWidth="120" MinHeight="36">
-                                <ToggleButton.RenderTransform>
-                                    <RenderTransform Origin="0.5,0.5" />
-                                </ToggleButton.RenderTransform>
-                                <ToggleButton.VisualStates>
-                                    <VisualStateDefinition Name="Hover">
-                                        <Setter Property="RenderTransform.Scale" Value="1.05" />
-                                    </VisualStateDefinition>
-                                    <VisualStateDefinition Name="Pressed">
-                                        <Setter Property="RenderTransform.Scale" Value="0.96" />
-                                    </VisualStateDefinition>
-                                    <VisualStateDefinition Name="Checked">
-                                        <Setter Property="Background" Value="#27AE60" />
-                                        <Setter Property="RenderTransform.Scale" Value="1.0" />
-                                    </VisualStateDefinition>
-                                </ToggleButton.VisualStates>
-                                <ToggleButton.Transitions>
-                                    <Transition Property="RenderTransform.Scale" Duration="0.1" Easing="CubicOut" />
-                                    <Transition Property="Background" Duration="0.15" Easing="QuadOut" />
-                                </ToggleButton.Transitions>
-                            </ToggleButton>
-                            <TextBlock Name="StateText" Text="state: none" VerticalAlignment="Center" Foreground="#C9D2DC" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Theme timings and the ProgressButton on the engine -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Theme timings (RenderScale + overlay fade on every button) and ProgressButton.Duration on the engine" IsBold="True" Foreground="White" WrapText="True" />
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Button Name="ThemeAnimationButton" Content="Theme animation: off" MinWidth="180" />
-                            <ProgressButton Name="EngineProgress" Content="Click: 3 s on the engine" MinWidth="200" MinHeight="36" Duration="0:0:3" ProgressBarForeground="#2980B9" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+            <!-- 6. Keyframes and clip -->
+            <TextBlock StyleNames="Header1" Text="6. Keyframes and clip" />
+            <TextBlock>
+                A [c=Turquoise][i]UIKeyFrameTrack[/i][/c] holds keys sorted by offset in [c=LightBlue][s=Blue]0..1[/s][/c], each with its own
+                easing for the segment ending on it. [c=Turquoise][i]UIKeyFrameClipSerializer[/i][/c] serialises a whole storyboard of
+                keyframe tracks for one element as JSON, shown below.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Name="KeyframesPopButton" Content="Play keyframes" />
+                    <Border Name="KeyframesTarget" Width="70" Height="50" Background="#E67E22" CornerRadius="6">
+                        <Border.RenderTransform>
+                            <RenderTransform Origin="0.5,0.5" />
+                        </Border.RenderTransform>
+                    </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Name="ClipPlayButton" Content="Load clip" />
+                    <Border Name="ClipTarget" Width="90" Height="50" Background="#000000" CornerRadius="6" Opacity="0">
+                        <Border.RenderTransform>
+                            <RenderTransform Origin="0.5,0.5" />
+                        </Border.RenderTransform>
+                    </Border>
+                </StackPanel>
+                <TextBox Name="ClipJsonText" IsReadonly="True" AcceptsReturn="True" MinHeight="60" WrapText="True" FontSize="9" />
             </StackPanel>
+            <Separator/>
 
-            <!-- V3 (SCN-ANIM-003): Bezier easings in XAML, OverridesLocalValue, toggle Checked slot, keyframe clip JSON, preview+Seek, storyboard save/load, clock-driven typewriter and highlight brush -->
-            <StackPanel GridColumn="2" Spacing="10">
-                <TextBlock Text="Animation system V3" FontSize="16" IsBold="True" Foreground="White" />
-
-                <!-- Bezier easing literal on a XAML Transition -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Bezier easing (XAML literal, back curve)" IsBold="True" Foreground="White" />
-                        <Button Name="V3BezierButton" Content="Slide (bezier)" MinHeight="36">
-                            <Button.Transitions>
-                                <Transition Property="RenderTransform.Translation" Duration="0.5" Easing="cubic-bezier(0.68,-0.55,0.27,1.55)" />
-                            </Button.Transitions>
+            <!-- 7. Named visual states -->
+            <TextBlock StyleNames="Header1" Text="7. Named visual states" />
+            <TextBlock>
+                An element's [c=Turquoise][i]VisualStates[/i][/c] declare setters per state name ([c=Turquoise][i]Hover[/i][/c],
+                [c=Turquoise][i]Pressed[/i][/c], [c=Turquoise][i]Checked[/i][/c]...); a [c=Turquoise][i]Transition[/i][/c] on the same path
+                interpolates the change. By default a state's setter (precedence 70) loses to a local value (90);
+                [c=Turquoise][i]OverridesLocalValue[/i][/c] raises it to precedence 95, above local values but still below a running
+                animation. A toggle's [c=Turquoise][i]CheckedBackgroundBrush[/i][/c] is a real, code-only slot distinct from the theme's
+                [c=LightBlue][s=Blue]Selected[/s][/c] look.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <ToggleButton Name="StatesToggle" Content="Hover, press or check me" MinWidth="170" MinHeight="36" HorizontalAlignment="Left">
+                    <ToggleButton.RenderTransform>
+                        <RenderTransform Origin="0.5,0.5" />
+                    </ToggleButton.RenderTransform>
+                    <ToggleButton.VisualStates>
+                        <VisualStateDefinition Name="Hover">
+                            <Setter Property="RenderTransform.Scale" Value="1.05" />
+                        </VisualStateDefinition>
+                        <VisualStateDefinition Name="Pressed">
+                            <Setter Property="RenderTransform.Scale" Value="0.95" />
+                        </VisualStateDefinition>
+                        <VisualStateDefinition Name="Checked">
+                            <Setter Property="Background" Value="#27AE60" />
+                        </VisualStateDefinition>
+                    </ToggleButton.VisualStates>
+                    <ToggleButton.Transitions>
+                        <Transition Property="RenderTransform.Scale" Duration="0.1" Easing="CubicOut" />
+                        <Transition Property="Background" Duration="0.15" Easing="QuadOut" />
+                    </ToggleButton.Transitions>
+                </ToggleButton>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Overriding: wins on hover" FontSize="9" />
+                        <Button Name="StatesOverridingPanel" Content="Hover me" MinWidth="120" MinHeight="32" Background="#3D6C9E">
+                            <Button.VisualStates>
+                                <VisualStateDefinition Name="Hover" OverridesLocalValue="True">
+                                    <Setter Property="Background" Value="#27AE60" />
+                                </VisualStateDefinition>
+                            </Button.VisualStates>
                         </Button>
                     </StackPanel>
-                </Border>
-
-                <!-- OverridesLocalValue: a state that wins over a local value versus one that does not -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="OverridesLocalValue (Hover vs a local Background)" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Overriding: wins on hover" FontSize="11" Foreground="#C9D2DC" />
-                                <Button Name="V3OverridingPanel" Content="Hover me" MinWidth="130" MinHeight="36" Background="#3D6C9E">
-                                    <Button.VisualStates>
-                                        <VisualStateDefinition Name="Hover" OverridesLocalValue="True">
-                                            <Setter Property="Background" Value="#27AE60" />
-                                        </VisualStateDefinition>
-                                    </Button.VisualStates>
-                                </Button>
-                            </StackPanel>
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Plain: local value wins" FontSize="11" Foreground="#C9D2DC" />
-                                <Button Name="V3PlainPanel" Content="Hover me" MinWidth="130" MinHeight="36" Background="#3D6C9E">
-                                    <Button.VisualStates>
-                                        <VisualStateDefinition Name="Hover">
-                                            <Setter Property="Background" Value="#27AE60" />
-                                        </VisualStateDefinition>
-                                    </Button.VisualStates>
-                                </Button>
-                            </StackPanel>
-                        </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Plain: local value wins" FontSize="9" />
+                        <Button Name="StatesPlainPanel" Content="Hover me" MinWidth="120" MinHeight="32" Background="#3D6C9E">
+                            <Button.VisualStates>
+                                <VisualStateDefinition Name="Hover">
+                                    <Setter Property="Background" Value="#27AE60" />
+                                </VisualStateDefinition>
+                            </Button.VisualStates>
+                        </Button>
                     </StackPanel>
-                </Border>
-
-                <!-- Toggle Checked slot: CheckedBackgroundBrush is code-only (set in the constructor) -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Toggle Checked slot (CheckedBackgroundBrush, code-set)" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <ToggleButton Name="V3CheckedToggle" Content="Checked brush" MinWidth="130" MinHeight="36" />
-                            <ToggleButton Name="V3PlainToggle" Content="No checked brush" MinWidth="130" MinHeight="36" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Keyframe clip: an embedded JSON clip (Opacity, RenderTransform.Scale, Background) played by UIKeyFrameClipSerializer.Deserialize -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Keyframe clip (embedded JSON, three tracks)" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Button Name="V3PlayClip" Content="Play clip" />
-                            <Border Name="V3ClipTarget" Width="90" Height="50" Background="#000000" CornerRadius="6" Opacity="0">
-                                <Border.RenderTransform>
-                                    <RenderTransform Origin="0.5,0.5" />
-                                </Border.RenderTransform>
-                            </Border>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Preview and Seek: a dedicated target, never live, driven by a slider -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Preview and Seek (slider-driven, never a live animation)" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Border Name="V3PreviewTarget" Width="90" Height="50" Background="#000000" CornerRadius="6" Opacity="0">
-                                <Border.RenderTransform>
-                                    <RenderTransform Origin="0.5,0.5" />
-                                </Border.RenderTransform>
-                            </Border>
-                            <StackPanel Spacing="4" HorizontalAlignment="Stretch">
-                                <Slider Name="V3SeekSlider" Minimum="0" Maximum="100" Value="0" />
-                                <Button Name="V3DetachPreview" Content="Detach" />
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Storyboard save / load through UIAnimationSerializer -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Storyboard save / load (JSON)" IsBold="True" Foreground="White" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Button Name="V3SaveStoryboard" Content="Save" />
-                            <Button Name="V3LoadStoryboard" Content="Load + play" />
-                        </StackPanel>
-                        <TextBox Name="V3StoryboardJson" IsReadonly="True" AcceptsReturn="True" MinHeight="60" WrapText="True" FontSize="10" />
-                    </StackPanel>
-                </Border>
-
-                <!-- Clock-driven typewriter reveal and highlight brush -->
-                <Border Padding="10" Background="#1F2933" CornerRadius="6">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Typewriter reveal, highlight brush and TimeScale (engine clock)" IsBold="True" Foreground="White" WrapText="True" />
-                        <TextBlock Name="V3Typewriter" Text="This text reveals itself over the desktop's animation clock." WrapText="True" Foreground="#C9D2DC" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <ToggleButton Name="V3PauseClock" Content="Pause clock" />
-                            <Button Name="V3ReplayText" Content="Replay" />
-                        </StackPanel>
-                        <Border Name="V3Highlight" Width="130" Height="30" Background="#1F2933" BorderThickness="2" CornerRadius="4" />
-                        <TextBlock Text="TimeScale (also drives the highlight brush's speed)" FontSize="11" Foreground="#C9D2DC" WrapText="True" />
-                        <Slider Name="V3TimeScale" Minimum="0.25" Maximum="3" Value="1" />
-                    </StackPanel>
-                </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <ToggleButton Name="StatesCheckedToggle" Content="Checked brush (code)" MinWidth="140" MinHeight="32" />
+                    <ToggleButton Name="StatesPlainToggle" Content="No checked brush" MinWidth="140" MinHeight="32" />
+                </StackPanel>
             </StackPanel>
-        </Grid>
-        </ScrollViewer>
-    </DockPanel>
+            <Separator/>
+
+            <!-- 8. Styles and theme -->
+            <TextBlock StyleNames="Header1" Text="8. Styles and theme" />
+            <TextBlock>
+                A [c=Turquoise][i]Style[/i][/c]'s [c=Turquoise][i]Style.Transitions[/i][/c] and [c=Turquoise][i]Style.VisualStates[/i][/c]
+                apply to every element that references it by name; [c=Turquoise][i]MGElement.RefreshStyles()[/i][/c] re-applies a style
+                after it changed (a transition in progress keeps its current value, a matched state re-applies its new setters). The theme's
+                [c=Turquoise][i]MGTheme.Animation[/i][/c] group times the built-in hover/press transitions every [c=Turquoise][i]Button[/i][/c]
+                and [c=Turquoise][i]ToggleButton[/i][/c] attaches when [c=Turquoise][i]Enabled[/i][/c] is set.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Name="StylesButtonA" Content="Styled A" StyleNames="StylesSharedStyle" MinWidth="90" MinHeight="32">
+                        <Button.RenderTransform>
+                            <RenderTransform Origin="0.5,0.5" />
+                        </Button.RenderTransform>
+                    </Button>
+                    <Button Name="StylesButtonB" Content="Styled B" StyleNames="StylesSharedStyle" MinWidth="90" MinHeight="32">
+                        <Button.RenderTransform>
+                            <RenderTransform Origin="0.5,0.5" />
+                        </Button.RenderTransform>
+                    </Button>
+                </StackPanel>
+                <Button Name="StylesRefreshButton" Content="Refresh styles (toggle hover scale)" MinWidth="220" HorizontalAlignment="Left" />
+                <Button Name="StylesThemeAnimationButton" Content="Theme animation: off" MinWidth="220" HorizontalAlignment="Left" />
+            </StackPanel>
+            <Separator/>
+
+            <!-- 9. Animatable brushes -->
+            <TextBlock StyleNames="Header1" Text="9. Animatable brushes" />
+            <TextBlock>
+                A frozen brush ([c=Turquoise][i]IsFrozen[/i][/c]) is immutable, shared data (a theme, a palette entry, a
+                [c=Turquoise][i]StaticResource[/i][/c]); animating it clones it once when the run starts and mutates only that clone, so a
+                shared frozen brush stays untouched for every element that is not itself animating. An unfrozen brush is owned by its
+                element and can be mutated directly ([c=Turquoise][i]brush.Color = ...[/i][/c] repaints on the next frame).
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Name="BrushesSharedLeftButton" Content="Shared left" MinWidth="95" MinHeight="32" />
+                    <Button Name="BrushesSharedRightButton" Content="Shared right" MinWidth="95" MinHeight="32" />
+                    <Button Name="BrushesAnimateLeftButton" Content="Animate left only" MinWidth="120" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Inline brush colour" VerticalAlignment="Center" MinWidth="105" />
+                    <Slider Name="BrushesInlineSlider" Minimum="0" Maximum="1" Value="0" Width="140" />
+                    <Border Name="BrushesInlineTarget" Width="36" Height="22" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="BrushesGradientButton" Content="Animate gradient" />
+                    <Border Name="BrushesGradientTarget" Width="80" Height="28" />
+                    <Button Name="BrushesBorderButton" Content="Animate border" />
+                    <Border Name="BrushesBorderTarget" Width="50" Height="28" BorderThickness="3" />
+                </StackPanel>
+            </StackPanel>
+            <Separator/>
+
+            <!-- 10. Highlight -->
+            <TextBlock StyleNames="Header1" Text="10. Highlight" />
+            <TextBlock>
+                [c=Turquoise][i]MGHighlightBorderBrush[/i][/c] is a freezable border configuration ([c=Turquoise][i]Pulse[/i][/c],
+                [c=Turquoise][i]Flash[/i][/c], [c=Turquoise][i]Progress[/i][/c], [c=Turquoise][i]Scan[/i][/c]). When it is an element's
+                effective border and [c=Turquoise][i]AutoStart[/i][/c] is [c=LightBlue][s=Blue]true[/s][/c] (the default), the element hosts
+                its own [c=Turquoise][i]RepeatForever[/i][/c] run of [c=Turquoise][i]CycleDuration[/i][/c]. [c=Turquoise][i]AutoStart[/i][/c]
+                = [c=LightBlue][s=Blue]false[/s][/c] leaves it still until the application animates
+                [c=Turquoise][i]BorderBrush.Highlight.Progress[/i][/c] itself. [c=Turquoise][i]StopOnMouseOver[/i][/c] /
+                [c=Turquoise][i]StopOnClick[/i][/c] stop only that element's own clone; [c=Turquoise][i]ResumeBorderHighlight()[/i][/c] restarts it.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Name="HighlightAutoBorder" Width="90" Height="40" BorderThickness="3" CornerRadius="4" Background="#1F2933" />
+                    <Border Name="HighlightManualBorder" Width="90" Height="40" BorderThickness="3" CornerRadius="4" Background="#1F2933" />
+                    <Button Name="HighlightStartStopButton" Content="Start/Stop" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Name="HighlightStopOnHoverBorder" Width="90" Height="40" BorderThickness="3" CornerRadius="4" Background="#1F2933" />
+                    <Button Name="HighlightResumeButton" Content="Resume" />
+                </StackPanel>
+            </StackPanel>
+            <Separator/>
+
+            <!-- 11. Preview and seek -->
+            <TextBlock StyleNames="Header1" Text="11. Preview and seek" />
+            <TextBlock>
+                [c=Turquoise][i]UIAnimationPreview.Attach[/i][/c] begins an animation for an external host (a timeline scrubber) without
+                registering it with the live [c=Turquoise][i]UIAnimationManager[/i][/c]: nothing is added to
+                [c=Turquoise][i]Desktop.Animations.ActiveCount[/i][/c]. [c=Turquoise][i]Seek(elapsed)[/i][/c] positions it at an instant
+                without firing any event; [c=Turquoise][i]Detach[/i][/c] (an alias for [c=Turquoise][i]Cancel[/i][/c]) is the only way to end it.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Name="PreviewTarget" Width="90" Height="50" Background="#000000" CornerRadius="6" Opacity="0">
+                        <Border.RenderTransform>
+                            <RenderTransform Origin="0.5,0.5" />
+                        </Border.RenderTransform>
+                    </Border>
+                    <StackPanel Spacing="4" HorizontalAlignment="Stretch">
+                        <Slider Name="PreviewSlider" Minimum="0" Maximum="100" Value="0" />
+                        <Button Name="PreviewDetachButton" Content="Detach" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+            <Separator/>
+
+            <!-- 12. Serialisation -->
+            <TextBlock StyleNames="Header1" Text="12. Serialisation" />
+            <TextBlock>
+                [c=Turquoise][i]UIAnimationSerializer[/i][/c] serialises a whole animation tree (storyboards, sequences, delays, property and
+                keyframe animations) to JSON, with no reference of its own to any element; a [c=Turquoise][i]nameOf[/i][/c] delegate names a
+                node's preset element on save, a [c=Turquoise][i]resolveElement[/i][/c] delegate resolves it back on load.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="SerializationSaveButton" Content="Save" />
+                    <Button Name="SerializationLoadButton" Content="Load + play" />
+                </StackPanel>
+                <Border Name="SerializationTarget" Width="90" Height="50" Background="#8E44AD" CornerRadius="6" Opacity="0">
+                    <Border.RenderTransform>
+                        <RenderTransform Origin="0.5,0.5" />
+                    </Border.RenderTransform>
+                </Border>
+                <TextBox Name="SerializationJsonText" IsReadonly="True" AcceptsReturn="True" MinHeight="60" WrapText="True" FontSize="9" />
+            </StackPanel>
+            <Separator/>
+
+            <!-- 13. Controls on the engine -->
+            <TextBlock StyleNames="Header1" Text="13. Controls on the engine" />
+            <TextBlock>
+                [c=Turquoise][i]ProgressButton.Duration[/i][/c] and [c=Turquoise][i]TextBlock.TextCharactersPerSecond[/i][/c] (the typewriter
+                reveal) both run their own animation through [c=Turquoise][i]Desktop.Animations.Clock[/i][/c], so pausing or slowing the clock
+                (section 4) pauses or slows them too. Writing [c=Turquoise][i]TextProgress = 0[/i][/c] replays a completed or in-progress reveal.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <ProgressButton Name="EngineProgressButton" Content="Click: 3 s on the engine" MinWidth="200" MinHeight="36" Duration="0:0:3" ProgressBarForeground="#2980B9" HorizontalAlignment="Left" />
+                <TextBlock Name="TypewriterText" Text="This text reveals itself over the desktop's animation clock." WrapText="True" />
+                <Button Name="EngineReplayButton" Content="Replay" HorizontalAlignment="Left" />
+            </StackPanel>
+            <Separator/>
+
+            <!-- 14. Diagnostics -->
+            <TextBlock StyleNames="Header1" Text="14. Diagnostics" />
+            <TextBlock>
+                [c=Turquoise][i]UIToolingService.CaptureElementDebugView[/i][/c] lists an element's active and held animations and its
+                [c=Turquoise][i]ApplicablePaths[/i][/c] (the animation paths it accepts). "Measure per-tick allocations" reports
+                [c=Turquoise][i]GC.GetAllocatedBytesForCurrentThread[/i][/c] over the whole desktop update tick (not just the animation)
+                averaged over 120 ticks, so this page's own [c=Turquoise][i]ClockActiveCountText[/i][/c] updates count toward it too.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <Button Name="DiagnosticsPathsButton" Content="Show applicable paths" HorizontalAlignment="Left" />
+                <TextBox Name="DiagnosticsPathsText" IsReadonly="True" AcceptsReturn="True" MinHeight="50" WrapText="True" FontSize="9" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Name="DiagnosticsMeasureButton" Content="Measure per-tick allocations" />
+                    <Border Name="DiagnosticsTarget" Width="24" Height="24" Background="#3D6C9E" />
+                </StackPanel>
+                <TextBlock Name="DiagnosticsAllocationText" Text="Allocations per tick: not measured" />
+            </StackPanel>
+
+            <Spacer Height="70" />
+        </StackPanel>
+    </ScrollViewer>
 </Window>

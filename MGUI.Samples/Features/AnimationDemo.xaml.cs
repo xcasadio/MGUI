@@ -4,163 +4,212 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Animation;
 using MGUI.Core.UI.Animation.Composition;
 using MGUI.Core.UI.Animation.Easing;
+using MGUI.Core.UI.Animation.Interpolation;
 using MGUI.Core.UI.Animation.KeyFrames;
 using MGUI.Core.UI.Animation.Targets;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
-using MGUI.Core.UI.Containers;
-using MonoGame.Extended;
+using MGUI.Core.UI.XAML;
+using MGUI.Core.Tooling;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace MGUI.Samples.Features
 {
-    /// <summary>Scenarios SCN-ANIM-001 and SCN-ANIM-002 (Docs/scenario-validation-index.md): the animation system V1 (ADR-0006: XAML transitions and
-    /// explicit animations) and V2 (ADR-0007: composition, keyframes, named visual states, style and theme animation, ProgressButton on the engine).</summary>
+    /// <summary>One page per engine capability, built on the same skeleton as the control sample pages
+    /// (<c>MGUI.Samples/Controls/CheckBox.xaml</c>). Each section wires its own demonstration; see the corresponding
+    /// <c>WireXxx</c> method below for the capability it covers. Covers the "animation" validation scenario of
+    /// Docs/scenario-validation-index.md.</summary>
     public class AnimationDemoSample : SampleBase
     {
         private static readonly Color[] BackgroundCycle = { new(0x3D, 0x6C, 0x9E), new(0x8E, 0x44, 0xAD), new(0x16, 0xA0, 0x85), new(0xD3, 0x54, 0x00) };
+        private int _backgroundCycleIndex;
 
-        private int _colorIndex;
-        private MGWindow _popup;
-        private MGBorder _popupRoot;
-
-        /// <summary>The V3 preview instance (U7): attached once, in <see cref="WireV3"/>, to the dedicated <c>V3PreviewTarget</c> element,
-        /// driven by <c>V3SeekSlider</c> and ended by <c>V3DetachPreview</c>. Never registered with the live <see cref="UIAnimationManager"/>.</summary>
-        private UIStoryboard _V3PreviewAnimation;
+        /// <summary>The "Preview and seek" section's preview instance: attached once to <c>PreviewTarget</c>, driven by <c>PreviewSlider</c>
+        /// and ended by <c>PreviewDetachButton</c>. Never registered with the live <see cref="UIAnimationManager"/>.</summary>
+        private UIStoryboard _previewAnimation;
 
         public AnimationDemoSample(ContentManager content, MGDesktop desktop)
-            : base(content, desktop, "Features", "AnimationDemo.xaml")
+            : base(content, desktop, "Features", "AnimationDemo.xaml", () => RegisterSharedStyle(desktop))
         {
-            MGButton hoverButton = Window.GetElementByName<MGButton>("HoverButton");
-            MGBorder target = Window.GetElementByName<MGBorder>("Target");
-            MGBorder marginTarget = Window.GetElementByName<MGBorder>("MarginTarget");
-            MGTextBlock activeCount = Window.GetElementByName<MGTextBlock>("ActiveCountText");
-            target.RenderTransform.Origin = new Vector2(0.5f, 0.5f);
-
-            //  The XAML transition on Background picks this local write up and fades from the previous colour.
-            Window.GetElementByName<MGButton>("ColorButton").AddCommandHandler((btn, e) =>
-            {
-                _colorIndex = (_colorIndex + 1) % BackgroundCycle.Length;
-                hoverButton.BackgroundBrush.NormalValue = new MGSolidFillBrush(BackgroundCycle[_colorIndex]);
-            });
-
-            Window.GetElementByName<MGButton>("FadeButton").AddCommandHandler((btn, e) =>
-                target.Animations.Start(new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity)
-                {
-                    From = 0f,
-                    To = 1f,
-                    Duration = TimeSpan.FromMilliseconds(450),
-                    Easing = UIEasing.CubicOut,
-                    Name = "fade",
-                }));
-
-            Window.GetElementByName<MGButton>("SlideButton").AddCommandHandler((btn, e) =>
-                target.Animations.Start(new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformTranslation)
-                {
-                    From = Vector2.Zero,
-                    To = new Vector2(120f, 0f),
-                    Duration = TimeSpan.FromMilliseconds(350),
-                    Easing = UIEasing.CubicInOut,
-                    AutoReverse = true,
-                    Name = "slide",
-                }));
-
-            Window.GetElementByName<MGButton>("SpinButton").AddCommandHandler((btn, e) =>
-                target.Animations.Start(new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.RenderTransformRotation)
-                {
-                    From = 0f,
-                    To = 360f,
-                    Duration = TimeSpan.FromMilliseconds(700),
-                    Easing = UIEasing.QuadInOut,
-                    FillBehavior = UIAnimationFillBehavior.RestoreBaseValue,
-                    Name = "spin",
-                }));
-
-            //  Attention pulse: the state-driven scale override, repeated forth and back; a second click stops it.
-            Window.GetElementByName<MGButton>("PulseButton").AddCommandHandler((btn, e) =>
-            {
-                if (target.Animations.IsAnimating(UIBuiltInAnimationTargets.Paths.RenderScale))
-                {
-                    target.Animations.Clear();
-                    return;
-                }
-
-                target.Animations.Start(new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.RenderScale)
-                {
-                    To = 1.15f,
-                    Duration = TimeSpan.FromMilliseconds(250),
-                    Easing = UIEasing.SineInOut,
-                    AutoReverse = true,
-                    RepeatForever = true,
-                    FillBehavior = UIAnimationFillBehavior.RestoreBaseValue,
-                    Name = "pulse",
-                });
-            });
-
-            //  A layout pilot: every tick writes Margin with the Animation source and re-lays the row out.
-            Window.GetElementByName<MGButton>("MarginButton").AddCommandHandler((btn, e) =>
-                marginTarget.Animations.Start(new UIPropertyAnimation<Thickness>(UIBuiltInAnimationTargets.Paths.Margin)
-                {
-                    To = new Thickness(60, 0, 0, 0),
-                    Duration = TimeSpan.FromMilliseconds(400),
-                    Easing = UIEasing.BackOut,
-                    AutoReverse = true,
-                    FillBehavior = UIAnimationFillBehavior.RestoreBaseValue,
-                    Name = "margin",
-                }));
-
-            Window.GetElementByName<MGButton>("PopupButton").AddCommandHandler((btn, e) => OpenPopup());
-
-            MGButton pauseButton = Window.GetElementByName<MGButton>("PauseButton");
-            pauseButton.AddCommandHandler((btn, e) =>
-            {
-                UIAnimationClock clock = Desktop.Animations.Clock;
-                clock.IsPaused = !clock.IsPaused;
-                pauseButton.SetContent(clock.IsPaused ? "Resume clock" : "Pause clock");
-            });
-            Window.GetElementByName<MGButton>("HalfSpeedButton").AddCommandHandler((btn, e) => Desktop.Animations.Clock.TimeScale = 0.5f);
-            Window.GetElementByName<MGButton>("NormalSpeedButton").AddCommandHandler((btn, e) => Desktop.Animations.Clock.TimeScale = 1f);
-
-            WireV2();
-            WireV3();
-
-            MGTextBlock stateText = Window.GetElementByName<MGTextBlock>("StateText");
-            MGToggleButton stateToggle = Window.GetElementByName<MGToggleButton>("StateToggle");
-            Window.OnEndUpdate += (sender, e) =>
-            {
-                activeCount.SetText($"Active animations: {Desktop.Animations.ActiveCount}");
-                stateText.SetText($"state: {stateToggle.CurrentVisualStateName ?? "none"}");
-            };
+            WireTransitions();
+            WireFluent();
+            WireTransform();
+            WireClock();
+            WireComposition();
+            WireKeyFrames();
+            WireStates();
+            WireStyles();
+            WireBrushes();
+            WireHighlight();
+            WirePreview();
+            WireSerialization();
+            WireControls();
+            WireDiagnostics();
         }
 
-        /// <summary>SCN-ANIM-002: composition, the fluent API, keyframes, the theme timings and the engine-driven progress button.</summary>
-        private void WireV2()
+        /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
+        /// resolve it immediately): a resource style (<see cref="MGResources.AddStyle"/>), not an inline <c>&lt;Window.Styles&gt;</c> one, so
+        /// <see cref="WireStyles"/> can fetch and mutate the same instance later with <see cref="MGResources.TryGetStyle"/>.</summary>
+        private static void RegisterSharedStyle(MGDesktop desktop)
         {
-            MGBorder v2Target = Window.GetElementByName<MGBorder>("V2Target");
+            desktop.Resources.AddStyle("StylesSharedStyle", new Style
+            {
+                TargetType = MGElementType.Button,
+                Transitions = { new Transition { Property = "RenderTransform.Scale", Duration = "0.12", Easing = "CubicOut" } },
+                VisualStates = { new VisualStateDefinition { Name = "Hover", Setters = { new Setter { Property = "RenderTransform.Scale", Value = new Vector2(1.08f) } } } },
+            });
+        }
 
-            //  A storyboard: three children in parallel, each a normal registration on its own path.
-            Window.GetElementByName<MGButton>("StoryboardButton").AddCommandHandler((btn, e) =>
-                v2Target.Animations.Start(new UIStoryboard
-                {
-                    new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity) { From = 0f, To = 1f, Duration = TimeSpan.FromMilliseconds(300), Easing = UIEasing.QuadOut, Name = "open-fade" },
-                    new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformScale) { From = new Vector2(0.85f), To = Vector2.One, Duration = TimeSpan.FromMilliseconds(350), Easing = UIEasing.BackOut, Name = "open-scale" },
-                    new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformTranslation) { From = new Vector2(0f, 24f), To = Vector2.Zero, Duration = TimeSpan.FromMilliseconds(350), Easing = UIEasing.CubicOut, Name = "open-slide" },
-                }.Named("open")));
+        /// <summary>1. Transitions: <c>TransitionsHoverButton</c> interpolates <c>RenderScale</c> (a named easing) and <c>Background</c> (a
+        /// Bezier literal with a <c>Delay</c>), both declared in XAML; <c>TransitionsRetargetButton</c> supplies the local write that the
+        /// Background transition retargets to mid-run.</summary>
+        private void WireTransitions()
+        {
+            MGButton hoverButton = Window.GetElementByName<MGButton>("TransitionsHoverButton");
+            Window.GetElementByName<MGButton>("TransitionsRetargetButton").AddCommandHandler((btn, e) =>
+            {
+                _backgroundCycleIndex = (_backgroundCycleIndex + 1) % BackgroundCycle.Length;
+                hoverButton.BackgroundBrush.NormalValue = new MGSolidFillBrush(BackgroundCycle[_backgroundCycleIndex]);
+            });
+        }
 
-            //  The fluent API builds a sequence: fade, then a spin, then a pause, then the keyframe pop.
-            Window.GetElementByName<MGButton>("SequenceButton").AddCommandHandler((btn, e) =>
-                v2Target
-                    .Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0f, 1f, 0.2).Ease(UIEasing.QuadOut).Named("sequence")
+        /// <summary>2. Explicit animations and the fluent API: Fade (a plain <see cref="UIPropertyAnimation{T}"/>), Bounce
+        /// (<c>Animate(...).Ease("BackOut").AutoReverse().Repeat(3)</c>), Sequence (<c>Then</c>/<c>Wait</c>), Cancel
+        /// (<see cref="UIAnimationCollection.Clear"/>), all on <c>FluentTarget</c>.</summary>
+        private void WireFluent()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("FluentTarget");
+
+            Window.GetElementByName<MGButton>("FluentFadeButton").AddCommandHandler((btn, e) =>
+                target.Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0f, 1f, 0.35).Ease(UIEasing.CubicOut).Named("fade").Play());
+
+            Window.GetElementByName<MGButton>("FluentBounceButton").AddCommandHandler((btn, e) =>
+                target.Animate(UIBuiltInAnimationTargets.Paths.RenderTransformScale, new Vector2(1.25f), 0.25).Ease("BackOut")
+                    .AutoReverse().Repeat(3).Fill(UIAnimationFillBehavior.RestoreBaseValue).Named("bounce").Play());
+
+            Window.GetElementByName<MGButton>("FluentSequenceButton").AddCommandHandler((btn, e) =>
+                target.Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0f, 1f, 0.2).Ease(UIEasing.QuadOut).Named("sequence")
                     .Then(UIBuiltInAnimationTargets.Paths.RenderTransformRotation, 0f, 360f, 0.5).Ease("CubicInOut").Fill(UIAnimationFillBehavior.RestoreBaseValue)
                     .Wait(0.1)
-                    .Then(CreatePop())
+                    .Then(AnimationDemoAssets.CreatePop())
                     .Play());
 
-            Window.GetElementByName<MGButton>("PopButton").AddCommandHandler((btn, e) => v2Target.Animations.Start(CreatePop()));
+            Window.GetElementByName<MGButton>("FluentCancelButton").AddCommandHandler((btn, e) => target.Animations.Clear());
+        }
 
-            //  The theme timings: a copy of the desktop theme with the Animation group toggled; every button of the desktop follows.
-            MGButton themeButton = Window.GetElementByName<MGButton>("ThemeAnimationButton");
+        /// <summary>3. Render transform and state scale: two sliders write <c>TransformTarget.RenderTransform.Rotation</c> and
+        /// <c>.Scale</c> directly (both relative to <c>Origin="0.5,0.5"</c>); <c>TransformHoverButton</c> demonstrates the separate,
+        /// state-driven <c>RenderScale</c> override, always centred regardless of <c>Origin</c>.</summary>
+        private void WireTransform()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("TransformTarget");
+            Window.GetElementByName<MGSlider>("TransformRotationSlider").ValueChanged += (sender, e) => target.RenderTransform.Rotation = e.NewValue;
+            Window.GetElementByName<MGSlider>("TransformScaleSlider").ValueChanged += (sender, e) => target.RenderTransform.Scale = new Vector2(e.NewValue);
+        }
+
+        /// <summary>4. Clock: <c>ClockPauseToggle</c> and <c>ClockTimeScaleSlider</c> write <see cref="UIAnimationClock.IsPaused"/> and
+        /// <see cref="UIAnimationClock.TimeScale"/> on <see cref="MGDesktop.Animations"/>'s clock directly; <c>ClockActiveCountText</c>
+        /// reads <see cref="UIAnimationManager.ActiveCount"/> once per frame.</summary>
+        private void WireClock()
+        {
+            MGToggleButton pauseToggle = Window.GetElementByName<MGToggleButton>("ClockPauseToggle");
+            pauseToggle.OnCheckStateChanged += (sender, e) => Desktop.Animations.Clock.IsPaused = pauseToggle.IsChecked;
+            Window.GetElementByName<MGSlider>("ClockTimeScaleSlider").ValueChanged += (sender, e) => Desktop.Animations.Clock.TimeScale = e.NewValue;
+
+            MGTextBlock activeCount = Window.GetElementByName<MGTextBlock>("ClockActiveCountText");
+            Window.OnEndUpdate += (sender, e) => activeCount.SetText($"Active animations: {Desktop.Animations.ActiveCount}");
+        }
+
+        /// <summary>5. Composition: "Play storyboard" starts a <see cref="UIStoryboard"/> whose two children run in parallel, one on each of
+        /// <c>CompositionTargetA</c> and <c>CompositionTargetB</c>; "Play sequence" starts a <see cref="UISequenceAnimation"/> (child, delay,
+        /// child) across the same two elements. A child that is not started on its own element first (the start-then-cancel idiom below)
+        /// runs on the root the composite is started on instead, per <see cref="UIAnimation.PresetOwner"/>'s own documented rule.</summary>
+        private void WireComposition()
+        {
+            MGBorder targetA = Window.GetElementByName<MGBorder>("CompositionTargetA");
+            MGBorder targetB = Window.GetElementByName<MGBorder>("CompositionTargetB");
+
+            Window.GetElementByName<MGButton>("CompositionStoryboardButton").AddCommandHandler((btn, e) =>
+            {
+                UIPropertyAnimation<Vector2> scaleB = new(UIBuiltInAnimationTargets.Paths.RenderTransformScale) { From = new Vector2(0.8f), To = Vector2.One, Duration = TimeSpan.FromMilliseconds(350), Easing = UIEasing.BackOut, Name = "storyboard-scale-b" };
+                PresetOwner(targetB, scaleB);
+                UIStoryboard storyboard = new()
+                {
+                    new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity) { From = 0.3f, To = 1f, Duration = TimeSpan.FromMilliseconds(350), Easing = UIEasing.QuadOut, Name = "storyboard-fade-a" },
+                    scaleB,
+                };
+                storyboard.Name = "storyboard";
+                targetA.Animations.Start(storyboard);
+            });
+
+            Window.GetElementByName<MGButton>("CompositionSequenceButton").AddCommandHandler((btn, e) =>
+            {
+                UIPropertyAnimation<float> fadeB = new(UIBuiltInAnimationTargets.Paths.Opacity) { From = 0.3f, To = 1f, Duration = TimeSpan.FromMilliseconds(300), Easing = UIEasing.QuadOut, Name = "sequence-fade-b" };
+                PresetOwner(targetB, fadeB);
+                targetA.Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0.3f, 1f, 0.3).Ease(UIEasing.QuadOut).Named("sequence-fade-a")
+                    .Wait(0.15)
+                    .Then(fadeB)
+                    .Play();
+            });
+        }
+
+        /// <summary>Presets <paramref name="animation"/>'s <see cref="UIAnimation.Owner"/> to <paramref name="element"/> without playing it:
+        /// starting it (which calls the internal <c>PresetOwner</c>) then immediately cancelling leaves it <c>Stopped</c> again with its
+        /// owner still set, per <see cref="UIAnimationSerializer"/>'s own documented "Start-then-Cancel idiom" for presetting a child's owner
+        /// from outside <c>MGUI.Core</c> (<c>PresetOwner</c> itself is internal).</summary>
+        private static void PresetOwner(MGElement element, UIAnimation animation)
+        {
+            element.Animations.Start(animation);
+            animation.Cancel();
+        }
+
+        /// <summary>6. Keyframes and clip: "Play keyframes" starts <see cref="AnimationDemoAssets.CreatePop"/> on <c>KeyframesTarget</c>;
+        /// "Load clip" deserialises the embedded JSON clip (<see cref="AnimationDemoAssets.ClipJson"/>, shown read-only in
+        /// <c>ClipJsonText</c>) with <see cref="UIKeyFrameClipSerializer.Deserialize"/> and plays it on <c>ClipTarget</c>.</summary>
+        private void WireKeyFrames()
+        {
+            MGBorder keyframesTarget = Window.GetElementByName<MGBorder>("KeyframesTarget");
+            Window.GetElementByName<MGButton>("KeyframesPopButton").AddCommandHandler((btn, e) => keyframesTarget.Animations.Start(AnimationDemoAssets.CreatePop()));
+
+            MGBorder clipTarget = Window.GetElementByName<MGBorder>("ClipTarget");
+            Window.GetElementByName<MGButton>("ClipPlayButton").AddCommandHandler((btn, e) =>
+                clipTarget.Animations.Start(UIKeyFrameClipSerializer.Deserialize(AnimationDemoAssets.ClipJson)));
+            Window.GetElementByName<MGTextBox>("ClipJsonText").Text = AnimationDemoAssets.ClipJson;
+        }
+
+        /// <summary>7. Named visual states: <c>StatesToggle</c> declares <c>Hover</c>/<c>Pressed</c>/<c>Checked</c> in XAML;
+        /// <c>StatesOverridingPanel</c> (<c>OverridesLocalValue="True"</c>) wins over its local <c>Background</c> on hover,
+        /// <c>StatesPlainPanel</c> (same local value, same Hover setter, no override) does not; <c>StatesCheckedToggle</c> gets a code-only
+        /// <see cref="MGToggleButton.CheckedBackgroundBrush"/>, distinct from the theme's Selected look that <c>StatesPlainToggle</c> falls
+        /// back to when checked.</summary>
+        private void WireStates() =>
+            Window.GetElementByName<MGToggleButton>("StatesCheckedToggle").CheckedBackgroundBrush = new MGSolidFillBrush(new Color(0xE6, 0x7E, 0x22));
+
+        /// <summary>8. Styles and theme: <c>StylesButtonA</c>/<c>StylesButtonB</c> share the resource style registered by
+        /// <see cref="RegisterSharedStyle"/> (a <see cref="Style.Transitions"/> entry and a <see cref="Style.VisualStates"/> entry);
+        /// "Refresh styles" mutates that same <see cref="Style"/> instance (toggles the Hover scale between two values) and calls
+        /// <see cref="MGElement.RefreshStyles"/> on both buttons, per <see cref="MGResources.TryGetStyle"/>. The theme animation button
+        /// mirrors the well-known <c>MGTheme.Animation</c> toggle: a copy of the desktop theme with <c>Animation.Enabled</c> flipped,
+        /// applied as <see cref="MGResources.DefaultTheme"/> so every Button/ToggleButton of the desktop follows.</summary>
+        private void WireStyles()
+        {
+            MGButton buttonA = Window.GetElementByName<MGButton>("StylesButtonA");
+            MGButton buttonB = Window.GetElementByName<MGButton>("StylesButtonB");
+            bool wideHoverScale = false;
+            Window.GetElementByName<MGButton>("StylesRefreshButton").AddCommandHandler((btn, e) =>
+            {
+                if (Desktop.Resources.TryGetStyle("StylesSharedStyle", out Style style))
+                {
+                    wideHoverScale = !wideHoverScale;
+                    style.VisualStates[0].Setters[0].Value = new Vector2(wideHoverScale ? 1.2f : 1.08f);
+                    buttonA.RefreshStyles();
+                    buttonB.RefreshStyles();
+                }
+            });
+
+            MGButton themeButton = Window.GetElementByName<MGButton>("StylesThemeAnimationButton");
             themeButton.SetContent(Desktop.Theme.Animation.Enabled ? "Theme animation: on" : "Theme animation: off");
             themeButton.AddCommandHandler((btn, e) =>
             {
@@ -171,149 +220,161 @@ namespace MGUI.Samples.Features
             });
         }
 
-        /// <summary>SCN-ANIM-003: Bezier easings in XAML, a visual state that overrides a local value, the toggle Checked slot, a keyframe clip
-        /// played from embedded JSON, a preview driven by Seek, storyboard save/load, and the clock-driven typewriter/highlight brush.</summary>
-        private void WireV3()
+        /// <summary>9. Animatable brushes: <c>BrushesSharedLeftButton</c>/<c>BrushesSharedRightButton</c> share one frozen palette brush
+        /// (<see cref="SolidFillBrushes.CornflowerBlue"/>); "Animate left only" clones and animates only the left button's <c>Background</c>,
+        /// leaving the frozen brush and the right button untouched. <c>BrushesInlineSlider</c> mutates an unfrozen, element-owned
+        /// <see cref="MGSolidFillBrush"/> in place (no engine involved). "Animate gradient"/"Animate border" clone-and-mutate a
+        /// <see cref="MGGradientFillBrush"/> and a <see cref="MGUniformBorderBrush"/> through the engine's <c>Background.Gradient</c> and
+        /// <c>BorderBrush</c> targets.</summary>
+        private void WireBrushes()
         {
-            //  U1: the button's own Transition (declared in XAML with a "cubic-bezier(...)" literal) interpolates every local write to
-            //  RenderTransform.Translation with a back curve; the click handler here only supplies the local writes to interpolate.
-            MGButton bezierButton = Window.GetElementByName<MGButton>("V3BezierButton");
-            bool bezierSlideOut = false;
-            bezierButton.AddCommandHandler((btn, e) =>
+            MGButton sharedLeft = Window.GetElementByName<MGButton>("BrushesSharedLeftButton");
+            MGButton sharedRight = Window.GetElementByName<MGButton>("BrushesSharedRightButton");
+            MGSolidFillBrush shared = SolidFillBrushes.CornflowerBlue;
+            sharedLeft.BackgroundBrush.NormalValue = shared;
+            sharedRight.BackgroundBrush.NormalValue = shared;
+            Window.GetElementByName<MGButton>("BrushesAnimateLeftButton").AddCommandHandler((btn, e) =>
+                sharedLeft.Animate(UIColorAnimationTargets.Paths.Background, Color.OrangeRed, 0.6).AutoReverse().Named("brush-left").Play());
+
+            MGBorder inlineTarget = Window.GetElementByName<MGBorder>("BrushesInlineTarget");
+            MGSolidFillBrush inlineBrush = new(Color.DimGray);
+            inlineTarget.BackgroundBrush.NormalValue = inlineBrush;
+            Window.GetElementByName<MGSlider>("BrushesInlineSlider").ValueChanged += (sender, e) => inlineBrush.Color = Color.Lerp(Color.DimGray, Color.LightGreen, e.NewValue);
+
+            MGBorder gradientTarget = Window.GetElementByName<MGBorder>("BrushesGradientTarget");
+            gradientTarget.BackgroundBrush.NormalValue = new MGGradientFillBrush(Color.DarkRed, Color.DarkOrange, Color.DarkRed, Color.DarkOrange);
+            Window.GetElementByName<MGButton>("BrushesGradientButton").AddCommandHandler((btn, e) =>
+                gradientTarget.Animate(UIExtraAnimationTargets.Paths.BackgroundGradient, new UIGradientColors(Color.MediumPurple, Color.MediumBlue, Color.MediumPurple, Color.MediumBlue), 1.0)
+                    .AutoReverse().Named("brush-gradient").Play());
+
+            MGBorder borderTarget = Window.GetElementByName<MGBorder>("BrushesBorderTarget");
+            borderTarget.BorderBrush = new MGUniformBorderBrush(new MGSolidFillBrush(Color.White));
+            Window.GetElementByName<MGButton>("BrushesBorderButton").AddCommandHandler((btn, e) =>
+                borderTarget.Animate(UIColorAnimationTargets.Paths.BorderBrush, Color.Crimson, 0.6).AutoReverse().Named("brush-border").Play());
+        }
+
+        /// <summary>10. Highlight: <c>HighlightAutoBorder</c> (default <see cref="MGHighlightBorderBrush.AutoStart"/> = true) starts its own
+        /// <c>Pulse</c> run as soon as it becomes the effective border; <c>HighlightManualBorder</c> (<c>AutoStart = false</c>) stays still
+        /// until <c>HighlightStartStopButton</c> drives <c>BorderBrush.Highlight.Progress</c> itself; <c>HighlightStopOnHoverBorder</c>
+        /// (<c>StopOnMouseOver = true</c>) stops on hover and needs <c>HighlightResumeButton</c> (<see cref="MGElement.ResumeBorderHighlight"/>)
+        /// to restart, since a suppressed run never resumes on its own.</summary>
+        private void WireHighlight()
+        {
+            MGBorder autoBorder = Window.GetElementByName<MGBorder>("HighlightAutoBorder");
+            autoBorder.BorderBrush = new MGHighlightBorderBrush(autoBorder.BorderBrush, new Color(0xF1, 0xC4, 0x0F), HighlightAnimation.Pulse);
+
+            MGBorder manualBorder = Window.GetElementByName<MGBorder>("HighlightManualBorder");
+            manualBorder.BorderBrush = new MGHighlightBorderBrush(manualBorder.BorderBrush, new Color(0x3D, 0xC6, 0xE0), HighlightAnimation.Scan) { AutoStart = false };
+            Window.GetElementByName<MGButton>("HighlightStartStopButton").AddCommandHandler((btn, e) =>
             {
-                bezierSlideOut = !bezierSlideOut;
-                btn.RenderTransform.Translation = new Vector2(bezierSlideOut ? 60f : 0f, 0f);
-            });
-
-            //  U4: V3OverridingPanel/V3PlainPanel are declared entirely in XAML (a local Background attribute plus a Hover
-            //  VisualStateDefinition, one with OverridesLocalValue="True"); nothing to wire from code.
-
-            //  U5: CheckedBackgroundBrush is code-only (ADR-0008 decision 5/U5) -- set here so the checked look differs from the theme's
-            //  Selected look. V3PlainToggle is left without one, so it falls back to VisualStateBrush<T>.SelectedValue when checked.
-            Window.GetElementByName<MGToggleButton>("V3CheckedToggle").CheckedBackgroundBrush = new MGSolidFillBrush(new Color(0xE6, 0x7E, 0x22));
-
-            //  U6: an embedded JSON clip (three tracks: Opacity, RenderTransform.Scale, Background) deserialised into a fresh UIStoryboard
-            //  and started on its own target every click (UIKeyFrameClipSerializer.Deserialize allocates a new, unowned storyboard each call).
-            MGBorder clipTarget = Window.GetElementByName<MGBorder>("V3ClipTarget");
-            Window.GetElementByName<MGButton>("V3PlayClip").AddCommandHandler((btn, e) =>
-                clipTarget.Animations.Start(UIKeyFrameClipSerializer.Deserialize(AnimationDemoV3Assets.ClipJson)));
-
-            //  U7: the same clip, attached once as a preview (never started for real, never registered with the manager) on a target that
-            //  is never touched by a live animation -- the coexistence limit documented in Docs/animation-architecture.md, "Preview et seek".
-            MGBorder previewTarget = Window.GetElementByName<MGBorder>("V3PreviewTarget");
-            _V3PreviewAnimation = UIAnimationPreview.Attach(previewTarget, UIKeyFrameClipSerializer.Deserialize(AnimationDemoV3Assets.ClipJson));
-            TimeSpan previewDuration = TimeSpan.FromSeconds(1);
-            Window.GetElementByName<MGSlider>("V3SeekSlider").ValueChanged += (sender, e) =>
-                _V3PreviewAnimation.Seek(TimeSpan.FromTicks((long)(previewDuration.Ticks * (e.NewValue / 100f))));
-            Window.GetElementByName<MGButton>("V3DetachPreview").AddCommandHandler((btn, e) => UIAnimationPreview.Detach(_V3PreviewAnimation));
-
-            //  U8: save the demo's own small V3 storyboard (built fresh, never started, so its nodes have no Owner) to JSON with
-            //  UIAnimationSerializer.Serialize, then rebuild and play it from the JSON text with Deserialize. namedElements is the small
-            //  name -> element dictionary a resolveElement delegate needs whenever a serialised node names an element other than the one
-            //  it is played on (none of them do here, since every node's Owner is unset, but the wiring is the same either way).
-            Dictionary<string, MGElement> namedElements = new() { ["V3ClipTarget"] = clipTarget };
-            MGTextBox storyboardJson = Window.GetElementByName<MGTextBox>("V3StoryboardJson");
-            Window.GetElementByName<MGButton>("V3SaveStoryboard").AddCommandHandler((btn, e) =>
-            {
-                UIStoryboard storyboard = new UIStoryboard
+                if (manualBorder.Animations.IsAnimating(UIBuiltInAnimationTargets.Paths.BorderBrushHighlightProgress))
                 {
-                    new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity) { From = 0f, To = 1f, Duration = TimeSpan.FromMilliseconds(300), Easing = UIEasing.QuadOut, Name = "v3-save-fade" },
-                    new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformScale) { From = new Vector2(0.85f), To = Vector2.One, Duration = TimeSpan.FromMilliseconds(300), Easing = UIEasing.BackOut, Name = "v3-save-scale" },
-                }.Named("v3-save");
-                storyboardJson.Text = UIAnimationSerializer.Serialize(storyboard, element => namedElements.FirstOrDefault(kv => kv.Value == element).Key);
-            });
-            Window.GetElementByName<MGButton>("V3LoadStoryboard").AddCommandHandler((btn, e) =>
-            {
-                if (!string.IsNullOrEmpty(storyboardJson.Text))
+                    manualBorder.Animations.Clear();
+                }
+                else
                 {
-                    clipTarget.Animations.Start(UIAnimationSerializer.Deserialize(storyboardJson.Text, name => namedElements.TryGetValue(name, out MGElement element) ? element : null));
+                    manualBorder.Animate(UIBuiltInAnimationTargets.Paths.BorderBrushHighlightProgress, 0.0, 1.0, 1.5).RepeatForever().Named("highlight-manual").Play();
                 }
             });
 
-            //  U10: the typewriter reveal (TextCharactersPerSecond set from code) and the highlight brush both follow
-            //  Desktop.Animations.Clock (pause and TimeScale) since U10; TextProgress = 0 replays a completed or in-progress reveal (the U10 fix round).
-            //  Set from code, not from a XAML attribute (SamplePath's own strict-mode load, in MGUI.Tests, has no code-behind and must not
-            //  start any animation by itself: MGUI.Tests/Animation/AnimationDemoSampleTests.cs pins Desktop.Animations.ActiveCount == 0 there).
-            MGTextBlock typewriter = Window.GetElementByName<MGTextBlock>("V3Typewriter");
+            MGBorder stopOnHoverBorder = Window.GetElementByName<MGBorder>("HighlightStopOnHoverBorder");
+            stopOnHoverBorder.BorderBrush = new MGHighlightBorderBrush(stopOnHoverBorder.BorderBrush, new Color(0x27, 0xAE, 0x60), HighlightAnimation.Flash) { StopOnMouseOver = true };
+            Window.GetElementByName<MGButton>("HighlightResumeButton").AddCommandHandler((btn, e) => stopOnHoverBorder.ResumeBorderHighlight());
+        }
+
+        /// <summary>11. Preview and seek: a fresh deserialisation of the embedded clip attached once as a preview on <c>PreviewTarget</c>
+        /// (never registered with <see cref="MGDesktop.Animations"/>), driven by <c>PreviewSlider</c>'s 0..100 % and ended by
+        /// <c>PreviewDetachButton</c> (<see cref="UIAnimationPreview.Detach"/>).</summary>
+        private void WirePreview()
+        {
+            MGBorder previewTarget = Window.GetElementByName<MGBorder>("PreviewTarget");
+            _previewAnimation = UIAnimationPreview.Attach(previewTarget, UIKeyFrameClipSerializer.Deserialize(AnimationDemoAssets.ClipJson));
+            TimeSpan previewDuration = TimeSpan.FromSeconds(1);
+            Window.GetElementByName<MGSlider>("PreviewSlider").ValueChanged += (sender, e) =>
+            {
+                // Once "Detach" has cancelled the preview, it is no longer active (Seek would throw): the slider becomes a no-op
+                // until a fresh preview is attached again.
+                if (_previewAnimation.IsActive)
+                {
+                    _previewAnimation.Seek(TimeSpan.FromTicks((long)(previewDuration.Ticks * (e.NewValue / 100f))));
+                }
+            };
+            Window.GetElementByName<MGButton>("PreviewDetachButton").AddCommandHandler((btn, e) => UIAnimationPreview.Detach(_previewAnimation));
+        }
+
+        /// <summary>12. Serialisation: "Save" serialises <see cref="AnimationDemoAssets.CreateDemoStoryboard"/> (built fresh, never started,
+        /// so every node's Owner is unset) to JSON with <see cref="UIAnimationSerializer.Serialize"/> into the read-only
+        /// <c>SerializationJsonText</c>; "Load + play" rebuilds an independent copy from that text with
+        /// <see cref="UIAnimationSerializer.Deserialize"/> and starts it on <c>SerializationTarget</c>. <c>namedElements</c> is the small
+        /// name-to-element dictionary a <c>resolveElement</c> delegate needs whenever a serialised node names an element other than the one
+        /// it is played on (none of them do here, since every node's Owner is unset, but the wiring is the same either way).</summary>
+        private void WireSerialization()
+        {
+            MGBorder serializationTarget = Window.GetElementByName<MGBorder>("SerializationTarget");
+            Dictionary<string, MGElement> namedElements = new() { ["SerializationTarget"] = serializationTarget };
+            MGTextBox jsonText = Window.GetElementByName<MGTextBox>("SerializationJsonText");
+
+            Window.GetElementByName<MGButton>("SerializationSaveButton").AddCommandHandler((btn, e) =>
+                jsonText.Text = UIAnimationSerializer.Serialize(AnimationDemoAssets.CreateDemoStoryboard(), element => namedElements.FirstOrDefault(kv => kv.Value == element).Key));
+            Window.GetElementByName<MGButton>("SerializationLoadButton").AddCommandHandler((btn, e) =>
+            {
+                if (!string.IsNullOrEmpty(jsonText.Text))
+                {
+                    serializationTarget.Animations.Start(UIAnimationSerializer.Deserialize(jsonText.Text, name => namedElements.TryGetValue(name, out MGElement element) ? element : null));
+                }
+            });
+        }
+
+        /// <summary>13. Controls on the engine: <c>EngineProgressButton.Duration</c> and <c>TypewriterText.TextCharactersPerSecond</c> (set
+        /// here, not from a XAML attribute, so this class's absence from a strict-mode XAML-only load -- see
+        /// <c>MGUI.Tests/Animation/AnimationDemoSampleTests.cs</c> -- starts no animation by itself) both run on
+        /// <see cref="MGDesktop.Animations"/>'s clock; <c>EngineReplayButton</c> seeks the reveal back to the start with
+        /// <c>TextProgress = 0</c>.</summary>
+        private void WireControls()
+        {
+            MGTextBlock typewriter = Window.GetElementByName<MGTextBlock>("TypewriterText");
             typewriter.TextCharactersPerSecond = 12;
-            MGToggleButton pauseClockToggle = Window.GetElementByName<MGToggleButton>("V3PauseClock");
-            pauseClockToggle.OnCheckStateChanged += (sender, e) => Desktop.Animations.Clock.IsPaused = pauseClockToggle.IsChecked;
-            Window.GetElementByName<MGButton>("V3ReplayText").AddCommandHandler((btn, e) => typewriter.TextProgress = 0);
-
-            MGBorder highlight = Window.GetElementByName<MGBorder>("V3Highlight");
-            //  W6: no target argument -- the engine hosts the run on this MGBorder itself once it is the effective border brush.
-            highlight.BorderBrush = new MGHighlightBorderBrush(highlight.BorderBrush, new Color(0xF1, 0xC4, 0x0F), HighlightAnimation.Progress);
-            Window.GetElementByName<MGSlider>("V3TimeScale").ValueChanged += (sender, e) => Desktop.Animations.Clock.TimeScale = e.NewValue;
+            Window.GetElementByName<MGButton>("EngineReplayButton").AddCommandHandler((btn, e) => typewriter.TextProgress = 0);
         }
 
-        /// <summary>A keyframe pop of the scale: 0.8 -> 1.1 (BackOut) -> 1.0 (QuadOut) over 400 ms.</summary>
-        private static UIKeyFrameAnimation<Vector2> CreatePop() => new(UIBuiltInAnimationTargets.Paths.RenderTransformScale)
+        /// <summary>14. Diagnostics: "Show applicable paths" captures <see cref="UIToolingService.CaptureElementDebugView"/> of
+        /// <c>TransitionsHoverButton</c> and lists its <see cref="UIElementDebugView.ApplicablePaths"/> in <c>DiagnosticsPathsText</c>;
+        /// "Measure per-tick allocations" starts a colour transition on <c>DiagnosticsTarget</c>, then measures
+        /// <see cref="GC.GetAllocatedBytesForCurrentThread"/> over the next 120 desktop update ticks and reports the average.</summary>
+        private void WireDiagnostics()
         {
-            Duration = TimeSpan.FromMilliseconds(400),
-            Track = { { 0f, new Vector2(0.8f) }, { 0.6f, new Vector2(1.1f), "BackOut" }, { 1f, Vector2.One, "QuadOut" } },
-            Name = "pop",
-        };
+            MGTextBox pathsText = Window.GetElementByName<MGTextBox>("DiagnosticsPathsText");
+            Window.GetElementByName<MGButton>("DiagnosticsPathsButton").AddCommandHandler((btn, e) =>
+                pathsText.Text = string.Join(", ", UIToolingService.CaptureElementDebugView(Window.GetElementByName<MGButton>("TransitionsHoverButton")).ApplicablePaths));
 
-        /// <summary>Opens (or re-opens) a nested popup whose content fades and scales in from its centre, the "window opening" example of the specification.</summary>
-        private void OpenPopup()
-        {
-            if (_popup == null)
+            MGBorder measureTarget = Window.GetElementByName<MGBorder>("DiagnosticsTarget");
+            MGTextBlock allocationText = Window.GetElementByName<MGTextBlock>("DiagnosticsAllocationText");
+            int ticksRemaining = 0;
+            long bytesAtWindowStart = 0;
+            Window.GetElementByName<MGButton>("DiagnosticsMeasureButton").AddCommandHandler((btn, e) =>
             {
-                _popup = new MGWindow(Window, 0, 0, 280, 130) { WindowStyle = WindowStyle.None, ActivatesOnClick = false };
-                _popupRoot = new MGBorder(Window) { Padding = new Thickness(12), CornerRadius = new MGCornerRadius(8) };
-                _popupRoot.BackgroundBrush.NormalValue = new MGSolidFillBrush(new Color(0x34, 0x49, 0x5E));
-                _popupRoot.RenderTransform.Origin = new Vector2(0.5f, 0.5f);
-                MGStackPanel content = new(Window, Orientation.Vertical) { Spacing = 8 };
-                content.TryAddChild(new MGTextBlock(Window, "A popup opening with opacity and scale.", Color.White));
-                MGButton close = new(Window);
-                close.SetContent("Close");
-                close.AddCommandHandler((btn, e) => ClosePopup());
-                content.TryAddChild(close);
-                _popupRoot.SetContent(content);
-                _popup.SetContent(_popupRoot);
-            }
-
-            _popup.Left = Window.Left + (Window.WindowWidth - _popup.WindowWidth) / 2;
-            _popup.Top = Window.Top + (Window.WindowHeight - _popup.WindowHeight) / 2;
-            if (!Window.NestedWindows.Contains(_popup))
-            {
-                Window.AddNestedWindow(_popup);
-            }
-
-            _popupRoot.Animations.Start(new UIPropertyAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity)
-            {
-                From = 0f,
-                To = 1f,
-                Duration = TimeSpan.FromMilliseconds(200),
-                Easing = UIEasing.QuadOut,
-                Name = "popup-fade",
+                measureTarget.Animate(UIColorAnimationTargets.Paths.Background, measureTarget.BackgroundBrush.NormalValue is MGSolidFillBrush current && current.Color == Color.SlateBlue ? Color.CornflowerBlue : Color.SlateBlue, 4.0)
+                    .AutoReverse().RepeatForever().Named("diagnostics-probe").Play();
+                ticksRemaining = 120;
             });
-            _popupRoot.Animations.Start(new UIPropertyAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformScale)
+            Window.OnEndUpdate += (sender, e) =>
             {
-                From = new Vector2(0.9f, 0.9f),
-                To = Vector2.One,
-                Duration = TimeSpan.FromMilliseconds(250),
-                Easing = UIEasing.BackOut,
-                Name = "popup-scale",
-            });
-        }
+                if (ticksRemaining == 120)
+                {
+                    bytesAtWindowStart = GC.GetAllocatedBytesForCurrentThread();
+                }
 
-        private void ClosePopup()
-        {
-            if (_popup != null && Window.NestedWindows.Contains(_popup))
-            {
-                Window.RemoveNestedWindow(_popup);
-            }
-        }
-    }
-
-    internal static class AnimationDemoExtensions
-    {
-        /// <summary>Names a storyboard inside a collection-initializer expression.</summary>
-        public static UIStoryboard Named(this UIStoryboard storyboard, string name)
-        {
-            storyboard.Name = name;
-            return storyboard;
+                if (ticksRemaining > 0)
+                {
+                    ticksRemaining--;
+                    if (ticksRemaining == 0)
+                    {
+                        double perTick = (GC.GetAllocatedBytesForCurrentThread() - bytesAtWindowStart) / 120.0;
+                        allocationText.SetText($"Allocations per tick: {perTick:0.0} bytes (over 120 ticks)");
+                        measureTarget.Animations.Clear();
+                    }
+                }
+            };
         }
     }
 }
