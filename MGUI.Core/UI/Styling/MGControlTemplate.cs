@@ -175,7 +175,7 @@ public sealed class MGControlTemplateContext
             throw new ArgumentNullException(nameof(SetValue));
         }
 
-        Comparer ??= EqualityComparer<T>.Default;
+        Comparer ??= MGUI.Core.UI.Brushes.UIBrushEquality.ForGuards<T>();
         var CurrentValue = GetCurrentValue();
         var HasPrevious = Owner.TryGetAppliedTemplateDefault(Name, out UIResolvedValue<T> PreviousValue);
         // The record describes the value applied to the target of the previous application. A part default (Template) targets a part that a

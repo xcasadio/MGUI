@@ -59,7 +59,7 @@ public readonly record struct VisualState(PrimaryVisualState Primary, SecondaryV
 
 public class VisualStateSetting<TDataType> : ViewModelBase
 {
-    private readonly EqualityComparer<TDataType> EqualityComparer = EqualityComparer<TDataType>.Default;
+    private readonly IEqualityComparer<TDataType> EqualityComparer = MGUI.Core.UI.Brushes.UIBrushEquality.ForGuards<TDataType>();
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private TDataType _DisabledValue;

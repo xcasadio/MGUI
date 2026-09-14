@@ -69,7 +69,9 @@ Hors programme : animation par chemin de propriete generique dans une brush a la
 
 ## Taches
 
-### ⏳ W1. Contrat gelable et egalite de valeur
+### ✅ W1. Contrat gelable et egalite de valeur
+
+**Statut** : livre. `IUIFreezable` ajoute avec des membres par defaut transitoires sur `IFillBrush`/`IBorderBrush` ; `UIFreezableBrush` (abstraite, `ViewModelBase`) pose le socle gel/notification/allocation nulle pour les brushes qui en deriveront a partir de W2 ; `UIBrushEquality.ValueEquals` et `ForGuards<T>()` couvrent `IFillBrush`, `IBorderBrush`, `VisualStateFillBrush` et `VisualStateSetting<T>` de brush. Les deux gardes de valeur (`VisualStateSetting<T>`, `MGControlTemplate.ApplyTemplateValueCore`) passent desormais par `ForGuards<T>()` : comportement observable inchange aujourd'hui, preuve par mutation faite et revertee (voir ADR-0009, section « Decisions taken during delivery », W1). Aucune brush convertie. Tests ajoutes dans `MGUI.Tests/Architecture/FreezableBrushTests.cs` et `BrushGuardEqualityTests.cs` (les tests existants sur les brushes vivent deja dans ce dossier). Suite complete verte : 2272/2272 (2249 + 23). Tranche interrompue par l'auteur puis reprise : le second executor a verifie le travail partiel du premier au lieu de le refaire. Revue independante (verifier) : CONFIRMED avec un P3 accepte par la session principale (pour `T = VisualStateFillBrush`, la garde de re-application d'un defaut de template comparait par reference avant cette tranche et compare par valeur maintenant : un conteneur distinct mais egal en valeur pose par l'application est de nouveau re-applique au changement de theme, alignement voulu et consigne dans l'ADR) et deux P4 (typo corrigee ; trois fichiers Markdown en LF dans la copie de travail, normalises par git a la validation).
 
 But : `IUIFreezable`, `UIFreezableBrush`, `UIBrushEquality.ValueEquals`, sans convertir encore aucune brush.
 
