@@ -185,7 +185,7 @@ public class EasingTests
         Assert.NotEqual(float.NaN, sink);
     }
 
-    // --- U1: cubic Bezier easings (Docs/Tasks/animation-v3-tasks.md, ADR-0008 decision 1) ---
+    // --- Cubic Bezier easings (ADR-0008 decision 1) ---
 
     /// <summary>Dense sampling of the parametric Bezier curve: an oracle independent of <see cref="UICubicBezierEasing.Ease"/>.</summary>
     private static float SampleOracle(float x1, float y1, float x2, float y2, float t)

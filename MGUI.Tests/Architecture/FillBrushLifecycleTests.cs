@@ -77,7 +77,7 @@ public class FillBrushLifecycleTests
     [Fact]
     public void BorderedFillBrush_Update_ForwardsToHighlightBorderBrush_ButNoLongerAdvancesIt()
     {
-        //  ADR-0009, W6: MGHighlightBorderBrush.Update only forwards to its Underlay now -- AnimationProgress is written by an
+        //  ADR-0009: MGHighlightBorderBrush.Update only forwards to its Underlay now -- AnimationProgress is written by an
         //  MGElement-hosted engine run (SyncBorderHighlightRun) on the element's own run-owned clone, never by Update() itself.
         //  A highlight nested inside an MGBorderedFillBrush (as here) is not the element's own effective BorderBrush pilot value,
         //  so no host ever finds it either: Update() forwarding through it is a no-op for AnimationProgress, by design.
@@ -326,7 +326,7 @@ public class FillBrushLifecycleTests
     [Fact]
     public void Border_WithHighlightInsideUniformBorderBrush_NoLongerAnimatesOnItsOwn()
     {
-        //  ADR-0009, W6: the engine run that advances AnimationProgress is hosted by the MGElement whose OWN effective
+        //  ADR-0009: the engine run that advances AnimationProgress is hosted by the MGElement whose OWN effective
         //  BorderBrush pilot value is the MGHighlightBorderBrush (SyncBorderHighlightRun); this element's own BorderBrush is an
         //  MGUniformBorderBrush wrapping a fill brush that happens to nest a highlight brush several levels down (a fill-brush
         //  composition, not the pilot value), so no host ever finds it. Update() still forwards through the whole tree (see

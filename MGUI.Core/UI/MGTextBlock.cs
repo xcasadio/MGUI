@@ -389,7 +389,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// <summary>Tagged write of one <see cref="Color"/>? sub-slot (<see cref="UIValueSlot.Normal"/>,
     /// <see cref="UIValueSlot.Selected"/>, <see cref="UIValueSlot.Disabled"/> or <see cref="UIValueSlot.Focused"/>) (R3).
     /// This container has no <see cref="UIValueSlot.FocusedColor"/> sub-slot. See <see cref="MGElement.SetBackgroundSlot"/>
-    /// (fix round 2: gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
+    /// (gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
     internal void SetForegroundSlot(UIValueSlot slot, Color? value, UIValueResolutionSource source)
     {
         ValidateForegroundSlot(slot);
@@ -677,7 +677,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// Min value: 0.0 (0%)<br/>Max value: 1.0 (100%)<para/>
     /// Default value: <see langword="null"/><para/>
     /// See also: <see cref="TextCharactersPerSecond"/><para/>
-    /// U10: while <see cref="TextCharactersPerSecond"/> drives the reveal, the value is written by an animation engine run on
+    /// While <see cref="TextCharactersPerSecond"/> drives the reveal, the value is written by an animation engine run on
     /// <c>TextBlock.TextProgress</c> (<see cref="ApplyAnimatedTextProgress"/>). A direct write here (application code, not the run
     /// itself) seeks that reveal instead of cancelling it for good: 0 replays it from the start, a fraction below 1 continues the
     /// reveal from that point (remaining duration retargeted, no backward jump), <see langword="null"/> shows the whole text and
@@ -707,7 +707,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// This property is typically used to make text appear slowly over time, such as to mimic an NPC speaking. (Note: People typically speak at a rate of about 17 CPS)<para/>
     /// Default value: <see langword="null"/><para/>
     /// See also: <see cref="TextProgress"/><para/>
-    /// U10: the reveal runs on the animation engine (<see cref="SyncTextProgressAnimation"/>), following <see cref="MGDesktop.Animations"/>'
+    /// The reveal runs on the animation engine (<see cref="SyncTextProgressAnimation"/>), following <see cref="MGDesktop.Animations"/>'
     /// clock (pause and <c>TimeScale</c> apply). Setting a null or non-positive speed cancels the run and shows the whole text (as before);
     /// enabling a speed for the first time (from a null speed) starts the reveal at 0; changing an already-active speed keeps the current
     /// progress and just retargets the remaining duration (no jump, no restart). A speed change after the reveal has completed
@@ -747,11 +747,11 @@ public class MGTextBlock : MGElement, ITextMeasurer
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _IsTextRevealSyncPending;
 
-    /// <summary>The name of the animation that <see cref="TextCharactersPerSecond"/> runs on <c>TextBlock.TextProgress</c> (U10;
-    /// visible in the element debug view).</summary>
+    /// <summary>The name of the animation that <see cref="TextCharactersPerSecond"/> runs on <c>TextBlock.TextProgress</c>
+    /// (visible in the element debug view).</summary>
     internal const string TextRevealAnimationName = "TextBlock.TextReveal";
 
-    /// <summary>The run behind the typewriter reveal (U10): a forced restore (element detached, window closed,
+    /// <summary>The run behind the typewriter reveal: a forced restore (element detached, window closed,
     /// <see cref="UIAnimationCollection.Clear"/>) keeps the current progress like a pause does; real progress is never rewound.</summary>
     private sealed class TextRevealRun : UIPropertyAnimation<double>
     {
@@ -761,7 +761,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
         protected internal override void OnRestoreBaseValue() { }
     }
 
-    /// <summary>Writes <see cref="TextProgress"/> on behalf of the reveal animation (U10): such a write never cancels or retargets the
+    /// <summary>Writes <see cref="TextProgress"/> on behalf of the reveal animation: such a write never cancels or retargets the
     /// run that is currently writing it.</summary>
     internal void ApplyAnimatedTextProgress(double progress)
     {
@@ -785,7 +785,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     }
 
     /// <summary>Starts, retargets or cancels the run that drives <see cref="TextProgress"/> from its current value to 1.0 over the
-    /// remaining share of the reveal (U10: engine replaces the per-frame increment previously done in <see cref="UpdateSelf"/>).
+    /// remaining share of the reveal (the engine replaces the per-frame increment previously done in <see cref="UpdateSelf"/>).
     /// Linear, the end value stays at 1.0 (whole text drawn), a replaced or cancelled run keeps the current progress. Also the seek
     /// entry point for a direct <see cref="TextProgress"/> write: a value of 0 replays the reveal, a fraction below 1 continues it
     /// from there. Nothing runs (cancels instead) while the text block is outside a tree, while it has no characters, while
@@ -925,7 +925,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
             NotifyPropertyChanged(nameof(Text));
 
-            //  U10: an actual Text change restarts the reveal at 0 with the new length (ApplyTextMutation already refreshed
+            //  An actual Text change restarts the reveal at 0 with the new length (ApplyTextMutation already refreshed
             //  NumCharacters via UpdateRuns); setting the identical string does not reach this branch, so it never restarts.
             if (TextCharactersPerSecond.HasValue)
             {
@@ -1365,7 +1365,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             TextProgress = null;
             TextCharactersPerSecond = null;
 
-            //  U10: the reveal run only exists while the text block is in a tree (a detached element is not updated); joining a
+            //  The reveal run only exists while the text block is in a tree (a detached element is not updated); joining a
             //  tree with a pending reveal (re)starts it, mirroring MGProgressButton's Duration run.
             OnParentChanged += (sender, e) =>
             {
@@ -1526,7 +1526,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     public override void UpdateSelf(ElementUpdateArgs UA)
     {
-        //  U10: the reveal run is driven by the animation engine (SyncTextProgressAnimation); a sync requested before a desktop was
+        //  The reveal run is driven by the animation engine (SyncTextProgressAnimation); a sync requested before a desktop was
         //  reachable, or from inside the run's own write, is resolved here, after this frame's manager tick (same pattern as
         //  MGProgressButton.SyncDurationAnimation).
         if (_IsTextRevealSyncPending)

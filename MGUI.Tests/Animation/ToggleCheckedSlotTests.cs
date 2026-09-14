@@ -12,7 +12,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice U5 of Docs/Tasks/animation-v3-tasks.md: <see cref="VisualStateBrush{TDataType}.CheckedValue"/>/<see cref="VisualStateBrush{TDataType}.HasCheckedValue"/>
+/// <summary><see cref="VisualStateBrush{TDataType}.CheckedValue"/>/<see cref="VisualStateBrush{TDataType}.HasCheckedValue"/>
 /// (ADR-0008) and <see cref="MGToggleButton.CheckedBackgroundBrush"/>/<see cref="MGToggleButton.CheckedTextForeground"/>, the real slots backed by it.<para/>
 /// <see cref="MGCheckBox"/> and <see cref="MGRadioButton"/> are untouched by this slice (their checked look is drawn by child elements, not
 /// <see cref="MGElement.BackgroundBrush"/>/<see cref="MGElement.DefaultTextForeground"/>): their existing test suites stay green with no new
@@ -298,9 +298,9 @@ public class ToggleCheckedSlotTests
 
     #endregion
 
-    #region Fix round 1: whole-container BackgroundBrush swap after CheckedBackgroundBrush is set
+    #region Whole-container BackgroundBrush swap after CheckedBackgroundBrush is set
 
-    /// <summary>Verifier-refuted P2, fix round 1: reproduces the exact reported scenario -- replacing the whole <see cref="MGElement.BackgroundBrush"/>
+    /// <summary>Reproduces the exact reported scenario -- replacing the whole <see cref="MGElement.BackgroundBrush"/>
     /// container (as <see cref="MGExpander.ExpanderButtonBackgroundBrush"/>'s setter or a pilot/style Whole-slot resolution would) after a code-set
     /// <see cref="MGToggleButton.CheckedBackgroundBrush"/> is in effect. Before the fix, the checked value was silently dropped from the fresh container
     /// while the property getter kept returning the stale one, so the drawn colour and the property disagreed. After the fix
@@ -331,9 +331,9 @@ public class ToggleCheckedSlotTests
 
     #endregion
 
-    #region Fix round 2: CheckedTextForeground precedence, and a null BackgroundBrush must not throw
+    #region CheckedTextForeground precedence, and a null BackgroundBrush must not throw
 
-    /// <summary>Verifier-refuted P1, fix round 2: the reverse ordering of <see cref="RealThemeChange_KeepsACodeSetCheckedBackgroundBrush_AndACodeSetCheckedTextForeground"/> --
+    /// <summary>The reverse ordering of <see cref="RealThemeChange_KeepsACodeSetCheckedBackgroundBrush_AndACodeSetCheckedTextForeground"/> --
     /// a real theme change happens FIRST (recording a <see cref="UIValueSourceKind.Theme"/> contribution on the Selected sub-slot, the only
     /// writer of that contribution for a toggle), THEN <see cref="MGToggleButton.CheckedTextForeground"/> is set. Before the fix, the code-set
     /// write was recorded at <see cref="UIValueResolutionSource.Default"/>'s precedence (lower than <see cref="UIValueResolutionSource.Theme"/>'s),
@@ -365,7 +365,7 @@ public class ToggleCheckedSlotTests
         Assert.Equal(themeSelected, toggle.DefaultTextForeground.SelectedValue);
     }
 
-    /// <summary>Verifier-refuted P2, fix round 2: reproduces the exact reported crash -- assigning <c>BackgroundBrush = null</c> on any
+    /// <summary>Reproduces the exact reported crash -- assigning <c>BackgroundBrush = null</c> on any
     /// <see cref="MGToggleButton"/> threw a <see cref="NullReferenceException"/> from <c>SyncCheckedBackgroundValue</c> (invoked unconditionally
     /// by <see cref="MGElement.OnBackgroundBrushContainerReplaced"/> on every whole-container swap, including one that resolves to null), even
     /// for a toggle that never used <see cref="MGToggleButton.CheckedBackgroundBrush"/>.</summary>

@@ -1,6 +1,6 @@
 namespace MGUI.Core.UI.Animation;
 
-/// <summary>Playback state of a <see cref="UIAnimation"/> (Docs/Tasks/animation-tasks.md, S3; ADR-0006).</summary>
+/// <summary>Playback state of a <see cref="UIAnimation"/> (ADR-0006).</summary>
 public enum UIAnimationState
 {
     /// <summary>Never started, or reset by <see cref="UIAnimation.Restart"/> before its first tick.</summary>

@@ -3,7 +3,7 @@ using MGUI.Core.UI.Animation.Easing;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S3: state machine, timing and events of one <see cref="UIAnimation"/> driven by the desktop frames (16 ms).</summary>
+/// <summary>State machine, timing and events of one <see cref="UIAnimation"/> driven by the desktop frames (16 ms).</summary>
 public class AnimationLifecycleTests
 {
     private const float Tolerance = 1e-4f;

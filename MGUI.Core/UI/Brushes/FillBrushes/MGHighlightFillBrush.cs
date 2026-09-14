@@ -12,7 +12,7 @@ namespace MGUI.Core.UI.Brushes.FillBrushes;
 /// <summary>A brush that directs the user's focus to a particular region either by brightening the focused region or by dimming the unfocused region.<para/>
 /// This brush is commonly used to apply a 35% transparent black color overlay to an entire window except for a particular rectangular region,
 /// so that the uncolored region stands out visually.<para/>
-/// Freezable (ADR-0009, W3), but NOT through <see cref="UIFreezableBrush"/>: this class already derives from <see cref="XAMLBindableBase"/> for
+/// Freezable (ADR-0009), but NOT through <see cref="UIFreezableBrush"/>: this class already derives from <see cref="XAMLBindableBase"/> for
 /// its XAML data-binding support (<see cref="XAMLBindableBase.Bindings"/>, <see cref="XAMLBindableBase.DataContext"/>,
 /// <see cref="IObservableDataContext"/>), and C# has no multiple inheritance, so <see cref="IUIFreezable"/> is implemented explicitly here
 /// instead, duplicating <see cref="UIFreezableBrush"/>'s <c>ThrowIfFrozen</c> discipline: every setter below throws once <see cref="IsFrozen"/>

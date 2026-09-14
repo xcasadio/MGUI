@@ -3,7 +3,7 @@ using MGUI.Shared.Helpers;
 
 namespace MGUI.Core.UI.Brushes;
 
-/// <summary>Abstract base for a mutable, notifying, freezable paint (ADR-0009, W1): the value brushes, the composites and the highlight border brush derive from it
+/// <summary>Abstract base for a mutable, notifying, freezable paint (ADR-0009): the value brushes, the composites and the highlight border brush derive from it
 /// and it establishes the contract every paint of MGUI.Core adopts. Derives from <see cref="ViewModelBase"/> so a
 /// property change raises <see cref="System.ComponentModel.INotifyPropertyChanged.PropertyChanged"/> without allocating (cached
 /// <see cref="System.ComponentModel.PropertyChangedEventArgs"/> per property name).<para/>
@@ -61,11 +61,11 @@ public abstract class UIFreezableBrush : ViewModelBase, IUIFreezable
         => SetProperty(ref field, value, EqualityComparer<T>.Default, name);
 
     /// <summary>Same contract as <see cref="SetProperty{T}(ref T, T, string)"/>, but compares with <paramref name="comparer"/> instead of
-    /// <see cref="EqualityComparer{T}.Default"/> (fix round, ADR-0009 W3-fix): a brush-typed <typeparamref name="T"/> property that nests
+    /// <see cref="EqualityComparer{T}.Default"/> (ADR-0009): a brush-typed <typeparamref name="T"/> property that nests
     /// another <see cref="IUIFreezable"/> paint (e.g. <c>MGPaddedFillBrush.Brush</c>, <c>MGDockedBorderBrush.Left</c>) must accept a
     /// distinct-but-value-equal instance as a real change -- the same identity-sensitive rule <see cref="UIBrushEquality.ForSlots{T}"/>
     /// already applies to <see cref="VisualStateSetting{TDataType}"/>'s slots, and for the same reason: the caller may mutate that
-    /// distinct instance afterwards (an element-owned brush, W4), so the property must already hold the exact instance for the mutation to
+    /// distinct instance afterwards (an element-owned brush), so the property must already hold the exact instance for the mutation to
     /// reach it.</summary>
     protected bool SetProperty<T>(ref T field, T value, IEqualityComparer<T> comparer, [CallerMemberName] string name = null)
     {

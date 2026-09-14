@@ -431,7 +431,7 @@ public static class UIToolingService
         return artifact.ToString();
     }
 
-    /// <summary>The element's active and held animations and its transitions (ADR-0006, S8), empty when the element never animated.</summary>
+    /// <summary>The element's active and held animations and its transitions (ADR-0006), empty when the element never animated.</summary>
     private static IReadOnlyList<UIAnimationDebugView> CaptureAnimations(MGElement element)
     {
         var slot = element.AnimationSlotOrNull;

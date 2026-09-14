@@ -60,8 +60,8 @@ public readonly record struct VisualState(PrimaryVisualState Primary, SecondaryV
 
 public class VisualStateSetting<TDataType> : ViewModelBase
 {
-    /// <summary>Fix round (W2-fix, ADR-0009): reference equality for a brush-typed <typeparamref name="TDataType"/> -- a distinct instance
-    /// is a change even when it equals the stored one in value, since W4 lets the caller mutate that distinct instance afterwards and the
+    /// <summary>Reference equality (ADR-0009) for a brush-typed <typeparamref name="TDataType"/> -- a distinct instance
+    /// is a change even when it equals the stored one in value, since the caller may mutate that distinct instance afterwards and the
     /// slot must already hold the exact instance for the mutation to reach it. See <see cref="MGUI.Core.UI.Brushes.UIBrushEquality.ForSlots{T}"/>.</summary>
     private readonly IEqualityComparer<TDataType> EqualityComparer = MGUI.Core.UI.Brushes.UIBrushEquality.ForSlots<TDataType>();
 
@@ -299,7 +299,7 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _HasCheckedValue;
 
-    /// <summary>Code-only slot (U5, ADR-0008) consumed by <see cref="MGToggleButton"/>'s <c>CheckedBackgroundBrush</c>/<c>CheckedTextForeground</c>:
+    /// <summary>Code-only slot (ADR-0008) consumed by <see cref="MGToggleButton"/>'s <c>CheckedBackgroundBrush</c>/<c>CheckedTextForeground</c>:
     /// the value drawn/used while the toggle is checked, in place of <see cref="VisualStateSetting{TDataType}.SelectedValue"/>.<br/>
     /// Not a theme DTO field, not an animation target, not a <see cref="MGUI.Core.UI.Styling.UIResolvedPropertyStore"/> slot: purely code-set.<para/>
     /// For a reference <typeparamref name="TDataType"/>, setting <see langword="null"/> clears it (same as <see cref="ClearCheckedValue"/>);
@@ -359,8 +359,8 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
         };
 
     /// <summary>Returns a <see cref="IFillBrush"/> that should be rendered overtop of the element's graphics, not including the border's bounds.
-    /// <see cref="MGSolidFillBrush"/> is a reference type since ADR-0009/W2: <see langword="null"/> means <see cref="SecondaryVisualState.None"/>,
-    /// same meaning as the pre-W2 <c>Nullable&lt;MGSolidFillBrush&gt;</c> "no value".</summary>
+    /// <see cref="MGSolidFillBrush"/> is a reference type (ADR-0009): <see langword="null"/> means <see cref="SecondaryVisualState.None"/>,
+    /// same meaning as a <c>Nullable&lt;MGSolidFillBrush&gt;</c> "no value".</summary>
     public MGSolidFillBrush GetFillOverlay(SecondaryVisualState State) =>
         State switch
         {
@@ -416,7 +416,7 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
     public VisualStateFillBrush(IFillBrush NormalBrush, IFillBrush SelectedBrush, IFillBrush FocusedBrush, IFillBrush DisabledBrush, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
         : base(NormalBrush, SelectedBrush, FocusedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { SubscribeToOwnSlotChanges(); }
 
-    /// <summary>Returns <paramref name="Brush"/> unchanged when it is frozen (ADR-0009, W3: a frozen brush is immutable and safely
+    /// <summary>Returns <paramref name="Brush"/> unchanged when it is frozen (ADR-0009: a frozen brush is immutable and safely
     /// shareable by reference, so the copy constructor below does not need to clone it), otherwise an unfrozen deep copy via
     /// <see cref="IFillBrush.Copy"/>, same as before this slice.</summary>
     private static IFillBrush ShareIfFrozenElseCopy(IFillBrush Brush) => Brush is IUIFreezable { IsFrozen: true } ? Brush : Brush?.Copy();
@@ -434,7 +434,7 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         }
     }
 
-    #region Slot brush notification (ADR-0009, W4)
+    #region Slot brush notification (ADR-0009)
     //  A frozen slot brush never changes (IUIFreezable) so it is never subscribed to; an unfrozen one (XAML inline,
     //  code-created, or an animation's clone under it) is element-owned and can be mutated in place, and this container
     //  relays that mutation as its OWN PropertyChanged (a distinct name, SlotBrushMutatedPropertyName, never one of the
@@ -510,7 +510,7 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         ResyncSlotSubscription(ref _SubscribedDisabledValue, DisabledValue);
         ResyncSlotSubscription(ref _SubscribedCheckedValue, HasCheckedValue ? CheckedValue : null);
     }
-    #endregion Slot brush notification (ADR-0009, W4)
+    #endregion Slot brush notification (ADR-0009)
 
     /// <summary>Draws the fill overlay of <paramref name="State"/> (Hovered / Pressed) with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied; nothing for <see cref="SecondaryVisualState.None"/> or an opacity of 0.</summary>
     public void DrawFillOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, Rectangle Bounds)

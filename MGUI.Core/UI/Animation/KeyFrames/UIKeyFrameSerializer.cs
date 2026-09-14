@@ -20,7 +20,7 @@ public static class UIKeyFrameSerializer
 {
     public const int CurrentVersion = 1;
 
-    /// <summary>Extension point for a value type outside the closed built-in set (U8, ADR-0008 decision 8): registers the
+    /// <summary>Extension point for a value type outside the closed built-in set (ADR-0008 decision 8): registers the
     /// <see cref="Format{T}"/> / <see cref="Parse{T}"/> pair an application target's value type needs, shared by
     /// <see cref="UIKeyFrameClipSerializer"/>, <see cref="UIAnimationSerializer"/> and this class' own <see cref="Serialize{T}"/> /
     /// <see cref="Deserialize{T}"/>. Thread-safe (<see cref="ConcurrentDictionary{TKey,TValue}"/>, the same shape as

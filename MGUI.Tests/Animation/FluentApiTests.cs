@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice T7 of Docs/Tasks/animation-v2-tasks.md: the fluent Animate API, sugar over UIPropertyAnimation and UISequenceAnimation.</summary>
+/// <summary>The fluent Animate API, sugar over UIPropertyAnimation and UISequenceAnimation.</summary>
 public class FluentApiTests
 {
     private const float Tolerance = 1e-4f;

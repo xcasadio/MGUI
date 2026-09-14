@@ -10,7 +10,7 @@ namespace MGUI.Core.UI.Animation.KeyFrames;
 /// a <see cref="UIPropertyAnimation{T}"/> or a <see cref="UIKeyFrameAnimation{T}"/>, nested to any depth -- with no reference to any control
 /// instance (ADR-0008, decision 8; precedent <see cref="MGUI.Core.UI.Graph.GraphSerializer"/>). <see cref="Serialize"/> walks the tree with a
 /// host-provided <c>nameOf</c> delegate for the (rare) child preset on another element than the root; <see cref="Deserialize"/> walks the
-/// document back with a host-provided <c>resolveElement</c> delegate, using <see cref="UIAnimation.PresetOwner"/> (U8) for such a child.
+/// document back with a host-provided <c>resolveElement</c> delegate, using <see cref="UIAnimation.PresetOwner"/> for such a child.
 /// <code>
 /// {
 ///   "version": 1,
@@ -244,7 +244,7 @@ public static class UIAnimationSerializer
         var track = animation.Track ?? throw new InvalidOperationException($"{path}: has no {nameof(UIKeyFrameAnimation<T>.Track)}.");
         if (track.Count == 0)
         {
-            // Same U6 P3 the clip serializer closes (UIKeyFrameClipSerializer.SerializeTrack): an empty track would otherwise serialize as
+            // Same case the clip serializer closes (UIKeyFrameClipSerializer.SerializeTrack): an empty track would otherwise serialize as
             // "track": [], which Deserialize refuses right back ("has no frames").
             throw new InvalidOperationException($"{path} ('{property}'): has no frames.");
         }

@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
-/// Render-only transform of an <see cref="MGElement"/> (ADR-0006, Docs/Tasks/animation-tasks.md S2): applied when the element is drawn
+/// Render-only transform of an <see cref="MGElement"/> (ADR-0006): applied when the element is drawn
 /// and inverted for hit-testing, never consulted by the layout, so a transformed element keeps its measured bounds and may overlap its neighbours.<para/>
 /// Semantics follow NoesisGUI and WPF: <see cref="Origin"/> is a point relative to the element bounds, in [0, 1]², whose default (0, 0) is the
 /// top-left corner (set (0.5, 0.5) for the centre, as <c>RenderTransformOrigin="0.5,0.5"</c>); <see cref="Rotation"/> is an angle in degrees,

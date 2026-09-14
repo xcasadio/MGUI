@@ -6,7 +6,7 @@ using MGUI.Core.UI.Animation.Targets;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice T1 of Docs/Tasks/animation-v2-tasks.md: storyboards (parallel), sequences and delays.</summary>
+/// <summary>Storyboards (parallel), sequences and delays.</summary>
 public class CompositionTests
 {
     private const float Tolerance = 1e-4f;

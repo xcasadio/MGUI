@@ -673,7 +673,7 @@ public class MGResources
         OnStaticResourceLookupChanged?.Invoke(this, Name);
     }
 
-    /// <summary>Freezing policy (ADR-0009, W4): a brush registered as a static resource (<see cref="AddStaticResource"/>,
+    /// <summary>Freezing policy (ADR-0009): a brush registered as a static resource (<see cref="AddStaticResource"/>,
     /// and <see cref="SetStaticResource"/> for a resource replaced in place -- a <c>DynamicResource</c> update still
     /// swaps which instance is stored, per <see cref="MGUI.Core.UI.Styling.UIResourceReferenceApplicator"/>, it just
     /// freezes the new one too) is frozen so <see cref="MGUI.Core.UI.Styling.UIResourceReferenceApplicator"/> can keep
@@ -683,7 +683,7 @@ public class MGResources
     /// stores under a brush-typed <c>x:Key</c>: a plain <see cref="MGUI.Core.UI.Brushes.FillBrushes.IFillBrush"/> /
     /// <see cref="MGUI.Core.UI.Brushes.BorderBrushes.IBorderBrush"/>, or (less commonly) a whole
     /// <see cref="VisualStateFillBrush"/> whose non-null slots are frozen individually (the container itself is never
-    /// frozen, W3).</summary>
+    /// frozen).</summary>
     private static void FreezeIfBrush(object Value)
     {
         switch (Value)

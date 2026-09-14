@@ -8,7 +8,7 @@ using MonoGame.Extended;
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
 /// <summary>An <see cref="IFillBrush"/> that combines the functionality of an <see cref="IFillBrush"/> and an <see cref="IBorderBrush"/>.
-/// Freezable (ADR-0009, W3): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
+/// Freezable (ADR-0009): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
 /// <see cref="Freeze"/> also freezes <see cref="BorderBrush"/> and <see cref="FillBrush"/>; <see cref="Copy"/> always returns an
 /// unfrozen instance with unfrozen deep copies of both.</summary>
 public sealed class MGBorderedFillBrush : UIFreezableBrush, IFillBrush
@@ -21,7 +21,7 @@ public sealed class MGBorderedFillBrush : UIFreezableBrush, IFillBrush
     }
 
     private IBorderBrush _BorderBrush;
-    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (fix round, ADR-0009 W3-fix): see
+    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (ADR-0009): see
     /// <see cref="MGUI.Core.UI.Brushes.FillBrushes.MGPaddedFillBrush.Brush"/> for the rationale.</summary>
     public IBorderBrush BorderBrush
     {
@@ -30,7 +30,7 @@ public sealed class MGBorderedFillBrush : UIFreezableBrush, IFillBrush
     }
 
     private IFillBrush _FillBrush;
-    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (fix round, ADR-0009 W3-fix): see
+    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (ADR-0009): see
     /// <see cref="MGUI.Core.UI.Brushes.FillBrushes.MGPaddedFillBrush.Brush"/> for the rationale.</summary>
     public IFillBrush FillBrush
     {
@@ -47,11 +47,11 @@ public sealed class MGBorderedFillBrush : UIFreezableBrush, IFillBrush
         set => SetProperty(ref _PadFillBoundsByBorderThickness, value);
     }
 
-    /// <summary>False when <see cref="BorderBrush"/> or <see cref="FillBrush"/> cannot itself freeze (ADR-0009, W3).</summary>
+    /// <summary>False when <see cref="BorderBrush"/> or <see cref="FillBrush"/> cannot itself freeze (ADR-0009).</summary>
     public override bool CanFreeze => (_BorderBrush is not IUIFreezable borderFreezable || borderFreezable.CanFreeze)
         && (_FillBrush is not IUIFreezable fillFreezable || fillFreezable.CanFreeze);
 
-    /// <summary>Freezes <see cref="BorderBrush"/> and <see cref="FillBrush"/> (ADR-0009, W3).</summary>
+    /// <summary>Freezes <see cref="BorderBrush"/> and <see cref="FillBrush"/> (ADR-0009).</summary>
     protected override void OnFreeze()
     {
         if (_BorderBrush is IUIFreezable borderFreezable)
@@ -126,7 +126,7 @@ public sealed class MGBorderedFillBrush : UIFreezableBrush, IFillBrush
 
     public IFillBrush Copy() => new MGBorderedFillBrush(BorderThickness, BorderBrush?.Copy(), FillBrush?.Copy(), PadFillBoundsByBorderThickness);
 
-    /// <summary>Value equality (ADR-0009, W3): two bordered-fill brushes are equal when <see cref="BorderThickness"/>,
+    /// <summary>Value equality (ADR-0009): two bordered-fill brushes are equal when <see cref="BorderThickness"/>,
     /// <see cref="PadFillBoundsByBorderThickness"/> and the nested <see cref="BorderBrush"/>/<see cref="FillBrush"/> (each by value) all
     /// match, regardless of frozen state or instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGBorderedFillBrush b

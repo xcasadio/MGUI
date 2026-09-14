@@ -10,7 +10,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>ADR-0009, W5: the run-owned clone of the five brush-valued animation targets (<see cref="UIColorAnimationTargets.Paths.Background"/>
+/// <summary>ADR-0009: the run-owned clone of the five brush-valued animation targets (<see cref="UIColorAnimationTargets.Paths.Background"/>
 /// and its Selected/Disabled/Focused variants, <see cref="UIColorAnimationTargets.Paths.BorderBrush"/>,
 /// <see cref="UIExtraAnimationTargets.Paths.BackgroundGradient"/>, <see cref="UIExtraAnimationTargets.Paths.BackgroundDiagonalGradient"/>):
 /// zero allocation per tick after warm-up, the base brush (frozen or not, shared or not) is never mutated and reappears intact on restore,

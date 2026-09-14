@@ -4,7 +4,7 @@ using MGUI.Core.UI.Animation;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S3: conflict rule, ownership (detachment, window closing), bookkeeping and the zero-cost paths of the <see cref="UIAnimationManager"/>.</summary>
+/// <summary>Conflict rule, ownership (detachment, window closing), bookkeeping and the zero-cost paths of the <see cref="UIAnimationManager"/>.</summary>
 public class AnimationManagerTests
 {
     private const float Tolerance = 1e-4f;

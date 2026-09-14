@@ -5,12 +5,12 @@ using Microsoft.Xna.Framework;
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
 /// <summary>An <see cref="IFillBrush"/> that linearly interpolates between 2 colors based on the <see cref="MGProgressBar"/>'s <see cref="MGProgressBar.ValuePercent"/> to determine what color to fill the bounds with.
-/// Freezable (ADR-0009, W3): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen; <see cref="Copy"/>
+/// Freezable (ADR-0009): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen; <see cref="Copy"/>
 /// always returns an unfrozen instance sharing the same <see cref="ProgressBar"/> reference (the brush observes it, it does not own it).</summary>
 public sealed class MGProgressBarGradientBrush : UIFreezableBrush, IFillBrush
 {
     private MGProgressBar _ProgressBar;
-    /// <summary><see cref="UIFreezableBrush.ThrowIfFrozen"/> is called explicitly first (fix round, ADR-0009 W3-fix) so a frozen instance
+    /// <summary><see cref="UIFreezableBrush.ThrowIfFrozen"/> is called explicitly first (ADR-0009) so a frozen instance
     /// reports the frozen error instead of <see cref="ArgumentNullException"/> when the caller passes <see langword="null"/>.</summary>
     public MGProgressBar ProgressBar
     {
@@ -103,14 +103,14 @@ public sealed class MGProgressBarGradientBrush : UIFreezableBrush, IFillBrush
 
     public IFillBrush Copy() => new MGProgressBarGradientBrush(ProgressBar, MinimumValueColor, MiddleValueColor, MaximumValueColor);
 
-    /// <summary>Value equality (ADR-0009, W3): two progress-bar gradient brushes are equal when they observe the SAME <see cref="MGProgressBar"/>
+    /// <summary>Value equality (ADR-0009): two progress-bar gradient brushes are equal when they observe the SAME <see cref="MGProgressBar"/>
     /// (reference identity: this brush's whole purpose is to read that specific control's live value, so a different instance is a different
     /// brush even with identical colours) and all three colours match, regardless of frozen state or instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGProgressBarGradientBrush p
         && ReferenceEquals(p.ProgressBar, ProgressBar)
         && p.MinimumValueColor == MinimumValueColor && p.MiddleValueColor == MiddleValueColor && p.MaximumValueColor == MaximumValueColor;
 
-    /// <summary>Decision taken during delivery (ADR-0009, W3): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// <summary>Decision taken during delivery (ADR-0009): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
     /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
     public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
     public override int GetHashCode() => HashCode.Combine(ProgressBar, MinimumValueColor, MiddleValueColor, MaximumValueColor);

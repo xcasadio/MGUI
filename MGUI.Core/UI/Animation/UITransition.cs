@@ -7,7 +7,7 @@ namespace MGUI.Core.UI.Animation;
 /// <summary>
 /// Non-generic base of <see cref="UITransition{T}"/>: the declaration (<see cref="Property"/>, <see cref="Duration"/>, <see cref="Delay"/>,
 /// <see cref="Easing"/>) and the attachment to an element through <see cref="UITransitionCollection"/>. <see cref="Create"/> builds the
-/// typed transition for a registered path, which the XAML layer (S7) relies on.
+/// typed transition for a registered path, which the XAML layer relies on.
 /// </summary>
 public abstract class UITransition
 {
@@ -38,13 +38,13 @@ public abstract class UITransition
     /// <summary>The element this transition is attached to, null until it is added to a <see cref="UITransitionCollection"/>.</summary>
     public MGElement Owner { get; private set; }
 
-    /// <summary>Backlog task 9 (U9): which style declared this transition (<see cref="MGUI.Core.UI.Styling.UIValueSourceKind.ImplicitStyle"/> or
+    /// <summary>Which style declared this transition (<see cref="MGUI.Core.UI.Styling.UIValueSourceKind.ImplicitStyle"/> or
     /// <see cref="MGUI.Core.UI.Styling.UIValueSourceKind.ExplicitStyle"/>), null when the element declared it itself
     /// (<c>&lt;Element.Transitions&gt;</c>) or code added it directly: <see cref="MGElement.RefreshStyles"/> never replaces or removes a null-provenance
     /// transition, so the element and the application always win over a style. Set by <see cref="MGUI.Core.UI.XAML.Transition.ToTransition(MGUI.Core.UI.Styling.UIValueSourceKind?)"/>.</summary>
     public UIValueSourceKind? Provenance { get; internal set; }
 
-    /// <summary>Backlog task 9 (U9): deterministic text of the declaration that produced this transition (property, duration, delay, easing), built by
+    /// <summary>Deterministic text of the declaration that produced this transition (property, duration, delay, easing), built by
     /// <see cref="MGUI.Core.UI.XAML.Transition"/>. Null when <see cref="Provenance"/> is null. <see cref="MGElement.RefreshStyles"/> compares it to the
     /// new declaration's own signature to tell an unchanged style from a changed one, replacing only on a difference.</summary>
     public string Signature { get; internal set; }
@@ -103,7 +103,7 @@ public abstract class UITransition
 }
 
 /// <summary>
-/// Interpolates automatically every change of a property (S6; ADR-0006 decisions 4 and 11):
+/// Interpolates automatically every change of a property (ADR-0006 decisions 4 and 11):
 /// <code>button.Transitions.Add(new UITransition&lt;Color&gt;("Background") { Duration = TimeSpan.FromMilliseconds(150), Easing = UIEasing.CubicOut });</code>
 /// then assigning a new solid blue brush to the background's Normal slot fades from the previous colour instead of snapping.
 /// A transition on <c>RenderScale</c> reacts to <see cref="MGElement.VisualStateChanged"/>: hover in and out interpolate the state-driven
@@ -192,7 +192,7 @@ public sealed class UITransition<T> : UITransition
         // read through, per ADR-0006's conflict rule (a transition stays quiet while a foreign animation is active).
         var foreignAnimationOwnsPath = !ownRunActive && Owner.Animations.IsAnimating(_Property);
 
-        // U3: for a store-backed target, while OUR OWN run is active, the value it must settle to is the winner
+        // For a store-backed target, while OUR OWN run is active, the value it must settle to is the winner
         // below its Animation contribution, not the physical (animated) value GetUnderlyingValue would read -- that
         // is what lets a local write or a named-state exit retarget the run immediately instead of being shadowed
         // until it ends. Per-tick writes only touch the Animation contribution, never this one, so reading below it
@@ -258,7 +258,7 @@ public sealed class UITransition<T> : UITransition
             FillBehavior = _Target.IsStoreBacked ? UIAnimationFillBehavior.RestoreBaseValue : UIAnimationFillBehavior.HoldEnd,
             CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
             //  The base of a run is the value it heads to, never the base inherited from the run it replaces (a forced restore on
-            //  detachment would otherwise write a stale value and spawn an orphan run; review finding, S6).
+            //  detachment would otherwise write a stale value and spawn an orphan run; review finding).
             InheritsBaseValue = false,
             Name = "transition:" + _Property,
         };

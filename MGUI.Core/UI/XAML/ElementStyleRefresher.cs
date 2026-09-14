@@ -131,7 +131,7 @@ internal static class ElementStyleRefresher
         => DefinitionProperties.GetOrAdd((DefinitionType, PropertyName), key => key.DefinitionType.GetProperty(key.PropertyName, BindingFlags.Public | BindingFlags.Instance));
 
     /// <summary>Ordinal-ignore-case, like <see cref="Animation.UITransitionCollection"/> and <see cref="Animation.States.UIVisualStateCollection"/>: the
-    /// default for an element with no style-owned transition or visual state (backlog task 9, U9).</summary>
+    /// default for an element with no style-owned transition or visual state.</summary>
     private static readonly HashSet<string> NoNames = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The state of one refresh: counters, skipped setters, and the merged implicit styles of each resource scope met.</summary>
@@ -294,14 +294,14 @@ internal static class ElementStyleRefresher
 
         Element.RefreshedStyleProperties = StyledProperties ?? NoProperties;
 
-        // Backlog task 9 (U9): hot refresh of the style-owned transitions and visual states (ADR-0008, decision 9). Kept out of the setter pass above.
+        // Hot refresh of the style-owned transitions and visual states (ADR-0008, decision 9). Kept out of the setter pass above.
         if (Scope.IsStyleable)
         {
             RefreshStyleAnimations(Element, Scope, Pass);
         }
     }
 
-    /// <summary>Backlog task 9 (U9): re-transfers the current style transitions and visual states onto <paramref name="Element"/>, resolved the same
+    /// <summary>Re-transfers the current style transitions and visual states onto <paramref name="Element"/>, resolved the same
     /// way and in the same order as the setter pass above (resource-scope implicit style, then inline implicit styles, then named styles in order),
     /// the last one winning per path or name. A style-owned entry (<see cref="UITransition.Provenance"/>/<see cref="UIVisualState.Provenance"/> not
     /// null) is added when missing, replaced when its <see cref="UITransition.Signature"/>/<see cref="UIVisualState.Signature"/> changed, left alone
@@ -412,7 +412,7 @@ internal static class ElementStyleRefresher
                 var Candidate = Entry.Value.Dto.ToVisualState(Entry.Value.Kind);
                 if (Existing.Signature != Candidate.Signature)
                 {
-                    // UIVisualStateCollection.Add restores then re-applies immediately when the replaced state is current (U9 fix).
+                    // UIVisualStateCollection.Add restores then re-applies immediately when the replaced state is current.
                     Element.VisualStates.Add(Candidate);
                     Pass.WrittenVisualStates++;
                 }
@@ -465,7 +465,7 @@ internal static class ElementStyleRefresher
         return Result ?? NoNames;
     }
 
-    /// <summary>Backlog task 9 (U9): collects the transitions and visual states of one style, by path and by name, the last one added winning (as
+    /// <summary>Collects the transitions and visual states of one style, by path and by name, the last one added winning (as
     /// <see cref="Element.CollectStyleAnimation"/> does at parse time), tagged with <paramref name="Kind"/>.</summary>
     private static void CollectAnimationSetters(Style Style, UIValueSourceKind Kind,
         Dictionary<string, (Transition Dto, UIValueSourceKind Kind)> Transitions, Dictionary<string, (VisualStateDefinition Dto, UIValueSourceKind Kind)> States)

@@ -15,7 +15,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Architecture;
 
-/// <summary>Covers the freezing and notification policy added by ADR-0009 (W4): a theme's brushes -- direct properties, the
+/// <summary>Covers the freezing and notification policy added by ADR-0009: a theme's brushes -- direct properties, the
 /// nested settings groups (<see cref="MGTheme.Window"/>, <see cref="MGTheme.Graph"/>, ...), <see cref="MGTheme.GetBackgroundBrush"/> --
 /// and a <c>StaticResource</c> brush end up frozen and shared by reference; a XAML inline brush stays unfrozen and element-owned;
 /// mutating an unfrozen slot or border brush is observed through a <see cref="System.ComponentModel.INotifyPropertyChanged"/>
@@ -28,7 +28,7 @@ public class BrushFreezingPolicyTests
 
     /// <summary>Recursively enumerates every public property reachable from <paramref name="Owner"/> and yields the brush-shaped
     /// leaves: a plain <see cref="IUIFreezable"/> brush, and each non-null slot of a <see cref="VisualStateFillBrush"/> (the container
-    /// itself is never frozen, W3 -- not a leaf here). Recurses into a <see cref="ThemeManagedGetter{TDataType}"/> wrapper (via
+    /// itself is never frozen -- not a leaf here). Recurses into a <see cref="ThemeManagedGetter{TDataType}"/> wrapper (via
     /// <c>GetValue(false)</c>, no clone), a settings-group instance (any reference type under <c>MGUI.Core.UI</c> whose name starts
     /// with <c>MGTheme</c>), and an <see cref="IEnumerable"/> (<see cref="MGTheme.ListBoxItemAlternatingRowBackgrounds"/>).</summary>
     private static IEnumerable<IUIFreezable> EnumerateReachableBrushes(object Owner, HashSet<object> Visited = null)
@@ -160,7 +160,7 @@ public class BrushFreezingPolicyTests
 
     /// <summary>A plain auto-property brush (<see cref="MGTheme.TreeViewBorderBrush"/>, and every brush-typed property of a settings
     /// group such as <see cref="MGTheme.Window"/>) freezes its incoming brush the instant it is assigned, exactly like a
-    /// <see cref="ThemeManagedGetter{TDataType}"/>-wrapped property: the fix round for W4 (verifier P2) replaced every remaining plain
+    /// <see cref="ThemeManagedGetter{TDataType}"/>-wrapped property: every remaining plain
     /// brush-typed auto-property with a hand-written setter that calls <see cref="MGTheme.FreezeThemeValue(object)"/> before storing, so
     /// a theme can never hold an unfrozen, shared-by-reference brush regardless of whether <see cref="MGTheme.FreezeBrushes"/> ever runs
     /// again afterwards (it still runs at the end of every <see cref="XAML.ThemeDefinitionBuilder.Build"/> and is now a no-op sweep for

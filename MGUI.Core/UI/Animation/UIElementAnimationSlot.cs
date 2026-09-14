@@ -4,8 +4,8 @@ namespace MGUI.Core.UI.Animation;
 
 /// <summary>
 /// The per-element animation state, allocated by <see cref="MGElement.Animations"/> on first access so that an element that never animates
-/// costs one null reference (ADR-0006, cost budget): the <see cref="UIAnimationCollection"/>, the animated override of the state-driven scale
-/// (S4) and, later, the transitions (S6). Subscribes once to <see cref="MGElement.OnParentChanged"/>: an element leaving the tree
+/// costs one null reference (ADR-0006, cost budget): the <see cref="UIAnimationCollection"/>, the animated override of the state-driven scale,
+/// and the transitions. Subscribes once to <see cref="MGElement.OnParentChanged"/>: an element leaving the tree
 /// (new parent null) clears its animations (decision 9), following the precedent of the dynamic resource subscriptions (ADR-0001).
 /// </summary>
 internal sealed class UIElementAnimationSlot
@@ -26,13 +26,13 @@ internal sealed class UIElementAnimationSlot
 
     private States.UIVisualStateCollection _VisualStates;
 
-    /// <summary>The named visual states (T4), allocated on first access.</summary>
+    /// <summary>The named visual states, allocated on first access.</summary>
     public States.UIVisualStateCollection VisualStates => _VisualStates ??= new States.UIVisualStateCollection(Owner);
 
     /// <summary>The named visual states, or null while none was ever accessed.</summary>
     public States.UIVisualStateCollection VisualStatesOrNull => _VisualStates;
 
-    /// <summary>The animated value of the state-driven scale (<see cref="MGElement.RenderScale"/>), set by the <c>RenderScale</c> target (S4); null when not animated.</summary>
+    /// <summary>The animated value of the state-driven scale (<see cref="MGElement.RenderScale"/>), set by the <c>RenderScale</c> target; null when not animated.</summary>
     public float? StateScaleOverride { get; set; }
 
     private void HandleOwnerParentChanged(object sender, EventArgs<MGElement> e)

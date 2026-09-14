@@ -12,8 +12,8 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice U8 of Docs/Tasks/animation-v3-tasks.md: whole-tree serialisation (<see cref="UIAnimationSerializer"/>), the <see cref="UIAnimation.PresetOwner"/>
-/// mechanism (4a) and the <see cref="UIAnimationPreview"/> preview-attach rollback (4c, exercised in <see cref="SeekTests"/>) it needed.</summary>
+/// <summary>Whole-tree serialisation (<see cref="UIAnimationSerializer"/>), the <see cref="UIAnimation.PresetOwner"/>
+/// mechanism and the <see cref="UIAnimationPreview"/> preview-attach rollback (exercised in <see cref="SeekTests"/>) it needed.</summary>
 public class AnimationSerializerTests
 {
     private const float Tolerance = 1e-4f;

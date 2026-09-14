@@ -6,7 +6,7 @@ namespace MGUI.Core.UI.Animation.Easing;
 /// A CSS <c>cubic-bezier(x1,y1,x2,y2)</c> easing: the two control points of a cubic Bezier curve whose endpoints are pinned
 /// at (0,0) and (1,1). <see cref="X1"/> and <see cref="X2"/> must stay in [0,1] so that x(u) is monotonic and the curve
 /// answers exactly one y per x (a CSS requirement); <see cref="Y1"/> and <see cref="Y2"/> are free, so the curve may
-/// overshoot or undershoot [0,1] like <see cref="UIEasing.BackOut"/> (ADR-0008, decision 1; Docs/Tasks/animation-v3-tasks.md, U1).<para/>
+/// overshoot or undershoot [0,1] like <see cref="UIEasing.BackOut"/> (ADR-0008, decision 1).<para/>
 /// Accepted text forms (<see cref="TryParse"/> / <see cref="Parse"/>): the canonical CSS form <c>cubic-bezier(x1,y1,x2,y2)</c>
 /// (case-insensitive prefix) and the shorter <c>bezier:x1,y1,x2,y2</c>; both tolerate surrounding whitespace around each number.
 /// <see cref="ToString"/> always renders the canonical CSS form.<para/>

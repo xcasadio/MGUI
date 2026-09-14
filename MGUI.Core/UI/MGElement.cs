@@ -1270,7 +1270,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     internal virtual bool TryGetResolvedPilotValue<T>(UIPilotProperty property, UIValueSlot slot, out UIResolvedValue<T> value)
         => TryGetResolvedPilotValueCore(property, slot, null, out value);
 
-    /// <summary>U3: reads the winner for (<paramref name="property"/>, <paramref name="slot"/>) that would apply if
+    /// <summary>Reads the winner for (<paramref name="property"/>, <paramref name="slot"/>) that would apply if
     /// <paramref name="excluded"/>'s contribution did not exist -- used by a transition on a store-backed target to
     /// retarget to the value below its own <see cref="UIValueSourceKind.Animation"/> contribution. Exactly the same
     /// delegation and dormancy handling as <see cref="TryGetResolvedPilotValue{T}"/> (both call
@@ -1292,7 +1292,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <see cref="TryGetResolvedPilotValueExcluding{T}"/> (<paramref name="excluded"/> set), so the two read paths
     /// cannot diverge.</summary>
     /// <summary>Reads the store winner for (<paramref name="property"/>, <paramref name="slot"/>) on <see cref="_resolvedValues"/>,
-    /// or the winner excluding <paramref name="excluded"/>'s contribution when it is set (U3); false when
+    /// or the winner excluding <paramref name="excluded"/>'s contribution when it is set; false when
     /// <see cref="_resolvedValues"/> is null. Shared by every store read inside <see cref="TryGetResolvedPilotValueCore{T}"/>
     /// and the two sub-slot dormancy helpers so a plain out-var ternary is never needed (definite assignment).</summary>
     private bool TryGetStoreWinner<T>(UIPilotProperty property, UIValueSlot slot, UIValueSourceKind? excluded, out UIResolvedValue<T> winner)
@@ -1508,11 +1508,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// first refresh (the properties styled by the parse, <see cref="XAML.ElementStyleScope.StyledPropertyNames"/>, apply until then).</summary>
     internal HashSet<string> RefreshedStyleProperties { get; set; }
 
-    /// <summary>Backlog task 9 (U9): the transition paths this element's <see cref="Transitions"/> holds under a style's provenance after the last
+    /// <summary>The transition paths this element's <see cref="Transitions"/> holds under a style's provenance after the last
     /// <see cref="RefreshStyles"/>, null before the first refresh. Diagnostics only; mirrors <see cref="RefreshedStyleProperties"/>.</summary>
     internal IReadOnlyCollection<string> RefreshedStyleTransitionPaths { get; set; }
 
-    /// <summary>Backlog task 9 (U9): the visual state names this element's <see cref="VisualStates"/> holds under a style's provenance after the last
+    /// <summary>The visual state names this element's <see cref="VisualStates"/> holds under a style's provenance after the last
     /// <see cref="RefreshStyles"/>, null before the first refresh. Diagnostics only; mirrors <see cref="RefreshedStyleProperties"/>.</summary>
     internal IReadOnlyCollection<string> RefreshedStyleVisualStateNames { get; set; }
 
@@ -1524,7 +1524,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// and thickness. A local value, a binding, a XAML attribute or a template value keeps outranking the style, a property that no style sets any more
     /// gives its style value up, and the layout is invalidated only when an effective layout value changes. Other setters are left untouched and
     /// reported in <see cref="UIStyleRefreshResult.Skipped"/>.<para/>
-    /// Backlog task 9 (U9): the style-owned transitions and named visual states of a styleable element (provenance <see cref="Styling.UIValueSourceKind.ImplicitStyle"/>/
+    /// The style-owned transitions and named visual states of a styleable element (provenance <see cref="Styling.UIValueSourceKind.ImplicitStyle"/>/
     /// <see cref="Styling.UIValueSourceKind.ExplicitStyle"/>) are re-transferred the same way: a new style transition or state is added, a changed one is
     /// replaced (a replaced current state re-applies its new setters at once; a replaced running transition stops, keeping its current value, like any
     /// other <see cref="Animation.UITransitionCollection.Add"/>), and one no style sets any more is removed (a removed transition keeps the in-flight
@@ -1564,13 +1564,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// -- writes the sub-field on the container this element currently holds, under
     /// <see cref="_suppressBackgroundContainerNotify"/>. A contribution below the container's own precedence is
     /// recorded but stays dormant (see <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>).<para/>
-    /// Fix round 1 (U4): gating on <c>effectiveChanged</c> rather than "this call's own kind is the winner" matters
+    /// Gating on <c>effectiveChanged</c> rather than "this call's own kind is the winner" matters
     /// once a kind's precedence can vary (<see cref="UIValueSourceKind.VisualState"/>, plain vs
     /// <see cref="UIValuePrecedence.VisualStateOverride"/>): a state leaving an overriding precedence for the plain one
     /// on the same path replaces its OWN contribution via <see cref="UIResolvedPropertyStore.Set{T}"/>, which can hand
     /// the win to a DIFFERENT, already-recorded kind (e.g. a local value shadowed under the override) -- that change
     /// must still reach the physical field even though the writer's own kind is not the new winner.<para/>
-    /// Fix round 2 (U4): <c>effectiveChanged</c> alone is NOT a strict superset of the old kind-match gate -- when the
+    /// <c>effectiveChanged</c> alone is NOT a strict superset of the old kind-match gate -- when the
     /// current winner rewrites its own, value-equal, contribution (e.g. a settled animation or a re-applied state
     /// writing the same colour again), <c>effectiveChanged</c> is false and a stale value written earlier by an
     /// untagged facade call to this same sub-slot (at a lower precedence, recorded but never physically applied)
@@ -1586,7 +1586,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Tagged write of the container's <see cref="UIValueSlot.FocusedColor"/> sub-slot. See <see cref="SetBackgroundSlot"/>
-    /// (fix round 2: gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
+    /// (gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
     internal void SetBackgroundFocusedColor(Color? value, UIValueResolutionSource source)
     {
         ResolvedValues.Set(UIPilotProperty.Background, UIValueSlot.FocusedColor, value, source, EqualityComparer<Color?>.Default, out var effectiveChanged, out var effective);
@@ -1702,7 +1702,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
     }
 
-    /// <summary>Fix round 1 (U5): invoked at the end of <see cref="ApplyBackgroundEffective"/>, every time the whole
+    /// <summary>Invoked at the end of <see cref="ApplyBackgroundEffective"/>, every time the whole
     /// <see cref="BackgroundBrush"/> container is actually replaced by a new <see cref="VisualStateFillBrush"/> instance --
     /// whether through the public <see cref="BackgroundBrush"/> setter, <see cref="SetBackground"/>, or
     /// <see cref="ClearBackgroundPilotSource"/> (so this also covers a whole-brush write made by a different owner, e.g.
@@ -1763,7 +1763,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
     }
 
-    /// <summary>ADR-0009, W5: a whole-container swap (theme change) while a run's clone still wins a sub-slot would otherwise silently
+    /// <summary>ADR-0009: a whole-container swap (theme change) while a run's clone still wins a sub-slot would otherwise silently
     /// discard the SWAPPED-IN container's own construction-time value for that slot -- <see cref="ReapplyBackgroundSubSlots"/> is about to
     /// overwrite it with the clone a few lines below this call, and nothing else ever reads it. When the sub-slot is still dormant (no
     /// contribution recorded besides the run's own <see cref="UIValueSourceKind.Animation"/> one), this records that about-to-be-discarded
@@ -1858,9 +1858,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// (precedence at least the current Whole winner's), returns it directly -- it is also the physical value.
     /// Otherwise, when this element holds a container and the store has a Whole winner, returns the container's
     /// current physical sub-field value, attributed to the Whole winner's source (the container itself carries
-    /// the value in that case). Returns false when neither is available. <paramref name="excluded"/> (U3) reads
+    /// the value in that case). Returns false when neither is available. <paramref name="excluded"/> reads
     /// both the sub-slot's own winner and the Whole winner as if that kind's contribution did not exist -- and
-    /// (fix round 1) skips the physical fallback entirely when the sub-slot still carries a recorded contribution
+    /// skips the physical fallback entirely when the sub-slot still carries a recorded contribution
     /// of the excluded kind: the physical field is that contribution's own doing (e.g. a running transition's
     /// in-flight write), not the container's construction-time value, so it must not be surfaced as "below" it.</summary>
     private bool TryGetResolvedBackgroundSubSlotValue<T>(UIValueSlot slot, UIValueSourceKind? excluded, out UIResolvedValue<T> value)
@@ -1955,7 +1955,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <summary>Tagged write of one <see cref="Color"/>? sub-slot (<see cref="UIValueSlot.Normal"/>,
     /// <see cref="UIValueSlot.Selected"/>, <see cref="UIValueSlot.Disabled"/> or <see cref="UIValueSlot.Focused"/>) (R3).
     /// See <see cref="SetBackgroundSlot"/> -- this container has no <see cref="UIValueSlot.FocusedColor"/> sub-slot
-    /// (fix round 2: gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
+    /// (gated on <c>effectiveChanged || effective.Source.Kind == source.Kind</c>, not <c>effectiveChanged</c> alone).</summary>
     internal void SetDefaultTextForegroundSlot(UIValueSlot slot, Color? value, UIValueResolutionSource source)
     {
         ValidateDefaultTextForegroundSlot(slot);
@@ -2117,7 +2117,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>R6: reads a DefaultTextForeground sub-slot for diagnostics. See <see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>
-    /// for <paramref name="excluded"/> (U3), including the fix-round-1 skip of the physical fallback when the excluded
+    /// for <paramref name="excluded"/>, including the skip of the physical fallback when the excluded
     /// kind still carries a recorded contribution for this sub-slot.</summary>
     private bool TryGetResolvedDefaultTextForegroundSubSlotValue<T>(UIValueSlot slot, UIValueSourceKind? excluded, out UIResolvedValue<T> value)
     {
@@ -3282,7 +3282,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             this.ParentWindow = parentWindow;
             this.ElementType = elementType;
 
-            //  ADR-0009, W6: the animation manager only cancels a run when its OWNER WINDOW closes, not when the element is merely
+            //  ADR-0009: the animation manager only cancels a run when its OWNER WINDOW closes, not when the element is merely
             //  detached from a container while its window stays open (Animations are window-scoped, not visual-tree-scoped) -- so the
             //  border highlight host run needs its own detach signal. OnParentChanged fires synchronously on both edges, unlike Update
             //  (which simply stops being called once detached), so this catches the detach edge SyncBorderHighlightRun's own per-frame
@@ -3628,7 +3628,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        // Render transform (ADR-0006, S2): the mouse position is mapped through the inverse of this element's transform for the
+        // Render transform (ADR-0006): the mouse position is mapped through the inverse of this element's transform for the
         // element itself and its whole subtree, since the draw applies the transform to everything below it.
         TryApplyInverseRenderTransform(ref unscaledMousePos);
 
@@ -3665,7 +3665,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             Component.ComputeTopmostHoveredElement(ComputedIsEnabled, ComputedIsHitTestVisible, CanReceiveMouseInput, unscaledMousePos, ref result);
         }
 
-        // A render transform (ADR-0006, S2) can move a descendant outside this element's bounds, so the bounds early-out is only
+        // A render transform (ADR-0006) can move a descendant outside this element's bounds, so the bounds early-out is only
         // taken while no element of the desktop is transformed (the common case, gated by MGDesktop.ActiveRenderTransformCount).
         if (mouseInBounds || DesktopHasActiveRenderTransforms)
         {
@@ -3933,7 +3933,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     private ConditionalScaleTransform? _renderScale;
     /// <summary>A scale transform to apply to this <see cref="MGElement"/> when the appropriate condition is met. (such as <see cref="IsLMBPressed"/> is true)<para/>
     /// This scale transform only affects how the element is rendered, but not its layout, so it may result in overlapping elements. Uses the center of <see cref="LayoutBounds"/> as the scaling origin.<para/>
-    /// Composed with <see cref="RenderTransform"/> at draw time and inverted by the hit-test (ADR-0006, S2): the state-driven scale keeps the centre as its pivot whatever <see cref="Animation.UIRenderTransform.Origin"/> says.<para/>
+    /// Composed with <see cref="RenderTransform"/> at draw time and inverted by the hit-test (ADR-0006): the state-driven scale keeps the centre as its pivot whatever <see cref="Animation.UIRenderTransform.Origin"/> says.<para/>
     /// Default value: null</summary>
     public ConditionalScaleTransform? RenderScale
     {
@@ -3957,16 +3957,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Animation.UIElementAnimationSlot _animationSlot;
-    /// <summary>The animations owned by this element (ADR-0006, S3): start one with <see cref="Animation.UIAnimationCollection.Start"/>; it is ticked
+    /// <summary>The animations owned by this element (ADR-0006): start one with <see cref="Animation.UIAnimationCollection.Start"/>; it is ticked
     /// by the <see cref="MGDesktop.Animations"/> manager of this element's desktop whatever the element's visibility, and cancelled when the element
     /// leaves the tree or its displaying window closes. Allocated on first access: an element that never animates carries one null reference.</summary>
     public Animation.UIAnimationCollection Animations => (_animationSlot ??= new Animation.UIElementAnimationSlot(this)).Animations;
 
-    /// <summary>The transitions attached to this element (ADR-0006, S6): a <see cref="Animation.UITransition{T}"/> added here interpolates every
+    /// <summary>The transitions attached to this element (ADR-0006): a <see cref="Animation.UITransition{T}"/> added here interpolates every
     /// later change of its property (a local write, or the visual state for <c>RenderScale</c>) instead of snapping. Allocated on first access.</summary>
     public Animation.UITransitionCollection Transitions => (_animationSlot ??= new Animation.UIElementAnimationSlot(this)).Transitions;
 
-    /// <summary>The named visual states of this element (ADR-0007, S4 of the V2 program): states with typed setters keyed by animation target path,
+    /// <summary>The named visual states of this element (ADR-0007): states with typed setters keyed by animation target path,
     /// resolved every frame after <see cref="VisualState"/> (Disabled, Checked, Selected, Pressed, Hover, Focused, Normal, the first defined one whose
     /// condition holds) and applied through the animation targets, so a transition on a setter's path interpolates the change. Allocated on first access.</summary>
     public Animation.States.UIVisualStateCollection VisualStates => (_animationSlot ??= new Animation.UIElementAnimationSlot(this)).VisualStates;
@@ -3980,20 +3980,20 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     #region Border Highlight Run
     /// <summary>The name of the engine run <see cref="SyncBorderHighlightRun"/> hosts on <c>BorderBrush.Highlight.Progress</c> while this
     /// element's effective border brush (below any animation) is an <see cref="MGHighlightBorderBrush"/> with
-    /// <see cref="MGHighlightBorderBrush.AutoStart"/> and <see cref="MGHighlightBorderBrush.IsEnabled"/> both true (ADR-0009, W6).</summary>
+    /// <see cref="MGHighlightBorderBrush.AutoStart"/> and <see cref="MGHighlightBorderBrush.IsEnabled"/> both true (ADR-0009).</summary>
     public const string BorderHighlightAnimationName = "BorderBrush.Highlight";
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Animation.UIAnimation _borderHighlightRun;
 
     /// <summary>True once <see cref="SyncBorderHighlightRun"/> has disabled the run-owned clone because <see cref="MGHighlightBorderBrush.StopOnMouseOver"/>
-    /// or <see cref="MGHighlightBorderBrush.StopOnClick"/> fired (ADR-0009, W6): like the pre-W6 behaviour, this does not clear itself back on
+    /// or <see cref="MGHighlightBorderBrush.StopOnClick"/> fired (ADR-0009): like the previous behaviour, this does not clear itself back on
     /// mouse-out -- only <see cref="ResumeBorderHighlight"/> does.</summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _borderHighlightSuppressed;
 
-    /// <summary>Re-evaluates the host-owned highlight run for this element's border, once per frame from <see cref="Update"/> (ADR-0009, W6;
-    /// design pass in Docs/Tasks/animation-v4-tasks.md, task W6). Cheap, and allocation-free, for the overwhelming common element whose
+    /// <summary>Re-evaluates the host-owned highlight run for this element's border, once per frame from <see cref="Update"/> (ADR-0009;
+    /// see Docs/animation-architecture.md, Brushes animables). Cheap, and allocation-free, for the overwhelming common element whose
     /// effective border brush is not an <see cref="MGHighlightBorderBrush"/>: one <see cref="GetBorder"/> call and a couple of reads, no
     /// subscription to maintain.<para/>
     /// Reads the effective border brush BELOW any <c>Animation</c> contribution (<see cref="TryGetResolvedPilotValueExcluding{T}"/>) rather than
@@ -4055,7 +4055,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         if (_borderHighlightRun is { IsActive: true } run)
         {
-            //  Base configuration reaches the run-owned clone every frame, not just at Begin (ACCEPTANCE recheck, fix round 2): a base
+            //  Base configuration reaches the run-owned clone every frame, not just at Begin: a base
             //  swap to a different MGHighlightBorderBrush, or a live edit of an unfrozen base's own properties, must still be visible on
             //  the clone that is actually drawn -- EnsureClone (BorderBrushHighlightProgressTarget) deliberately keeps reusing the same
             //  clone instance across ticks once one exists, so nothing else re-reads the base's configuration onto it. AnimationProgress
@@ -4073,7 +4073,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 //  no run, highlight not drawn) -- disables the clone itself since that is what the brush's own Draw checks, so it
                 //  actually stops being drawn rather than just stop advancing. Unlike StopOnMouseOver/StopOnClick below, this is not
                 //  latched through _borderHighlightSuppressed: IsEnabled going back to true restarts it on its own next frame, no
-                //  ResumeBorderHighlight call needed, matching the pre-W6 Update() gate of "if (IsEnabled)".
+                //  ResumeBorderHighlight call needed, matching the previous Update() gate of "if (IsEnabled)".
                 if (border.BorderBrush is MGHighlightBorderBrush disabledClone)
                 {
                     disabledClone.IsEnabled = false;
@@ -4084,7 +4084,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             //  StopOnMouseOver/StopOnClick: evaluated only while a run is active (no cost otherwise), against THIS element's own visual
             //  state -- Target is obsolete. Disables the clone (not the shared/frozen base) and does not auto re-enable, matching the
-            //  pre-W6 behaviour; ResumeBorderHighlight is the only way back.
+            //  previous behaviour; ResumeBorderHighlight is the only way back.
             if (border.BorderBrush is MGHighlightBorderBrush clone && clone.IsEnabled &&
                 ((baseHighlight.StopOnMouseOver && VisualState.Secondary == SecondaryVisualState.Hovered) ||
                  (baseHighlight.StopOnClick && VisualState.Secondary == SecondaryVisualState.Pressed)))
@@ -4095,7 +4095,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 return;
             }
 
-            //  A live CycleDuration edit while the run is active (ACCEPTANCE 3): pre-W6 Update() recomputed CycleDuration every
+            //  A live CycleDuration edit while the run is active: the previous Update() recomputed CycleDuration every
             //  frame, so a duration change applied on the next frame -- cancel and restart from the current progress with the new
             //  duration rather than silently keeping the value the run was started with.
             var expectedDuration = baseHighlight.CycleDuration > TimeSpan.Zero ? baseHighlight.CycleDuration : TimeSpan.FromSeconds(1.0);
@@ -4175,7 +4175,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Re-enables the run-owned clone and restarts the host's highlight run after <see cref="MGHighlightBorderBrush.StopOnMouseOver"/>
-    /// or <see cref="MGHighlightBorderBrush.StopOnClick"/> stopped it (ADR-0009, W6). A no-op while nothing is suppressed.</summary>
+    /// or <see cref="MGHighlightBorderBrush.StopOnClick"/> stopped it (ADR-0009). A no-op while nothing is suppressed.</summary>
     public void ResumeBorderHighlight()
     {
         if (!_borderHighlightSuppressed)
@@ -4192,11 +4192,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         SyncBorderHighlightRun();
     }
 
-    /// <summary>The engine run behind the highlight border brush's <c>AnimationProgress</c> (ADR-0009, W6): linear 0..1 over the brush's
+    /// <summary>The engine run behind the highlight border brush's <c>AnimationProgress</c> (ADR-0009): linear 0..1 over the brush's
     /// <see cref="MGHighlightBorderBrush.CycleDuration"/>, repeating forever.<para/>
     /// Does NOT share the colour <c>BorderBrush</c> path's conflict key, despite both ultimately writing the same Whole/Animation slot
     /// through a run-owned clone (a design considered and rejected -- see Docs/decisions/0009-animation-v4-freezable-brushes.md): the
-    /// pre-existing (W5, out of this slice's perimeter) <c>UIColorAnimationTargets.BorderBrushTarget.GetValue</c> and this run's own
+    /// the pre-existing <c>UIColorAnimationTargets.BorderBrushTarget.GetValue</c> and this run's own
     /// <c>BorderBrushHighlightProgressTarget.GetValue</c> both read the CURRENT effective border brush at <c>OnStarting</c>, not the value
     /// below the animation; the manager's one-animation-per-(owner,path) rule cancels a same-key predecessor with
     /// <see cref="Animation.UIAnimationCancelBehavior.KeepCurrent"/> (its clone stays as the effective value, not restored), so sharing a
@@ -4286,7 +4286,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
 
-    /// <summary>Sets or clears the animated override of the state-driven scale (the <c>RenderScale</c> animation target, S4): while set, it
+    /// <summary>Sets or clears the animated override of the state-driven scale (the <c>RenderScale</c> animation target): while set, it
     /// shadows <see cref="RenderScale"/> for the current state in the draw composition and the hit-test, and counts as an active render transform.</summary>
     internal void SetStateScaleOverride(float? Value)
     {
@@ -4467,10 +4467,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             return;
         }
 
-        // Four-corner bounds (ADR-0006, S2): the current transform may carry an ancestor rotation, under which the two-corner helper returns a negative size.
+        // Four-corner bounds (ADR-0006): the current transform may carry an ancestor rotation, under which the two-corner helper returns a negative size.
         var TargetBounds = LayoutBounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
 
-        //  Apply the render-only transform (state scale of RenderScale and/or RenderTransform), if any (ADR-0006, S2).
+        //  Apply the render-only transform (state scale of RenderScale and/or RenderTransform), if any (ADR-0006).
         //  The local matrix lives in unscaled screen space (the space of DA.Offset and of the input hit-test) and is composed
         //  BEFORE the current transform, which already carries MGWindow.Scale. Nothing is pushed for an identity transform,
         //  so an element without transform never breaks the current batch.
@@ -4607,8 +4607,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Resolves the <see cref="IFillBrush"/> that <see cref="DrawBackground(ElementDrawArgs, Rectangle)"/> draws as the underlay of
-    /// <paramref name="brush"/> for <paramref name="state"/> (U5, ADR-0008): by default identical to <see cref="VisualStateBrush{TDataType}.GetUnderlay(PrimaryVisualState)"/>,
-    /// so every element other than <see cref="MGToggleButton"/> draws exactly as before this slice. <see cref="MGToggleButton"/> overrides this single hook
+    /// <paramref name="brush"/> for <paramref name="state"/> (ADR-0008): by default identical to <see cref="VisualStateBrush{TDataType}.GetUnderlay(PrimaryVisualState)"/>,
+    /// so every element other than <see cref="MGToggleButton"/> draws exactly as before. <see cref="MGToggleButton"/> overrides this single hook
     /// to consult <see cref="VisualStateBrush{TDataType}.CheckedValue"/> while checked; every other <see cref="VisualStateBrush{TDataType}.GetUnderlay(PrimaryVisualState)"/>
     /// call site across the framework (<see cref="BackgroundUnderlay"/>, <see cref="MGBorder"/>, <see cref="Containers.Grids.MGGridSplitter"/>,
     /// <see cref="Containers.Grids.MGUniformGrid"/>, <see cref="MGProgressBar"/>, <see cref="MGResizeGrip"/>, <see cref="MGScrollViewer"/>,

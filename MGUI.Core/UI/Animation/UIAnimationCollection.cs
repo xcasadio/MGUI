@@ -1,7 +1,7 @@
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
-/// The animations owned by one <see cref="MGElement"/> (<c>element.Animations</c>; S3, ADR-0006 decision 9). Starting an animation here
+/// The animations owned by one <see cref="MGElement"/> (<c>element.Animations</c>; ADR-0006 decision 9). Starting an animation here
 /// binds it to the element and registers it with the desktop's <see cref="UIAnimationManager"/>; the element's animations are cancelled
 /// (base values restored, held contributions released) when the element leaves the tree or its displaying window closes.
 /// Allocated on first access: an element that never animates carries no collection.

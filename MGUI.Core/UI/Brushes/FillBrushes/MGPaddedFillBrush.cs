@@ -7,15 +7,15 @@ using MonoGame.Extended;
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
 /// <summary>A wrapper class that allows you to manipulate the rectangular region that the nested <see cref="IFillBrush"/> is applied to.
-/// Freezable (ADR-0009, W3): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
+/// Freezable (ADR-0009): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
 /// <see cref="Freeze"/> also freezes the nested <see cref="Brush"/>; <see cref="Copy"/> always returns an unfrozen instance with an
 /// unfrozen deep copy of <see cref="Brush"/>.</summary>
 public sealed class MGPaddedFillBrush : UIFreezableBrush, IFillBrush
 {
     private IFillBrush _Brush;
-    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (fix round, ADR-0009 W3-fix), not
+    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (ADR-0009), not
     /// <see cref="EqualityComparer{T}.Default"/>: a distinct-but-value-equal <see cref="IFillBrush"/> is still a real change, since the
-    /// caller may mutate that distinct instance afterwards (an element-owned brush, W4).</summary>
+    /// caller may mutate that distinct instance afterwards (an element-owned brush).</summary>
     public IFillBrush Brush
     {
         get => _Brush;
@@ -78,10 +78,10 @@ public sealed class MGPaddedFillBrush : UIFreezableBrush, IFillBrush
         set => SetProperty(ref _VerticalAlignment, value);
     }
 
-    /// <summary>False when the nested <see cref="Brush"/> cannot itself freeze (ADR-0009, W3).</summary>
+    /// <summary>False when the nested <see cref="Brush"/> cannot itself freeze (ADR-0009).</summary>
     public override bool CanFreeze => _Brush is not IUIFreezable freezable || freezable.CanFreeze;
 
-    /// <summary>Freezes the nested <see cref="Brush"/> (ADR-0009, W3).</summary>
+    /// <summary>Freezes the nested <see cref="Brush"/> (ADR-0009).</summary>
     protected override void OnFreeze()
     {
         if (_Brush is IUIFreezable freezable)
@@ -167,7 +167,7 @@ public sealed class MGPaddedFillBrush : UIFreezableBrush, IFillBrush
 
     public IFillBrush Copy() => new MGPaddedFillBrush(Brush?.Copy(), Padding, Scale, MinWidth, MinHeight, MaxWidth, MaxHeight, HorizontalAlignment, VerticalAlignment);
 
-    /// <summary>Value equality (ADR-0009, W3): two padded brushes are equal when the nested <see cref="Brush"/> is equal by value
+    /// <summary>Value equality (ADR-0009): two padded brushes are equal when the nested <see cref="Brush"/> is equal by value
     /// (<see cref="UIBrushEquality.ValueEquals(IFillBrush, IFillBrush)"/>) and every scalar matches, regardless of frozen state or
     /// instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGPaddedFillBrush p

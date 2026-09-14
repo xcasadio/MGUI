@@ -45,12 +45,12 @@ internal sealed class ElementStyleScope
     /// <summary>The properties that the parse styled on this definition itself (not the ones an owner's border facade forwarded to it), null when none.</summary>
     public IReadOnlyCollection<string> StyledPropertyNames { get; }
 
-    /// <summary>Backlog task 9 (U9): the paths of this definition's own <c>&lt;Element.Transitions&gt;</c>, ordinal-ignore-case like
+    /// <summary>The paths of this definition's own <c>&lt;Element.Transitions&gt;</c>, ordinal-ignore-case like
     /// <see cref="UITransitionCollection"/>, null when it declares none. <see cref="MGElement.RefreshStyles"/> never touches a transition on one of
     /// these paths, even when a style declares the same path: the element's own declaration always wins.</summary>
     public IReadOnlyCollection<string> OwnTransitionPaths { get; }
 
-    /// <summary>Backlog task 9 (U9): the names of this definition's own <c>&lt;Element.VisualStates&gt;</c>, ordinal-ignore-case like
+    /// <summary>The names of this definition's own <c>&lt;Element.VisualStates&gt;</c>, ordinal-ignore-case like
     /// <see cref="UIVisualStateCollection"/>, null when it declares none. <see cref="MGElement.RefreshStyles"/> never touches a state of one of these
     /// names, even when a style declares the same name: the element's own declaration always wins.</summary>
     public IReadOnlyCollection<string> OwnVisualStateNames { get; }

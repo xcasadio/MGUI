@@ -47,7 +47,7 @@ public class MGBorder : MGSingleContentHost
 
     public event EventHandler<EventArgs<IBorderBrush>> OnBorderBrushChanged;
 
-    /// <summary>Notification for an unfrozen <see cref="BorderBrush"/> (ADR-0009, W4): a frozen brush never changes so it
+    /// <summary>Notification for an unfrozen <see cref="BorderBrush"/> (ADR-0009): a frozen brush never changes so it
     /// is never subscribed; an unfrozen one (XAML inline, code-created, or an animation's clone) is element-owned and
     /// mutating it in place is relayed as a plain <see cref="ViewModelBase.NotifyPropertyChanged(string)"/> of
     /// <see cref="BorderBrush"/> -- the same notification a real reference swap already raises above, harmless to

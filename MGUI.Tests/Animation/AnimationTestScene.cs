@@ -14,7 +14,7 @@ internal sealed class AnimationTestScene
 {
     public const int FrameMilliseconds = 16;
 
-    /// <summary>A plain (non store-backed) target over <see cref="MGElement.Opacity"/>, independent of the framework registrations of S4.</summary>
+    /// <summary>A plain (non store-backed) target over <see cref="MGElement.Opacity"/>, independent of the framework's built-in registrations.</summary>
     public static readonly UIDelegateAnimationTarget<float> OpacityTarget = new("Test.Opacity", e => e.Opacity, (e, v) => e.Opacity = v);
 
     public GraphTestRuntime Runtime { get; private init; }

@@ -30,23 +30,23 @@ public enum HighlightFlowDirection : byte
 /// <summary>An <see cref="IBorderBrush"/> that draws a simple animation (using a <see cref="HighlightColor"/>) overtop of the border, typically to direct the user's attention
 /// to the bordered element. <see cref="MGHighlightBorderBrush"/>es are particularly useful for tutorials or directing the user's focus to a newly-unlocked piece of content on the UI.<para/>
 /// See also: <see cref="MGUniformBorderBrush"/>, <see cref="MGDockedBorderBrush"/>, <see cref="MGTexturedBorderBrush"/>, <see cref="MGBandedBorderBrush"/>, <see cref="MGCompositedBorderBrush"/><para/>
-/// Freezable (ADR-0009, W3, contract only - the animation behaviour change is W6): derives from <see cref="UIFreezableBrush"/> (it was already
+/// Freezable (ADR-0009; the animation behaviour is driven separately by the animation engine): derives from <see cref="UIFreezableBrush"/> (it was already
 /// a <see cref="ViewModelBase"/>, so nothing is lost) instead of implementing <see cref="IUIFreezable"/> by hand. Every setter below calls
 /// <see cref="UIFreezableBrush.ThrowIfFrozen"/> and throws once frozen, EXCEPT <see cref="AnimationProgress"/> (its accumulator, updated every
-/// frame by the animation itself rather than by application code, is W6). <see cref="Freeze"/> also freezes <see cref="Underlay"/>;
-/// <see cref="Copy"/> keeps its pre-existing semantics (unchanged by this slice).<para/>
-/// W6 (ADR-0009): this brush no longer consumes time itself. <see cref="AnimationProgress"/> is instead written by an engine run hosted by
+/// frame by the animation itself rather than by application code). <see cref="Freeze"/> also freezes <see cref="Underlay"/>;
+/// <see cref="Copy"/> keeps its pre-existing semantics.<para/>
+/// This brush no longer consumes time itself (ADR-0009): <see cref="AnimationProgress"/> is instead written by an engine run hosted by
 /// <see cref="MGElement"/> (<c>SyncBorderHighlightRun</c>, one per element whose effective border brush is a highlight, on the
-/// <c>BorderBrush.Highlight.Progress</c> target) on the element's own run-owned clone of this brush (the W5 clone-on-animate mechanism), so a
+/// <c>BorderBrush.Highlight.Progress</c> target) on the element's own run-owned clone of this brush (see Docs/animation-architecture.md, Brushes animables), so a
 /// frozen or shared instance is never mutated by a run. <see cref="Update"/> only forwards to <see cref="Underlay"/>;
 /// <see cref="StopOnMouseOver"/>/<see cref="StopOnClick"/> are plain configuration read by that host, which disables the clone (not this
 /// instance) while hovered/pressed. <see cref="Target"/> is obsolete and ignored by the engine (kept for XAML/binary compatibility).</summary>
 public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 {
-	/// <summary>False when <see cref="Underlay"/> cannot itself freeze (ADR-0009, W3).</summary>
+	/// <summary>False when <see cref="Underlay"/> cannot itself freeze (ADR-0009).</summary>
 	public override bool CanFreeze => _Underlay is not IUIFreezable freezable || freezable.CanFreeze;
 
-	/// <summary>Freezes <see cref="Underlay"/> (ADR-0009, W3).</summary>
+	/// <summary>Freezes <see cref="Underlay"/> (ADR-0009).</summary>
 	protected override void OnFreeze()
 	{
 		if (_Underlay is IUIFreezable freezable)
@@ -151,7 +151,7 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 
 	[DebuggerBrowsable(DebuggerBrowsableState.Never)]
 	private bool _AutoStart = true;
-	/// <summary>W6: if <see langword="true"/> (the default), <see cref="MGElement"/> automatically starts (and restarts, after a detach/re-attach)
+	/// <summary>If <see langword="true"/> (the default), <see cref="MGElement"/> automatically starts (and restarts, after a detach/re-attach)
 	/// an engine run that advances <see cref="AnimationProgress"/> on this brush's per-element clone while it is the effective border brush and
 	/// <see cref="IsEnabled"/>. If <see langword="false"/>, nothing advances it automatically: drive it yourself, e.g.
 	/// <c>element.Animate("BorderBrush.Highlight.Progress", 0.0, 1.0, seconds).RepeatForever().Play()</c>, or leave it at its static configured
@@ -170,7 +170,7 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 		}
 	}
 
-	/// <summary>W6: the duration of one full animation cycle for the current <see cref="AnimationType"/> (<see cref="PulseFadeDuration"/> +
+	/// <summary>The duration of one full animation cycle for the current <see cref="AnimationType"/> (<see cref="PulseFadeDuration"/> +
 	/// <see cref="PulseDelay"/> for <see cref="HighlightAnimation.Pulse"/>, etc.): what the host's engine run's own <c>Duration</c> follows, so a
 	/// setting change that affects it restarts the run from the current progress with the new duration.</summary>
 	public TimeSpan CycleDuration => AnimationType switch
@@ -463,10 +463,10 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 
 	[DebuggerBrowsable(DebuggerBrowsableState.Never)]
 	private MGElement _Target;
-	/// <summary>Obsolete since W6: <see cref="StopOnMouseOver"/>/<see cref="StopOnClick"/> are now evaluated by the <see cref="MGElement"/> that
+	/// <summary>Obsolete: <see cref="StopOnMouseOver"/>/<see cref="StopOnClick"/> are now evaluated by the <see cref="MGElement"/> that
 	/// hosts this brush's engine run (the element whose <see cref="MGElement.GetBorder"/> resolves to the border this brush is set on), never by
 	/// this explicit reference. Kept, and still set by the XAML DTO, only so old markup and code keep compiling; the engine ignores it.</summary>
-	[Obsolete("StopOnMouseOver/StopOnClick are evaluated by the MGElement hosting this brush's engine run since W6 (ADR-0009); Target is ignored.")]
+	[Obsolete("StopOnMouseOver/StopOnClick are evaluated by the MGElement hosting this brush's engine run (ADR-0009); Target is ignored.")]
 	public MGElement Target
 	{
 		get => _Target;
@@ -519,14 +519,14 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 	/// <param name="Underlay">The underlying border which the highlight will be rendered overtop of.</param>
 	/// <param name="HighlightColor">The color to use when drawing the highlight overtop of the <see cref="Underlay"/></param>
 	/// <param name="AnimationType">The animation to use when drawing the highlight overtop of the <see cref="Underlay"/>.</param>
-	/// <param name="Target">Obsolete since W6; ignored by the engine. See <see cref="Target"/>.</param>
+	/// <param name="Target">Obsolete; ignored by the engine. See <see cref="Target"/>.</param>
 	public MGHighlightBorderBrush(IBorderBrush Underlay, Color HighlightColor, HighlightAnimation AnimationType, MGElement Target = null)
 	{
 		this.Underlay = Underlay;
 		this.HighlightColor = HighlightColor;
 		this.AnimationType = AnimationType;
 		AnimationProgress = 0.0;
-#pragma warning disable CS0618 // Target is obsolete since W6; kept for constructor/XAML compatibility.
+#pragma warning disable CS0618 // Target is obsolete; kept for constructor/XAML compatibility.
 		this.Target = Target;
 #pragma warning restore CS0618
 
@@ -554,7 +554,7 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 
 	void IBorderBrush.Update(UpdateBaseArgs UA)
 	{
-		//  W6 (ADR-0009): this brush no longer advances its own AnimationProgress or evaluates StopOnMouseOver/StopOnClick -- both are now
+		//  ADR-0009: this brush no longer advances its own AnimationProgress or evaluates StopOnMouseOver/StopOnClick -- both are now
 		//  the job of the MGElement hosting the per-element engine run on this brush's clone (SyncBorderHighlightRun). Only forwards the
 		//  per-frame lifecycle call to Underlay via PaintLifecycle, deduplicated by reference against every other slot/element that
 		//  references it for the frame (see Docs/drawing-architecture.md, Limites connues).
@@ -1181,7 +1181,7 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 
 	public IBorderBrush Copy()
 	{
-#pragma warning disable CS0618 // Target is obsolete since W6; kept for constructor/binary compatibility.
+#pragma warning disable CS0618 // Target is obsolete; kept for constructor/binary compatibility.
 		var Copy = new MGHighlightBorderBrush(Underlay, HighlightColor, AnimationType, Target)
 #pragma warning restore CS0618
 		{
@@ -1207,7 +1207,7 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 
 	/// <summary>Copies every configuration property of <paramref name="source"/> onto this instance -- everything <see cref="Copy"/> copies
 	/// EXCEPT <see cref="AnimationProgress"/> and <see cref="IsEnabled"/>, which are run-owned state on a run-owned clone, not base
-	/// configuration (ADR-0009, W6 fix round 2). Lets <see cref="MGElement.SyncBorderHighlightRun"/> keep an active run's clone following a
+	/// configuration (ADR-0009). Lets <see cref="MGElement.SyncBorderHighlightRun"/> keep an active run's clone following a
 	/// live base swap or a live property edit on an unfrozen base -- without disturbing the clone's own progress or its enabled/disabled
 	/// pose, both of which the host manages separately.<para/>
 	/// Every setter below already no-ops (no write, no notification) when the value is unchanged, so calling this every frame against an

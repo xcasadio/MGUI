@@ -12,7 +12,7 @@ using XamlStyle = MGUI.Core.UI.XAML.Style;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice T5 of Docs/Tasks/animation-v2-tasks.md: transitions and visual states declared in styles, the theme animation group and the buttons that opt in.</summary>
+/// <summary>Transitions and visual states declared in styles, the theme animation group and the buttons that opt in.</summary>
 public class StyleAndThemeAnimationTests
 {
     private const string Xmlns = "xmlns=\"clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core\"";
@@ -261,7 +261,7 @@ public class StyleAndThemeAnimationTests
     [Fact]
     public void AThemeDefinition_AcceptsABezierEasingLiteral_ForHoverEasing()
     {
-        // U1: a theme's HoverEasing accepts cubic-bezier(...) through the same string field (ADR-0008 decision 1).
+        // A theme's HoverEasing accepts cubic-bezier(...) through the same string field (ADR-0008 decision 1).
         MGTheme theme = ThemeDefinitionBuilder.Build(new ThemeDefinition
         {
             Name = "BezierHover",

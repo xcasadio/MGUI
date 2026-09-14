@@ -8,7 +8,7 @@ namespace MGUI.Core.UI.Brushes.BorderBrushes;
 
 /// <summary>An <see cref="IBorderBrush"/> that draws several nested <see cref="IBorderBrush"/>es in order.<para/>
 /// See also: <see cref="MGUniformBorderBrush"/>, <see cref="MGDockedBorderBrush"/>, <see cref="MGTexturedBorderBrush"/>, <see cref="MGBandedBorderBrush"/>, <see cref="MGHighlightBorderBrush"/><para/>
-/// Freezable (ADR-0009, W3): a sealed mutable class deriving from <see cref="UIFreezableBrush"/>. <see cref="Freeze"/> freezes every nested
+/// Freezable (ADR-0009): a sealed mutable class deriving from <see cref="UIFreezableBrush"/>. <see cref="Freeze"/> freezes every nested
 /// brush in <see cref="Brushes"/> and, once frozen, the list itself refuses <see cref="ICollection{T}.Add(T)"/>/<see cref="IList{T}.Remove"/>/etc
 /// (<see cref="ThrowIfFrozen"/>), same pattern as <see cref="FillBrushes.MGCompositedFillBrush"/>. <see cref="CanFreeze"/> is false when any
 /// nested brush cannot freeze.</summary>
@@ -56,10 +56,10 @@ public sealed class MGCompositedBorderBrush : UIFreezableBrush, IBorderBrush
         _Brushes = new GuardedList(this, Brushes.Where(x => x != null));
     }
 
-    /// <summary>False when any nested brush in <see cref="Brushes"/> cannot itself freeze (ADR-0009, W3).</summary>
+    /// <summary>False when any nested brush in <see cref="Brushes"/> cannot itself freeze (ADR-0009).</summary>
     public override bool CanFreeze => _Brushes.All(x => x is not IUIFreezable freezable || freezable.CanFreeze);
 
-    /// <summary>Freezes every nested brush in <see cref="Brushes"/> that implements <see cref="IUIFreezable"/> (ADR-0009, W3).</summary>
+    /// <summary>Freezes every nested brush in <see cref="Brushes"/> that implements <see cref="IUIFreezable"/> (ADR-0009).</summary>
     protected override void OnFreeze()
     {
         foreach (var Brush in _Brushes)
@@ -99,7 +99,7 @@ public sealed class MGCompositedBorderBrush : UIFreezableBrush, IBorderBrush
 
     public IBorderBrush Copy() => new MGCompositedBorderBrush(_Brushes.Select(x => x.Copy()).ToArray());
 
-    /// <summary>Value equality (ADR-0009, W3): two composited border brushes are equal when they hold the same number of nested brushes,
+    /// <summary>Value equality (ADR-0009): two composited border brushes are equal when they hold the same number of nested brushes,
     /// each equal by value at the same position (<see cref="UIBrushEquality.ValueEquals(IBorderBrush, IBorderBrush)"/>), regardless of
     /// frozen state or instance identity.</summary>
     public bool ValueEquals(IBorderBrush other) => other is MGCompositedBorderBrush c

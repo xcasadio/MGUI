@@ -27,7 +27,7 @@ namespace MGUI.Tests.Architecture;
 /// Backlog task 10 (styling-theme-tasks.md), scenario <c>SCN-THEME-001</c>: <see cref="MGElement.RefreshStyles"/> re-applies the implicit and named styles
 /// of the resource scopes to a subtree loaded from XAML without reparsing it, keeps the scoping of the parse, never overwrites a XAML attribute, a local
 /// value or a binding, and stays within the refreshed subtree.<para/>
-/// Slice U9 (animation-v3-tasks.md), ADR-0008 decision 9: the same refresh also re-transfers the style-owned transitions and named visual states.
+/// ADR-0008 decision 9: the same refresh also re-transfers the style-owned transitions and named visual states.
 /// </summary>
 public class StyleRefreshTests
 {
@@ -275,7 +275,7 @@ public class StyleRefreshTests
         Assert.Equal(0, second.ClearedValues);
     }
 
-    // --- U9: hot refresh of style transitions and visual states (ADR-0008, decision 9) ---
+    // --- Hot refresh of style transitions and visual states (ADR-0008, decision 9) ---
 
     [Fact]
     public void AnImplicitStyleTransition_AddedAfterLoad_IsWrittenAndAnimates()

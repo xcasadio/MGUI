@@ -320,7 +320,7 @@ internal static class XamlLoaderDiagnostics
 
             outermost ??= message;
 
-            //  A framework setter that validates its value (animation transition property, duration, easing: ADR-0006, S7) throws an
+            //  A framework setter that validates its value (animation transition property, duration, easing: ADR-0006) throws an
             //  InvalidOperationException that the XAML writer wraps in its own "set property ... threw" message: the root cause is the
             //  message worth surfacing, appended to the wrapper's so both the property and the reason are reported.
             if (current is InvalidOperationException && current.InnerException == null && !ReferenceEquals(message, outermost))

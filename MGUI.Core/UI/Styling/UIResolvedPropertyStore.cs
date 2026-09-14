@@ -127,7 +127,7 @@ internal sealed class UIResolvedPropertyStore
     /// Records (or replaces) the contribution of <paramref name="source"/>.Kind for (<paramref name="property"/>,
     /// <paramref name="slot"/>). Equal precedence (the same kind written twice at the same precedence) replaces
     /// the previous contribution in place: last writer wins among equals. A kind written again at a DIFFERENT
-    /// precedence than its current contribution (U4: <see cref="UIValueSourceKind.VisualState"/> can land at
+    /// precedence than its current contribution (<see cref="UIValueSourceKind.VisualState"/> can land at
     /// <see cref="UIValuePrecedence.VisualState"/> or <see cref="UIValuePrecedence.VisualStateOverride"/> depending
     /// on the state's flag) is removed from its old slot and re-inserted at the position its new precedence sorts
     /// to, so the list stays precedence-sorted instead of the stale slot silently outranking or being outranked by
@@ -161,8 +161,8 @@ internal sealed class UIResolvedPropertyStore
             }
             else
             {
-                // The same kind is now writing at a different precedence than its existing contribution
-                // (U4 fix round 1): an in-place overwrite would keep the contribution at its old, now
+                // The same kind is now writing at a different precedence than its existing contribution:
+                // an in-place overwrite would keep the contribution at its old, now
                 // wrong, sorted position. Remove it and re-insert at the position the new precedence sorts to.
                 entry.Contributions.RemoveAt(existingIndex);
                 entry.Kinds.RemoveAt(existingIndex);
@@ -267,7 +267,7 @@ internal sealed class UIResolvedPropertyStore
 
     /// <summary>
     /// Reads the winner for (<paramref name="property"/>, <paramref name="slot"/>) that would apply if
-    /// <paramref name="excluded"/>'s contribution did not exist (U3): the first contribution in the
+    /// <paramref name="excluded"/>'s contribution did not exist: the first contribution in the
     /// precedence-sorted list whose kind is not <paramref name="excluded"/>, whether or not
     /// <paramref name="excluded"/> is itself the actual current winner. Same false-and-Unset shape as
     /// <see cref="TryGetWinner{T}"/> for an entry that was never written, that has since been emptied, or

@@ -1,7 +1,7 @@
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
-/// The transitions attached to one <see cref="MGElement"/> (<c>element.Transitions</c>; S6, ADR-0006). Adding a transition resolves its
+/// The transitions attached to one <see cref="MGElement"/> (<c>element.Transitions</c>; ADR-0006). Adding a transition resolves its
 /// target, reads the current value and subscribes to changes; removing it unsubscribes and keeps the current value. One transition per
 /// property path: adding a second one for the same path replaces the first. Allocated on first access with the element's animation slot.
 /// </summary>

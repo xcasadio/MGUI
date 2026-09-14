@@ -15,7 +15,7 @@ using MGUI.Core.UI.Styling;
 namespace MGUI.Core.UI.XAML;
 
 /// <summary>
-/// XAML declaration of a <see cref="UITransition"/> (S7; ADR-0006), inside <c>&lt;Button.Transitions&gt;</c>:
+/// XAML declaration of a <see cref="UITransition"/> (ADR-0006), inside <c>&lt;Button.Transitions&gt;</c>:
 /// <code>
 /// &lt;Transition Property="Background" Duration="0.15" Easing="CubicOut" /&gt;
 /// &lt;Transition Property="Opacity" Duration="200ms" Delay="0:0:0.05" /&gt;
@@ -97,7 +97,7 @@ public class Transition
     public UITransition ToTransition() => ToTransition(null);
 
     /// <summary>Builds the runtime transition, tagging it with the style that declared it (<paramref name="provenance"/>) so
-    /// <see cref="MGElement.RefreshStyles"/> (U9) can tell it apart from an element or code declaration and, on a later refresh, tell an unchanged
+    /// <see cref="MGElement.RefreshStyles"/> can tell it apart from an element or code declaration and, on a later refresh, tell an unchanged
     /// declaration from a changed one through <see cref="UITransition.Signature"/>.</summary>
     public UITransition ToTransition(UIValueSourceKind? provenance)
     {
@@ -120,7 +120,7 @@ public class Transition
         return transition;
     }
 
-    /// <summary>Backlog task 9 (U9): deterministic text of this declaration for <see cref="UITransition.Signature"/> (path, duration, delay, easing
+    /// <summary>Deterministic text of this declaration for <see cref="UITransition.Signature"/> (path, duration, delay, easing
     /// identity): a refresh compares it to the currently attached transition's own signature to tell "same declaration" from "changed". The easing
     /// component is its own identity, not its CLR type: every built-in named easing (<c>CubicOut</c>, <c>BounceIn</c>, ...) is the same private
     /// <c>UIEasing.DelegateEasing</c> class, and every CSS curve is the same <see cref="UICubicBezierEasing"/> class, so <c>GetType().Name</c> is
@@ -167,7 +167,7 @@ public class VisualStateDefinition
     public UIVisualState ToVisualState() => ToVisualState(null);
 
     /// <summary>Builds the runtime state, tagging it with the style that declared it (<paramref name="provenance"/>) so
-    /// <see cref="MGElement.RefreshStyles"/> (U9) can tell it apart from an element or code declaration and, on a later refresh, tell an unchanged
+    /// <see cref="MGElement.RefreshStyles"/> can tell it apart from an element or code declaration and, on a later refresh, tell an unchanged
     /// declaration from a changed one through <see cref="UIVisualState.Signature"/>.</summary>
     public UIVisualState ToVisualState(UIValueSourceKind? provenance)
     {
@@ -188,7 +188,7 @@ public class VisualStateDefinition
         return state;
     }
 
-    /// <summary>Backlog task 9 (U9): deterministic text of this declaration for <see cref="UIVisualState.Signature"/> (name,
+    /// <summary>Deterministic text of this declaration for <see cref="UIVisualState.Signature"/> (name,
     /// <see cref="OverridesLocalValue"/>, then each setter path and formatted value in declaration order): a refresh compares it to the currently
     /// attached state's own signature to tell "same declaration" from "changed".</summary>
     private string BuildSignature()
@@ -231,7 +231,7 @@ public sealed class VisualStateSetterCollection : Collection<Setter>
 }
 
 /// <summary>
-/// XAML declaration of an element's <see cref="UIRenderTransform"/> (S7; ADR-0006), inside <c>&lt;Button.RenderTransform&gt;</c>:
+/// XAML declaration of an element's <see cref="UIRenderTransform"/> (ADR-0006), inside <c>&lt;Button.RenderTransform&gt;</c>:
 /// <code>&lt;RenderTransform Scale="1.05" Origin="0.5,0.5" Rotation="10" Translation="4,0" /&gt;</code>
 /// Vectors are <c>x,y</c> or a single number applied to both components; <see cref="Rotation"/> is in degrees.
 /// </summary>

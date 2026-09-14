@@ -12,9 +12,9 @@ namespace MGUI.Core.UI.Brushes.BorderBrushes;
 public sealed class MGDockedBorderBrush : UIFreezableBrush, IBorderBrush
 {
     private IFillBrush _Left;
-    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (fix round, ADR-0009 W3-fix): see
+    /// <summary>Setter uses <see cref="UIBrushEquality.ForSlots{T}"/> (ADR-0009): see
     /// <see cref="MGUI.Core.UI.Brushes.FillBrushes.MGPaddedFillBrush.Brush"/> for the rationale. <see cref="UIFreezableBrush.ThrowIfFrozen"/>
-    /// is called explicitly first (fix round) so a frozen instance reports the frozen error instead of <see cref="ArgumentNullException"/>
+    /// is called explicitly first so a frozen instance reports the frozen error instead of <see cref="ArgumentNullException"/>
     /// when the caller passes <see langword="null"/>.</summary>
     public IFillBrush Left
     {
@@ -46,18 +46,18 @@ public sealed class MGDockedBorderBrush : UIFreezableBrush, IBorderBrush
         set { ThrowIfFrozen(); if (SetProperty(ref _Bottom, value ?? throw new ArgumentNullException(nameof(value)), UIBrushEquality.ForSlots<IFillBrush>())) { RecomputeIsSolidColorsOnly(); } }
     }
 
-    /// <summary>Cached flag (ADR-0009, W3: was computed once in the constructor of the previous <see langword="readonly struct"/>, now
+    /// <summary>Cached flag (ADR-0009: was computed once in the constructor of the previous <see langword="readonly struct"/>, now
     /// recomputed by <see cref="RecomputeIsSolidColorsOnly"/> whenever any side changes) preserving the fast path used by
     /// <see cref="Draw(ElementDrawArgs, MGElement, Rectangle, Thickness)"/> and <see cref="Draw(ElementDrawArgs, MGElement, MGBoxShape, MGBoxGeometry)"/>.</summary>
     private bool IsSolidColorsOnly { get; set; }
 
     private void RecomputeIsSolidColorsOnly() => IsSolidColorsOnly = _Left is MGSolidFillBrush && _Top is MGSolidFillBrush && _Right is MGSolidFillBrush && _Bottom is MGSolidFillBrush;
 
-    /// <summary>False when any side cannot itself freeze (ADR-0009, W3).</summary>
+    /// <summary>False when any side cannot itself freeze (ADR-0009).</summary>
     public override bool CanFreeze => (_Left is not IUIFreezable l || l.CanFreeze) && (_Top is not IUIFreezable t || t.CanFreeze)
         && (_Right is not IUIFreezable r || r.CanFreeze) && (_Bottom is not IUIFreezable b || b.CanFreeze);
 
-    /// <summary>Freezes every side, deduplicated by reference the same way <see cref="Update"/> is (ADR-0009, W3).</summary>
+    /// <summary>Freezes every side, deduplicated by reference the same way <see cref="Update"/> is (ADR-0009).</summary>
     protected override void OnFreeze()
     {
         HashSet<IFillBrush> frozen = new(System.Collections.Generic.ReferenceEqualityComparer.Instance);
@@ -264,7 +264,7 @@ public sealed class MGDockedBorderBrush : UIFreezableBrush, IBorderBrush
 
     public static explicit operator MGDockedBorderBrush(MGUniformBorderBrush uniform) => new(uniform.Brush, uniform.Brush, uniform.Brush, uniform.Brush);
 
-    /// <summary>Value equality (ADR-0009, W3): two docked border brushes are equal when all four sides are equal by value
+    /// <summary>Value equality (ADR-0009): two docked border brushes are equal when all four sides are equal by value
     /// (<see cref="UIBrushEquality.ValueEquals(IFillBrush, IFillBrush)"/>), regardless of frozen state or instance identity.</summary>
     public bool ValueEquals(IBorderBrush other) => other is MGDockedBorderBrush d
         && UIBrushEquality.ValueEquals(d.Left, Left) && UIBrushEquality.ValueEquals(d.Top, Top)

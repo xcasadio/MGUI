@@ -345,7 +345,7 @@ public class MGProgressButton : MGSingleContentHost
     /// <summary>The name of the animation that <see cref="Duration"/> runs on <c>ProgressButton.Value</c> (visible in the element debug view).</summary>
     public const string DurationAnimationName = "ProgressButton.Duration";
 
-    /// <summary>Writes <see cref="Value"/> on behalf of an animation on <c>ProgressButton.Value</c> (T6): such a write never retargets the
+    /// <summary>Writes <see cref="Value"/> on behalf of an animation on <c>ProgressButton.Value</c>: such a write never retargets the
     /// <see cref="Duration"/> run; a change it triggers (a completion action that resets or pauses) is applied on the next update, once the run is over.</summary>
     internal void ApplyAnimatedValue(float value)
     {
@@ -478,7 +478,7 @@ public class MGProgressButton : MGSingleContentHost
             }
             else
             {
-                //  The share of Duration still to run (it used to return the elapsed share, T6).
+                //  The share of Duration still to run (it used to return the elapsed share).
                 return Duration.Value * ((Maximum - Math.Max(Value, Minimum)) / (Maximum - Minimum));
             }
         }
@@ -753,7 +753,7 @@ public class MGProgressButton : MGSingleContentHost
 
             Duration = null;
 
-            //  T6: the Duration run only exists while the button is in a tree (a detached element is not updated); joining a tree (re)starts it.
+            //  The Duration run only exists while the button is in a tree (a detached element is not updated); joining a tree (re)starts it.
             OnParentChanged += (sender, e) =>
             {
                 if (e.NewValue != null)
@@ -819,7 +819,7 @@ public class MGProgressButton : MGSingleContentHost
 
     public override void UpdateSelf(ElementUpdateArgs UA)
     {
-        //  T6: Duration runs on the animation engine (SyncDurationAnimation); a change requested while the run was writing Value is applied here,
+        //  Duration runs on the animation engine (SyncDurationAnimation); a change requested while the run was writing Value is applied here,
         //  after the manager's tick of this frame, so the run that just completed is not cancelled from inside its own write.
         if (_IsDurationSyncPending)
         {

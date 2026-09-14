@@ -74,7 +74,7 @@ public readonly record struct CornerTransforms(
     public bool HasBottomLeftRotation => !BottomLeftRotation.IsAlmostZero();
 }
 
-/// <summary>Freezable (ADR-0009, W3): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
+/// <summary>Freezable (ADR-0009): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen;
 /// <see cref="Copy"/> always returns an unfrozen instance. All fields are value types (<see cref="MGTextureData"/> shared by reference
 /// like the other texture-holding brushes), so there is no nested paint to propagate <see cref="Freeze"/> to.</summary>
 public sealed class MGTexturedBorderBrush : UIFreezableBrush, IBorderBrush
@@ -515,7 +515,7 @@ public sealed class MGTexturedBorderBrush : UIFreezableBrush, IBorderBrush
 
     public IBorderBrush Copy() => new MGTexturedBorderBrush(EdgeTexture, EdgeColor, CornerTexture, CornerColor, Transforms, Opacity);
 
-    /// <summary>Value equality (ADR-0009, W3): two textured border brushes are equal when <see cref="EdgeTexture"/>/<see cref="CornerTexture"/>
+    /// <summary>Value equality (ADR-0009): two textured border brushes are equal when <see cref="EdgeTexture"/>/<see cref="CornerTexture"/>
     /// (record structs: compare their <see cref="MGTextureData.Image"/> by reference, the same underlying texture, plus their other fields
     /// by value), their colours, <see cref="Opacity"/> and <see cref="Transforms"/> all match, regardless of frozen state or instance identity.</summary>
     public bool ValueEquals(IBorderBrush other) => other is MGTexturedBorderBrush t

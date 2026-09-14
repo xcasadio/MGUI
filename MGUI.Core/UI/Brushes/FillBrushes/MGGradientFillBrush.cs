@@ -6,7 +6,7 @@ using MGUI.Core.UI.Brushes;
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
 /// <summary>An <see cref="IFillBrush"/> that fills its bounds with a gradient. Each corner has a specified <see cref="Color"/> that the gradient linearly interpolates to.
-/// Freezable (ADR-0009, W2): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose corner setters throw once frozen; <see cref="Copy"/> always
+/// Freezable (ADR-0009): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose corner setters throw once frozen; <see cref="Copy"/> always
 /// returns an unfrozen instance.<para/>
 /// For a simpler version, use <see cref="MGDiagonalGradientFillBrush"/></summary>
 public sealed class MGGradientFillBrush : UIFreezableBrush, IFillBrush
@@ -107,20 +107,20 @@ public sealed class MGGradientFillBrush : UIFreezableBrush, IFillBrush
 
     public IFillBrush Copy() => new MGGradientFillBrush(TopLeftColor, TopRightColor, BottomRightColor, BottomLeftColor);
 
-    /// <summary>Value equality (ADR-0009, W2): two gradient brushes are equal when their four corner colours match, regardless of frozen state
+    /// <summary>Value equality (ADR-0009): two gradient brushes are equal when their four corner colours match, regardless of frozen state
     /// or instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGGradientFillBrush g
         && g.TopLeftColor == TopLeftColor && g.TopRightColor == TopRightColor
         && g.BottomLeftColor == BottomLeftColor && g.BottomRightColor == BottomRightColor;
 
-    /// <summary>Decision taken during delivery (ADR-0009, W2): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// <summary>Decision taken during delivery (ADR-0009): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
     /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
     public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
     public override int GetHashCode() => HashCode.Combine(TopLeftColor, TopRightColor, BottomLeftColor, BottomRightColor);
 }
 
 /// <summary>A simplified version of <see cref="MGGradientFillBrush"/> that only requires 2 <see cref="Color"/>s for opposite corners of the bounds.
-/// Freezable (ADR-0009, W2): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen; <see cref="Copy"/>
+/// Freezable (ADR-0009): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen; <see cref="Copy"/>
 /// always returns an unfrozen instance.</summary>
 public sealed class MGDiagonalGradientFillBrush : UIFreezableBrush, IFillBrush
 {
@@ -201,12 +201,12 @@ public sealed class MGDiagonalGradientFillBrush : UIFreezableBrush, IFillBrush
 
     public IFillBrush Copy() => new MGDiagonalGradientFillBrush(Color1, Color2, Color1Position);
 
-    /// <summary>Value equality (ADR-0009, W2): two diagonal-gradient brushes are equal when <see cref="Color1"/>, <see cref="Color2"/> and
+    /// <summary>Value equality (ADR-0009): two diagonal-gradient brushes are equal when <see cref="Color1"/>, <see cref="Color2"/> and
     /// <see cref="Color1Position"/> match, regardless of frozen state or instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGDiagonalGradientFillBrush d
         && d.Color1 == Color1 && d.Color2 == Color2 && d.Color1Position == Color1Position;
 
-    /// <summary>Decision taken during delivery (ADR-0009, W2): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// <summary>Decision taken during delivery (ADR-0009): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
     /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
     public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
     public override int GetHashCode() => HashCode.Combine(Color1, Color2, Color1Position);

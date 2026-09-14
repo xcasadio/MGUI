@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S5: the solid-colour targets over the background slots, the text foregrounds and the uniform border.</summary>
+/// <summary>The solid-colour targets over the background slots, the text foregrounds and the uniform border.</summary>
 public class ColorTargetsTests
 {
     private static Color Mid(Color from, Color to) => Color.Lerp(from, to, 0.5f);

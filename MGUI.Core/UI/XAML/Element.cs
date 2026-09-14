@@ -281,11 +281,11 @@ public abstract class Element : XAMLBindableBase
     [Category("Appearance")]
     public float? RenderScale { get; set; }
 
-    /// <summary>The render-only transform of the element (ADR-0006, S7): <c>&lt;Button.RenderTransform&gt;&lt;RenderTransform Scale="1.05" Origin="0.5,0.5" /&gt;&lt;/Button.RenderTransform&gt;</c>.</summary>
+    /// <summary>The render-only transform of the element (ADR-0006): <c>&lt;Button.RenderTransform&gt;&lt;RenderTransform Scale="1.05" Origin="0.5,0.5" /&gt;&lt;/Button.RenderTransform&gt;</c>.</summary>
     [Category("Appearance")]
     public RenderTransform RenderTransform { get; set; }
 
-    /// <summary>The transitions attached to the element (ADR-0006, S7): <c>&lt;Button.Transitions&gt;&lt;Transition Property="Opacity" Duration="0.2" Easing="CubicOut" /&gt;&lt;/Button.Transitions&gt;</c>.</summary>
+    /// <summary>The transitions attached to the element (ADR-0006): <c>&lt;Button.Transitions&gt;&lt;Transition Property="Opacity" Duration="0.2" Easing="CubicOut" /&gt;&lt;/Button.Transitions&gt;</c>.</summary>
     [Category("Appearance")]
     public List<Transition> Transitions { get; set; } = new();
 
@@ -294,11 +294,11 @@ public abstract class Element : XAMLBindableBase
     public List<VisualStateDefinition> VisualStates { get; set; } = new();
 
     /// <summary>The transitions the applied styles give this element (implicit styles, then named styles, in order) with the style kind that
-    /// declared each one (backlog task 9, U9: carried onto <see cref="UITransition.Provenance"/> so <see cref="MGElement.RefreshStyles"/> can tell a
+    /// declared each one (carried onto <see cref="UITransition.Provenance"/> so <see cref="MGElement.RefreshStyles"/> can tell a
     /// style-owned transition from the element's own), null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
     internal List<(Transition Dto, UIValueSourceKind Kind)> StyleTransitions { get; private set; }
 
-    /// <summary>The visual states the applied styles give this element, with the style kind that declared each one (backlog task 9, U9: carried onto
+    /// <summary>The visual states the applied styles give this element, with the style kind that declared each one (carried onto
     /// <see cref="UIVisualState.Provenance"/>), null when none; see <see cref="ProcessStyles(MGResources)"/>.</summary>
     internal List<(VisualStateDefinition Dto, UIValueSourceKind Kind)> StyleVisualStates { get; private set; }
 
@@ -1172,8 +1172,8 @@ public abstract class Element : XAMLBindableBase
             }
         }
 
-        //  Backlog task 10: keep what this pass resolved for the elements this definition creates (see MGElement.RefreshStyles)
-        //  Backlog task 9 (U9): this definition's own transition paths and visual state names, so a later refresh never touches them (element wins).
+        //  Keep what this pass resolved for the elements this definition creates (see MGElement.RefreshStyles)
+        //  This definition's own transition paths and visual state names, so a later refresh never touches them (element wins).
         var OwnTransitionPaths = Transitions.Count > 0
             ? new HashSet<string>(Transitions.Select(x => x.Property), StringComparer.OrdinalIgnoreCase)
             : null;
@@ -1237,7 +1237,7 @@ public abstract class Element : XAMLBindableBase
         }
     }
 
-    /// <summary>Keeps the transitions and visual states of an applied style, tagged with <paramref name="Kind"/> (backlog task 9, U9: carried onto
+    /// <summary>Keeps the transitions and visual states of an applied style, tagged with <paramref name="Kind"/> (carried onto
     /// <see cref="UITransition.Provenance"/>/<see cref="UIVisualState.Provenance"/> in <see cref="ApplyBaseSettings"/>), for <see cref="ApplyBaseSettings"/>
     /// (ADR-0007, decision 5).</summary>
     private void CollectStyleAnimation(Style Style, UIValueSourceKind Kind)

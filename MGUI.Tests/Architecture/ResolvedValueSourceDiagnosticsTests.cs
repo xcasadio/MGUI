@@ -306,7 +306,7 @@ public class ResolvedValueSourceDiagnosticsTests
         Assert.Equal(new Thickness(7), directWindow.Padding);
     }
 
-    /// <summary>(8) U4 (ADR-0008, decision 4): the diagnostic read reports <see cref="UIValuePrecedence.VisualStateOverride"/> (95) for an
+    /// <summary>(8) ADR-0008, decision 4: the diagnostic read reports <see cref="UIValuePrecedence.VisualStateOverride"/> (95) for an
     /// overriding named state, distinct from the ordinary <see cref="UIValuePrecedence.VisualState"/> (70) it would otherwise report.</summary>
     [Fact]
     public void TryGetResolvedValueSource_Reports_VisualStateOverride_ForAnOverridingNamedState()

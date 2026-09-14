@@ -4,7 +4,7 @@ using MGUI.Core.UI.Animation.Interpolation;
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
-/// An animation interpolating a value of <typeparamref name="T"/> from a start value to <see cref="To"/> with an easing (S3; ADR-0006).<para/>
+/// An animation interpolating a value of <typeparamref name="T"/> from a start value to <see cref="To"/> with an easing (ADR-0006).<para/>
 /// <see cref="From"/> is optional (decision 11): when it is not set, the animation starts from the value read when it starts, which is the
 /// current animated value when it replaces another animation on the same path, so a hover-out never snaps back to the hover-in start value.
 /// The base value handed to <see cref="UIAnimationFillBehavior.RestoreBaseValue"/> is read at the same moment, or inherited from the

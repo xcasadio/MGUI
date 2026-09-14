@@ -1,7 +1,7 @@
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
-/// The animation engine of one <see cref="MGDesktop"/> (<c>MGDesktop.Animations</c>; S3, ADR-0006 decision 7): owns the
+/// The animation engine of one <see cref="MGDesktop"/> (<c>MGDesktop.Animations</c>; ADR-0006 decision 7): owns the
 /// <see cref="UIAnimationClock"/>, ticks every active animation once per frame at the head of <c>MGDesktop.Update</c> (whatever the visibility
 /// of the owner elements), enforces the conflict rule (one active animation per owner element and property path, decision 11) and cancels
 /// the animations of an element that leaves the tree or of a window that closes (decision 9).<para/>
@@ -217,7 +217,7 @@ public sealed class UIAnimationManager
         => CancelWhere(x => IsWindowOrAncestorWindow(window, x.OwnerWindow), true, true);
 
     /// <summary>True when <paramref name="candidate"/> is <paramref name="window"/> or one of its <see cref="MGElement.ParentWindow"/> ancestors,
-    /// so that closing a window also cancels the animations of its nested windows, tooltips and popups (review finding, S3).</summary>
+    /// so that closing a window also cancels the animations of its nested windows, tooltips and popups (review finding).</summary>
     private static bool IsWindowOrAncestorWindow(MGWindow candidate, MGWindow window)
     {
         for (var current = window; current != null; current = current.ParentWindow)
@@ -231,7 +231,7 @@ public sealed class UIAnimationManager
         return false;
     }
 
-    /// <summary>Re-captures the displaying window of the animations owned by <paramref name="owner"/> after it was re-parented (review finding, S3).</summary>
+    /// <summary>Re-captures the displaying window of the animations owned by <paramref name="owner"/> after it was re-parented (review finding).</summary>
     internal void RefreshOwnerWindow(MGElement owner)
     {
         for (var i = 0; i < _Active.Count; i++)
@@ -246,7 +246,7 @@ public sealed class UIAnimationManager
 
     private void CancelWhere(Func<UIAnimation, bool> predicate, bool restoreBaseValue, bool releaseHolds)
     {
-        //  A restore can notify a transition that starts a new run on the same owner during this pass (review finding, S6): re-scan until
+        //  A restore can notify a transition that starts a new run on the same owner during this pass (review finding): re-scan until
         //  no matching animation is left, with a bound against a pathological ping-pong.
         for (var pass = 0; pass < 4; pass++)
         {

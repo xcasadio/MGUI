@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>U3 (Docs/Tasks/animation-v3-tasks.md): <see cref="MGElement.TryGetResolvedPilotValueExcluding{T}"/>, the internal read a transition on
+/// <summary><see cref="MGElement.TryGetResolvedPilotValueExcluding{T}"/>, the internal read a transition on
 /// a store-backed pilot uses (through <see cref="MGUI.Core.UI.Animation.IUIStoreBackedAnimationTarget{T}.TryGetValueBelowAnimation"/>) to retarget
 /// to the winner below its own <see cref="UIValueSourceKind.Animation"/> contribution. Covers the Background and DefaultTextForeground dormancy
 /// branches (the only two <see cref="MGElement.TryGetResolvedPilotValue{T}"/> honours), and checks the excluding read agrees with the plain one
@@ -43,7 +43,7 @@ public class PilotValueBelowAnimationTests
     [Fact]
     public void Background_ExcludingAnimation_ReturnsFalse_WhenTheSubSlotsOnlyContributionIsAnimation()
     {
-        // Fix round 1 (U3 regression): a Whole-container swap (Theme) starts a transition without ever recording a
+        // Regression: a Whole-container swap (Theme) starts a transition without ever recording a
         // non-Animation contribution on the sub-slot -- its only contribution is the Animation entry itself, which
         // ALSO happens to be the container's current physical value (mid-run). Excluding Animation must not fall
         // back to that physical value: per the contract, it must report false ("nothing but Animation is recorded").

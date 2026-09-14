@@ -165,7 +165,7 @@ public sealed class MGNineSliceFillBrush : UIFreezableBrush, IFillBrush
 
     public IFillBrush Copy() => new MGNineSliceFillBrush(TargetMargin, TopLeft, TopCenter, TopRight, MiddleLeft, MiddleCenter, MiddleRight, BottomLeft, BottomCenter, BottomRight);
 
-    /// <summary>Value equality (ADR-0009, W3): two nine-slice brushes are equal when <see cref="TargetMargin"/> and all nine patches
+    /// <summary>Value equality (ADR-0009): two nine-slice brushes are equal when <see cref="TargetMargin"/> and all nine patches
     /// match (each patch a record struct: compares its <see cref="MGTextureData.Image"/> by reference, the same underlying texture, plus
     /// its other fields by value), regardless of frozen state or instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGNineSliceFillBrush n
@@ -174,7 +174,7 @@ public sealed class MGNineSliceFillBrush : UIFreezableBrush, IFillBrush
         && n.MiddleLeft.Equals(MiddleLeft) && n.MiddleCenter.Equals(MiddleCenter) && n.MiddleRight.Equals(MiddleRight)
         && n.BottomLeft.Equals(BottomLeft) && n.BottomCenter.Equals(BottomCenter) && n.BottomRight.Equals(BottomRight);
 
-    /// <summary>Decision taken during delivery (ADR-0009, W3): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// <summary>Decision taken during delivery (ADR-0009): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
     /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
     public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
     public override int GetHashCode()

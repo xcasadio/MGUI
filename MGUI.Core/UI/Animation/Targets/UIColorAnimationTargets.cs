@@ -7,13 +7,13 @@ using MGUI.Core.UI.Styling;
 namespace MGUI.Core.UI.Animation.Targets;
 
 /// <summary>
-/// The solid-colour animation targets (S5; ADR-0006): the background slots (<see cref="Paths.Background"/> and its Selected, Disabled and
+/// The solid-colour animation targets (ADR-0006): the background slots (<see cref="Paths.Background"/> and its Selected, Disabled and
 /// Focused variants), the text foreground of an <see cref="MGTextBlock"/> (<see cref="Paths.Foreground"/>), the inherited text foreground of
 /// any element (<see cref="Paths.TextForeground"/>) and the uniform border colour (<see cref="Paths.BorderBrush"/>).<para/>
-/// All are store-backed: the four background slots and <see cref="Paths.BorderBrush"/> are <see cref="IUIBrushAnimationTarget{T}"/>s (ADR-0009,
-/// W5): a run clones the base brush once and mutates that one clone every tick, with no store write and no allocation past the first tick;
+/// All are store-backed: the four background slots and <see cref="Paths.BorderBrush"/> are <see cref="IUIBrushAnimationTarget{T}"/>s (ADR-0009):
+/// a run clones the base brush once and mutates that one clone every tick, with no store write and no allocation past the first tick;
 /// <see cref="Foreground"/>/<see cref="TextForeground"/> write a <c>Color?</c>, not a brush, and stay a plain <see cref="IUIStoreBackedAnimationTarget{T}"/>.<para/>
-/// All are observable (S6): a transition follows the container held by the element and the sub-field inside it.
+/// All are observable: a transition follows the container held by the element and the sub-field inside it.
 /// </summary>
 public static class UIColorAnimationTargets
 {
@@ -121,7 +121,7 @@ public static class UIColorAnimationTargets
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
             => new BackgroundSlotSubscription(element, _slotPropertyName, () => changed(element));
 
-        /// <summary>ADR-0009, W5: the clone is a <see cref="IFillBrush.Copy"/> of the solid brush recovered below the animation (read the same
+        /// <summary>ADR-0009: the clone is a <see cref="IFillBrush.Copy"/> of the solid brush recovered below the animation (read the same
         /// way <see cref="TryGetValueBelowAnimation"/> does, before the write just below records anything under <c>Animation</c>), or a fresh
         /// <see cref="MGSolidFillBrush"/> when nothing could be recovered (a replaced run already occupied this slot).</summary>
         public object BeginAnimatedValue(MGElement element, string animationName)
@@ -132,14 +132,14 @@ public static class UIColorAnimationTargets
             return new UIBrushAnimationHandle<IFillBrush>(clone, original);
         }
 
-        /// <summary>Mutates the clone's own <see cref="MGSolidFillBrush.Color"/> setter (ADR-0009, W5: not a special non-notifying path -- see
-        /// the "Decisions taken during delivery" note for W5 in ADR-0009 for why the plain, notifying setter was kept). No store write; no
+        /// <summary>Mutates the clone's own <see cref="MGSolidFillBrush.Color"/> setter (ADR-0009: not a special non-notifying path -- see
+        /// the "Decisions taken during delivery" note in ADR-0009 for why the plain, notifying setter was kept). No store write; no
         /// allocation (the setter's own equality check does not box a <see cref="Color"/>, and the notification reuses a cached
         /// <see cref="System.ComponentModel.PropertyChangedEventArgs"/>).</summary>
         public void ApplyAnimatedValue(object handle, Color value)
             => ((MGSolidFillBrush)((UIBrushAnimationHandle<IFillBrush>)handle).Clone).Color = value;
 
-        /// <summary>Restores the exact base instance: re-reads "the value below the animation" first (ADR-0009, W5 -- a container swap mid-run
+        /// <summary>Restores the exact base instance: re-reads "the value below the animation" first (ADR-0009 -- a container swap mid-run
         /// promotes the swapped-in container's own value into a real contribution, <see cref="MGElement.PromoteSwappedContainerValueBelowRunningAnimation"/>,
         /// so this now sees the NEW theme's base rather than the one captured when the run started), falling back to the instance
         /// <see cref="BeginAnimatedValue"/> captured, then to a fresh brush from <paramref name="baseValue"/>.</summary>
@@ -291,7 +291,7 @@ public static class UIColorAnimationTargets
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
             => new UIPropertyChangedSubscription(RequireBorder(element), nameof(MGBorder.BorderBrush), () => changed(element));
 
-        /// <summary>ADR-0009, W5: the clone is a <see cref="IBorderBrush.Copy"/> of the uniform-over-solid border brush recovered below the
+        /// <summary>ADR-0009: the clone is a <see cref="IBorderBrush.Copy"/> of the uniform-over-solid border brush recovered below the
         /// animation, or a fresh <see cref="MGUniformBorderBrush"/> over a fresh <see cref="MGSolidFillBrush"/> when nothing could be recovered
         /// (a replaced run already occupied this path). <see cref="MGUniformBorderBrush.Copy"/> already copies its inner <see cref="IFillBrush"/>
         /// unfrozen, so the clone is never a shared or frozen instance.</summary>
@@ -327,10 +327,10 @@ public static class UIColorAnimationTargets
 /// <summary>Subscribes to a Background sub-slot for the three fill-typed targets (<see cref="UIColorAnimationTargets"/>'s background slots,
 /// <see cref="UIExtraAnimationTargets"/>'s two gradients): the same container-swap and slot-reference-changed events
 /// <see cref="UIContainerSlotSubscription"/> already reacts to, PLUS the container's <see cref="VisualStateFillBrush.SlotBrushMutatedPropertyName"/>
-/// relay (ADR-0009, W5, "Decisions taken during delivery"). Needed because a run's clone, once written into the slot, never changes reference
+/// relay (ADR-0009, "Decisions taken during delivery"). Needed because a run's clone, once written into the slot, never changes reference
 /// again (no allocation past the first tick): the slot-reference name a plain <see cref="UIContainerSlotSubscription"/> listens for only fires
 /// once, at <see cref="Animation.IUIBrushAnimationTarget{T}.BeginAnimatedValue"/> -- every later tick only mutates the clone's own fields, which
-/// the container relays under the distinct <c>SlotBrushMutated</c> name specifically so the resolved-value store ignores it (W4); a
+/// the container relays under the distinct <c>SlotBrushMutated</c> name specifically so the resolved-value store ignores it; a
 /// <see cref="Animation.UITransition{T}"/> subscribed through <see cref="UIContainerSlotSubscription"/> would therefore never notice a named
 /// state exiting or a local write changing the value below a running clone. Kept as its own type rather than widening
 /// <see cref="UIContainerSlotSubscription"/> itself: that shared type also serves <c>Foreground</c>/<c>DefaultTextForeground</c>, whose

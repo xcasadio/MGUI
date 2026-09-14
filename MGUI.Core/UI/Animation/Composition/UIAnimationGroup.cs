@@ -1,7 +1,7 @@
 namespace MGUI.Core.UI.Animation.Composition;
 
 /// <summary>
-/// Base of the composite animations (ADR-0007, decision 1; Docs/Tasks/animation-v2-tasks.md T1): a <see cref="UIAnimation"/> owned by one root
+/// Base of the composite animations (ADR-0007, decision 1): a <see cref="UIAnimation"/> owned by one root
 /// element (<c>root.Animations.Start(group)</c>) that starts its children through the manager, each child on its own owner (the child's
 /// <see cref="UIAnimation.Owner"/> when it already has one, the root otherwise), so every child keeps its own conflict key, appears in its
 /// element's diagnostics and is cancelled when its element leaves the tree.<para/>
@@ -107,7 +107,7 @@ public abstract class UIAnimationGroup : UIAnimation
         }
     }
 
-    /// <summary>Preview seek (U7): positions every child at its own elapsed time on the group's timeline (<see cref="UIAnimation.IterationElapsed"/>,
+    /// <summary>Preview seek: positions every child at its own elapsed time on the group's timeline (<see cref="UIAnimation.IterationElapsed"/>,
     /// already set by the base <see cref="UIAnimation.Seek"/> before this runs), relative to its offset (<see cref="GetChildOffset"/>, zero for
     /// a storyboard, <see cref="UISequenceAnimation.GetStartOffset"/> for a sequence); a child before its offset seeks to zero (its initial
     /// pose). Never starts a child through <see cref="StartChild"/> and never touches <see cref="StartedChildren"/> / <see cref="FinishedChildren"/>:
@@ -132,7 +132,7 @@ public abstract class UIAnimationGroup : UIAnimation
     /// (every child starts with the group); overridden by <see cref="UISequenceAnimation"/>.</summary>
     protected virtual TimeSpan GetChildOffset(int index) => TimeSpan.Zero;
 
-    /// <summary>Preview attach (U7): begins every child as a preview too, recursively (a child that is itself a group attaches its own
+    /// <summary>Preview attach: begins every child as a preview too, recursively (a child that is itself a group attaches its own
     /// children the same way through its own override), on <c>child.Owner ?? root</c> -- never through <see cref="StartChild"/>, so a
     /// preview child is never registered with a manager and never raises <see cref="UIAnimation.Started"/>/<see cref="UIAnimation.Updated"/>.</summary>
     protected internal sealed override void OnPreviewAttached(MGElement root)
@@ -145,7 +145,7 @@ public abstract class UIAnimationGroup : UIAnimation
         }
     }
 
-    /// <summary>U8 fix (ADR-0008): rolls back every child this group's <see cref="OnPreviewAttached"/> already began as a preview
+    /// <summary>Fix (ADR-0008): rolls back every child this group's <see cref="OnPreviewAttached"/> already began as a preview
     /// (<see cref="UIAnimation.IsPreview"/>) when the group's own <see cref="UIAnimation.BeginPreview"/> fails afterwards (an invalid
     /// <see cref="UIAnimation.AutoReverse"/> or <see cref="UIAnimation.FillBehavior"/> caught by <see cref="OnStarting"/>) -- recursively,
     /// since a child that is itself a group rolls its own children back the same way through its own override. A child never reached by

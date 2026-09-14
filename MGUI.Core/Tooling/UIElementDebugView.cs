@@ -29,7 +29,7 @@ public record UIElementDebugView(
     public IReadOnlyList<string> ApplicablePaths { get; init; } = Array.Empty<string>();
 }
 
-/// <summary>One animation or transition of an element, for the debug view (ADR-0006, S8).</summary>
+/// <summary>One animation or transition of an element, for the debug view (ADR-0006).</summary>
 /// <param name="Kind"><c>animation</c>, <c>held</c> (a completed animation still holding its store contribution) or <c>transition</c>.</param>
 /// <param name="Path">The animated property path.</param>
 /// <param name="State">The playback state, or <c>idle</c> / <c>running</c> for a transition.</param>

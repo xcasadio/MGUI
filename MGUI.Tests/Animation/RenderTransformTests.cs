@@ -11,7 +11,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S2 of Docs/Tasks/animation-tasks.md: <see cref="UIRenderTransform"/> matrices, their composition at draw time,
+/// <summary><see cref="UIRenderTransform"/> matrices, their composition at draw time,
 /// the inverse hit-test and the zero-cost path of elements without transform.</summary>
 public class RenderTransformTests
 {

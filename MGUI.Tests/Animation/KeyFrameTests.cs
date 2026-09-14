@@ -7,7 +7,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice T2 of Docs/Tasks/animation-v2-tasks.md: keyframe tracks, keyframe animations and their JSON model.</summary>
+/// <summary>Keyframe tracks, keyframe animations and their JSON model.</summary>
 public class KeyFrameTests
 {
     private const float Tolerance = 1e-4f;
@@ -173,7 +173,7 @@ public class KeyFrameTests
     [Fact]
     public void Serializer_RoundTrips_ABezierEasingLiteral()
     {
-        // U1: a Bezier literal is stored verbatim, not resolved at serialization time (Docs/Tasks/animation-v3-tasks.md).
+        // A Bezier literal is stored verbatim, not resolved at serialization time.
         UIKeyFrameTrack<float> track = new() { { 0f, 0f }, { 1f, 1f, "cubic-bezier(0.42,0,1,1)" } };
 
         string json = UIKeyFrameSerializer.Serialize(track);

@@ -26,7 +26,7 @@ public interface IUIStoreBackedAnimationTarget<T> : IUIAnimationTarget<T>
     bool ClearContribution(MGElement element, UIValueResolutionSource source, T baseValue);
 
     /// <summary>
-    /// U3: reads the winner for the pilot slot this target writes as if this target's own <see cref="UIValueSourceKind.Animation"/>
+    /// Reads the winner for the pilot slot this target writes as if this target's own <see cref="UIValueSourceKind.Animation"/>
     /// contribution did not exist -- a <see cref="UITransition{T}"/> uses this (falling back to <see cref="IUIObservableAnimationTarget{T}.GetUnderlyingValue"/>
     /// when it returns false) to retarget immediately when a local write or a named-state exit changes the value below the run, instead of only
     /// seeing it once the run ends. False when nothing but the target's own Animation contribution is recorded for that slot.
@@ -35,13 +35,13 @@ public interface IUIStoreBackedAnimationTarget<T> : IUIAnimationTarget<T>
 }
 
 /// <summary>
-/// A store-backed target whose animated value is a brush (ADR-0009, W5: the five brush-valued targets -- <c>Background</c> and its Selected,
+/// A store-backed target whose animated value is a brush (ADR-0009: the five brush-valued targets -- <c>Background</c> and its Selected,
 /// Disabled and Focused slots, <c>Background.Gradient</c>, <c>Background.DiagonalGradient</c> and <c>BorderBrush</c>). Chosen over adding these
-/// members to <see cref="IUIStoreBackedAnimationTarget{T}"/> itself (decision recorded in ADR-0009, W5): the other two implementors of that
+/// members to <see cref="IUIStoreBackedAnimationTarget{T}"/> itself (decision recorded in ADR-0009): the other two implementors of that
 /// interface (<c>ForegroundTarget</c>, <c>TextForegroundTarget</c>) write a <c>Color?</c>, not a brush, and would gain three members they can
 /// never use; a dedicated interface only the five brush targets implement, checked once by <see cref="UIPropertyAnimation{T}"/> with an
 /// <see langword="is"/> pattern, is the smaller change.<para/>
-/// The run-owned clone replaces the "allocate a new brush every tick" cost the V1-V3 targets accepted: <see cref="BeginAnimatedValue"/> runs once,
+/// The run-owned clone replaces the "allocate a new brush every tick" cost the earlier targets accepted: <see cref="BeginAnimatedValue"/> runs once,
 /// when the run starts (<see cref="UIPropertyAnimation{T}.OnStarting"/>, after the target is resolved and the start/base values are read),
 /// <see cref="ApplyAnimatedValue"/> runs every tick with no store write and no allocation, and <see cref="EndAnimatedValue"/> runs once on every
 /// path that stops the run and must make the base reappear (<see cref="UIAnimation.OnRestoreBaseValue"/>, <see cref="UIAnimation.OnReleaseHold"/>).
@@ -61,7 +61,7 @@ public interface IUIBrushAnimationTarget<T> : IUIStoreBackedAnimationTarget<T>
     object BeginAnimatedValue(MGElement element, string animationName);
 
     /// <summary>Mutates the fields of <paramref name="handle"/>'s clone to <paramref name="value"/>, through the clone's own notifying setters
-    /// (ADR-0009, W5, "Decisions taken during delivery": a setter that skipped notification broke the existing self-retargeting that
+    /// (ADR-0009, "Decisions taken during delivery": a setter that skipped notification broke the existing self-retargeting that
     /// <c>UITransition{T}.HandleChanged</c> relies on -- a running transition on <c>Background</c>/<c>BorderBrush</c> is subscribed to the
     /// container/border's <c>PropertyChanged</c>, and that per-tick relay is what lets it notice a base changed underneath it, e.g. a named
     /// state exiting mid-run, within the following couple of ticks; kept deliberately, since the setter's own equality check does not box a
@@ -71,11 +71,11 @@ public interface IUIBrushAnimationTarget<T> : IUIStoreBackedAnimationTarget<T>
 
     /// <summary>Ends the run: removes the <c>Animation</c> contribution and writes back <paramref name="handle"/>'s original brush instance when
     /// <see cref="BeginAnimatedValue"/> recovered one (so the base reappears as the exact same instance, frozen or not, shared or not), or a
-    /// freshly built brush from <paramref name="baseValue"/> otherwise (the same fallback the pre-W5 targets always used).</summary>
+    /// freshly built brush from <paramref name="baseValue"/> otherwise (the same fallback the earlier targets always used).</summary>
     void EndAnimatedValue(MGElement element, object handle, T baseValue);
 }
 
-/// <summary>The run-owned state a <see cref="IUIBrushAnimationTarget{T}"/> hands its caller (ADR-0009, W5): <see cref="Clone"/> is what
+/// <summary>The run-owned state a <see cref="IUIBrushAnimationTarget{T}"/> hands its caller (ADR-0009): <see cref="Clone"/> is what
 /// <see cref="IUIBrushAnimationTarget{T}.ApplyAnimatedValue"/> mutates every tick; <see cref="Original"/> is the exact brush instance recovered
 /// below the animation the moment the run started, captured once because it cannot be recovered later (once <see cref="Clone"/> is the only
 /// thing recorded under the element's <c>Animation</c> contribution, reading "the value below the animation" always reports nothing left, the

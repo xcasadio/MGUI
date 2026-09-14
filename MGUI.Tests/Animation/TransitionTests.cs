@@ -10,7 +10,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S6: transitions on property changes and on the visual state (state-driven scale).</summary>
+/// <summary>Transitions on property changes and on the visual state (state-driven scale).</summary>
 public class TransitionTests
 {
     private const float Tolerance = 1e-4f;
@@ -254,7 +254,7 @@ public class TransitionTests
         Color midRun = Assert.IsType<MGSolidFillBrush>(scene.Top.BackgroundBrush.NormalValue).Color;
         Assert.Equal(Color.Lerp(Color.Black, Color.White, 0.5f), midRun);
 
-        // U3: a non-tagged container write (the store still enforces precedence physically -- the field itself does not
+        // A non-tagged container write (the store still enforces precedence physically -- the field itself does not
         // move until the run's own next tick sees the new LocalValue winner below it) targets red mid-run: retargeted at
         // once (SettledValue already reports red), no jump (the drawn colour is unaffected by the write itself).
         scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Red);
@@ -353,7 +353,7 @@ public class TransitionTests
     [Fact]
     public void ExplicitAnimation_StartedWhileATransitionRuns_StartsFromTheAnimatedValue()
     {
-        // Non-regression (ADR-0006): UIPropertyAnimation.ReadCurrentValue is untouched by U3 -- an explicit animation
+        // Non-regression (ADR-0006): UIPropertyAnimation.ReadCurrentValue is untouched by a transition -- an explicit animation
         // still starts from the physical (animated) value, never from the value below the transition's run.
         AnimationTestScene scene = AnimationTestScene.Build();
         scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Black);

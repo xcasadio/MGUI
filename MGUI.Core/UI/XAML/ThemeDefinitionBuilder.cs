@@ -26,7 +26,7 @@ public static class ThemeDefinitionBuilder
 
         var Result = BaseTheme?.Copy() ?? MGTheme.CreateEmpty(FontFamily);
         Apply(Result, Definition, FontFamily);
-        //  ADR-0009, W4: a theme's brushes are frozen and safely shareable (a theme copy, a control template default,
+        //  ADR-0009: a theme's brushes are frozen and safely shareable (a theme copy, a control template default,
         //  two elements resolving the same background slot). Swept once, here, rather than freezing at each of the
         //  dozens of assignment points above: reflection-driven, so it reaches every brush-typed property regardless
         //  of which ones this particular definition touched.

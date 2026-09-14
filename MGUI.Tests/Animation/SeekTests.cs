@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice U7 of Docs/Tasks/animation-v3-tasks.md: <see cref="UIAnimationPreview.Attach{TAnimation}"/> and <see cref="UIAnimation.Seek"/>.</summary>
+/// <summary><see cref="UIAnimationPreview.Attach{TAnimation}"/> and <see cref="UIAnimation.Seek"/>.</summary>
 public class SeekTests
 {
     private const float Tolerance = 1e-4f;
@@ -211,7 +211,7 @@ public class SeekTests
     [Fact]
     public void NestedStoryboard_PreviewPositionsTheGrandchild_ByElapsedTime()
     {
-        // Fix round 1 (U7 P2): a storyboard containing a nested storyboard containing a 200ms fade. The outer's own Duration is
+        // A storyboard containing a nested storyboard containing a 200ms fade. The outer's own Duration is
         // computed (UIAnimationGroup.OnStarting -> ComputeDuration -> LengthOf(child)) from the nested group's Duration, which is
         // itself only known once the nested group's own OnStarting has run; BeginPreview now attaches children (recursively) before
         // computing its own Duration, so the nested child's Duration is populated by the time the outer computes its own.
@@ -250,7 +250,7 @@ public class SeekTests
     [Fact]
     public void Attach_FailedGroupValidation_LeavesTheInstanceReusable()
     {
-        // Fix round 1 (U7 P3): OnStarting's AutoReverse validation (UIAnimationGroup.OnStarting) now runs, and can throw, before
+        // OnStarting's AutoReverse validation (UIAnimationGroup.OnStarting) runs, and can throw, before
         // IsPreview/State are set (BeginPreview), so a rejected attach leaves the instance at its original Stopped/non-preview state,
         // reusable exactly like a live Begin that throws in OnStarting leaves State == Stopped.
         AnimationTestScene scene = AnimationTestScene.Build();
@@ -269,8 +269,8 @@ public class SeekTests
     [Fact]
     public void Storyboard_ChildPresetOnAnotherElement_PreviewsThere_WithoutStartThenCancel()
     {
-        // U8 (ADR-0008 decision 8): UIAnimation.PresetOwner replaces the Start-then-Cancel idiom CompositionTests used to bind a child to a
-        // second element before this slice (start it for real, then Cancel it, leaving Owner set but State at Cancelled).
+        // ADR-0008 decision 8: UIAnimation.PresetOwner replaces the Start-then-Cancel idiom CompositionTests used to bind a child to a
+        // second element (start it for real, then Cancel it, leaving Owner set but State at Cancelled).
         AnimationTestScene scene = AnimationTestScene.Build();
         UIPropertyAnimation<float> fadeOnTop = Fade(0f, 1f, 200);
         UIPropertyAnimation<float> spinOnBottom = Spin(90f, 200);
@@ -301,7 +301,7 @@ public class SeekTests
     [Fact]
     public void Attach_FailedGroupValidation_RollsBackChildrenAlreadyAttachedAsPreviews_AndACorrectedRetrySucceeds()
     {
-        // U8 fix, closing the P3 recorded in Docs/Tasks/animation-v3-tasks.md U7's "Revue finale": OnPreviewAttached had already begun
+        // OnPreviewAttached had already begun
         // both children as previews (Running, IsPreview) by the time OnStarting's AutoReverse check threw and the group itself fell back
         // to Stopped; nothing used to roll the children back, so they stayed stuck reporting Running/preview forever.
         AnimationTestScene scene = AnimationTestScene.Build();
@@ -396,7 +396,7 @@ public class SeekTests
     [Fact]
     public void StartingALiveAnimation_AfterAPreviewWasAttached_ProceedsObliviously_TheyFightOverTheValue()
     {
-        // Documented limit (U7): the manager has no notion of a preview, so it never refuses in this direction; whichever ticks or
+        // Documented limit: the manager has no notion of a preview, so it never refuses in this direction; whichever ticks or
         // seeks last on a given frame wins the physical value until the preview is cancelled.
         AnimationTestScene scene = AnimationTestScene.Build();
         UIPropertyAnimation<float> preview = Fade(0f, 1f, 200);

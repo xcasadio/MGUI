@@ -14,7 +14,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Architecture;
 
-/// <summary>Covers the freezable contract added by ADR-0009 (W1): <see cref="IUIFreezable"/>'s transitional default members on
+/// <summary>Covers the freezable contract added by ADR-0009: <see cref="IUIFreezable"/>'s transitional default members on
 /// <see cref="IFillBrush"/>/<see cref="IBorderBrush"/>, <see cref="UIFreezableBrush"/>'s frozen-state enforcement, notifying setters
 /// and allocation-free notifications, and <see cref="UIBrushEquality"/>'s value comparisons. No brush is converted in this slice:
 /// <see cref="TestFreezableBrush"/> is a private double built only for this test.</summary>
@@ -298,7 +298,7 @@ public class FreezableBrushTests
 
     #endregion
 
-    #region MGSolidFillBrush / MGGradientFillBrush / MGDiagonalGradientFillBrush (ADR-0009, W2)
+    #region MGSolidFillBrush / MGGradientFillBrush / MGDiagonalGradientFillBrush (ADR-0009)
 
     [Fact]
     public void MGSolidFillBrush_Setter_Notifies_And_Throws_When_Frozen()
@@ -431,7 +431,7 @@ public class FreezableBrushTests
 
     #endregion
 
-    #region W3: remaining value brushes and composites (ADR-0009)
+    #region Remaining value brushes and composites (ADR-0009)
 
     /// <summary>Same small texture-brush test double as <see cref="TexturedPaintProjectionTests"/>'s own private <c>Recorder</c>
     /// (duplicated here rather than shared, matching that file's own pattern).</summary>
@@ -550,10 +550,10 @@ public class FreezableBrushTests
     [Fact]
     public void MGPaddedFillBrush_Brush_Setter_Stores_A_Distinct_Value_Equal_Instance_And_Notifies()
     {
-        //  Fix round (ADR-0009, W3-fix): assigning a distinct-but-value-equal IFillBrush must not be a silent no-op, because the
-        //  caller may mutate the newly assigned instance afterwards (an element-owned brush, W4) and the property must already
-        //  hold the exact instance for that mutation to reach it. See UIBrushEquality.ForSlots<T>() and the same fix on
-        //  VisualStateSetting<T>'s slot setters (W2-fix).
+        //  Assigning a distinct-but-value-equal IFillBrush must not be a silent no-op (ADR-0009), because the
+        //  caller may mutate the newly assigned instance afterwards (an element-owned brush) and the property must already
+        //  hold the exact instance for that mutation to reach it. See UIBrushEquality.ForSlots<T>() and the same rule on
+        //  VisualStateSetting<T>'s slot setters.
         MGSolidFillBrush original = new(Color.Red);
         MGSolidFillBrush distinctButEqual = new(Color.Red);
         MGPaddedFillBrush brush = new(original, new Thickness(2));
@@ -592,7 +592,7 @@ public class FreezableBrushTests
     [Fact]
     public void MGBorderedFillBrush_BorderBrush_And_FillBrush_Setters_Store_A_Distinct_Value_Equal_Instance_And_Notify()
     {
-        //  Fix round (ADR-0009, W3-fix): same hazard and same fix as MGPaddedFillBrush_Brush_Setter_..., for both nested slots.
+        //  Same hazard and same rule as MGPaddedFillBrush_Brush_Setter_... (ADR-0009), for both nested slots.
         MGUniformBorderBrush originalBorder = new(Color.Blue);
         MGUniformBorderBrush distinctButEqualBorder = new(Color.Blue);
         MGSolidFillBrush originalFill = new(Color.Red);
@@ -655,7 +655,7 @@ public class FreezableBrushTests
     [Fact]
     public void MGDockedBorderBrush_Left_Setter_Stores_A_Distinct_Value_Equal_Instance_And_Throws_Frozen_Before_Null_Check()
     {
-        //  Fix round (ADR-0009, W3-fix): same hazard and same fix as MGPaddedFillBrush_Brush_Setter_....
+        //  Same hazard and same rule as MGPaddedFillBrush_Brush_Setter_... (ADR-0009).
         MGSolidFillBrush originalLeft = new(Color.Red);
         MGSolidFillBrush distinctButEqualLeft = new(Color.Red);
         MGDockedBorderBrush brush = new(originalLeft, new MGSolidFillBrush(Color.Green), new MGSolidFillBrush(Color.Blue), new MGSolidFillBrush(Color.White));
@@ -793,7 +793,7 @@ public class FreezableBrushTests
         Assert.Throws<InvalidOperationException>(() => brush.HighlightColor = Color.Purple);
         Assert.Throws<InvalidOperationException>(() => brush.Underlay = MGUniformBorderBrush.White);
 
-        //  AnimationProgress is deliberately excluded from the freeze contract in this slice (ADR-0009, W6 owns its accumulator).
+        //  AnimationProgress is deliberately excluded from the freeze contract (ADR-0009): the engine run owns its accumulator.
         brush.AnimationProgress = 0.5;
         Assert.Equal(0.5, brush.AnimationProgress);
     }

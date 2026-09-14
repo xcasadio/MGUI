@@ -7,7 +7,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice T6 of Docs/Tasks/animation-v2-tasks.md: MGProgressButton.Duration runs on the animation engine.</summary>
+/// <summary>MGProgressButton.Duration runs on the animation engine.</summary>
 public class ProgressButtonAnimationTests
 {
     private const float Tolerance = 1e-3f;

@@ -10,7 +10,7 @@ using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S7: transitions and render transforms declared in XAML.</summary>
+/// <summary>Transitions and render transforms declared in XAML.</summary>
 public class XamlAnimationTests
 {
     private const string Xmlns = "xmlns=\"clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core\"";
@@ -53,7 +53,7 @@ public class XamlAnimationTests
     [Fact]
     public void Transition_AcceptsABezierEasingLiteral()
     {
-        // U1: cubic-bezier(...) is accepted through the same Easing attribute without any DTO change (ADR-0008 decision 1).
+        // cubic-bezier(...) is accepted through the same Easing attribute without any DTO change (ADR-0008 decision 1).
         MGWindow window = Load(
             "<Button Name=\"B\" Content=\"Hi\">" +
             "<Button.Transitions>" +

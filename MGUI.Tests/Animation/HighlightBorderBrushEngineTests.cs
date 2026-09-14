@@ -7,7 +7,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice W6 of Docs/Tasks/animation-v4-tasks.md (ADR-0009): <see cref="MGHighlightBorderBrush"/> no longer advances its own
+/// <summary>ADR-0009: <see cref="MGHighlightBorderBrush"/> no longer advances its own
 /// <see cref="MGHighlightBorderBrush.AnimationProgress"/> (see the deleted <c>HighlightBorderBrushClockTests</c>) -- an engine run hosted by
 /// <see cref="MGElement"/> (<c>SyncBorderHighlightRun</c>, called from <see cref="MGElement.Update"/>) does, on the element's own run-owned
 /// clone of the effective highlight border brush, so a shared frozen brush is never mutated. <see cref="HighlightBorderBrushRingAnimationTests"/>
@@ -73,7 +73,7 @@ public class HighlightBorderBrushEngineTests
         Assert.Equal(topProgressWhenStopped, EffectiveHighlight(scene.Top).AnimationProgress, Tolerance);
         Assert.True(EffectiveHighlight(scene.Bottom).AnimationProgress > topProgressWhenStopped);
 
-        //  Moving the mouse away does not, by itself, resume it (matches the pre-W6 behaviour).
+        //  Moving the mouse away does not, by itself, resume it (matches the documented behaviour).
         scene.Mouse = new Point(-100, -100);
         scene.Frames(5);
         Assert.False(EffectiveHighlight(scene.Top).IsEnabled);
@@ -117,10 +117,10 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void IsEnabledFalse_OnTheLiveBase_StopsTheRun_AndTrueRestartsIt()
     {
-        //  Fix round 1 (P2): SyncBorderHighlightRun only checked StopOnMouseOver/StopOnClick while a run was active, never re-reading
-        //  baseHighlight.IsEnabled -- so toggling the checkbox TwoWay-bound to it in IBorderBrush.xaml.cs (a live, unfrozen brush) did
-        //  nothing while highlighting. Unlike StopOnMouseOver/StopOnClick, this does not need ResumeBorderHighlight: setting IsEnabled
-        //  back to true restarts it on its own, next frame, matching the pre-W6 Update() gate of "if (IsEnabled)".
+        //  SyncBorderHighlightRun checks StopOnMouseOver/StopOnClick while a run is active, and re-reads
+        //  baseHighlight.IsEnabled -- so toggling the checkbox TwoWay-bound to it in IBorderBrush.xaml.cs (a live, unfrozen brush) takes
+        //  effect while highlighting. Unlike StopOnMouseOver/StopOnClick, this does not need ResumeBorderHighlight: setting IsEnabled
+        //  back to true restarts it on its own, next frame, matching the Update() gate of "if (IsEnabled)".
         AnimationTestScene scene = AnimationTestScene.Build();
         MGHighlightBorderBrush live = new(MGUniformBorderBrush.Black, Color.White, HighlightAnimation.Pulse)
         {
@@ -148,9 +148,9 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void CycleDurationChange_WhileActive_RestartsFromCurrentProgress_WithTheNewDuration()
     {
-        //  Fix round 1 (P2): StartBorderHighlightRun captured baseHighlight.CycleDuration once, and SyncBorderHighlightRun never
-        //  compared it against the live run's own Duration while active, so a runtime duration edit was silently dropped until the
-        //  run was torn down. Pre-W6, Update() recomputed CycleDuration every frame.
+        //  StartBorderHighlightRun captures baseHighlight.CycleDuration once, and SyncBorderHighlightRun compares
+        //  it against the live run's own Duration every frame while active, so a runtime duration edit is picked up rather than
+        //  silently dropped until the run is torn down.
         AnimationTestScene scene = AnimationTestScene.Build();
         MGHighlightBorderBrush live = new(MGUniformBorderBrush.Black, Color.White, HighlightAnimation.Pulse)
         {
@@ -242,7 +242,7 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void ZeroAllocation_AfterWarmup_Over200Ticks()
     {
-        //  Matches BrushAnimationTargetsTests' own convention (ADR-0009, W5): scene.Frames drives the full Desktop.Update (input,
+        //  Matches BrushAnimationTargetsTests' own convention (ADR-0009): scene.Frames drives the full Desktop.Update (input,
         //  hover resolution, tooltips, ...), which is not itself claimed allocation-free; only the animation TICK is. Warm-up uses
         //  scene.Frames so SyncBorderHighlightRun starts the run once (attach), then the probe ticks only the manager directly,
         //  isolating the clone's per-tick write.
@@ -266,9 +266,9 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void ColourAnimationOnBorderBrush_WhileHighlighting_IsRefused_NotSwapped()
     {
-        //  Documented decision (ADR-0009, W6, MGElement.HighlightRun's own doc): the host run does NOT share a conflict key with a
+        //  Documented decision (ADR-0009, MGElement.HighlightRun's own doc): the host run does NOT share a conflict key with a
         //  colour animation on "BorderBrush". Both ultimately write the same Whole/Animation slot through a run-owned clone, but the
-        //  pre-existing (W5, out of this slice's perimeter) BorderBrushTarget.GetValue reads the CURRENT effective border brush at
+        //  pre-existing BorderBrushTarget.GetValue reads the CURRENT effective border brush at
         //  OnStarting, not the value below the animation, and a highlight brush is never a uniform-over-solid brush -- so sharing a key
         //  would only replace the exception's message, not remove it (the manager's KeepCurrent cancel leaves the losing side's clone as
         //  the effective value, which is never the type the winning side's own OnStarting read expects). Refusing, with the type check's
@@ -289,13 +289,13 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void ColourAnimationOnBorderBrush_StartedFirst_ThenAHighlightBase_IsRefused_WithoutThrowingFromUpdate()
     {
-        //  Fix round 1 (P1): the reverse order of ColourAnimationOnBorderBrush_WhileHighlighting_IsRefused_NotSwapped above -- a colour
+        //  The reverse order of ColourAnimationOnBorderBrush_WhileHighlighting_IsRefused_NotSwapped above -- a colour
         //  animation on "BorderBrush" already owns the Whole/Animation slot (its clone is the effective border brush) when the base is
-        //  then set to a highlight brush. SyncBorderHighlightRun auto-starts the host run with no application call to catch a refusal:
-        //  before the fix, StartBorderHighlightRun's Animations.Start(run) reached BorderBrushHighlightProgressTarget.RequireCurrent
-        //  through UIAnimation.Begin -> ReadCurrentValue, which threw (the effective brush was still the colour clone, not a highlight
-        //  one) -- unhandled, every frame, from inside MGDesktop.Update() itself. The fix refuses silently instead: the colour
-        //  animation keeps running untouched, and the host run starts only once that animation ends and releases the slot.
+        //  then set to a highlight brush. SyncBorderHighlightRun auto-starts the host run with no application call to catch a refusal,
+        //  and refuses silently: the colour animation keeps running untouched, and the host run starts only once that animation ends
+        //  and releases the slot (rather than StartBorderHighlightRun's Animations.Start(run) reaching
+        //  BorderBrushHighlightProgressTarget.RequireCurrent through UIAnimation.Begin -> ReadCurrentValue and throwing, unhandled,
+        //  every frame, from inside MGDesktop.Update() itself).
         AnimationTestScene scene = AnimationTestScene.Build();
         scene.Top.Animate("BorderBrush", Color.White, Color.Red, 2.0).Play();
         scene.Frames(5);
@@ -332,9 +332,9 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void BaseSwapToAnotherHighlightBrush_WhileActive_IsPickedUpOnTheClone()
     {
-        //  Fix round 2 (P2): EnsureClone (BorderBrushHighlightProgressTarget) deliberately keeps reusing the same run-owned clone
-        //  instance across ticks once one exists, so a base swap made while the run is active used to be silently ignored -- the clone
-        //  kept drawing the FIRST base's configuration forever. SyncBorderHighlightRun now copies the live base's configuration
+        //  EnsureClone (BorderBrushHighlightProgressTarget) deliberately keeps reusing the same run-owned clone
+        //  instance across ticks once one exists, so a base swap made while the run is active would otherwise be silently ignored -- the
+        //  clone would keep drawing the FIRST base's configuration forever. SyncBorderHighlightRun instead copies the live base's configuration
         //  (everything except the run-owned AnimationProgress/IsEnabled) onto the clone every frame.
         AnimationTestScene scene = AnimationTestScene.Build();
         scene.Top.BorderBrush = BuildFrozenBrush();
@@ -360,7 +360,7 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void LiveHighlightColourEdit_WhileActive_IsPickedUpOnTheClone()
     {
-        //  Fix round 2 (P2): every runtime edit of an unfrozen highlight base except IsEnabled used to be dropped once a run was active.
+        //  Every runtime edit of an unfrozen highlight base except IsEnabled reaches the clone even once a run is active.
         AnimationTestScene scene = AnimationTestScene.Build();
         MGHighlightBorderBrush live = new(MGUniformBorderBrush.Black, Color.White, HighlightAnimation.Pulse)
         {
@@ -381,9 +381,8 @@ public class HighlightBorderBrushEngineTests
     [Fact]
     public void LivePulseDelayEdit_WhileActive_IsPickedUpOnTheClone_AndKeepsTheCycleConsistent()
     {
-        //  Fix round 2 (P2, and its own noted side effect): fix round 1 made the run's Duration follow a live PulseFadeDuration/
-        //  PulseDelay edit, but the clone kept drawing with the OLD split -- internally inconsistent (pulse shape vs. cycle length)
-        //  rather than merely stale. Configuration now reaches the clone before the duration mismatch is evaluated.
+        //  The run's Duration follows a live PulseFadeDuration/PulseDelay edit, and configuration reaches the clone before the
+        //  duration mismatch is evaluated, so the clone never draws with an internally inconsistent (pulse shape vs. cycle length) split.
         AnimationTestScene scene = AnimationTestScene.Build();
         MGHighlightBorderBrush live = new(MGUniformBorderBrush.Black, Color.White, HighlightAnimation.Pulse)
         {

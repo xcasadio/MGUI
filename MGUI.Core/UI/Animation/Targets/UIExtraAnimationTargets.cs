@@ -6,7 +6,7 @@ using MGUI.Shared.Helpers;
 namespace MGUI.Core.UI.Animation.Targets;
 
 /// <summary>
-/// The V2 targets (ADR-0007, decisions 4, 6 and 8; Docs/Tasks/animation-v2-tasks.md T3): the overlay cross-fade
+/// Additional targets (ADR-0007, decisions 4, 6 and 8): the overlay cross-fade
 /// (<see cref="Paths.BackgroundOverlay"/>, the <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> of the element's background, whose
 /// underlying value is 1 while the element is hovered or pressed and 0 otherwise, so a transition fades the Hovered / Pressed overlay in),
 /// the preferred size (<see cref="Paths.PreferredWidth"/>, <see cref="Paths.PreferredHeight"/>: plain targets, layout-expensive, every tick
@@ -144,7 +144,7 @@ public static class UIExtraAnimationTargets
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
             => new BackgroundSlotSubscription(element, nameof(VisualStateFillBrush.NormalValue), () => changed(element));
 
-        /// <summary>ADR-0009, W5: see <see cref="UIColorAnimationTargets"/>'s <c>BackgroundSlotTarget.BeginAnimatedValue</c> for the pattern
+        /// <summary>ADR-0009: see <see cref="UIColorAnimationTargets"/>'s <c>BackgroundSlotTarget.BeginAnimatedValue</c> for the pattern
         /// (recover the brush below the animation, clone it when it is a <see cref="MGGradientFillBrush"/>, else start fresh).</summary>
         public object BeginAnimatedValue(MGElement element, string animationName)
         {
@@ -223,7 +223,7 @@ public static class UIExtraAnimationTargets
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
             => new BackgroundSlotSubscription(element, nameof(VisualStateFillBrush.NormalValue), () => changed(element));
 
-        /// <summary>ADR-0009, W5: see <see cref="UIColorAnimationTargets"/>'s <c>BackgroundSlotTarget.BeginAnimatedValue</c> for the pattern
+        /// <summary>ADR-0009: see <see cref="UIColorAnimationTargets"/>'s <c>BackgroundSlotTarget.BeginAnimatedValue</c> for the pattern
         /// (recover the brush below the animation, clone it when it is a <see cref="MGDiagonalGradientFillBrush"/>, else start fresh).</summary>
         public object BeginAnimatedValue(MGElement element, string animationName)
         {

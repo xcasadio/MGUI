@@ -4,8 +4,8 @@ namespace MGUI.Core.UI.Animation;
 
 /// <summary>
 /// The closed registry of animatable property paths (ADR-0006, decision 5), keyed by path, case-insensitive. The framework registers its
-/// targets when the type is first used (<c>Opacity</c>, <c>RenderTransform.*</c>, <c>RenderScale</c>, the layout pilots and the solid colours,
-/// slices S4 and S5); an application registers its own with <see cref="Register{T}"/> (the last registration for a path wins).
+/// targets when the type is first used (<c>Opacity</c>, <c>RenderTransform.*</c>, <c>RenderScale</c>, the layout pilots and the solid colours);
+/// an application registers its own with <see cref="Register{T}"/> (the last registration for a path wins).
 /// <see cref="UIPropertyAnimation{T}"/> resolves its <c>Property</c> here when it starts, with an explicit error listing the known paths.
 /// Thread-safe; lookups do not allocate.
 /// </summary>

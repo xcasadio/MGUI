@@ -8,7 +8,7 @@ using MonoGame.Extended;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice U6 of Docs/Tasks/animation-v3-tasks.md: the multi-track keyframe clip format (<see cref="UIKeyFrameClipSerializer"/>).</summary>
+/// <summary>The multi-track keyframe clip format (<see cref="UIKeyFrameClipSerializer"/>).</summary>
 public class KeyFrameClipTests
 {
     private const float Tolerance = 1e-4f;
@@ -257,7 +257,7 @@ public class KeyFrameClipTests
     [Fact]
     public void Serialize_RejectsAnUnknownPath_AsInvalidOperationException_NotTargetInvocationException()
     {
-        // Regression (U6 fix round 1): SerializeChild invokes the generic SerializeTrack<T> via reflection; without an unwrapping
+        // Regression: SerializeChild invokes the generic SerializeTrack<T> via reflection; without an unwrapping
         // try/catch, this refusal (raised deep inside SerializeTrack) used to escape as TargetInvocationException instead of the
         // documented InvalidOperationException, so a caller catching InvalidOperationException per the XML doc never caught it.
         TimeSpan duration = TimeSpan.FromMilliseconds(100);
@@ -319,7 +319,7 @@ public class KeyFrameClipTests
     [Fact]
     public void Serialize_RejectsAChildWithAnEmptyTrack_AsInvalidOperationException()
     {
-        // U6 P3 ("Revue finale"), closed here (U8): Serialize used to accept a child with an empty Track and produce "frames": [], which
+        // Serialize used to accept a child with an empty Track and produce "frames": [], which
         // Deserialize then refused right back ("has no frames") -- SerializeTrack<T> now refuses it up front, naming the track.
         TimeSpan duration = TimeSpan.FromMilliseconds(100);
         UIStoryboard storyboard = new()
@@ -364,7 +364,7 @@ public class KeyFrameClipTests
     {
         // Opacity (plain CLR write) and Margin (tagged pilot write of a struct) are the framework's known zero-allocation targets
         // (KeyFrameTests.Animation_AllocatesNothingPerTick, TransitionTests.RunningPilotTransition_AllocatesNothingPerTick_AfterWarmUp);
-        // Background now joins them (ADR-0009, W5): the run's clone is created once when the track starts and mutated in place every
+        // Background now joins them (ADR-0009): the run's clone is created once when the track starts and mutated in place every
         // tick, so the allocation this comment used to document (a new MGSolidFillBrush per tick) no longer happens.
         AnimationTestScene scene = AnimationTestScene.Build();
         TimeSpan duration = TimeSpan.FromMilliseconds(100000);

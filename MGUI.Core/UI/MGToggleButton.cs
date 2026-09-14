@@ -44,7 +44,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _HasCheckedBackgroundBrush;
 
-    /// <summary>The background brush to use for this <see cref="MGToggleButton"/> when <see cref="IsChecked"/> is true (U5, ADR-0008).<para/>
+    /// <summary>The background brush to use for this <see cref="MGToggleButton"/> when <see cref="IsChecked"/> is true (ADR-0008).<para/>
     /// Reaches drawing through <see cref="MGElement.BackgroundBrush"/>'s <see cref="VisualStateBrush{TDataType}.CheckedValue"/> (see
     /// <see cref="MGElement.ResolveBackgroundUnderlay"/>), code-only (not a theme DTO field, not an animation target, not a
     /// <see cref="UIResolvedPropertyStore"/> slot). Tracked here on the toggle, not solely on the brush instance: <see cref="MGElement.BackgroundBrush"/>'s
@@ -52,7 +52,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
     /// immediately before <see cref="OnThemeChanged"/> on every theme change), or by ANY other whole-container write reaching
     /// <see cref="MGElement.BackgroundBrush"/>'s public setter, <see cref="MGElement.SetBackground"/>, or the pilot's Whole-slot resolution (e.g.
     /// <c>MGExpander.ExpanderButtonBackgroundBrush</c>'s setter, or a style/pilot resolver assigning the whole brush) -- for a fresh clone that never
-    /// carried the checked value. Fix round 1 (U5): the toggle-level field survives every such swap and <see cref="OnBackgroundBrushContainerReplaced"/>
+    /// carried the checked value. The toggle-level field survives every such swap and <see cref="OnBackgroundBrushContainerReplaced"/>
     /// re-applies it (via <see cref="SyncCheckedBackgroundValue"/>) unconditionally, so the property and the drawn brush never diverge, regardless of
     /// who replaced the container. Falls back to <see cref="VisualStateSetting{TDataType}.SelectedValue"/> while unset, and setting it to
     /// <see langword="null"/> restores that fallback.</summary>
@@ -75,7 +75,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
     /// <see cref="VisualStateBrush{TDataType}.CheckedValue"/> (or clears it, when unset) -- called from <see cref="CheckedBackgroundBrush"/>'s
     /// setter and from <see cref="OnBackgroundBrushContainerReplaced"/>, unconditionally, so no whole-container swap -- a theme change or any
     /// other caller that replaces <see cref="MGElement.BackgroundBrush"/> -- can leave the checked value behind on a container it swapped away
-    /// (U5, ADR-0008; fix round 1: generalised from an <see cref="OnThemeChanged"/>-only call to every container replacement; fix round 2: guarded
+    /// (ADR-0008; generalised from an <see cref="OnThemeChanged"/>-only call to every container replacement; also guarded
     /// against a null <see cref="MGElement.BackgroundBrush"/>, since the container replacement hook that calls this also fires when the whole
     /// container is assigned/resolves to <see langword="null"/>, which is a valid, previously-unguarded state -- the framework's own sub-slot
     /// re-application for the same container swap already skips its work the same way when the container is null).</summary>
@@ -96,7 +96,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
         }
     }
 
-    /// <summary>Fix round 1 (U5): re-applies a code-set <see cref="CheckedBackgroundBrush"/> every time
+    /// <summary>Re-applies a code-set <see cref="CheckedBackgroundBrush"/> every time
     /// <see cref="MGElement.BackgroundBrush"/>'s container is replaced by a new instance, regardless of who replaced it --
     /// the property setter, <see cref="MGElement.SetBackground"/>, a pilot/style Whole-slot resolution, or a theme re-application.
     /// Without this, <see cref="CheckedBackgroundBrush"/>'s getter (which reads the toggle-level field, not the container) could
@@ -108,7 +108,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _HasCheckedTextForeground;
 
-    /// <summary>A foreground color to use on child content of this <see cref="MGToggleButton"/> when <see cref="IsChecked"/> is true (U5, ADR-0008).<para/>
+    /// <summary>A foreground color to use on child content of this <see cref="MGToggleButton"/> when <see cref="IsChecked"/> is true (ADR-0008).<para/>
     /// <see cref="MGElement.DefaultTextForeground"/> is a <see cref="VisualStateSetting{TDataType}"/>, not a <see cref="VisualStateBrush{TDataType}"/>, so
     /// it has no <c>CheckedValue</c> slot of its own: this property is tracked on the toggle instead, then re-synchronised onto
     /// <see cref="MGElement.DefaultTextForeground"/>'s <see cref="VisualStateSetting{TDataType}.SelectedValue"/> slot (via <see cref="SyncCheckedTextForegroundSlot"/>)
@@ -133,8 +133,8 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
     /// <summary>Writes the Selected sub-slot of <see cref="MGElement.DefaultTextForeground"/> with the code-set <see cref="CheckedTextForeground"/>
     /// when one is set, else with the theme's fallback colour (the value the Selected slot always held before this slice) -- called from the
     /// constructor, from <see cref="CheckedTextForeground"/>'s setter, and from <see cref="OnThemeChanged"/> so a theme change cannot overwrite
-    /// a code-set checked colour with its own <c>SelectedValue</c> (U5, ADR-0008).<para/>
-    /// Fix round 2: a code-set value is always written at <see cref="UIValuePrecedence.LocalValue"/> (via <see cref="UIValueResolutionSource.LocalValue"/>),
+    /// a code-set checked colour with its own <c>SelectedValue</c> (ADR-0008).<para/>
+    /// A code-set value is always written at <see cref="UIValuePrecedence.LocalValue"/> (via <see cref="UIValueResolutionSource.LocalValue"/>),
     /// not at <paramref name="source"/>'s own precedence -- <paramref name="source"/> is only <see cref="UIValueResolutionSource.Default"/> or
     /// <see cref="UIValueResolutionSource.Theme"/>, both LOWER precedence than a real code override needs, so a code-set value could otherwise stay
     /// dormant behind an earlier <see cref="UIValueResolutionSource.Theme"/> contribution on the same slot (e.g. one this same method already wrote from
@@ -251,7 +251,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
         {
             SetBackground(CurrentTheme.GetBackgroundBrush(MGElementType.ToggleButton), UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
 
-            // U5/ADR-0008, fix round 1: RefreshThemeBackgroundDefault (run by the framework immediately before this override, on every
+            // ADR-0008: RefreshThemeBackgroundDefault (run by the framework immediately before this override, on every
             // theme change) and the SetBackground call above can each swap BackgroundBrush for a fresh clone that never carried the checked
             // value; both now go through MGElement.ApplyBackgroundEffective, which calls OnBackgroundBrushContainerReplaced (overridden below
             // to call SyncCheckedBackgroundValue) on every such swap, so no explicit call is needed here any more.
@@ -261,7 +261,7 @@ public class MGToggleButton : MGSingleContentHost, Animation.States.IUICheckable
         ThemeTransitions.Apply(this, CurrentTheme?.Animation);
     }
 
-    /// <summary>U5/ADR-0008: draws <see cref="MGElement.BackgroundBrush"/>'s <see cref="VisualStateBrush{TDataType}.CheckedValue"/> while
+    /// <summary>ADR-0008: draws <see cref="MGElement.BackgroundBrush"/>'s <see cref="VisualStateBrush{TDataType}.CheckedValue"/> while
     /// <see cref="IsChecked"/> and one is set, exactly like <see cref="VisualStateBrush{TDataType}.GetUnderlay(PrimaryVisualState)"/> otherwise
     /// (unchecked, or no <see cref="CheckedBackgroundBrush"/> set -- falls back to <see cref="VisualStateSetting{TDataType}.SelectedValue"/>
     /// the same way <see cref="MGElement.ResolveBackgroundUnderlay"/>'s base implementation would).</summary>

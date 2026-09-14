@@ -10,7 +10,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S4: the built-in targets for Opacity, the RenderTransform components, the state-driven scale and the layout pilots.</summary>
+/// <summary>The built-in targets for Opacity, the RenderTransform components, the state-driven scale and the layout pilots.</summary>
 public class PropertyTargetsTests
 {
     private const float Tolerance = 1e-4f;

@@ -1,7 +1,7 @@
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
-/// Base class of every animation of the engine (Docs/Tasks/animation-tasks.md, S3; ADR-0006): playback settings (<see cref="Duration"/>,
+/// Base class of every animation of the engine (ADR-0006): playback settings (<see cref="Duration"/>,
 /// <see cref="Delay"/>, <see cref="RepeatCount"/> / <see cref="RepeatForever"/>, <see cref="AutoReverse"/>, <see cref="FillBehavior"/>,
 /// <see cref="CancelBehavior"/>), the state machine (<see cref="State"/>, <see cref="Play"/>, <see cref="Pause"/>, <see cref="Resume"/>,
 /// <see cref="Cancel"/>, <see cref="Restart"/>) and the events.<para/>
@@ -83,7 +83,7 @@ public abstract class UIAnimation
     /// <summary>The element that started this animation, null until then.</summary>
     public MGElement Owner { get; private set; }
 
-    /// <summary>Presets <see cref="Owner"/> before this instance ever starts (U8, ADR-0008 decision 8): lets a <see cref="Composition.UIAnimationGroup"/>
+    /// <summary>Presets <see cref="Owner"/> before this instance ever starts (ADR-0008 decision 8): lets a <see cref="Composition.UIAnimationGroup"/>
     /// child destined for another element be positioned there without the Start-then-Cancel idiom <c>CompositionTests</c> used before this
     /// (start it for real on the other element, then <see cref="Cancel"/> it, leaving <see cref="Owner"/> set but <see cref="State"/> at
     /// <see cref="UIAnimationState.Cancelled"/>) -- used by <see cref="KeyFrames.UIAnimationSerializer.Deserialize"/> and directly by an
@@ -108,14 +108,14 @@ public abstract class UIAnimation
 
     internal UIAnimationManager Manager { get; private set; }
 
-    /// <summary>True once <see cref="BeginPreview"/> has begun this instance (<see cref="UIAnimationPreview.Attach{TAnimation}"/>, S3/V3;
-    /// U7): a preview is never registered with a <see cref="UIAnimationManager"/> (<see cref="Manager"/> stays null) and is the only kind
+    /// <summary>True once <see cref="BeginPreview"/> has begun this instance (<see cref="UIAnimationPreview.Attach{TAnimation}"/>):
+    /// a preview is never registered with a <see cref="UIAnimationManager"/> (<see cref="Manager"/> stays null) and is the only kind
     /// of instance <see cref="Seek"/> accepts. Cleared by <see cref="Begin"/>, so an instance that is later started for real through
     /// <see cref="UIAnimationCollection.Start"/> stops being a preview.</summary>
     internal bool IsPreview { get; private set; }
 
     /// <summary>The (owner, path) key under which the manager registered this animation, null when it is not registered; lets a restart on
-    /// another owner or path clean its previous entry up (review finding, S3).</summary>
+    /// another owner or path clean its previous entry up (review finding).</summary>
     internal (MGElement Owner, string Path)? RegisteredKey { get; set; }
 
     /// <summary>True while the animation occupies its target: <see cref="UIAnimationState.Delayed"/>, <see cref="UIAnimationState.Running"/> or <see cref="UIAnimationState.Paused"/>.</summary>
@@ -240,22 +240,22 @@ public abstract class UIAnimation
 
     /// <summary>Called by <see cref="UIAnimationPreview.Attach{TAnimation}"/>: begins this instance as a preview, without a manager
     /// (<see cref="Manager"/> stays null) and forced straight to <see cref="UIAnimationState.Running"/> (a preview has no
-    /// <see cref="UIAnimationState.Delayed"/> state of its own: <see cref="Seek"/> treats the delay purely through its maths, decision
-    /// recorded in Docs/Tasks/animation-v3-tasks.md U7). Raises no event and writes no value: the caller seeks to the initial pose right
+    /// <see cref="UIAnimationState.Delayed"/> state of its own: <see cref="Seek"/> treats the delay purely through its maths). Raises no
+    /// event and writes no value: the caller seeks to the initial pose right
     /// after (<see cref="UIAnimationPreview.Attach{TAnimation}"/> calls <c>Seek(TimeSpan.Zero)</c>).<para/>
-    /// <see cref="OnPreviewAttached"/> runs before <see cref="OnStarting"/> (fix round 1, U7): a <see cref="Composition.UIAnimationGroup"/>
+    /// <see cref="OnPreviewAttached"/> runs before <see cref="OnStarting"/>: a <see cref="Composition.UIAnimationGroup"/>
     /// computes its own <see cref="Duration"/> from its children's <see cref="Duration"/> inside <see cref="OnStarting"/>
     /// (<see cref="Composition.UIAnimationGroup.ComputeDuration"/> reading <see cref="Composition.UIAnimationGroup.LengthOf"/>), and a
     /// child that is itself a group only has a real <see cref="Duration"/> once its own <see cref="OnStarting"/> has run -- which
     /// <see cref="OnPreviewAttached"/> triggers recursively through <see cref="BeginPreview"/> on every descendant. Computing duration
     /// first (the previous order) always saw a nested group child's <see cref="Duration"/> at zero, so a storyboard or sequence containing
     /// a nested group previewed with its own total length clamped to zero and every <see cref="Seek"/> pinned at the initial pose.<para/>
-    /// <see cref="IsPreview"/> and <see cref="State"/> are set only after both hooks return successfully (fix round 1, U7; the same pattern
+    /// <see cref="IsPreview"/> and <see cref="State"/> are set only after both hooks return successfully (the same pattern
     /// as <see cref="Begin"/>, which sets <see cref="State"/> only after <see cref="OnStarting"/>): a hook that throws (an invalid
     /// <see cref="Composition.UIAnimationGroup"/> configuration, or a group whose child has no owner and no root) leaves this instance at
     /// its original <see cref="UIAnimationState.Stopped"/> and <see cref="IsPreview"/> false, so a corrected retry can attach it again,
     /// instead of stranding it as a half-attached preview that reports <see cref="UIAnimationState.Running"/> forever.<para/>
-    /// U8 fix (ADR-0008, closing the P3 recorded in Docs/Tasks/animation-v3-tasks.md U7's "Revue finale"): that same throw used to leave
+    /// Fix (ADR-0008): that same throw used to leave
     /// every CHILD that <see cref="OnPreviewAttached"/> had already begun stuck at <see cref="UIAnimationState.Running"/>/<see cref="IsPreview"/>
     /// forever too, since nothing rolled them back when the group's own <see cref="OnStarting"/> failed afterwards. Both hooks now run
     /// inside a try/catch that calls <see cref="RollbackFailedPreviewAttach"/> on a throw, before rethrowing: safe with no value to
@@ -290,7 +290,7 @@ public abstract class UIAnimation
 
     /// <summary>Called on this instance when its own <see cref="OnPreviewAttached"/> or <see cref="OnStarting"/> throws inside
     /// <see cref="BeginPreview"/>, walking every descendant already attached as a preview (<see cref="IsPreview"/>) back to
-    /// <see cref="UIAnimationState.Stopped"/> (U8, ADR-0008 decision 8). Default: a no-op (a leaf animation has no children to roll back);
+    /// <see cref="UIAnimationState.Stopped"/> (ADR-0008 decision 8). Default: a no-op (a leaf animation has no children to roll back);
     /// sealed-overridden by <see cref="Composition.UIAnimationGroup"/> to roll back every one of its own children that made it into a
     /// preview before the failure, recursively (a child that is itself a group rolls its own children back the same way).</summary>
     protected internal virtual void OnPreviewAttachFailed() { }
@@ -369,7 +369,7 @@ public abstract class UIAnimation
     /// clamped to [0, the animation's total length] (<see cref="Delay"/> plus every repeated pass; unbounded with
     /// <see cref="RepeatForever"/>): writes the value for that instant (<see cref="OnSeek"/>) with no event, no state change, and never
     /// reaching <see cref="UIAnimationState.Completed"/> (a preview past its end holds the final pose -- 1, or 0 after an even number of
-    /// <see cref="AutoReverse"/> passes -- until <see cref="Cancel"/>; U7 design pass, Docs/Tasks/animation-v3-tasks.md). Within the delay,
+    /// <see cref="AutoReverse"/> passes -- until <see cref="Cancel"/>). Within the delay,
     /// the pose is progress 0 (<see cref="UIAnimation{T}.From"/> or the start value), so a scrubber shows the initial pose. A composite
     /// (<see cref="Composition.UIAnimationGroup"/>) positions every child the same way, at its own elapsed time relative to its offset.
     /// Zero allocation.</summary>

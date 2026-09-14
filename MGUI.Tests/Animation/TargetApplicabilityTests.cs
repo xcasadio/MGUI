@@ -12,7 +12,7 @@ using Xunit;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice U2 of Docs/Tasks/animation-v3-tasks.md (ADR-0008, decision 2): the owner type an animation target requires, exposed by
+/// <summary>ADR-0008, decision 2: the owner type an animation target requires, exposed by
 /// <see cref="IUIAnimationTarget{T}.RequiredOwnerType"/> and <see cref="UIAnimationTargets.GetOwnerType"/>, and the applicability filter
 /// <see cref="UIAnimationTargets.IsApplicable"/> used by <see cref="UIToolingService.CaptureElementDebugView"/>.</summary>
 public class TargetApplicabilityTests

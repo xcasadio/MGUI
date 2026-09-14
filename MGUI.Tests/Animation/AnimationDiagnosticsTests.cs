@@ -4,7 +4,7 @@ using MGUI.Core.UI.Animation.Targets;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice S8: the element debug view lists the element's animations, held contributions and transitions.</summary>
+/// <summary>The element debug view lists the element's animations, held contributions and transitions.</summary>
 public class AnimationDiagnosticsTests
 {
     [Fact]

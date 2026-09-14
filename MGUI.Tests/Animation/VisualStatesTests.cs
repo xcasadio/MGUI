@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice T4 of Docs/Tasks/animation-v2-tasks.md: named visual states per element, Checked, priority, transitions on state setters.</summary>
+/// <summary>Named visual states per element, Checked, priority, transitions on state setters.</summary>
 public class VisualStatesTests
 {
     private const float Tolerance = 1e-4f;
@@ -151,7 +151,7 @@ public class VisualStatesTests
         Color midRun = Assert.IsType<MGSolidFillBrush>(toggle.BackgroundBrush.NormalValue).Color;
         Assert.Equal(Color.Lerp(Color.Black, Color.White, 0.5f), midRun);
 
-        // U3: unchecked while the run holds the pilot -- the base recorded by the state exit (Theme, black) is picked up
+        // Unchecked while the run holds the pilot -- the base recorded by the state exit (Theme, black) is picked up
         // as soon as the running interpolation ticks again (animations tick at the head of the frame, ADR-0006 decision 7,
         // one tick before the state exit itself is processed within the same frame), so the retarget lands two frames
         // after the exit, not once the whole run has finished: SettledValue already reports black, and the drawn colour
@@ -185,7 +185,7 @@ public class VisualStatesTests
     [Fact]
     public void EnteringAStateMidTransitionStartedByAWholeContainerSwap_ComesBackToTheSwappedInColour()
     {
-        // Fix round 1 (U3 regression): the transition run here is started by a Whole-slot container swap (a theme
+        // Regression: the transition run here is started by a Whole-slot container swap (a theme
         // change), not by a slot-level write, so when the Checked state is entered mid-run the Normal sub-slot's ONLY
         // contribution is the transition's own Animation entry -- there is nothing non-Animation to read "below" it.
         // CaptureBase must not surface the in-flight animated value as the base in that configuration.
@@ -406,7 +406,7 @@ public class VisualStatesTests
         Assert.Equal(0, scene.Top.VisualStates.Count);
     }
 
-    // U4 (ADR-0008, decision 4): UIVisualState.OverridesLocalValue, precedence VisualStateOverride (95).
+    // ADR-0008, decision 4: UIVisualState.OverridesLocalValue, precedence VisualStateOverride (95).
 
     [Fact]
     public void AnOverridingState_WinsOverALocalValue_AndTheShadowedLocalValueReappearsOnExit()
@@ -472,7 +472,7 @@ public class VisualStatesTests
     [Fact]
     public void LeavingAnOverridingStateForAPlainStateOnTheSamePath_NeverLeavesTheSeventyAboveALocalValue()
     {
-        // Fix round 1 regression coverage: Apply() does not Restore a setter whose path the next state also sets
+        // Regression coverage: Apply() does not Restore a setter whose path the next state also sets
         // (UIVisualStateCollection.Apply), so a transition from an overriding state (95) straight to a plain state
         // (70) on the SAME path replaces the 95 contribution in place instead of going through Unset. Before the
         // fix, UIResolvedPropertyStore.Set overwrote that slot without re-sorting, so the 70 write inherited the
@@ -536,9 +536,9 @@ public class VisualStatesTests
     [Fact]
     public void TheWinnerRewritingItsOwnUnchangedValue_StillResyncsAStaleUntaggedSubField()
     {
-        // Fix round 2 regression coverage: the four tagged sub-slot physical-write gates (SetBackgroundSlot,
-        // SetBackgroundFocusedColor, SetDefaultTextForegroundSlot, MGTextBlock.SetForegroundSlot) gated the physical
-        // write on `effectiveChanged` alone (fix round 1). That is not a strict superset of the pre-U4 kind-match
+        // Regression coverage: the four tagged sub-slot physical-write gates (SetBackgroundSlot,
+        // SetBackgroundFocusedColor, SetDefaultTextForegroundSlot, MGTextBlock.SetForegroundSlot) gate the physical
+        // write on `effectiveChanged` OR a same-kind rewrite. `effectiveChanged` alone is not a strict superset of the kind-match
         // gate: when the current winner rewrites its own, value-equal, contribution (e.g. re-applying an animation's
         // resting value), effectiveChanged is false, so a stale value written by an UNTAGGED facade call in between
         // (which applies physically but records a dormant contribution under the current winner) never gets

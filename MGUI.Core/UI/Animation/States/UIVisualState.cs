@@ -51,13 +51,13 @@ public sealed class UIVisualState : IEnumerable<UIVisualStateSetter>
 
     public string Name { get; }
 
-    /// <summary>Backlog task 9 (U9): which style declared this state (<see cref="UIValueSourceKind.ImplicitStyle"/> or
+    /// <summary>Which style declared this state (<see cref="UIValueSourceKind.ImplicitStyle"/> or
     /// <see cref="UIValueSourceKind.ExplicitStyle"/>), null when the element declared it itself (<c>&lt;Element.VisualStates&gt;</c>) or code added it
     /// directly: <see cref="MGElement.RefreshStyles"/> never replaces or removes a null-provenance state, so the element and the application always
     /// win over a style. Set by <see cref="MGUI.Core.UI.XAML.VisualStateDefinition.ToVisualState(UIValueSourceKind?)"/>.</summary>
     public UIValueSourceKind? Provenance { get; internal set; }
 
-    /// <summary>Backlog task 9 (U9): deterministic text of the declaration that produced this state (name, <see cref="OverridesLocalValue"/>, then each
+    /// <summary>Deterministic text of the declaration that produced this state (name, <see cref="OverridesLocalValue"/>, then each
     /// setter path and formatted value in declaration order), built by <see cref="MGUI.Core.UI.XAML.VisualStateDefinition"/>. Null when
     /// <see cref="Provenance"/> is null. <see cref="MGElement.RefreshStyles"/> compares it to the new declaration's own signature to tell an unchanged
     /// style from a changed one, replacing only on a difference.</summary>
@@ -240,10 +240,10 @@ internal sealed class UIVisualStateApplier<T> : UIVisualStateApplier
     }
 
     /// <summary>The value the path rests at before the state writes it.<para/>
-    /// U3 simplification: for a store-backed target, the base is the winner below its own <see cref="UIValueSourceKind.Animation"/>
+    /// For a store-backed target, the base is the winner below its own <see cref="UIValueSourceKind.Animation"/>
     /// contribution (<see cref="IUIStoreBackedAnimationTarget{T}.TryGetValueBelowAnimation"/>), which stays correct even mid-run
     /// (a transition's ticks only ever touch the Animation contribution).<para/>
-    /// Fix round 1: <c>TryGetValueBelowAnimation</c> can legitimately come back false for a store target too -- when the
+    /// <c>TryGetValueBelowAnimation</c> can legitimately come back false for a store target too -- when the
     /// sub-slot's ONLY contribution is the transition's own Animation entry (e.g. the run was started by a Whole-container
     /// swap rather than a slot-level write), there is nothing non-Animation recorded to read "below" it. That configuration
     /// is exactly the one a running transition already tracks via its own <see cref="UITransition{T}.SettledValue"/>

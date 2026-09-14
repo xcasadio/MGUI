@@ -4,16 +4,16 @@ using MGUI.Core.UI.Brushes.FillBrushes;
 
 namespace MGUI.Core.UI.Brushes;
 
-/// <summary>Value-equality helper for paints (ADR-0009, W1). Equality on a brush stays reference equality by default (as in WPF: none of the
+/// <summary>Value-equality helper for paints (ADR-0009). Equality on a brush stays reference equality by default (as in WPF: none of the
 /// sixteen current brush types overrides <see cref="object.Equals(object)"/> except implicitly through the ten value <see langword="struct"/>s'
 /// built-in memberwise comparison), but one guard still needs to tell "the same value, a distinct instance" apart from "an actual change":
 /// <see cref="MGUI.Core.UI.Styling.MGControlTemplate"/>'s theme-refresh re-application guard, which decides whether the user diverged from
 /// a template default and does not care about identity. It goes through <see cref="ForGuards{T}"/> instead of
 /// <see cref="EqualityComparer{T}.Default"/> directly, so its observable behaviour does not change when a later slice turns a value brush
 /// into a reference type.<para/>
-/// Fix round (W2-fix, ADR-0009): since W2 the brushes are classes with real identity, and <see cref="VisualStateSetting{TDataType}"/>'s
+/// Note (ADR-0009): the brushes are classes with real identity, and <see cref="VisualStateSetting{TDataType}"/>'s
 /// slot setters need the OPPOSITE rule -- a distinct instance is a change, even when it is equal in value to the one already stored,
-/// because a later mutation of that distinct instance (an element-owned brush, W4) must reach the element. Slots go through
+/// because a later mutation of that distinct instance (an element-owned brush) must reach the element. Slots go through
 /// <see cref="ForSlots{T}"/> (identity for a brush-typed <c>T</c>, value for everything else); the template-refresh guard
 /// keeps <see cref="ForGuards{T}"/> (value, identity irrelevant there).<para/>
 /// The <see cref="ForGuards{T}"/> comparer exists for the template guard only: never use it to key a dictionary or a hash set (its
@@ -125,12 +125,12 @@ public static class UIBrushEquality
     /// <typeparamref name="T"/> is used) and cached in a static field: no per-call reflection, no allocation after that first call.</summary>
     public static IEqualityComparer<T> ForGuards<T>() => GuardComparerCache<T>.Comparer;
 
-    /// <summary>REFERENCE-equality comparer for <see cref="VisualStateSetting{TDataType}"/>'s slot setters (fix round, W2-fix,
-    /// ADR-0009): a reference-typed <typeparamref name="T"/> that implements <see cref="IUIFreezable"/> (today <see cref="IFillBrush"/>,
+    /// <summary>REFERENCE-equality comparer for <see cref="VisualStateSetting{TDataType}"/>'s slot setters (ADR-0009): a reference-typed
+    /// <typeparamref name="T"/> that implements <see cref="IUIFreezable"/> (today <see cref="IFillBrush"/>,
     /// <see cref="IBorderBrush"/>, <see cref="VisualStateFillBrush"/> -- checked via <see cref="Type.IsAssignableFrom(Type)"/> so any
     /// future freezable brush type qualifies too) compares by REFERENCE (<see cref="ReferenceEqualityComparer.Instance"/>): a distinct
     /// instance is a change even when it equals the stored one in value, because the caller may mutate that distinct instance afterwards
-    /// (an element-owned brush, W4) and the slot must already hold the exact instance for the mutation to reach it. Every other
+    /// (an element-owned brush) and the slot must already hold the exact instance for the mutation to reach it. Every other
     /// <typeparamref name="T"/> (a <see langword="struct"/> such as <see cref="Microsoft.Xna.Framework.Color"/>?, which has no identity
     /// distinct from its value) falls back to <see cref="EqualityComparer{T}.Default"/>. Cached the same way as <see cref="ForGuards{T}"/>,
     /// in <see cref="SlotComparerCache{T}"/>.</summary>

@@ -15,9 +15,9 @@ public class ThemeManagedGetter<TDataType>
 {
     private TDataType _Value;
     /// <summary>This property intentionally has no getter (use <see cref="GetValue(bool)"/>).<para/>
-    /// Freezing policy (ADR-0009, W4): a brush handed to a theme through this wrapper is frozen in place
+    /// Freezing policy (ADR-0009): a brush handed to a theme through this wrapper is frozen in place
     /// (<see cref="MGTheme.FreezeThemeValue(object)"/>) so it becomes safely shareable; a <see cref="VisualStateFillBrush"/>
-    /// container stays unfrozen itself (W3, confirmed decision) but each of its non-null slot brushes is frozen instead.</summary>
+    /// container stays unfrozen itself but each of its non-null slot brushes is frozen instead.</summary>
     public TDataType Value
     {
         set
@@ -30,10 +30,10 @@ public class ThemeManagedGetter<TDataType>
     /// <param name="Copy">If true, a copy of the underlying <see cref="Value"/> will be returned. If false, a direct reference to the underlying <see cref="Value"/> will be returned.<para/>
     /// Some implementations of <typeparamref name="TDataType"/> are structs (value-types) rather than classes (reference-types),<br/>
     /// so for consistency, recommended to always retrieve a copy, essentially treating all objects as value-types.<para/>
-    /// ADR-0009/W4: when the stored value is itself a frozen brush (<see cref="IUIFreezable"/>), the frozen instance is
+    /// ADR-0009: when the stored value is itself a frozen brush (<see cref="IUIFreezable"/>), the frozen instance is
     /// returned directly regardless of <paramref name="Copy"/> -- it is immutable and safe to share, cloning it would only
     /// waste an allocation. A <see cref="VisualStateFillBrush"/>/<see cref="VisualStateColorBrush"/> container is never
-    /// itself frozen (W3), so it keeps being cloned as before.</param>
+    /// itself frozen, so it keeps being cloned as before.</param>
     public TDataType GetValue(bool Copy = true)
         => _Value is IUIFreezable { IsFrozen: true } ? _Value : (Copy ? _Value?.Clone() as TDataType : _Value);
 
@@ -744,7 +744,7 @@ public class MGTheme
 
     public MGTheme Copy() => new(this);
 
-    /// <summary>Freezes every brush this theme owns (ADR-0009, W4): the ten value brushes and every composite/highlight
+    /// <summary>Freezes every brush this theme owns (ADR-0009): the ten value brushes and every composite/highlight
     /// brush reachable from a public brush-typed property of <see cref="MGTheme"/> or one of its settings groups
     /// (<see cref="Window"/>, <see cref="Overlay"/>, ...), plus <see cref="_Backgrounds"/> (private, walked directly since
     /// reflection over public members does not reach it). Called once, at the end of <see cref="XAML.ThemeDefinitionBuilder.Build"/>,
@@ -789,7 +789,7 @@ public class MGTheme
     /// <see cref="IUIFreezable.CanFreeze"/> is false -- e.g. a <see cref="MGUI.Core.UI.Brushes.FillBrushes.MGProgressBarGradientBrush"/>
     /// bound to a live <see cref="MGProgressBar"/> is not expected to be assigned to a theme, and is left unfrozen rather
     /// than throwing), recurses into a <see cref="VisualStateFillBrush"/> container's non-null slots (the container itself
-    /// stays unfrozen, W3), unwraps a <see cref="ThemeManagedGetter{TDataType}"/> without cloning it, walks a collection of
+    /// stays unfrozen), unwraps a <see cref="ThemeManagedGetter{TDataType}"/> without cloning it, walks a collection of
     /// <see cref="ThemeManagedFillBrush"/> (<see cref="ListBoxItemAlternatingRowBackgrounds"/>), and recurses into a nested
     /// settings-group instance; anything else (a scalar, a <see cref="VisualStateColorBrush"/> whose slots are
     /// <see cref="Color"/>, not brushes, a dictionary of control-template mappings, ...) is left alone.</summary>
@@ -846,9 +846,9 @@ public class MGTheme
         }
     }
 
-    /// <summary>ADR-0009, W4: returns <paramref name="Brush"/> unchanged (shared by reference) when it is already frozen,
+    /// <summary>ADR-0009: returns <paramref name="Brush"/> unchanged (shared by reference) when it is already frozen,
     /// otherwise an unfrozen deep copy via <see cref="ICloneable.Clone"/> (<c>Copy()</c> under the hood) -- same rule
-    /// <see cref="VisualStateFillBrush"/>'s own copy constructor already applies to its slots since W3. Used by
+    /// <see cref="VisualStateFillBrush"/>'s own copy constructor already applies to its slots. Used by
     /// <see cref="ApplyFrom"/> for the plain <see cref="MGUI.Core.UI.Brushes.FillBrushes.IFillBrush"/>/
     /// <see cref="MGUI.Core.UI.Brushes.BorderBrushes.IBorderBrush"/>-typed theme properties (a
     /// <see cref="VisualStateFillBrush"/>/<see cref="VisualStateColorBrush"/>-typed property keeps calling its own

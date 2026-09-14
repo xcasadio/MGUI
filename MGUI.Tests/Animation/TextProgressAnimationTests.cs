@@ -6,10 +6,10 @@ using MGUI.Core.UI.Animation.Targets;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice U10 of Docs/Tasks/animation-v3-tasks.md: <see cref="MGTextBlock.TextCharactersPerSecond"/> drives the typewriter
+/// <summary><see cref="MGTextBlock.TextCharactersPerSecond"/> drives the typewriter
 /// reveal on the animation engine (<c>TextBlock.TextProgress</c>) instead of accumulating <c>FrameElapsed</c> in <c>UpdateSelf</c>.
-/// Fix round (session principale): a direct <see cref="MGTextBlock.TextProgress"/> write now seeks the reveal instead of only
-/// cancelling it, restoring the pre-U10 public contract.<para/>
+/// A direct <see cref="MGTextBlock.TextProgress"/> write seeks the reveal instead of only
+/// cancelling it, keeping the original public contract.<para/>
 /// <see cref="RevealedCharacters"/> mirrors the private budget computed by <see cref="MGTextBlock.DrawSelf"/> at draw time
 /// (<c>(int)(TextProgress * NumCharacters)</c>, `MGTextBlock.cs:1552`): the test harness does not capture drawn text
 /// (<c>GraphNoOpDrawTransaction.DrawTextViaEngine</c> is a no-op), so this is the same formula computed from the public
@@ -270,7 +270,7 @@ public class TextProgressAnimationTests
     public void ADirectWrite_ToTextProgress_SeeksTheRunInstead_OfCancellingIt()
     {
         // 20 characters at 10 chars/s = 2 seconds. A direct write mid-run retargets the remaining share instead of leaving
-        // the value frozen: writing 0.9 keeps the run alive and it still completes shortly after (fix round).
+        // the value frozen: writing 0.9 keeps the run alive and it still completes shortly after.
         (AnimationTestScene scene, MGTextBlock textBlock) = Build(new string('a', 20));
         textBlock.TextCharactersPerSecond = 10;
         scene.Frames(1000 / AnimationTestScene.FrameMilliseconds / 2);

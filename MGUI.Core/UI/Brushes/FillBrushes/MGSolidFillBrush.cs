@@ -11,7 +11,7 @@ public static class ColorExtensions
     public static MGSolidFillBrush AsFillBrush(this Color @this) => new(@this);
 }
 
-/// <summary>An <see cref="IFillBrush"/> that uses a single solid <see cref="Color"/> to fill its bounds. Freezable (ADR-0009, W2): a sealed
+/// <summary>An <see cref="IFillBrush"/> that uses a single solid <see cref="Color"/> to fill its bounds. Freezable (ADR-0009): a sealed
 /// mutable class deriving from <see cref="UIFreezableBrush"/> whose <see cref="Color"/> setter throws once frozen; <see cref="Copy"/> always
 /// returns an unfrozen instance.<para/>
 /// See also: <see cref="SolidFillBrushes"/>, which contains several static, frozen <see cref="MGSolidFillBrush"/> such as <see cref="SolidFillBrushes.Green"/></summary>
@@ -55,11 +55,11 @@ public sealed class MGSolidFillBrush : UIFreezableBrush, IFillBrush
 
     public IFillBrush Copy() => new MGSolidFillBrush(Color);
 
-    /// <summary>Value equality (ADR-0009, W2): two solid brushes are equal when their <see cref="Color"/> matches, regardless of frozen state
+    /// <summary>Value equality (ADR-0009): two solid brushes are equal when their <see cref="Color"/> matches, regardless of frozen state
     /// or instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGSolidFillBrush s && s.Color == Color;
 
-    /// <summary>Decision taken during delivery (ADR-0009, W2): overrides <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/> by
+    /// <summary>Decision taken during delivery (ADR-0009): overrides <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/> by
     /// <see cref="Color"/> rather than leaving the base class' reference equality, so the by-value comparisons already relied on when this
     /// type was a <see langword="readonly struct"/> (<c>Assert.Equal</c> in several pre-existing tests, some deliberately: e.g.
     /// <c>ResolvedBackgroundPilotTests.TreeViewItem_Selection_...</c> documents comparing "value-equivalence" per ADR-0005/S5) keep working
@@ -76,7 +76,7 @@ public sealed class MGSolidFillBrush : UIFreezableBrush, IFillBrush
 }
 
 /// <summary>This class contains a static collection of <see cref="MGSolidFillBrush"/>es, one for each named HTML color. Every field is frozen
-/// (ADR-0009, W2) by the static constructor below, so the shared palette cannot be mutated by application code.<para/>
+/// (ADR-0009) by the static constructor below, so the shared palette cannot be mutated by application code.<para/>
 /// See also: <see href="https://learn.microsoft.com/en-us/dotnet/media/art-color-table.png?view=windowsdesktop-6.0"/></summary>
 public static class SolidFillBrushes
 {
@@ -226,7 +226,7 @@ public static class SolidFillBrushes
     /// Corresponds to the old <see cref="MGSolidFillBrush.SemiBlack"/> static.</summary>
     public static readonly MGSolidFillBrush SemiBlack = new(new Color(76, 74, 72));
 
-    /// <summary>Freezes every <see cref="MGSolidFillBrush"/> field declared above (ADR-0009, W2), by reflection so a future addition to the
+    /// <summary>Freezes every <see cref="MGSolidFillBrush"/> field declared above (ADR-0009), by reflection so a future addition to the
     /// palette does not need a matching line here.</summary>
     static SolidFillBrushes()
     {

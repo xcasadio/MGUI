@@ -12,17 +12,17 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Architecture;
 
-/// <summary>Proves the two value-equality guards (ADR-0009, W1, fix round W2-fix) keep their intended, now DIFFERENT, observable
+/// <summary>Proves the two value-equality guards (ADR-0009) keep their intended, now DIFFERENT, observable
 /// behaviour: <see cref="VisualStateSetting{TDataType}"/>'s slot setters (<see cref="UIBrushEquality.ForSlots{T}"/>) treat a
 /// distinct-but-equal-valued brush instance as a change (identity matters: the caller may mutate that exact instance afterwards),
 /// while <see cref="MGControlTemplate"/>'s theme-refresh re-application guard (<see cref="UIBrushEquality.ForGuards{T}"/>) still
-/// treats it as unchanged (value only, identity irrelevant there). The mutation proof (Work item 3 of the W2-fix brief) was run by
+/// treats it as unchanged (value only, identity irrelevant there). The mutation proof was run by
 /// hand: pointing <see cref="UIBrushEquality.ForSlots{T}"/> at the value comparer instead of reference equality makes
 /// <see cref="VisualStateSetting_Of_IFillBrush_Stores_The_New_Instance_And_Notifies_Once_For_An_Equal_Valued_New_Instance"/> and
 /// <see cref="Mutating_A_Slot_Assigned_Equal_Valued_Instance_Changes_What_The_Next_Frame_Draws"/> fail (the slot keeps the OLD
 /// instance, so <c>Assert.Same</c> fails and the mutated colour never reaches the frame), while the template-guard tests below and
-/// <see cref="ThemeRefreshRegressionTests"/> stay green throughout (their brush-typed cases never rely on <c>ForSlots</c>); see the
-/// slice status in Docs/Tasks/animation-v4-tasks.md for the exact recorded run.</summary>
+/// <see cref="ThemeRefreshRegressionTests"/> stay green throughout (their brush-typed cases never rely on <c>ForSlots</c>); see
+/// Docs/decisions/0009-animation-v4-freezable-brushes.md for the exact recorded run.</summary>
 public class BrushGuardEqualityTests
 {
     [Fact]
@@ -68,7 +68,7 @@ public class BrushGuardEqualityTests
     }
 
     /// <summary>End-to-end (ACCEPTANCE 2): the slot already holds a brush equal in value to the one about to be assigned; the new,
-    /// distinct instance is assigned anyway (W2-fix: identity is a change), then mutated -- the mutation reaches the element and the
+    /// distinct instance is assigned anyway (identity is a change), then mutated -- the mutation reaches the element and the
     /// next drawn frame reflects it. Before the fix, the equal-valued assignment was a silent no-op: the slot kept the OLD instance,
     /// so mutating the new one would have had no visible effect.</summary>
     [Fact]
@@ -141,7 +141,7 @@ public class BrushGuardEqualityTests
     }
 
     /// <summary>Same pattern as <see cref="Theme_Refresh_Reapplies_A_Brush_Template_Default_When_Current_Value_Is_A_Distinct_But_Equal_Valued_Instance"/>,
-    /// but with an <see cref="IFillBrush"/> default: <see cref="MGSolidFillBrush"/> is a reference type as of ADR-0009/W2, so the previous
+    /// but with an <see cref="IFillBrush"/> default: <see cref="MGSolidFillBrush"/> is a reference type (ADR-0009), so the previous
     /// application's default and the current value below are now two genuinely distinct class instances (not two boxes of the same struct
     /// value); the guard must still treat them as "unchanged" through <see cref="UIBrushEquality.ForGuards{T}"/> so the refreshed template's
     /// new default is applied.</summary>

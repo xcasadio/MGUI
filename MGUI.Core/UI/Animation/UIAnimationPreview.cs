@@ -3,8 +3,8 @@ using MGUI.Core.UI.Animation.Composition;
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
-/// Attaches a <see cref="UIAnimation"/> to an element as a preview instance for an external host (a timeline editor's scrubber; S3/V3,
-/// ADR-0008 decision 5b; Docs/Tasks/animation-v3-tasks.md U7): begun without a <see cref="UIAnimationManager"/> (<see cref="UIAnimation.Manager"/>
+/// Attaches a <see cref="UIAnimation"/> to an element as a preview instance for an external host (a timeline editor's scrubber;
+/// ADR-0008 decision 5b): begun without a <see cref="UIAnimationManager"/> (<see cref="UIAnimation.Manager"/>
 /// stays null), so it is never registered, ticked, swept, or cancelled by element detachment or window close -- the host owns the
 /// element's and the animation's lifetime entirely. <see cref="UIAnimation.Seek"/> positions it forward or backward at any time, writing
 /// the value with no event and never reaching <see cref="UIAnimationState.Completed"/> (past its end it holds the final pose until

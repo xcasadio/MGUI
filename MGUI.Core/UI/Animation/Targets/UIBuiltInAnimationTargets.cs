@@ -6,14 +6,14 @@ using MonoGame.Extended;
 namespace MGUI.Core.UI.Animation.Targets;
 
 /// <summary>
-/// The animation targets the framework registers in <see cref="UIAnimationTargets"/> (ADR-0006, decision 5; slices S4 to S6).<para/>
+/// The animation targets the framework registers in <see cref="UIAnimationTargets"/> (ADR-0006, decision 5).<para/>
 /// Plain targets write a CLR property and let the engine keep the base value: <see cref="Paths.Opacity"/>, the four
 /// <c>RenderTransform.*</c> components. The <see cref="Paths.RenderScale"/> target animates the effective state-driven scale through an
 /// override that shadows <see cref="MGElement.RenderScale"/> until it is released, so it follows the store-backed lifecycle
 /// (<see cref="IUIAnimationTarget{T}.IsStoreBacked"/> true, restore = clear the override). Store-backed targets write a pilot property
 /// through its tagged setter with the <c>Animation</c> source and restore by clearing that contribution: <see cref="Paths.Margin"/>,
 /// <see cref="Paths.Padding"/>, <see cref="Paths.MinHeight"/> (layout-expensive: every tick invalidates the window layout, decision 8).<para/>
-/// All are observable (S6): a transition watches the element's property notifications (the transform's own notifications for its
+/// All are observable: a transition watches the element's property notifications (the transform's own notifications for its
 /// components, the visual state for the state-driven scale).
 /// </summary>
 public static class UIBuiltInAnimationTargets
@@ -30,13 +30,13 @@ public static class UIBuiltInAnimationTargets
         public const string Margin = "Margin";
         public const string Padding = "Padding";
         public const string MinHeight = "MinHeight";
-        /// <summary>The value of an <see cref="MGProgressButton"/> (T6): what <see cref="MGProgressButton.Duration"/> drives; any other element is refused.</summary>
+        /// <summary>The value of an <see cref="MGProgressButton"/>: what <see cref="MGProgressButton.Duration"/> drives; any other element is refused.</summary>
         public const string ProgressButtonValue = "ProgressButton.Value";
-        /// <summary>The typewriter reveal progress of an <see cref="MGTextBlock"/> (U10): what <see cref="MGTextBlock.TextCharactersPerSecond"/> drives;
+        /// <summary>The typewriter reveal progress of an <see cref="MGTextBlock"/>: what <see cref="MGTextBlock.TextCharactersPerSecond"/> drives;
         /// any other element is refused.</summary>
         public const string TextBlockTextProgress = "TextBlock.TextProgress";
         /// <summary>The <see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush.AnimationProgress"/> of the effective border brush
-        /// (W6, ADR-0009): what <see cref="MGElement"/>'s host run drives automatically (<see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush.AutoStart"/>)
+        /// (ADR-0009): what <see cref="MGElement"/>'s host run drives automatically (<see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush.AutoStart"/>)
         /// or an application drives itself when it is false. Any element whose effective border brush (below the animation) is not an
         /// <see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGHighlightBorderBrush"/> is refused.</summary>
         public const string BorderBrushHighlightProgress = "BorderBrush.Highlight.Progress";
@@ -191,7 +191,7 @@ public static class UIBuiltInAnimationTargets
                 $"'{Paths.ProgressButtonValue}' animates the value of an {nameof(MGProgressButton)}; {element.GetType().Name} has none.");
     }
 
-    /// <summary><c>TextBlock.TextProgress</c> (U10): a plain target over <see cref="MGTextBlock.TextProgress"/> driving the typewriter reveal
+    /// <summary><c>TextBlock.TextProgress</c>: a plain target over <see cref="MGTextBlock.TextProgress"/> driving the typewriter reveal
     /// that <see cref="MGTextBlock.TextCharactersPerSecond"/> configures; the writes go through <see cref="MGTextBlock.ApplyAnimatedTextProgress"/>
     /// so the text block does not retarget its own reveal run on them. Not observable: a transition on this path would compete with the reveal
     /// run, so it is refused. Refused on any other element.</summary>
@@ -209,8 +209,8 @@ public static class UIBuiltInAnimationTargets
                 $"'{Paths.TextBlockTextProgress}' animates the text reveal of an {nameof(MGTextBlock)}; {element.GetType().Name} has none.");
     }
 
-    /// <summary><c>BorderBrush.Highlight.Progress</c> (W6, ADR-0009): a plain target over the <c>AnimationProgress</c> of the run-owned clone of
-    /// an effective <see cref="MGHighlightBorderBrush"/> border brush (the same run-owned-clone idea as the W5 brush targets, but the animated
+    /// <summary><c>BorderBrush.Highlight.Progress</c> (ADR-0009): a plain target over the <c>AnimationProgress</c> of the run-owned clone of
+    /// an effective <see cref="MGHighlightBorderBrush"/> border brush (the same run-owned-clone idea as the other brush targets, but the animated
     /// value here -- a <see cref="double"/> -- is a field of the clone rather than the clone itself, so this does not implement
     /// <see cref="IUIBrushAnimationTarget{T}"/>: that interface's <c>BeginAnimatedValue</c>/<c>ApplyAnimatedValue</c>/<c>EndAnimatedValue</c> are
     /// generic over the animated value being the brush, which does not fit). <see cref="EnsureClone"/> plays the same role as
@@ -249,7 +249,7 @@ public static class UIBuiltInAnimationTargets
 
         /// <summary>Returns the run-owned clone the host's writes land on, creating it (a <c>Copy()</c> of the highlight brush found below the
         /// <c>Animation</c> contribution) the first time this element is written on this path, and reusing whatever the Whole slot already
-        /// holds afterwards -- either this target's own clone from a previous tick, or one a replaced run left behind (ADR-0009, W5 pattern:
+        /// holds afterwards -- either this target's own clone from a previous tick, or one a replaced run left behind (ADR-0009 pattern:
         /// nothing recoverable below the animation then, so the existing effective clone is adopted instead of building a fresh one).</summary>
         private static MGHighlightBorderBrush EnsureClone(MGElement element, string animationName)
         {
@@ -269,7 +269,7 @@ public static class UIBuiltInAnimationTargets
             }
             else if (!hasBelow && current is MGHighlightBorderBrush orphanClone)
             {
-                // Nothing below: a replaced run's clone is still the only thing recorded (W5 pattern) -- adopt it.
+                // Nothing below: a replaced run's clone is still the only thing recorded -- adopt it.
                 return orphanClone;
             }
 

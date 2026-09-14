@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Animation;
 
-/// <summary>Slice T3 of Docs/Tasks/animation-v2-tasks.md: overlay cross-fade, preferred size and gradient targets.</summary>
+/// <summary>Overlay cross-fade, preferred size and gradient targets.</summary>
 public class OverlayAndExtraTargetsTests
 {
     private const float Tolerance = 1e-4f;
