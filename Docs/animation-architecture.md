@@ -8,7 +8,7 @@ Decrire le moteur d'animation de MGUI : le transform de rendu par element, l'hor
 
 ## Portee
 
-Couvre `MGUI.Core/UI/Animation/*` (namespace `MGUI.Core.UI.Animation`), `MGUI.Core/UI/Brushes/*` pour ce qui touche a l'animation et au gel, la partie transform, animation et surbrillance de `MGUI.Core/UI/MGElement.cs` et `MGUI.Core/UI/MGDesktop.cs`, les DTO `MGUI.Core/UI/XAML/Animation.cs`, le sample `MGUI.Samples/Features/AnimationDemo.xaml` (scenarios `SCN-ANIM-001` a `SCN-ANIM-004`, `Docs/scenario-validation-index.md`).
+Couvre `MGUI.Core/UI/Animation/*` (namespace `MGUI.Core.UI.Animation`), `MGUI.Core/UI/Brushes/*` pour ce qui touche a l'animation et au gel, la partie transform, animation et surbrillance de `MGUI.Core/UI/MGElement.cs` et `MGUI.Core/UI/MGDesktop.cs`, les DTO `MGUI.Core/UI/XAML/Animation.cs`, le sample `MGUI.Samples/Features/AnimationDemo.xaml` (scenario `SCN-ANIM-001`, `Docs/scenario-validation-index.md` ; cible V4 : une page par capacite avec explications, sur le modele des pages de controles).
 
 Hors portee : les chronometres qui gardent leur propre temps (voir « Chronometres hors moteur ») ; l'editeur de timeline, le scrubber et l'edition de courbes, qui vivent dans le moteur de jeu de l'auteur et consomment les API decrites ici (`Seek`, clip, serialisation, chemins applicables).
 
