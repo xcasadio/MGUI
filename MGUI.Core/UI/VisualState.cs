@@ -3,6 +3,7 @@ using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Brushes;
 using MGUI.Shared.Rendering;
 using MGUI.Core.UI.Shapes;
+using System.ComponentModel;
 using System.Diagnostics;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
@@ -410,10 +411,10 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         : this(Brush, Brush, Brush, HoveredColor, PressedModifierType, PressedModifier) { }
 
     public VisualStateFillBrush(IFillBrush NormalBrush, IFillBrush SelectedBrush, IFillBrush DisabledBrush, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
-        : base(NormalBrush, SelectedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { }
+        : base(NormalBrush, SelectedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { SubscribeToOwnSlotChanges(); }
 
     public VisualStateFillBrush(IFillBrush NormalBrush, IFillBrush SelectedBrush, IFillBrush FocusedBrush, IFillBrush DisabledBrush, Color? HoveredColor, PressedModifierType PressedModifierType, float PressedModifier)
-        : base(NormalBrush, SelectedBrush, FocusedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { }
+        : base(NormalBrush, SelectedBrush, FocusedBrush, DisabledBrush, HoveredColor, PressedModifierType, PressedModifier) { SubscribeToOwnSlotChanges(); }
 
     /// <summary>Returns <paramref name="Brush"/> unchanged when it is frozen (ADR-0009, W3: a frozen brush is immutable and safely
     /// shareable by reference, so the copy constructor below does not need to clone it), otherwise an unfrozen deep copy via
@@ -425,12 +426,91 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
             ShareIfFrozenElseCopy(InheritFrom.FocusedValue), ShareIfFrozenElseCopy(InheritFrom.DisabledValue),
             InheritFrom.FocusedColor, InheritFrom.PressedModifierType, InheritFrom.PressedModifier)
     {
+        SubscribeToOwnSlotChanges();
         OverlayOpacity = InheritFrom.OverlayOpacity;
         if (InheritFrom.HasCheckedValue)
         {
             CheckedValue = ShareIfFrozenElseCopy(InheritFrom.CheckedValue);
         }
     }
+
+    #region Slot brush notification (ADR-0009, W4)
+    //  A frozen slot brush never changes (IUIFreezable) so it is never subscribed to; an unfrozen one (XAML inline,
+    //  code-created, or an animation's clone under it) is element-owned and can be mutated in place, and this container
+    //  relays that mutation as its OWN PropertyChanged (a distinct name, SlotBrushMutatedPropertyName, never one of the
+    //  four slot-reference names) so MGElement's HandleBackgroundBrushContainerPropertyChanged sees it without mistaking
+    //  it for a slot being REPLACED: that handler only recognises the four slot-reference names and its own Whole-slot
+    //  container swap, so an unrecognised name already falls through its `default: break;` -- the resolved-value store is
+    //  never rewritten for an in-place mutation, matching the brief ("the slot reference did not change"). Drawing itself
+    //  needs no separate invalidation call: MGUI never caches a drawn frame, so the next frame's <see cref="IFillBrush.Draw"/>
+    //  already reads the mutated brush's current field values; the point of subscribing at all is correct lifecycle
+    //  bookkeeping (no leaked subscription once a slot is replaced or the container drops out of use) and being able to
+    //  prove "zero subscriptions when every slot is a frozen theme brush" (<c>BrushFreezingPolicyTests</c>).
+    internal const string SlotBrushMutatedPropertyName = "SlotBrushMutated";
+
+    private IFillBrush _SubscribedNormalValue;
+    private IFillBrush _SubscribedSelectedValue;
+    private IFillBrush _SubscribedFocusedValue;
+    private IFillBrush _SubscribedDisabledValue;
+    private IFillBrush _SubscribedCheckedValue;
+
+    private void SubscribeToOwnSlotChanges()
+    {
+        PropertyChanged += HandleOwnSlotReferenceChanged;
+        ResyncSlotSubscription(ref _SubscribedNormalValue, NormalValue);
+        ResyncSlotSubscription(ref _SubscribedSelectedValue, SelectedValue);
+        ResyncSlotSubscription(ref _SubscribedFocusedValue, FocusedValue);
+        ResyncSlotSubscription(ref _SubscribedDisabledValue, DisabledValue);
+    }
+
+    private void HandleOwnSlotReferenceChanged(object sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(NormalValue): ResyncSlotSubscription(ref _SubscribedNormalValue, NormalValue); break;
+            case nameof(SelectedValue): ResyncSlotSubscription(ref _SubscribedSelectedValue, SelectedValue); break;
+            case nameof(FocusedValue): ResyncSlotSubscription(ref _SubscribedFocusedValue, FocusedValue); break;
+            case nameof(DisabledValue): ResyncSlotSubscription(ref _SubscribedDisabledValue, DisabledValue); break;
+            case nameof(CheckedValue): ResyncSlotSubscription(ref _SubscribedCheckedValue, HasCheckedValue ? CheckedValue : null); break;
+        }
+    }
+
+    /// <summary>Unsubscribes <paramref name="Subscribed"/> (the brush this container previously held a subscription
+    /// on for this slot, or null) and subscribes <paramref name="Current"/> instead when it is an unfrozen
+    /// <see cref="INotifyPropertyChanged"/> brush -- never for a frozen one, and never twice for the same slot
+    /// (<paramref name="Subscribed"/> tracks only what this container actually subscribed to, not the raw slot value,
+    /// so a slot that goes from one frozen brush to another never touches a subscription it never held).</summary>
+    private void ResyncSlotSubscription(ref IFillBrush Subscribed, IFillBrush Current)
+    {
+        if (Subscribed is INotifyPropertyChanged Previous)
+        {
+            Previous.PropertyChanged -= HandleSlotBrushMutated;
+        }
+
+        Subscribed = Current is INotifyPropertyChanged && Current is not IUIFreezable { IsFrozen: true } ? Current : null;
+        if (Subscribed != null)
+        {
+            ((INotifyPropertyChanged)Subscribed).PropertyChanged += HandleSlotBrushMutated;
+        }
+    }
+
+    private void HandleSlotBrushMutated(object sender, PropertyChangedEventArgs e) => NotifyPropertyChanged(SlotBrushMutatedPropertyName);
+
+    /// <summary>Called by <see cref="MGTheme.FreezeThemeValue(object)"/> (and <see cref="MGResources.AddStaticResource"/>'s equivalent)
+    /// right after freezing this container's slots: a slot brush assigned while still unfrozen (every theme background starts life as
+    /// a freshly built, unfrozen XAML brush before <see cref="XAML.ThemeDefinitionBuilder.Build"/>'s closing freeze sweep) was correctly
+    /// subscribed to at assignment time, and freezing it afterwards does not itself raise a notification that would let this container
+    /// notice on its own -- so the freezer re-runs the same resync this container already does on every slot-reference change, dropping
+    /// any subscription that is now stale now that the slot is frozen. Idempotent and cheap (a no-op unless a slot actually just froze).</summary>
+    internal void ResyncSlotSubscriptionsAfterExternalFreeze()
+    {
+        ResyncSlotSubscription(ref _SubscribedNormalValue, NormalValue);
+        ResyncSlotSubscription(ref _SubscribedSelectedValue, SelectedValue);
+        ResyncSlotSubscription(ref _SubscribedFocusedValue, FocusedValue);
+        ResyncSlotSubscription(ref _SubscribedDisabledValue, DisabledValue);
+        ResyncSlotSubscription(ref _SubscribedCheckedValue, HasCheckedValue ? CheckedValue : null);
+    }
+    #endregion Slot brush notification (ADR-0009, W4)
 
     /// <summary>Draws the fill overlay of <paramref name="State"/> (Hovered / Pressed) with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied; nothing for <see cref="SecondaryVisualState.None"/> or an opacity of 0.</summary>
     public void DrawFillOverlay(ElementDrawArgs DA, SecondaryVisualState State, MGElement Element, Rectangle Bounds)

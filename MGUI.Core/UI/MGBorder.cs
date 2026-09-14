@@ -2,7 +2,9 @@
 using MGUI.Shared.Helpers;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
+using System.ComponentModel;
 using System.Diagnostics;
+using MGUI.Core.UI.Brushes;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Shapes;
@@ -36,6 +38,7 @@ public class MGBorder : MGSingleContentHost
         if (_borderBrush != value)
         {
             IBorderBrush Previous = BorderBrush;
+            ResyncBorderBrushSubscription(Previous, value);
             _borderBrush = value;
             NotifyPropertyChanged(nameof(BorderBrush));
             OnBorderBrushChanged?.Invoke(this, new(Previous, BorderBrush));
@@ -43,6 +46,31 @@ public class MGBorder : MGSingleContentHost
     }
 
     public event EventHandler<EventArgs<IBorderBrush>> OnBorderBrushChanged;
+
+    /// <summary>Notification for an unfrozen <see cref="BorderBrush"/> (ADR-0009, W4): a frozen brush never changes so it
+    /// is never subscribed; an unfrozen one (XAML inline, code-created, or an animation's clone) is element-owned and
+    /// mutating it in place is relayed as a plain <see cref="ViewModelBase.NotifyPropertyChanged(string)"/> of
+    /// <see cref="BorderBrush"/> -- the same notification a real reference swap already raises above, harmless to
+    /// replay here since every existing subscriber of it (fifteen-odd containers forwarding it as their own
+    /// <c>BorderBrush</c> changed) only re-raises its own <see cref="INotifyPropertyChanged.PropertyChanged"/>, never
+    /// touches the resolved-value store or layout. <see cref="OnBorderBrushChanged"/> is deliberately NOT re-raised for
+    /// a mutation: its <c>Previous</c>/<c>Current</c> pair means a reference actually changed, which is not the case
+    /// here. No drawing invalidation call is needed either: <see cref="DrawSelf"/> reads the brush's live field values
+    /// every frame, MGUI never caches a drawn frame.</summary>
+    private void ResyncBorderBrushSubscription(IBorderBrush Previous, IBorderBrush Current)
+    {
+        if (Previous is INotifyPropertyChanged PreviousNotifier)
+        {
+            PreviousNotifier.PropertyChanged -= HandleBorderBrushMutated;
+        }
+
+        if (Current is INotifyPropertyChanged CurrentNotifier && Current is not IUIFreezable { IsFrozen: true })
+        {
+            CurrentNotifier.PropertyChanged += HandleBorderBrushMutated;
+        }
+    }
+
+    private void HandleBorderBrushMutated(object sender, PropertyChangedEventArgs e) => NotifyPropertyChanged(nameof(BorderBrush));
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Thickness _borderThickness;

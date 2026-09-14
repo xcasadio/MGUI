@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Brushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Text;
@@ -13,13 +14,28 @@ public class ThemeManagedGetter<TDataType>
     where TDataType : class, ICloneable
 {
     private TDataType _Value;
-    /// <summary>This property intentionally has no getter. To get the value, use <see cref="GetValue(bool)"/></summary>
-    public TDataType Value { set => _Value = value; }
+    /// <summary>This property intentionally has no getter (use <see cref="GetValue(bool)"/>).<para/>
+    /// Freezing policy (ADR-0009, W4): a brush handed to a theme through this wrapper is frozen in place
+    /// (<see cref="MGTheme.FreezeThemeValue(object)"/>) so it becomes safely shareable; a <see cref="VisualStateFillBrush"/>
+    /// container stays unfrozen itself (W3, confirmed decision) but each of its non-null slot brushes is frozen instead.</summary>
+    public TDataType Value
+    {
+        set
+        {
+            MGTheme.FreezeThemeValue(value);
+            _Value = value;
+        }
+    }
 
     /// <param name="Copy">If true, a copy of the underlying <see cref="Value"/> will be returned. If false, a direct reference to the underlying <see cref="Value"/> will be returned.<para/>
     /// Some implementations of <typeparamref name="TDataType"/> are structs (value-types) rather than classes (reference-types),<br/>
-    /// so for consistency, recommended to always retrieve a copy, essentially treating all objects as value-types.</param>
-    public TDataType GetValue(bool Copy = true) => Copy ? _Value?.Clone() as TDataType : _Value;
+    /// so for consistency, recommended to always retrieve a copy, essentially treating all objects as value-types.<para/>
+    /// ADR-0009/W4: when the stored value is itself a frozen brush (<see cref="IUIFreezable"/>), the frozen instance is
+    /// returned directly regardless of <paramref name="Copy"/> -- it is immutable and safe to share, cloning it would only
+    /// waste an allocation. A <see cref="VisualStateFillBrush"/>/<see cref="VisualStateColorBrush"/> container is never
+    /// itself frozen (W3), so it keeps being cloned as before.</param>
+    public TDataType GetValue(bool Copy = true)
+        => _Value is IUIFreezable { IsFrozen: true } ? _Value : (Copy ? _Value?.Clone() as TDataType : _Value);
 
     public ThemeManagedGetter() : this(null) { }
     public ThemeManagedGetter(TDataType Value) { this.Value = Value; }
@@ -46,11 +62,14 @@ public class MGThemeWindowSettings
     public Thickness BorderThickness { get; set; } = new(2);
     public Thickness ChromelessPadding { get; set; } = new(0);
     public Thickness ChromelessBorderThickness { get; set; } = new(0);
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
     public Thickness TitleBarPadding { get; set; } = new(2);
     public int TitleBarMinHeight { get; set; } = 24;
-    public VisualStateFillBrush CloseButtonBackground { get; set; } = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
-    public IBorderBrush CloseButtonBorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private VisualStateFillBrush _CloseButtonBackground = new(Color.Crimson.AsFillBrush() * 0.5f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
+    public VisualStateFillBrush CloseButtonBackground { get => _CloseButtonBackground; set { MGTheme.FreezeThemeValue(value); _CloseButtonBackground = value; } }
+    private IBorderBrush _CloseButtonBorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush CloseButtonBorderBrush { get => _CloseButtonBorderBrush; set { MGTheme.FreezeThemeValue(value); _CloseButtonBorderBrush = value; } }
     public Thickness CloseButtonBorderThickness { get; set; } = new(1);
     public Thickness CloseButtonMargin { get; set; } = new(1);
     public Thickness CloseButtonPadding { get; set; } = new(0);
@@ -66,9 +85,12 @@ public class MGThemeOverlaySettings
     public Thickness HostPadding { get; set; } = new(4);
     public Thickness Padding { get; set; } = new(5);
     public Thickness BorderThickness { get; set; } = new(1);
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
-    public VisualStateFillBrush CloseButtonBackground { get; set; } = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
-    public IBorderBrush CloseButtonBorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
+    private VisualStateFillBrush _CloseButtonBackground = new(Color.Crimson.AsFillBrush() * 0.8f, Color.White * 0.18f, PressedModifierType.Darken, 0.06f);
+    public VisualStateFillBrush CloseButtonBackground { get => _CloseButtonBackground; set { MGTheme.FreezeThemeValue(value); _CloseButtonBackground = value; } }
+    private IBorderBrush _CloseButtonBorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush CloseButtonBorderBrush { get => _CloseButtonBorderBrush; set { MGTheme.FreezeThemeValue(value); _CloseButtonBorderBrush = value; } }
     public Thickness CloseButtonBorderThickness { get; set; } = new(1);
     public Thickness CloseButtonPadding { get; set; } = new(0);
     public int CloseButtonMinWidth { get; set; } = 16;
@@ -78,14 +100,16 @@ public class MGThemeOverlaySettings
 public class MGThemeContextMenuSettings
 {
     public Thickness Padding { get; set; } = new(0);
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Gray;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Gray;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
     public Thickness BorderThickness { get; set; } = new(1);
 }
 
 public class MGThemeContextMenuItemSettings
 {
     public Thickness HeaderMargin { get; set; } = new(0, 0, 5, 0);
-    public VisualStateFillBrush HeaderBackground { get; set; } = new(null);
+    private VisualStateFillBrush _HeaderBackground = new(null);
+    public VisualStateFillBrush HeaderBackground { get => _HeaderBackground; set { MGTheme.FreezeThemeValue(value); _HeaderBackground = value; } }
     public Thickness ShortcutMargin { get; set; } = new(18, 0, 0, 0);
     public VisualStateSetting<Color?> ShortcutForeground { get; set; } = new(Color.LightGray, Color.LightGray, Color.LightGray);
     public Thickness SubmenuArrowMargin { get; set; } = new(0, 5, 8, 5);
@@ -94,7 +118,8 @@ public class MGThemeContextMenuItemSettings
 public class MGThemeListBoxSettings
 {
     public int MinHeight { get; set; } = 30;
-    public VisualStateFillBrush OuterBackground { get; set; } = new(SolidFillBrushes.Black);
+    private VisualStateFillBrush _OuterBackground = new(SolidFillBrushes.Black);
+    public VisualStateFillBrush OuterBackground { get => _OuterBackground; set { MGTheme.FreezeThemeValue(value); _OuterBackground = value; } }
     public Thickness TitlePadding { get; set; } = new(6, 3);
     /// <summary>Padding of the border that wraps each item (backlog task 14). Default: <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemPadding"/>.</summary>
     public Thickness ItemPadding { get; set; } = MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemPadding;
@@ -102,48 +127,58 @@ public class MGThemeListBoxSettings
     /// creates (backlog task 14). Default: <see cref="MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemContentPadding"/>.</summary>
     public Thickness ItemContentPadding { get; set; } = MGUI.Core.UI.Styling.MGControlTemplateCatalog.DefaultListBoxItemContentPadding;
     public VisualStateSetting<Color?> TitleForeground { get; set; } = new(Color.White, Color.White, Color.White);
-    public IBorderBrush TitleBorderBrush { get; set; } = SolidFillBrushes.Black.AsUniformBorderBrush();
+    private IBorderBrush _TitleBorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
+    public IBorderBrush TitleBorderBrush { get => _TitleBorderBrush; set { MGTheme.FreezeThemeValue(value); _TitleBorderBrush = value; } }
     public Thickness TitleBorderThickness { get; set; } = new(1, 1, 1, 0);
-    public IBorderBrush InnerBorderBrush { get; set; } = SolidFillBrushes.Black.AsUniformBorderBrush();
+    private IBorderBrush _InnerBorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
+    public IBorderBrush InnerBorderBrush { get => _InnerBorderBrush; set { MGTheme.FreezeThemeValue(value); _InnerBorderBrush = value; } }
     public Thickness InnerBorderThickness { get; set; } = new(1);
     public Thickness ScrollViewerPadding { get; set; } = new(0);
-    public IBorderBrush ItemsPanelBorderBrush { get; set; } = SolidFillBrushes.Black.AsUniformBorderBrush();
+    private IBorderBrush _ItemsPanelBorderBrush = SolidFillBrushes.Black.AsUniformBorderBrush();
+    public IBorderBrush ItemsPanelBorderBrush { get => _ItemsPanelBorderBrush; set { MGTheme.FreezeThemeValue(value); _ItemsPanelBorderBrush = value; } }
     public Thickness ItemsPanelBorderThickness { get; set; } = new(1);
 }
 
 public class MGThemeListViewSettings
 {
     public VisualStateSetting<Color?> HeaderForeground { get; set; } = new(Color.White, Color.White, Color.White);
-    public IFillBrush GridLineBrush { get; set; } = SolidFillBrushes.Black;
+    private IFillBrush _GridLineBrush = SolidFillBrushes.Black;
+    public IFillBrush GridLineBrush { get => _GridLineBrush; set { MGTheme.FreezeThemeValue(value); _GridLineBrush = value; } }
 }
 
 public class MGThemePropertyGridSettings
 {
     public Thickness Padding { get; set; } = new(0);
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
     public Thickness BorderThickness { get; set; } = new(1);
     public Thickness ScrollViewerPadding { get; set; } = new(0);
     public int CategoriesSpacing { get; set; } = 4;
-    public VisualStateFillBrush CategoryHeaderBackground { get; set; } = new(new MGSolidFillBrush(Color.Black * 0.35f));
+    private VisualStateFillBrush _CategoryHeaderBackground = new(new MGSolidFillBrush(Color.Black * 0.35f));
+    public VisualStateFillBrush CategoryHeaderBackground { get => _CategoryHeaderBackground; set { MGTheme.FreezeThemeValue(value); _CategoryHeaderBackground = value; } }
     public VisualStateColorBrush CategoryHeaderForeground { get; set; } = new(Color.White);
     public Thickness CategoryHeaderPadding { get; set; } = new(8, 4);
     public int CategoryHeaderMinHeight { get; set; } = 24;
     public Color CategoryArrowColor { get; set; } = Color.White;
     public Thickness RowPadding { get; set; } = new(8, 4);
     public int RowsSpacing { get; set; } = 0;
-    public IFillBrush RowSeparatorBrush { get; set; } = new MGSolidFillBrush(Color.Black * 0.35f);
-    public IBorderBrush InvalidEditorBorderBrush { get; set; } = new MGSolidFillBrush(Color.OrangeRed).AsUniformBorderBrush();
+    private IFillBrush _RowSeparatorBrush = new MGSolidFillBrush(Color.Black * 0.35f);
+    public IFillBrush RowSeparatorBrush { get => _RowSeparatorBrush; set { MGTheme.FreezeThemeValue(value); _RowSeparatorBrush = value; } }
+    private IBorderBrush _InvalidEditorBorderBrush = new MGSolidFillBrush(Color.OrangeRed).AsUniformBorderBrush();
+    public IBorderBrush InvalidEditorBorderBrush { get => _InvalidEditorBorderBrush; set { MGTheme.FreezeThemeValue(value); _InvalidEditorBorderBrush = value; } }
 }
 
 public class MGThemeComboBoxSettings
 {
     public Thickness Padding { get; set; } = new(4, 2, 4, 2);
     public int MinHeight { get; set; } = 26;
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
     public Thickness DropdownArrowMargin { get; set; } = new(6, 0, 4, 0);
     public int DropdownMinWidth { get; set; } = 100;
     public Thickness DropdownBorderThickness { get; set; } = new(1);
-    public IBorderBrush DropdownBorderBrush { get; set; } = MGUniformBorderBrush.Gray;
+    private IBorderBrush _DropdownBorderBrush = MGUniformBorderBrush.Gray;
+    public IBorderBrush DropdownBorderBrush { get => _DropdownBorderBrush; set { MGTheme.FreezeThemeValue(value); _DropdownBorderBrush = value; } }
     public Thickness DropdownPadding { get; set; } = new(0);
     public Thickness DropdownScrollViewerPadding { get; set; } = new(0);
     public int DropdownItemsSpacing { get; set; } = 0;
@@ -157,7 +192,8 @@ public class MGThemeToolTipSettings
 {
     public Thickness Padding { get; set; } = new(6, 3);
     public Thickness BorderThickness { get; set; } = new(2);
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
     public int MinWidth { get; set; } = 10;
     public int MinHeight { get; set; } = 10;
 }
@@ -208,7 +244,8 @@ public class MGThemeTreeViewTemplateSettings
 public class MGThemeTabControlSettings
 {
     public Thickness Padding { get; set; } = new(12);
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
     public Thickness BorderThickness { get; set; } = new(1);
     public int HeadersSpacing { get; set; } = 0;
     /// <summary>Padding of the selected tab header when the headers are on top or bottom (backlog task 14).</summary>
@@ -222,24 +259,37 @@ public class MGThemeTabControlSettings
 public class MGThemeGraphSettings
 {
     public Thickness Padding { get; set; } = new(0);
-    public IBorderBrush BorderBrush { get; set; } = MGUniformBorderBrush.Black;
+    private IBorderBrush _BorderBrush = MGUniformBorderBrush.Black;
+    public IBorderBrush BorderBrush { get => _BorderBrush; set { MGTheme.FreezeThemeValue(value); _BorderBrush = value; } }
     public Thickness BorderThickness { get; set; } = new(1);
-    public VisualStateFillBrush CanvasBackground { get; set; } = new(new MGSolidFillBrush(new Color(18, 22, 26)));
-    public IFillBrush GridLineBrush { get; set; } = new MGSolidFillBrush(Color.White * 0.08f);
-    public IFillBrush MajorGridLineBrush { get; set; }
-    public IFillBrush EdgeBrush { get; set; } = new MGSolidFillBrush(new Color(128, 180, 255));
-    public IFillBrush SelectedEdgeBrush { get; set; }
-    public IBorderBrush NodeBorderBrush { get; set; } = new MGSolidFillBrush(Color.Black * 0.7f).AsUniformBorderBrush();
+    private VisualStateFillBrush _CanvasBackground = new(new MGSolidFillBrush(new Color(18, 22, 26)));
+    public VisualStateFillBrush CanvasBackground { get => _CanvasBackground; set { MGTheme.FreezeThemeValue(value); _CanvasBackground = value; } }
+    private IFillBrush _GridLineBrush = new MGSolidFillBrush(Color.White * 0.08f);
+    public IFillBrush GridLineBrush { get => _GridLineBrush; set { MGTheme.FreezeThemeValue(value); _GridLineBrush = value; } }
+    private IFillBrush _MajorGridLineBrush;
+    public IFillBrush MajorGridLineBrush { get => _MajorGridLineBrush; set { MGTheme.FreezeThemeValue(value); _MajorGridLineBrush = value; } }
+    private IFillBrush _EdgeBrush = new MGSolidFillBrush(new Color(128, 180, 255));
+    public IFillBrush EdgeBrush { get => _EdgeBrush; set { MGTheme.FreezeThemeValue(value); _EdgeBrush = value; } }
+    private IFillBrush _SelectedEdgeBrush;
+    public IFillBrush SelectedEdgeBrush { get => _SelectedEdgeBrush; set { MGTheme.FreezeThemeValue(value); _SelectedEdgeBrush = value; } }
+    private IBorderBrush _NodeBorderBrush = new MGSolidFillBrush(Color.Black * 0.7f).AsUniformBorderBrush();
+    public IBorderBrush NodeBorderBrush { get => _NodeBorderBrush; set { MGTheme.FreezeThemeValue(value); _NodeBorderBrush = value; } }
     public Thickness NodeBorderThickness { get; set; } = new(1);
-    public IBorderBrush NodeSelectedBorderBrush { get; set; } = new MGSolidFillBrush(new Color(94, 170, 255)).AsUniformBorderBrush();
+    private IBorderBrush _NodeSelectedBorderBrush = new MGSolidFillBrush(new Color(94, 170, 255)).AsUniformBorderBrush();
+    public IBorderBrush NodeSelectedBorderBrush { get => _NodeSelectedBorderBrush; set { MGTheme.FreezeThemeValue(value); _NodeSelectedBorderBrush = value; } }
     public Thickness NodeSelectedBorderThickness { get; set; } = new(2);
-    public VisualStateFillBrush NodeHeaderBackground { get; set; } = new(new MGSolidFillBrush(new Color(36, 46, 60)));
+    private VisualStateFillBrush _NodeHeaderBackground = new(new MGSolidFillBrush(new Color(36, 46, 60)));
+    public VisualStateFillBrush NodeHeaderBackground { get => _NodeHeaderBackground; set { MGTheme.FreezeThemeValue(value); _NodeHeaderBackground = value; } }
     public VisualStateColorBrush NodeHeaderForeground { get; set; } = new(Color.White);
-    public VisualStateFillBrush NodeBodyBackground { get; set; } = new(new MGSolidFillBrush(new Color(26, 31, 38)));
-    public IFillBrush PortBackground { get; set; } = new MGSolidFillBrush(new Color(92, 140, 210));
+    private VisualStateFillBrush _NodeBodyBackground = new(new MGSolidFillBrush(new Color(26, 31, 38)));
+    public VisualStateFillBrush NodeBodyBackground { get => _NodeBodyBackground; set { MGTheme.FreezeThemeValue(value); _NodeBodyBackground = value; } }
+    private IFillBrush _PortBackground = new MGSolidFillBrush(new Color(92, 140, 210));
+    public IFillBrush PortBackground { get => _PortBackground; set { MGTheme.FreezeThemeValue(value); _PortBackground = value; } }
     public VisualStateColorBrush PortForeground { get; set; } = new(Color.White);
-    public VisualStateFillBrush CommentBackground { get; set; } = new(new MGSolidFillBrush(new Color(62, 54, 30) * 0.9f));
-    public IBorderBrush CommentBorderBrush { get; set; } = new MGSolidFillBrush(new Color(222, 180, 80)).AsUniformBorderBrush();
+    private VisualStateFillBrush _CommentBackground = new(new MGSolidFillBrush(new Color(62, 54, 30) * 0.9f));
+    public VisualStateFillBrush CommentBackground { get => _CommentBackground; set { MGTheme.FreezeThemeValue(value); _CommentBackground = value; } }
+    private IBorderBrush _CommentBorderBrush = new MGSolidFillBrush(new Color(222, 180, 80)).AsUniformBorderBrush();
+    public IBorderBrush CommentBorderBrush { get => _CommentBorderBrush; set { MGTheme.FreezeThemeValue(value); _CommentBorderBrush = value; } }
 }
 
 public class ThemeFontSettings
@@ -289,9 +339,12 @@ public class ThemeFontSettings
 
 public class MGThemeDockingSettings
 {
-    public IFillBrush TabNormalBackground { get; set; }
-    public IFillBrush TabHoverBackground { get; set; }
-    public IFillBrush TabActiveBackground { get; set; }
+    private IFillBrush _TabNormalBackground;
+    public IFillBrush TabNormalBackground { get => _TabNormalBackground; set { MGTheme.FreezeThemeValue(value); _TabNormalBackground = value; } }
+    private IFillBrush _TabHoverBackground;
+    public IFillBrush TabHoverBackground { get => _TabHoverBackground; set { MGTheme.FreezeThemeValue(value); _TabHoverBackground = value; } }
+    private IFillBrush _TabActiveBackground;
+    public IFillBrush TabActiveBackground { get => _TabActiveBackground; set { MGTheme.FreezeThemeValue(value); _TabActiveBackground = value; } }
     public Color TabActiveAccentColor { get; set; }
     public Color TabHoverAccentColor { get; set; }
     public Color TabActiveTextColor { get; set; }
@@ -299,22 +352,30 @@ public class MGThemeDockingSettings
     public Color TabActiveIconColor { get; set; }
     public Color TabInactiveIconColor { get; set; }
 
-    public IFillBrush AutoHideDrawerBackground { get; set; }
-    public IFillBrush AutoHideDrawerHeaderBackground { get; set; }
-    public VisualStateFillBrush AutoHideButtonBackground { get; set; }
+    private IFillBrush _AutoHideDrawerBackground;
+    public IFillBrush AutoHideDrawerBackground { get => _AutoHideDrawerBackground; set { MGTheme.FreezeThemeValue(value); _AutoHideDrawerBackground = value; } }
+    private IFillBrush _AutoHideDrawerHeaderBackground;
+    public IFillBrush AutoHideDrawerHeaderBackground { get => _AutoHideDrawerHeaderBackground; set { MGTheme.FreezeThemeValue(value); _AutoHideDrawerHeaderBackground = value; } }
+    private VisualStateFillBrush _AutoHideButtonBackground;
+    public VisualStateFillBrush AutoHideButtonBackground { get => _AutoHideButtonBackground; set { MGTheme.FreezeThemeValue(value); _AutoHideButtonBackground = value; } }
     public Color AutoHideHeaderTextColor { get; set; }
     public Color AutoHideIconColor { get; set; }
     public Color AutoHideBorderColor { get; set; }
     public Color AutoHideGripColor { get; set; }
 
-    public IFillBrush AutoHideStripBackground { get; set; }
-    public VisualStateFillBrush AutoHideStripButtonBackground { get; set; }
+    private IFillBrush _AutoHideStripBackground;
+    public IFillBrush AutoHideStripBackground { get => _AutoHideStripBackground; set { MGTheme.FreezeThemeValue(value); _AutoHideStripBackground = value; } }
+    private VisualStateFillBrush _AutoHideStripButtonBackground;
+    public VisualStateFillBrush AutoHideStripButtonBackground { get => _AutoHideStripButtonBackground; set { MGTheme.FreezeThemeValue(value); _AutoHideStripButtonBackground = value; } }
     public Color AutoHideStripTextColor { get; set; }
     public Color AutoHideStripSeparatorColor { get; set; }
 
-    public IFillBrush SplitterNormalBrush { get; set; }
-    public IFillBrush SplitterHoverBrush { get; set; }
-    public IFillBrush SplitterPressedBrush { get; set; }
+    private IFillBrush _SplitterNormalBrush;
+    public IFillBrush SplitterNormalBrush { get => _SplitterNormalBrush; set { MGTheme.FreezeThemeValue(value); _SplitterNormalBrush = value; } }
+    private IFillBrush _SplitterHoverBrush;
+    public IFillBrush SplitterHoverBrush { get => _SplitterHoverBrush; set { MGTheme.FreezeThemeValue(value); _SplitterHoverBrush = value; } }
+    private IFillBrush _SplitterPressedBrush;
+    public IFillBrush SplitterPressedBrush { get => _SplitterPressedBrush; set { MGTheme.FreezeThemeValue(value); _SplitterPressedBrush = value; } }
     public Color SplitterHoverOverlayColor { get; set; }
     public Color SplitterPressedOverlayColor { get; set; }
 
@@ -474,7 +535,8 @@ public class MGTheme
     /// <summary>The default color to use for the expander arrow in <see cref="MGTreeViewItem"/>.</summary>
     public Color TreeViewExpanderArrowColor { get; set; }
     /// <summary>The default value to use for <see cref="MGTreeView.BorderBrush"/>.</summary>
-    public IBorderBrush TreeViewBorderBrush { get; set; }
+    private IBorderBrush _TreeViewBorderBrush;
+    public IBorderBrush TreeViewBorderBrush { get => _TreeViewBorderBrush; set { FreezeThemeValue(value); _TreeViewBorderBrush = value; } }
     /// <summary>The default value to use for <see cref="MGTreeView.BorderThickness"/>.</summary>
     public MonoGame.Extended.Thickness TreeViewBorderThickness { get; set; }
     /// <summary>The default value to use for <see cref="MGTreeView.IndentSize"/>.</summary>
@@ -682,6 +744,118 @@ public class MGTheme
 
     public MGTheme Copy() => new(this);
 
+    /// <summary>Freezes every brush this theme owns (ADR-0009, W4): the ten value brushes and every composite/highlight
+    /// brush reachable from a public brush-typed property of <see cref="MGTheme"/> or one of its settings groups
+    /// (<see cref="Window"/>, <see cref="Overlay"/>, ...), plus <see cref="_Backgrounds"/> (private, walked directly since
+    /// reflection over public members does not reach it). Called once, at the end of <see cref="XAML.ThemeDefinitionBuilder.Build"/>,
+    /// so every theme this framework produces -- built-in or from a XAML definition -- ends up fully frozen regardless of
+    /// which of its properties a definition happened to touch. Reflection-driven rather than a hand-written list of the
+    /// 78 properties: a future theme property is frozen automatically, and the same walk is what
+    /// <c>BrushFreezingPolicyTests</c> uses to assert completeness.</summary>
+    internal void FreezeBrushes()
+    {
+        foreach (var Background in _Backgrounds.Values)
+        {
+            FreezeThemeValue(Background.GetValue(false));
+        }
+
+        FreezeThemeObjectGraph(this);
+    }
+
+    /// <summary>Reflects over every public instance property of <paramref name="Owner"/> and freezes each brush-shaped
+    /// value found (<see cref="FreezeThemeValue(object)"/>), recursing into the nested settings-group instances
+    /// (<see cref="MGThemeWindowSettings"/>, <see cref="MGThemeGraphSettings"/>, ...) that hold brush properties of
+    /// their own. A property with no public getter (none exist on <see cref="MGTheme"/> or a settings group) would throw;
+    /// none does, so no guard is needed.</summary>
+    private static void FreezeThemeObjectGraph(object Owner)
+    {
+        if (Owner == null)
+        {
+            return;
+        }
+
+        foreach (var Property in Owner.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (Property.GetIndexParameters().Length > 0)
+            {
+                continue;
+            }
+
+            FreezeThemeValue(Property.GetValue(Owner));
+        }
+    }
+
+    /// <summary>Freezes <paramref name="Value"/> when it is a brush (<see cref="IUIFreezable"/>, skipped when
+    /// <see cref="IUIFreezable.CanFreeze"/> is false -- e.g. a <see cref="MGUI.Core.UI.Brushes.FillBrushes.MGProgressBarGradientBrush"/>
+    /// bound to a live <see cref="MGProgressBar"/> is not expected to be assigned to a theme, and is left unfrozen rather
+    /// than throwing), recurses into a <see cref="VisualStateFillBrush"/> container's non-null slots (the container itself
+    /// stays unfrozen, W3), unwraps a <see cref="ThemeManagedGetter{TDataType}"/> without cloning it, walks a collection of
+    /// <see cref="ThemeManagedFillBrush"/> (<see cref="ListBoxItemAlternatingRowBackgrounds"/>), and recurses into a nested
+    /// settings-group instance; anything else (a scalar, a <see cref="VisualStateColorBrush"/> whose slots are
+    /// <see cref="Color"/>, not brushes, a dictionary of control-template mappings, ...) is left alone.</summary>
+    internal static void FreezeThemeValue(object Value)
+    {
+        switch (Value)
+        {
+            case null:
+                return;
+            case IUIFreezable Freezable:
+                if (Freezable.CanFreeze)
+                {
+                    Freezable.Freeze();
+                }
+                return;
+            case VisualStateFillBrush Container:
+                FreezeThemeValue(Container.NormalValue);
+                FreezeThemeValue(Container.SelectedValue);
+                FreezeThemeValue(Container.FocusedValue);
+                FreezeThemeValue(Container.DisabledValue);
+                if (Container.HasCheckedValue)
+                {
+                    FreezeThemeValue(Container.CheckedValue);
+                }
+                //  A slot assigned before this sweep (every theme background starts as an unfrozen XAML brush) may have
+                //  subscribed the container to it while it was still unfrozen; freezing it above does not itself notify
+                //  that subscriber, so the container must be told to re-check now that its slots just froze.
+                Container.ResyncSlotSubscriptionsAfterExternalFreeze();
+                return;
+            case ThemeManagedFillBrush ManagedFillBrush:
+                FreezeThemeValue(ManagedFillBrush.GetValue(false));
+                return;
+            case ThemeManagedVisualStateFillBrush ManagedVisualStateFillBrush:
+                FreezeThemeValue(ManagedVisualStateFillBrush.GetValue(false));
+                return;
+            case ThemeManagedVisualStateColorBrush:
+                //  VisualStateColorBrush's slots are System.Drawing-style Colors, not brushes: nothing to freeze.
+                return;
+            case System.Collections.IEnumerable Sequence and not string:
+                foreach (var Item in Sequence)
+                {
+                    FreezeThemeValue(Item);
+                }
+                return;
+            case MGThemeWindowSettings or MGThemeOverlaySettings or MGThemeContextMenuSettings or MGThemeContextMenuItemSettings
+                 or MGThemeListBoxSettings or MGThemeListViewSettings or MGThemePropertyGridSettings or MGThemeComboBoxSettings
+                 or MGThemeToolTipSettings or MGThemeTabControlSettings or MGThemeGraphSettings or MGThemeDockingSettings:
+                FreezeThemeObjectGraph(Value);
+                return;
+            default:
+                //  A scalar (Color, Thickness, Point, int, bool, string, an enum, a TimeSpan, ...) or a settings group
+                //  that owns no brush property (ThemeFontSettings, MGThemeAnimationSettings, ...): nothing to do.
+                return;
+        }
+    }
+
+    /// <summary>ADR-0009, W4: returns <paramref name="Brush"/> unchanged (shared by reference) when it is already frozen,
+    /// otherwise an unfrozen deep copy via <see cref="ICloneable.Clone"/> (<c>Copy()</c> under the hood) -- same rule
+    /// <see cref="VisualStateFillBrush"/>'s own copy constructor already applies to its slots since W3. Used by
+    /// <see cref="ApplyFrom"/> for the plain <see cref="MGUI.Core.UI.Brushes.FillBrushes.IFillBrush"/>/
+    /// <see cref="MGUI.Core.UI.Brushes.BorderBrushes.IBorderBrush"/>-typed theme properties (a
+    /// <see cref="VisualStateFillBrush"/>/<see cref="VisualStateColorBrush"/>-typed property keeps calling its own
+    /// <c>Copy()</c>/<c>GetCopy()</c>, which already shares frozen slots).</summary>
+    private static T ShareOrCopy<T>(T Brush) where T : class, IUIFreezable, ICloneable
+        => Brush == null ? null : Brush.IsFrozen ? Brush : (T)Brush.Clone();
+
     private void ApplyFrom(MGTheme Source)
     {
         foreach (MGElementType Type in Enum.GetValues(typeof(MGElementType)))
@@ -719,7 +893,7 @@ public class MGTheme
         TreeViewSelectionBackground.Value = Source.TreeViewSelectionBackground.GetValue(true);
         TreeViewSelectionForeground = Source.TreeViewSelectionForeground;
         TreeViewExpanderArrowColor = Source.TreeViewExpanderArrowColor;
-        TreeViewBorderBrush = Source.TreeViewBorderBrush?.Copy();
+        TreeViewBorderBrush = ShareOrCopy(Source.TreeViewBorderBrush);
         TreeViewBorderThickness = Source.TreeViewBorderThickness;
         TreeViewIndentSize = Source.TreeViewIndentSize;
         TreeViewExpanderButtonSize = Source.TreeViewExpanderButtonSize;
@@ -752,7 +926,7 @@ public class MGTheme
 
         ToolTip.Padding = Source.ToolTip.Padding;
         ToolTip.BorderThickness = Source.ToolTip.BorderThickness;
-        ToolTip.BorderBrush = Source.ToolTip.BorderBrush?.Copy();
+        ToolTip.BorderBrush = ShareOrCopy(Source.ToolTip.BorderBrush);
         ToolTip.MinWidth = Source.ToolTip.MinWidth;
         ToolTip.MinHeight = Source.ToolTip.MinHeight;
 
@@ -786,11 +960,11 @@ public class MGTheme
         Window.BorderThickness = Source.Window.BorderThickness;
         Window.ChromelessPadding = Source.Window.ChromelessPadding;
         Window.ChromelessBorderThickness = Source.Window.ChromelessBorderThickness;
-        Window.BorderBrush = Source.Window.BorderBrush?.Copy();
+        Window.BorderBrush = ShareOrCopy(Source.Window.BorderBrush);
         Window.TitleBarPadding = Source.Window.TitleBarPadding;
         Window.TitleBarMinHeight = Source.Window.TitleBarMinHeight;
         Window.CloseButtonBackground = Source.Window.CloseButtonBackground?.Copy();
-        Window.CloseButtonBorderBrush = Source.Window.CloseButtonBorderBrush?.Copy();
+        Window.CloseButtonBorderBrush = ShareOrCopy(Source.Window.CloseButtonBorderBrush);
         Window.CloseButtonBorderThickness = Source.Window.CloseButtonBorderThickness;
         Window.CloseButtonMargin = Source.Window.CloseButtonMargin;
         Window.CloseButtonPadding = Source.Window.CloseButtonPadding;
@@ -803,16 +977,16 @@ public class MGTheme
         Overlay.HostPadding = Source.Overlay.HostPadding;
         Overlay.Padding = Source.Overlay.Padding;
         Overlay.BorderThickness = Source.Overlay.BorderThickness;
-        Overlay.BorderBrush = Source.Overlay.BorderBrush?.Copy();
+        Overlay.BorderBrush = ShareOrCopy(Source.Overlay.BorderBrush);
         Overlay.CloseButtonBackground = Source.Overlay.CloseButtonBackground?.Copy();
-        Overlay.CloseButtonBorderBrush = Source.Overlay.CloseButtonBorderBrush?.Copy();
+        Overlay.CloseButtonBorderBrush = ShareOrCopy(Source.Overlay.CloseButtonBorderBrush);
         Overlay.CloseButtonBorderThickness = Source.Overlay.CloseButtonBorderThickness;
         Overlay.CloseButtonPadding = Source.Overlay.CloseButtonPadding;
         Overlay.CloseButtonMinWidth = Source.Overlay.CloseButtonMinWidth;
         Overlay.CloseButtonMinHeight = Source.Overlay.CloseButtonMinHeight;
 
         ContextMenu.Padding = Source.ContextMenu.Padding;
-        ContextMenu.BorderBrush = Source.ContextMenu.BorderBrush?.Copy();
+        ContextMenu.BorderBrush = ShareOrCopy(Source.ContextMenu.BorderBrush);
         ContextMenu.BorderThickness = Source.ContextMenu.BorderThickness;
 
         ContextMenuItem.HeaderMargin = Source.ContextMenuItem.HeaderMargin;
@@ -825,21 +999,21 @@ public class MGTheme
         ListBox.OuterBackground = Source.ListBox.OuterBackground?.Copy();
         ListBox.TitlePadding = Source.ListBox.TitlePadding;
         ListBox.TitleForeground = Source.ListBox.TitleForeground?.GetCopy();
-        ListBox.TitleBorderBrush = Source.ListBox.TitleBorderBrush?.Copy();
+        ListBox.TitleBorderBrush = ShareOrCopy(Source.ListBox.TitleBorderBrush);
         ListBox.TitleBorderThickness = Source.ListBox.TitleBorderThickness;
-        ListBox.InnerBorderBrush = Source.ListBox.InnerBorderBrush?.Copy();
+        ListBox.InnerBorderBrush = ShareOrCopy(Source.ListBox.InnerBorderBrush);
         ListBox.InnerBorderThickness = Source.ListBox.InnerBorderThickness;
         ListBox.ScrollViewerPadding = Source.ListBox.ScrollViewerPadding;
-        ListBox.ItemsPanelBorderBrush = Source.ListBox.ItemsPanelBorderBrush?.Copy();
+        ListBox.ItemsPanelBorderBrush = ShareOrCopy(Source.ListBox.ItemsPanelBorderBrush);
         ListBox.ItemsPanelBorderThickness = Source.ListBox.ItemsPanelBorderThickness;
         ListBox.ItemPadding = Source.ListBox.ItemPadding;
         ListBox.ItemContentPadding = Source.ListBox.ItemContentPadding;
 
         ListView.HeaderForeground = Source.ListView.HeaderForeground?.GetCopy();
-        ListView.GridLineBrush = Source.ListView.GridLineBrush?.Copy();
+        ListView.GridLineBrush = ShareOrCopy(Source.ListView.GridLineBrush);
 
         PropertyGrid.Padding = Source.PropertyGrid.Padding;
-        PropertyGrid.BorderBrush = Source.PropertyGrid.BorderBrush?.Copy();
+        PropertyGrid.BorderBrush = ShareOrCopy(Source.PropertyGrid.BorderBrush);
         PropertyGrid.BorderThickness = Source.PropertyGrid.BorderThickness;
         PropertyGrid.ScrollViewerPadding = Source.PropertyGrid.ScrollViewerPadding;
         PropertyGrid.CategoriesSpacing = Source.PropertyGrid.CategoriesSpacing;
@@ -850,16 +1024,16 @@ public class MGTheme
         PropertyGrid.CategoryArrowColor = Source.PropertyGrid.CategoryArrowColor;
         PropertyGrid.RowPadding = Source.PropertyGrid.RowPadding;
         PropertyGrid.RowsSpacing = Source.PropertyGrid.RowsSpacing;
-        PropertyGrid.RowSeparatorBrush = Source.PropertyGrid.RowSeparatorBrush?.Copy();
-        PropertyGrid.InvalidEditorBorderBrush = Source.PropertyGrid.InvalidEditorBorderBrush?.Copy();
+        PropertyGrid.RowSeparatorBrush = ShareOrCopy(Source.PropertyGrid.RowSeparatorBrush);
+        PropertyGrid.InvalidEditorBorderBrush = ShareOrCopy(Source.PropertyGrid.InvalidEditorBorderBrush);
 
         ComboBox.Padding = Source.ComboBox.Padding;
         ComboBox.MinHeight = Source.ComboBox.MinHeight;
-        ComboBox.BorderBrush = Source.ComboBox.BorderBrush?.Copy();
+        ComboBox.BorderBrush = ShareOrCopy(Source.ComboBox.BorderBrush);
         ComboBox.DropdownArrowMargin = Source.ComboBox.DropdownArrowMargin;
         ComboBox.DropdownMinWidth = Source.ComboBox.DropdownMinWidth;
         ComboBox.DropdownBorderThickness = Source.ComboBox.DropdownBorderThickness;
-        ComboBox.DropdownBorderBrush = Source.ComboBox.DropdownBorderBrush?.Copy();
+        ComboBox.DropdownBorderBrush = ShareOrCopy(Source.ComboBox.DropdownBorderBrush);
         ComboBox.DropdownPadding = Source.ComboBox.DropdownPadding;
         ComboBox.DropdownScrollViewerPadding = Source.ComboBox.DropdownScrollViewerPadding;
         ComboBox.DropdownItemsSpacing = Source.ComboBox.DropdownItemsSpacing;
@@ -870,7 +1044,7 @@ public class MGTheme
         TreeViewTemplate.ItemsPanelSpacing = Source.TreeViewTemplate.ItemsPanelSpacing;
 
         TabControl.Padding = Source.TabControl.Padding;
-        TabControl.BorderBrush = Source.TabControl.BorderBrush?.Copy();
+        TabControl.BorderBrush = ShareOrCopy(Source.TabControl.BorderBrush);
         TabControl.BorderThickness = Source.TabControl.BorderThickness;
         TabControl.HeadersSpacing = Source.TabControl.HeadersSpacing;
         TabControl.SelectedHeaderPadding = Source.TabControl.SelectedHeaderPadding;
@@ -878,48 +1052,48 @@ public class MGTheme
         TabControl.SideHeaderPadding = Source.TabControl.SideHeaderPadding;
 
         Graph.Padding = Source.Graph.Padding;
-        Graph.BorderBrush = Source.Graph.BorderBrush?.Copy();
+        Graph.BorderBrush = ShareOrCopy(Source.Graph.BorderBrush);
         Graph.BorderThickness = Source.Graph.BorderThickness;
         Graph.CanvasBackground = Source.Graph.CanvasBackground?.Copy();
-        Graph.GridLineBrush = Source.Graph.GridLineBrush?.Copy();
-        Graph.MajorGridLineBrush = Source.Graph.MajorGridLineBrush?.Copy();
-        Graph.EdgeBrush = Source.Graph.EdgeBrush?.Copy();
-        Graph.SelectedEdgeBrush = Source.Graph.SelectedEdgeBrush?.Copy();
-        Graph.NodeBorderBrush = Source.Graph.NodeBorderBrush?.Copy();
+        Graph.GridLineBrush = ShareOrCopy(Source.Graph.GridLineBrush);
+        Graph.MajorGridLineBrush = ShareOrCopy(Source.Graph.MajorGridLineBrush);
+        Graph.EdgeBrush = ShareOrCopy(Source.Graph.EdgeBrush);
+        Graph.SelectedEdgeBrush = ShareOrCopy(Source.Graph.SelectedEdgeBrush);
+        Graph.NodeBorderBrush = ShareOrCopy(Source.Graph.NodeBorderBrush);
         Graph.NodeBorderThickness = Source.Graph.NodeBorderThickness;
-        Graph.NodeSelectedBorderBrush = Source.Graph.NodeSelectedBorderBrush?.Copy();
+        Graph.NodeSelectedBorderBrush = ShareOrCopy(Source.Graph.NodeSelectedBorderBrush);
         Graph.NodeSelectedBorderThickness = Source.Graph.NodeSelectedBorderThickness;
         Graph.NodeHeaderBackground = Source.Graph.NodeHeaderBackground?.Copy();
         Graph.NodeHeaderForeground = Source.Graph.NodeHeaderForeground?.Copy();
         Graph.NodeBodyBackground = Source.Graph.NodeBodyBackground?.Copy();
-        Graph.PortBackground = Source.Graph.PortBackground?.Copy();
+        Graph.PortBackground = ShareOrCopy(Source.Graph.PortBackground);
         Graph.PortForeground = Source.Graph.PortForeground?.Copy();
         Graph.CommentBackground = Source.Graph.CommentBackground?.Copy();
-        Graph.CommentBorderBrush = Source.Graph.CommentBorderBrush?.Copy();
+        Graph.CommentBorderBrush = ShareOrCopy(Source.Graph.CommentBorderBrush);
 
-        Docking.TabNormalBackground = Source.Docking.TabNormalBackground?.Copy();
-        Docking.TabHoverBackground = Source.Docking.TabHoverBackground?.Copy();
-        Docking.TabActiveBackground = Source.Docking.TabActiveBackground?.Copy();
+        Docking.TabNormalBackground = ShareOrCopy(Source.Docking.TabNormalBackground);
+        Docking.TabHoverBackground = ShareOrCopy(Source.Docking.TabHoverBackground);
+        Docking.TabActiveBackground = ShareOrCopy(Source.Docking.TabActiveBackground);
         Docking.TabActiveAccentColor = Source.Docking.TabActiveAccentColor;
         Docking.TabHoverAccentColor = Source.Docking.TabHoverAccentColor;
         Docking.TabActiveTextColor = Source.Docking.TabActiveTextColor;
         Docking.TabInactiveTextColor = Source.Docking.TabInactiveTextColor;
         Docking.TabActiveIconColor = Source.Docking.TabActiveIconColor;
         Docking.TabInactiveIconColor = Source.Docking.TabInactiveIconColor;
-        Docking.AutoHideDrawerBackground = Source.Docking.AutoHideDrawerBackground?.Copy();
-        Docking.AutoHideDrawerHeaderBackground = Source.Docking.AutoHideDrawerHeaderBackground?.Copy();
+        Docking.AutoHideDrawerBackground = ShareOrCopy(Source.Docking.AutoHideDrawerBackground);
+        Docking.AutoHideDrawerHeaderBackground = ShareOrCopy(Source.Docking.AutoHideDrawerHeaderBackground);
         Docking.AutoHideButtonBackground = Source.Docking.AutoHideButtonBackground?.Copy();
         Docking.AutoHideHeaderTextColor = Source.Docking.AutoHideHeaderTextColor;
         Docking.AutoHideIconColor = Source.Docking.AutoHideIconColor;
         Docking.AutoHideBorderColor = Source.Docking.AutoHideBorderColor;
         Docking.AutoHideGripColor = Source.Docking.AutoHideGripColor;
-        Docking.AutoHideStripBackground = Source.Docking.AutoHideStripBackground?.Copy();
+        Docking.AutoHideStripBackground = ShareOrCopy(Source.Docking.AutoHideStripBackground);
         Docking.AutoHideStripButtonBackground = Source.Docking.AutoHideStripButtonBackground?.Copy();
         Docking.AutoHideStripTextColor = Source.Docking.AutoHideStripTextColor;
         Docking.AutoHideStripSeparatorColor = Source.Docking.AutoHideStripSeparatorColor;
-        Docking.SplitterNormalBrush = Source.Docking.SplitterNormalBrush?.Copy();
-        Docking.SplitterHoverBrush = Source.Docking.SplitterHoverBrush?.Copy();
-        Docking.SplitterPressedBrush = Source.Docking.SplitterPressedBrush?.Copy();
+        Docking.SplitterNormalBrush = ShareOrCopy(Source.Docking.SplitterNormalBrush);
+        Docking.SplitterHoverBrush = ShareOrCopy(Source.Docking.SplitterHoverBrush);
+        Docking.SplitterPressedBrush = ShareOrCopy(Source.Docking.SplitterPressedBrush);
         Docking.SplitterHoverOverlayColor = Source.Docking.SplitterHoverOverlayColor;
         Docking.SplitterPressedOverlayColor = Source.Docking.SplitterPressedOverlayColor;
         Docking.DropIndicatorInactiveColor = Source.Docking.DropIndicatorInactiveColor;

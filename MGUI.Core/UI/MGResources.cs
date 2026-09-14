@@ -648,6 +648,7 @@ public class MGResources
 
     public void AddStaticResource(string Name, object Value)
     {
+        FreezeIfBrush(Value);
         _StaticResources.Add(Name, Value);
         OnStaticResourceAdded?.Invoke(this, (Name, Value));
         OnStaticResourceLookupChanged?.Invoke(this, Name);
@@ -655,6 +656,8 @@ public class MGResources
 
     public void SetStaticResource(string Name, object Value)
     {
+        FreezeIfBrush(Value);
+
         if (_StaticResources.TryGetValue(Name, out var PreviousValue))
         {
             _StaticResources[Name] = Value;
@@ -668,6 +671,40 @@ public class MGResources
         }
 
         OnStaticResourceLookupChanged?.Invoke(this, Name);
+    }
+
+    /// <summary>Freezing policy (ADR-0009, W4): a brush registered as a static resource (<see cref="AddStaticResource"/>,
+    /// and <see cref="SetStaticResource"/> for a resource replaced in place -- a <c>DynamicResource</c> update still
+    /// swaps which instance is stored, per <see cref="MGUI.Core.UI.Styling.UIResourceReferenceApplicator"/>, it just
+    /// freezes the new one too) is frozen so <see cref="MGUI.Core.UI.Styling.UIResourceReferenceApplicator"/> can keep
+    /// handing every consumer the very same instance by reference. A non-brush resource, or a brush whose
+    /// <see cref="MGUI.Core.UI.Brushes.IUIFreezable.CanFreeze"/> is false, is left untouched.<para/>
+    /// Mirrors <see cref="MGTheme.FreezeThemeValue(object)"/> for the one shape a XAML resource dictionary actually
+    /// stores under a brush-typed <c>x:Key</c>: a plain <see cref="MGUI.Core.UI.Brushes.FillBrushes.IFillBrush"/> /
+    /// <see cref="MGUI.Core.UI.Brushes.BorderBrushes.IBorderBrush"/>, or (less commonly) a whole
+    /// <see cref="VisualStateFillBrush"/> whose non-null slots are frozen individually (the container itself is never
+    /// frozen, W3).</summary>
+    private static void FreezeIfBrush(object Value)
+    {
+        switch (Value)
+        {
+            case MGUI.Core.UI.Brushes.IUIFreezable { CanFreeze: true } Freezable:
+                Freezable.Freeze();
+                break;
+            case VisualStateFillBrush Container:
+                FreezeIfBrush(Container.NormalValue);
+                FreezeIfBrush(Container.SelectedValue);
+                FreezeIfBrush(Container.FocusedValue);
+                FreezeIfBrush(Container.DisabledValue);
+                if (Container.HasCheckedValue)
+                {
+                    FreezeIfBrush(Container.CheckedValue);
+                }
+                //  See MGTheme.FreezeThemeValue's identical call: a slot may have subscribed the container to it while
+                //  still unfrozen, and freezing it just above raises no notification of its own.
+                Container.ResyncSlotSubscriptionsAfterExternalFreeze();
+                break;
+        }
     }
 
     public bool RemoveStaticResource(string Name)
