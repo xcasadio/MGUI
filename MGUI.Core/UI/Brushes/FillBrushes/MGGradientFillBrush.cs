@@ -1,24 +1,50 @@
 ﻿using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
+using MGUI.Core.UI.Brushes;
 
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
-/// <summary>An <see cref="IFillBrush"/> that fills its bounds with a gradient. Each corner has a specified <see cref="Color"/> that the gradient linearly interpolates to.<para/>
+/// <summary>An <see cref="IFillBrush"/> that fills its bounds with a gradient. Each corner has a specified <see cref="Color"/> that the gradient linearly interpolates to.
+/// Freezable (ADR-0009, W2): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose corner setters throw once frozen; <see cref="Copy"/> always
+/// returns an unfrozen instance.<para/>
 /// For a simpler version, use <see cref="MGDiagonalGradientFillBrush"/></summary>
-public readonly struct MGGradientFillBrush : IFillBrush
+public sealed class MGGradientFillBrush : UIFreezableBrush, IFillBrush
 {
-    public readonly Color TopLeftColor;
-    public readonly Color TopRightColor;
-    public readonly Color BottomLeftColor;
-    public readonly Color BottomRightColor;
+    private Color _TopLeftColor;
+    public Color TopLeftColor
+    {
+        get => _TopLeftColor;
+        set => SetProperty(ref _TopLeftColor, value);
+    }
+
+    private Color _TopRightColor;
+    public Color TopRightColor
+    {
+        get => _TopRightColor;
+        set => SetProperty(ref _TopRightColor, value);
+    }
+
+    private Color _BottomLeftColor;
+    public Color BottomLeftColor
+    {
+        get => _BottomLeftColor;
+        set => SetProperty(ref _BottomLeftColor, value);
+    }
+
+    private Color _BottomRightColor;
+    public Color BottomRightColor
+    {
+        get => _BottomRightColor;
+        set => SetProperty(ref _BottomRightColor, value);
+    }
 
     public MGGradientFillBrush(Color TopLeft, Color TopRight, Color BottomRight, Color BottomLeft)
     {
-        TopLeftColor = TopLeft;
-        TopRightColor = TopRight;
-        BottomLeftColor = BottomLeft;
-        BottomRightColor = BottomRight;
+        _TopLeftColor = TopLeft;
+        _TopRightColor = TopRight;
+        _BottomLeftColor = BottomLeft;
+        _BottomRightColor = BottomRight;
     }
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
@@ -80,15 +106,46 @@ public readonly struct MGGradientFillBrush : IFillBrush
     }
 
     public IFillBrush Copy() => new MGGradientFillBrush(TopLeftColor, TopRightColor, BottomRightColor, BottomLeftColor);
+
+    /// <summary>Value equality (ADR-0009, W2): two gradient brushes are equal when their four corner colours match, regardless of frozen state
+    /// or instance identity.</summary>
+    public bool ValueEquals(IFillBrush other) => other is MGGradientFillBrush g
+        && g.TopLeftColor == TopLeftColor && g.TopRightColor == TopRightColor
+        && g.BottomLeftColor == BottomLeftColor && g.BottomRightColor == BottomRightColor;
+
+    /// <summary>Decision taken during delivery (ADR-0009, W2): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
+    public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
+    public override int GetHashCode() => HashCode.Combine(TopLeftColor, TopRightColor, BottomLeftColor, BottomRightColor);
 }
 
-/// <summary>A simplified version of <see cref="MGGradientFillBrush"/> that only requires 2 <see cref="Color"/>s for opposite corners of the bounds.</summary>
-public readonly struct MGDiagonalGradientFillBrush : IFillBrush
+/// <summary>A simplified version of <see cref="MGGradientFillBrush"/> that only requires 2 <see cref="Color"/>s for opposite corners of the bounds.
+/// Freezable (ADR-0009, W2): a sealed mutable class deriving from <see cref="UIFreezableBrush"/> whose setters throw once frozen; <see cref="Copy"/>
+/// always returns an unfrozen instance.</summary>
+public sealed class MGDiagonalGradientFillBrush : UIFreezableBrush, IFillBrush
 {
-    public readonly Color Color1;
-    public readonly Color Color2;
-    public readonly CornerType Color1Position;
-    public readonly CornerType Color2Position => OppositeCorners[Color1Position];
+    private Color _Color1;
+    public Color Color1
+    {
+        get => _Color1;
+        set => SetProperty(ref _Color1, value);
+    }
+
+    private Color _Color2;
+    public Color Color2
+    {
+        get => _Color2;
+        set => SetProperty(ref _Color2, value);
+    }
+
+    private CornerType _Color1Position;
+    public CornerType Color1Position
+    {
+        get => _Color1Position;
+        set => SetProperty(ref _Color1Position, value);
+    }
+
+    public CornerType Color2Position => OppositeCorners[Color1Position];
 
     public Color GetColor(CornerType Corner)
     {
@@ -117,9 +174,9 @@ public readonly struct MGDiagonalGradientFillBrush : IFillBrush
     /// <param name="Color1Position">The corner that <paramref name="Color1"/> is associated with. <see cref="Color2"/> will be at the opposite corner.</param>
     public MGDiagonalGradientFillBrush(Color Color1, Color Color2, CornerType Color1Position)
     {
-        this.Color1 = Color1;
-        this.Color2 = Color2;
-        this.Color1Position = Color1Position;
+        _Color1 = Color1;
+        _Color2 = Color2;
+        _Color1Position = Color1Position;
     }
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
@@ -143,4 +200,14 @@ public readonly struct MGDiagonalGradientFillBrush : IFillBrush
             GetColor(CornerType.BottomLeft)).Draw(DA, Element, Shape, Geometry);
 
     public IFillBrush Copy() => new MGDiagonalGradientFillBrush(Color1, Color2, Color1Position);
+
+    /// <summary>Value equality (ADR-0009, W2): two diagonal-gradient brushes are equal when <see cref="Color1"/>, <see cref="Color2"/> and
+    /// <see cref="Color1Position"/> match, regardless of frozen state or instance identity.</summary>
+    public bool ValueEquals(IFillBrush other) => other is MGDiagonalGradientFillBrush d
+        && d.Color1 == Color1 && d.Color2 == Color2 && d.Color1Position == Color1Position;
+
+    /// <summary>Decision taken during delivery (ADR-0009, W2): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
+    /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
+    public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
+    public override int GetHashCode() => HashCode.Combine(Color1, Color2, Color1Position);
 }

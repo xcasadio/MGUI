@@ -1,10 +1,12 @@
 using System;
+using System.Reflection;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Rendering;
+using MGUI.Tests.Animation;
 using Microsoft.Xna.Framework;
 
 namespace MGUI.Tests.Architecture;
@@ -289,6 +291,139 @@ public class FreezableBrushTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         Assert.Equal(0, after - before);
+    }
+
+    #endregion
+
+    #region MGSolidFillBrush / MGGradientFillBrush / MGDiagonalGradientFillBrush (ADR-0009, W2)
+
+    [Fact]
+    public void MGSolidFillBrush_Setter_Notifies_And_Throws_When_Frozen()
+    {
+        MGSolidFillBrush brush = new(Color.Red);
+        int notificationCount = 0;
+        brush.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MGSolidFillBrush.Color))
+            {
+                notificationCount++;
+            }
+        };
+
+        brush.Color = Color.Blue;
+        Assert.Equal(1, notificationCount);
+        Assert.Equal(Color.Blue, brush.Color);
+
+        brush.Freeze();
+        Assert.Throws<InvalidOperationException>(() => brush.Color = Color.Green);
+    }
+
+    [Fact]
+    public void MGSolidFillBrush_Copy_Of_A_Frozen_Palette_Brush_Is_Unfrozen_And_Equal_By_Value()
+    {
+        MGSolidFillBrush copy = (MGSolidFillBrush)SolidFillBrushes.Red.Copy();
+
+        Assert.False(copy.IsFrozen);
+        Assert.True(copy.ValueEquals(SolidFillBrushes.Red));
+        copy.Color = Color.Black; // does not throw: the copy is independent and unfrozen
+        Assert.Equal(Color.Red, SolidFillBrushes.Red.Color); // the palette brush itself is untouched
+    }
+
+    [Fact]
+    public void SolidFillBrushes_Mutating_A_Palette_Brush_Throws()
+    {
+        Assert.Throws<InvalidOperationException>(() => SolidFillBrushes.Red.Color = Color.Black);
+    }
+
+    [Fact]
+    public void SolidFillBrushes_Every_Public_Static_Field_Is_Frozen()
+    {
+        FieldInfo[] fields = typeof(SolidFillBrushes).GetFields(BindingFlags.Public | BindingFlags.Static);
+        Assert.True(fields.Length > 100, $"Expected the full named-color palette (over 100 fields), found {fields.Length}.");
+
+        foreach (FieldInfo field in fields)
+        {
+            MGSolidFillBrush brush = Assert.IsType<MGSolidFillBrush>(field.GetValue(null));
+            Assert.True(brush.IsFrozen, $"SolidFillBrushes.{field.Name} is not frozen.");
+        }
+    }
+
+    [Fact]
+    public void MGGradientFillBrush_Setters_Notify_And_Throw_When_Frozen_Then_Copy_Is_Unfrozen()
+    {
+        MGGradientFillBrush brush = new(Color.Red, Color.Green, Color.Blue, Color.White);
+        int notificationCount = 0;
+        brush.PropertyChanged += (_, _) => notificationCount++;
+
+        brush.TopLeftColor = Color.Black;
+        Assert.Equal(1, notificationCount);
+        Assert.Equal(Color.Black, brush.TopLeftColor);
+
+        brush.Freeze();
+        Assert.Throws<InvalidOperationException>(() => brush.TopRightColor = Color.Yellow);
+
+        MGGradientFillBrush copy = (MGGradientFillBrush)brush.Copy();
+        Assert.False(copy.IsFrozen);
+        Assert.True(copy.ValueEquals(brush));
+        copy.BottomRightColor = Color.Orange; // does not throw
+    }
+
+    [Fact]
+    public void MGDiagonalGradientFillBrush_Setters_Notify_And_Throw_When_Frozen_Then_Copy_Is_Unfrozen()
+    {
+        MGDiagonalGradientFillBrush brush = new(Color.Red, Color.Blue, CornerType.TopLeft);
+        int notificationCount = 0;
+        brush.PropertyChanged += (_, _) => notificationCount++;
+
+        brush.Color1 = Color.Black;
+        Assert.Equal(1, notificationCount);
+
+        brush.Freeze();
+        Assert.Throws<InvalidOperationException>(() => brush.Color2 = Color.Yellow);
+        Assert.Throws<InvalidOperationException>(() => brush.Color1Position = CornerType.BottomRight);
+
+        MGDiagonalGradientFillBrush copy = (MGDiagonalGradientFillBrush)brush.Copy();
+        Assert.False(copy.IsFrozen);
+        Assert.True(copy.ValueEquals(brush));
+        copy.Color1Position = CornerType.BottomRight; // does not throw
+    }
+
+    [Fact]
+    public void ValueEquals_Distinguishes_The_Three_Converted_Brush_Types_From_Each_Other()
+    {
+        IFillBrush solid = new MGSolidFillBrush(Color.Red);
+        IFillBrush gradient = new MGGradientFillBrush(Color.Red, Color.Red, Color.Red, Color.Red);
+        IFillBrush diagonal = new MGDiagonalGradientFillBrush(Color.Red, Color.Red, CornerType.TopLeft);
+
+        Assert.False(UIBrushEquality.ValueEquals(solid, gradient));
+        Assert.False(UIBrushEquality.ValueEquals(solid, diagonal));
+        Assert.False(UIBrushEquality.ValueEquals(gradient, diagonal));
+
+        Assert.True(UIBrushEquality.ValueEquals(gradient, new MGGradientFillBrush(Color.Red, Color.Red, Color.Red, Color.Red)));
+        Assert.True(UIBrushEquality.ValueEquals(diagonal, new MGDiagonalGradientFillBrush(Color.Red, Color.Red, CornerType.TopLeft)));
+        Assert.False(UIBrushEquality.ValueEquals(diagonal, new MGDiagonalGradientFillBrush(Color.Red, Color.Red, CornerType.TopRight)));
+    }
+
+    /// <summary>Drawing-level probe (ACCEPTANCE 3): mutating the <see cref="MGSolidFillBrush.Color"/> of a brush set inline on an
+    /// element's <see cref="MGElement.BackgroundBrush"/> changes what the next drawn frame fills with, since the store/element now holds
+    /// a reference to the very same mutable instance instead of a boxed struct copy.</summary>
+    [Fact]
+    public void MutatingAnInlineSolidBrushColor_ChangesWhatTheNextFrameDraws()
+    {
+        AnimationTestScene scene = AnimationTestScene.Build();
+        MGSolidFillBrush brush = new(Color.Red);
+        scene.Top.BackgroundBrush.NormalValue = brush;
+        scene.Frames(1);
+
+        var beforeFrame = scene.Draw();
+        Assert.Contains(beforeFrame.FillRectangleCalls, call => call.Color == Color.Red);
+
+        brush.Color = Color.Blue;
+        scene.Frames(1);
+
+        var afterFrame = scene.Draw();
+        Assert.Contains(afterFrame.FillRectangleCalls, call => call.Color == Color.Blue);
+        Assert.DoesNotContain(afterFrame.FillRectangleCalls, call => call.Color == Color.Red);
     }
 
     #endregion

@@ -59,7 +59,10 @@ public readonly record struct VisualState(PrimaryVisualState Primary, SecondaryV
 
 public class VisualStateSetting<TDataType> : ViewModelBase
 {
-    private readonly IEqualityComparer<TDataType> EqualityComparer = MGUI.Core.UI.Brushes.UIBrushEquality.ForGuards<TDataType>();
+    /// <summary>Fix round (W2-fix, ADR-0009): reference equality for a brush-typed <typeparamref name="TDataType"/> -- a distinct instance
+    /// is a change even when it equals the stored one in value, since W4 lets the caller mutate that distinct instance afterwards and the
+    /// slot must already hold the exact instance for the mutation to reach it. See <see cref="MGUI.Core.UI.Brushes.UIBrushEquality.ForSlots{T}"/>.</summary>
+    private readonly IEqualityComparer<TDataType> EqualityComparer = MGUI.Core.UI.Brushes.UIBrushEquality.ForSlots<TDataType>();
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private TDataType _DisabledValue;
@@ -354,8 +357,10 @@ public abstract class VisualStateBrush<TDataType> : VisualStateSetting<TDataType
             _ => throw new NotImplementedException($"Unrecognized {nameof(SecondaryVisualState)}: {State}")
         };
 
-    /// <summary>Returns a <see cref="IFillBrush"/> that should be rendered overtop of the element's graphics, not including the border's bounds.</summary>
-    public MGSolidFillBrush? GetFillOverlay(SecondaryVisualState State) =>
+    /// <summary>Returns a <see cref="IFillBrush"/> that should be rendered overtop of the element's graphics, not including the border's bounds.
+    /// <see cref="MGSolidFillBrush"/> is a reference type since ADR-0009/W2: <see langword="null"/> means <see cref="SecondaryVisualState.None"/>,
+    /// same meaning as the pre-W2 <c>Nullable&lt;MGSolidFillBrush&gt;</c> "no value".</summary>
+    public MGSolidFillBrush GetFillOverlay(SecondaryVisualState State) =>
         State switch
         {
             SecondaryVisualState.Pressed => PressedFillOverlay,
@@ -428,7 +433,7 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
-        overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds);
+        overlay.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Bounds);
     }
 
     /// <summary>Rounded variant of <see cref="DrawFillOverlay(ElementDrawArgs, SecondaryVisualState, MGElement, Rectangle)"/>.</summary>
@@ -438,7 +443,7 @@ public class VisualStateFillBrush : VisualStateBrush<IFillBrush>
         var opacity = OverlayOpacity;
         if (overlay == null || opacity <= 0f)
             return;
-        overlay.Value.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
+        overlay.Draw(opacity >= 1f ? DA : DA.SetOpacity(DA.Opacity * opacity), Element, Shape, Geometry);
     }
 
     /// <summary>Draws the border overlay of <paramref name="State"/> with <see cref="VisualStateBrush{TDataType}.OverlayOpacity"/> applied.</summary>

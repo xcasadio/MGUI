@@ -1,6 +1,7 @@
 ﻿using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Shapes;
 using Microsoft.Xna.Framework;
+using MGUI.Core.UI.Brushes;
 
 namespace MGUI.Core.UI.Brushes.FillBrushes;
 
@@ -10,15 +11,22 @@ public static class ColorExtensions
     public static MGSolidFillBrush AsFillBrush(this Color @this) => new(@this);
 }
 
-/// <summary>An <see cref="IFillBrush"/> that uses a single solid <see cref="Color"/> to fill its bounds.<para/>
-/// See also: <see cref="SolidFillBrushes"/>, which contains several static <see cref="MGSolidFillBrush"/> such as <see cref="SolidFillBrushes.Green"/></summary>
-public readonly struct MGSolidFillBrush : IFillBrush
+/// <summary>An <see cref="IFillBrush"/> that uses a single solid <see cref="Color"/> to fill its bounds. Freezable (ADR-0009, W2): a sealed
+/// mutable class deriving from <see cref="UIFreezableBrush"/> whose <see cref="Color"/> setter throws once frozen; <see cref="Copy"/> always
+/// returns an unfrozen instance.<para/>
+/// See also: <see cref="SolidFillBrushes"/>, which contains several static, frozen <see cref="MGSolidFillBrush"/> such as <see cref="SolidFillBrushes.Green"/></summary>
+public sealed class MGSolidFillBrush : UIFreezableBrush, IFillBrush
 {
-    public readonly Color Color;
+    private Color _Color;
+    public Color Color
+    {
+        get => _Color;
+        set => SetProperty(ref _Color, value);
+    }
 
     public MGSolidFillBrush(Color Color)
     {
-        this.Color = Color;
+        _Color = Color;
     }
 
     public void Draw(ElementDrawArgs DA, MGElement Element, Rectangle Bounds)
@@ -47,13 +55,28 @@ public readonly struct MGSolidFillBrush : IFillBrush
 
     public IFillBrush Copy() => new MGSolidFillBrush(Color);
 
+    /// <summary>Value equality (ADR-0009, W2): two solid brushes are equal when their <see cref="Color"/> matches, regardless of frozen state
+    /// or instance identity.</summary>
+    public bool ValueEquals(IFillBrush other) => other is MGSolidFillBrush s && s.Color == Color;
+
+    /// <summary>Decision taken during delivery (ADR-0009, W2): overrides <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/> by
+    /// <see cref="Color"/> rather than leaving the base class' reference equality, so the by-value comparisons already relied on when this
+    /// type was a <see langword="readonly struct"/> (<c>Assert.Equal</c> in several pre-existing tests, some deliberately: e.g.
+    /// <c>ResolvedBackgroundPilotTests.TreeViewItem_Selection_...</c> documents comparing "value-equivalence" per ADR-0005/S5) keep working
+    /// unchanged. Two equal-valued instances remain distinguishable through plain reference equality (<see cref="object.ReferenceEquals(object, object)"/>)
+    /// wherever that is what is actually needed (the store's pilot writes and the paint per-frame dedup already use an explicit
+    /// reference-equality comparer, not this override).</summary>
+    public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
+    public override int GetHashCode() => Color.GetHashCode();
+
     public static explicit operator MGSolidFillBrush(Color color) => new(color);
     public static explicit operator Color(MGSolidFillBrush brush) => brush.Color;
 
     public static MGSolidFillBrush operator *(MGSolidFillBrush brush, float opacity) => new(brush.Color * opacity);
 }
 
-/// <summary>This class contains a static collection of <see cref="MGSolidFillBrush"/>es, one for each named HTML color.<para/>
+/// <summary>This class contains a static collection of <see cref="MGSolidFillBrush"/>es, one for each named HTML color. Every field is frozen
+/// (ADR-0009, W2) by the static constructor below, so the shared palette cannot be mutated by application code.<para/>
 /// See also: <see href="https://learn.microsoft.com/en-us/dotnet/media/art-color-table.png?view=windowsdesktop-6.0"/></summary>
 public static class SolidFillBrushes
 {
@@ -202,4 +225,17 @@ public static class SolidFillBrushes
     /// <summary>A custom dark gray brush: <c>RGB(76, 74, 72)</c>.<br/>
     /// Corresponds to the old <see cref="MGSolidFillBrush.SemiBlack"/> static.</summary>
     public static readonly MGSolidFillBrush SemiBlack = new(new Color(76, 74, 72));
+
+    /// <summary>Freezes every <see cref="MGSolidFillBrush"/> field declared above (ADR-0009, W2), by reflection so a future addition to the
+    /// palette does not need a matching line here.</summary>
+    static SolidFillBrushes()
+    {
+        foreach (System.Reflection.FieldInfo field in typeof(SolidFillBrushes).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+        {
+            if (field.GetValue(null) is MGSolidFillBrush brush)
+            {
+                brush.Freeze();
+            }
+        }
+    }
 }
