@@ -97,7 +97,7 @@ public static class UIExtraAnimationTargets
             => new UIPropertyChangedSubscription(element, nameof(MGElement.PreferredHeight), () => changed(element));
     }
 
-    private sealed class BackgroundGradientTarget : IUIObservableAnimationTarget<UIGradientColors>, IUIStoreBackedAnimationTarget<UIGradientColors>
+    private sealed class BackgroundGradientTarget : IUIObservableAnimationTarget<UIGradientColors>, IUIBrushAnimationTarget<UIGradientColors>
     {
         public string Path => Paths.BackgroundGradient;
         public bool IsStoreBacked => true;
@@ -142,10 +142,41 @@ public static class UIExtraAnimationTargets
                 source => element.SetBackgroundSlot(UIValueSlot.Normal, new MGGradientFillBrush(baseValue.TopLeft, baseValue.TopRight, baseValue.BottomRight, baseValue.BottomLeft), source));
 
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
-            => new UIContainerSlotSubscription(element, nameof(MGElement.BackgroundBrush), e => e.BackgroundBrush, nameof(VisualStateFillBrush.NormalValue), () => changed(element));
+            => new BackgroundSlotSubscription(element, nameof(VisualStateFillBrush.NormalValue), () => changed(element));
+
+        /// <summary>ADR-0009, W5: see <see cref="UIColorAnimationTargets"/>'s <c>BackgroundSlotTarget.BeginAnimatedValue</c> for the pattern
+        /// (recover the brush below the animation, clone it when it is a <see cref="MGGradientFillBrush"/>, else start fresh).</summary>
+        public object BeginAnimatedValue(MGElement element, string animationName)
+        {
+            var original = element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var below) ? below : null;
+            var clone = original is MGGradientFillBrush gradient ? (MGGradientFillBrush)gradient.Copy() : new MGGradientFillBrush(default, default, default, default);
+            element.SetBackgroundSlot(UIValueSlot.Normal, clone, AnimationSource(animationName));
+            return new UIBrushAnimationHandle<IFillBrush>(clone, original);
+        }
+
+        /// <summary>Mutates the clone's four corners through their own notifying setters (see <c>UIColorAnimationTargets</c>'s
+        /// <c>BackgroundSlotTarget.ApplyAnimatedValue</c> for why a suppressed setter was not used). No store write; no allocation.</summary>
+        public void ApplyAnimatedValue(object handle, UIGradientColors value)
+        {
+            var clone = (MGGradientFillBrush)((UIBrushAnimationHandle<IFillBrush>)handle).Clone;
+            clone.TopLeftColor = value.TopLeft;
+            clone.TopRightColor = value.TopRight;
+            clone.BottomRightColor = value.BottomRight;
+            clone.BottomLeftColor = value.BottomLeft;
+        }
+
+        /// <summary>Restores the exact base instance, re-reading it first (see <c>UIColorAnimationTargets</c>'s <c>BackgroundSlotTarget.EndAnimatedValue</c>
+        /// for why: a container swap mid-run promotes the swapped-in container's own value into a real contribution).</summary>
+        public void EndAnimatedValue(MGElement element, object handle, UIGradientColors baseValue)
+        {
+            var h = (UIBrushAnimationHandle<IFillBrush>)handle;
+            var restored = (element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var below) ? below : null)
+                ?? h.Original ?? new MGGradientFillBrush(baseValue.TopLeft, baseValue.TopRight, baseValue.BottomRight, baseValue.BottomLeft);
+            UIColorAnimationTargets.RestoreSlot(element, UIPilotProperty.Background, UIValueSlot.Normal, source => element.SetBackgroundSlot(UIValueSlot.Normal, restored, source));
+        }
     }
 
-    private sealed class BackgroundDiagonalGradientTarget : IUIObservableAnimationTarget<UIDiagonalGradientColors>, IUIStoreBackedAnimationTarget<UIDiagonalGradientColors>
+    private sealed class BackgroundDiagonalGradientTarget : IUIObservableAnimationTarget<UIDiagonalGradientColors>, IUIBrushAnimationTarget<UIDiagonalGradientColors>
     {
         public string Path => Paths.BackgroundDiagonalGradient;
         public bool IsStoreBacked => true;
@@ -190,6 +221,36 @@ public static class UIExtraAnimationTargets
                 source => element.SetBackgroundSlot(UIValueSlot.Normal, new MGDiagonalGradientFillBrush(baseValue.Color1, baseValue.Color2, baseValue.Color1Position), source));
 
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
-            => new UIContainerSlotSubscription(element, nameof(MGElement.BackgroundBrush), e => e.BackgroundBrush, nameof(VisualStateFillBrush.NormalValue), () => changed(element));
+            => new BackgroundSlotSubscription(element, nameof(VisualStateFillBrush.NormalValue), () => changed(element));
+
+        /// <summary>ADR-0009, W5: see <see cref="UIColorAnimationTargets"/>'s <c>BackgroundSlotTarget.BeginAnimatedValue</c> for the pattern
+        /// (recover the brush below the animation, clone it when it is a <see cref="MGDiagonalGradientFillBrush"/>, else start fresh).</summary>
+        public object BeginAnimatedValue(MGElement element, string animationName)
+        {
+            var original = element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var below) ? below : null;
+            var clone = original is MGDiagonalGradientFillBrush diagonal ? (MGDiagonalGradientFillBrush)diagonal.Copy() : new MGDiagonalGradientFillBrush(default, default, default);
+            element.SetBackgroundSlot(UIValueSlot.Normal, clone, AnimationSource(animationName));
+            return new UIBrushAnimationHandle<IFillBrush>(clone, original);
+        }
+
+        /// <summary>Mutates the clone's two colours and corner through their own notifying setters (see <c>UIColorAnimationTargets</c>'s
+        /// <c>BackgroundSlotTarget.ApplyAnimatedValue</c> for why a suppressed setter was not used). No store write; no allocation.</summary>
+        public void ApplyAnimatedValue(object handle, UIDiagonalGradientColors value)
+        {
+            var clone = (MGDiagonalGradientFillBrush)((UIBrushAnimationHandle<IFillBrush>)handle).Clone;
+            clone.Color1 = value.Color1;
+            clone.Color2 = value.Color2;
+            clone.Color1Position = value.Color1Position;
+        }
+
+        /// <summary>Restores the exact base instance, re-reading it first (see <c>UIColorAnimationTargets</c>'s <c>BackgroundSlotTarget.EndAnimatedValue</c>
+        /// for why: a container swap mid-run promotes the swapped-in container's own value into a real contribution).</summary>
+        public void EndAnimatedValue(MGElement element, object handle, UIDiagonalGradientColors baseValue)
+        {
+            var h = (UIBrushAnimationHandle<IFillBrush>)handle;
+            var restored = (element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var below) ? below : null)
+                ?? h.Original ?? new MGDiagonalGradientFillBrush(baseValue.Color1, baseValue.Color2, baseValue.Color1Position);
+            UIColorAnimationTargets.RestoreSlot(element, UIPilotProperty.Background, UIValueSlot.Normal, source => element.SetBackgroundSlot(UIValueSlot.Normal, restored, source));
+        }
     }
 }

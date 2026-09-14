@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using Microsoft.Xna.Framework;
 using MGUI.Core.UI.Brushes.FillBrushes;
@@ -9,10 +10,9 @@ namespace MGUI.Core.UI.Animation.Targets;
 /// The solid-colour animation targets (S5; ADR-0006): the background slots (<see cref="Paths.Background"/> and its Selected, Disabled and
 /// Focused variants), the text foreground of an <see cref="MGTextBlock"/> (<see cref="Paths.Foreground"/>), the inherited text foreground of
 /// any element (<see cref="Paths.TextForeground"/>) and the uniform border colour (<see cref="Paths.BorderBrush"/>).<para/>
-/// All are store-backed: every tick writes a new <see cref="MGSolidFillBrush"/> (or <see cref="MGUniformBorderBrush"/>) through the tagged slot
-/// setter with the <c>Animation</c> source, and restoring clears that contribution. Only solid brushes are interpolated: starting an
-/// animation on a gradient, texture or nine-slice fails with an explicit <see cref="InvalidOperationException"/>. Each tick boxes the solid
-/// fill (an interface slot) and allocates the border brush: an accepted cost, documented in Docs/Tasks/animation-tasks.md.<para/>
+/// All are store-backed: the four background slots and <see cref="Paths.BorderBrush"/> are <see cref="IUIBrushAnimationTarget{T}"/>s (ADR-0009,
+/// W5): a run clones the base brush once and mutates that one clone every tick, with no store write and no allocation past the first tick;
+/// <see cref="Foreground"/>/<see cref="TextForeground"/> write a <c>Color?</c>, not a brush, and stay a plain <see cref="IUIStoreBackedAnimationTarget{T}"/>.<para/>
 /// All are observable (S6): a transition follows the container held by the element and the sub-field inside it.
 /// </summary>
 public static class UIColorAnimationTargets
@@ -61,7 +61,7 @@ public static class UIColorAnimationTargets
             $"'{path}' of {element.GetType().Name} is {(brush == null ? "empty" : "a " + brush.GetType().Name)}: only solid colours ({nameof(MGSolidFillBrush)}) can be animated.");
     }
 
-    private sealed class BackgroundSlotTarget : IUIObservableAnimationTarget<Color>, IUIStoreBackedAnimationTarget<Color>
+    private sealed class BackgroundSlotTarget : IUIObservableAnimationTarget<Color>, IUIBrushAnimationTarget<Color>
     {
         private readonly UIValueSlot _slot;
         private readonly string _slotPropertyName;
@@ -119,7 +119,37 @@ public static class UIColorAnimationTargets
             => RestoreSlot(element, UIPilotProperty.Background, _slot, source => element.SetBackgroundSlot(_slot, new MGSolidFillBrush(baseValue), source));
 
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
-            => new UIContainerSlotSubscription(element, nameof(MGElement.BackgroundBrush), e => e.BackgroundBrush, _slotPropertyName, () => changed(element));
+            => new BackgroundSlotSubscription(element, _slotPropertyName, () => changed(element));
+
+        /// <summary>ADR-0009, W5: the clone is a <see cref="IFillBrush.Copy"/> of the solid brush recovered below the animation (read the same
+        /// way <see cref="TryGetValueBelowAnimation"/> does, before the write just below records anything under <c>Animation</c>), or a fresh
+        /// <see cref="MGSolidFillBrush"/> when nothing could be recovered (a replaced run already occupied this slot).</summary>
+        public object BeginAnimatedValue(MGElement element, string animationName)
+        {
+            var original = element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, _slot, UIValueSourceKind.Animation, out var below) ? below : null;
+            var clone = original is MGSolidFillBrush solid ? (MGSolidFillBrush)solid.Copy() : new MGSolidFillBrush(Color.Transparent);
+            element.SetBackgroundSlot(_slot, clone, AnimationSource(UIPilotProperty.Background, animationName));
+            return new UIBrushAnimationHandle<IFillBrush>(clone, original);
+        }
+
+        /// <summary>Mutates the clone's own <see cref="MGSolidFillBrush.Color"/> setter (ADR-0009, W5: not a special non-notifying path -- see
+        /// the "Decisions taken during delivery" note for W5 in ADR-0009 for why the plain, notifying setter was kept). No store write; no
+        /// allocation (the setter's own equality check does not box a <see cref="Color"/>, and the notification reuses a cached
+        /// <see cref="System.ComponentModel.PropertyChangedEventArgs"/>).</summary>
+        public void ApplyAnimatedValue(object handle, Color value)
+            => ((MGSolidFillBrush)((UIBrushAnimationHandle<IFillBrush>)handle).Clone).Color = value;
+
+        /// <summary>Restores the exact base instance: re-reads "the value below the animation" first (ADR-0009, W5 -- a container swap mid-run
+        /// promotes the swapped-in container's own value into a real contribution, <see cref="MGElement.PromoteSwappedContainerValueBelowRunningAnimation"/>,
+        /// so this now sees the NEW theme's base rather than the one captured when the run started), falling back to the instance
+        /// <see cref="BeginAnimatedValue"/> captured, then to a fresh brush from <paramref name="baseValue"/>.</summary>
+        public void EndAnimatedValue(MGElement element, object handle, Color baseValue)
+        {
+            var h = (UIBrushAnimationHandle<IFillBrush>)handle;
+            var restored = (element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, _slot, UIValueSourceKind.Animation, out var below) ? below : null)
+                ?? h.Original ?? new MGSolidFillBrush(baseValue);
+            RestoreSlot(element, UIPilotProperty.Background, _slot, source => element.SetBackgroundSlot(_slot, restored, source));
+        }
     }
 
     private sealed class ForegroundTarget : IUIObservableAnimationTarget<Color>, IUIStoreBackedAnimationTarget<Color>
@@ -211,7 +241,7 @@ public static class UIColorAnimationTargets
             => new UIContainerSlotSubscription(element, nameof(MGElement.DefaultTextForeground), e => e.DefaultTextForeground, nameof(VisualStateSetting<Color?>.NormalValue), () => changed(element));
     }
 
-    private sealed class BorderBrushTarget : IUIObservableAnimationTarget<Color>, IUIStoreBackedAnimationTarget<Color>
+    private sealed class BorderBrushTarget : IUIObservableAnimationTarget<Color>, IUIBrushAnimationTarget<Color>
     {
         public string Path => Paths.BorderBrush;
 
@@ -261,8 +291,119 @@ public static class UIColorAnimationTargets
         public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
             => new UIPropertyChangedSubscription(RequireBorder(element), nameof(MGBorder.BorderBrush), () => changed(element));
 
+        /// <summary>ADR-0009, W5: the clone is a <see cref="IBorderBrush.Copy"/> of the uniform-over-solid border brush recovered below the
+        /// animation, or a fresh <see cref="MGUniformBorderBrush"/> over a fresh <see cref="MGSolidFillBrush"/> when nothing could be recovered
+        /// (a replaced run already occupied this path). <see cref="MGUniformBorderBrush.Copy"/> already copies its inner <see cref="IFillBrush"/>
+        /// unfrozen, so the clone is never a shared or frozen instance.</summary>
+        public object BeginAnimatedValue(MGElement element, string animationName)
+        {
+            var original = element.TryGetResolvedPilotValueExcluding<IBorderBrush>(UIPilotProperty.BorderBrush, UIValueSlot.Whole, UIValueSourceKind.Animation, out var below) ? below : null;
+            var clone = original is MGUniformBorderBrush uniform && uniform.Brush is MGSolidFillBrush
+                ? (MGUniformBorderBrush)uniform.Copy()
+                : new MGUniformBorderBrush(new MGSolidFillBrush(Color.Transparent));
+            element.SetBorderBrushTagged(clone, AnimationSource(UIPilotProperty.BorderBrush, animationName));
+            return new UIBrushAnimationHandle<IBorderBrush>(clone, original);
+        }
+
+        /// <summary>Mutates the clone's inner <see cref="MGSolidFillBrush"/> through its own <see cref="MGSolidFillBrush.Color"/> setter (see
+        /// <c>BackgroundSlotTarget.ApplyAnimatedValue</c> for why this is the plain, notifying setter rather than a suppressed one). No store
+        /// write; no allocation.</summary>
+        public void ApplyAnimatedValue(object handle, Color value)
+            => ((MGSolidFillBrush)((MGUniformBorderBrush)((UIBrushAnimationHandle<IBorderBrush>)handle).Clone).Brush).Color = value;
+
+        public void EndAnimatedValue(MGElement element, object handle, Color baseValue)
+        {
+            var h = (UIBrushAnimationHandle<IBorderBrush>)handle;
+            var restored = h.Original ?? new MGUniformBorderBrush(new MGSolidFillBrush(baseValue));
+            RestoreSlot(RequireBorder(element), UIPilotProperty.BorderBrush, UIValueSlot.Whole, source => element.SetBorderBrushTagged(restored, source));
+        }
+
         private static MGBorder RequireBorder(MGElement element)
             => element.GetBorder() ?? throw new InvalidOperationException(
                 $"'{Paths.BorderBrush}' needs a border: {element.GetType().Name} exposes none ({nameof(MGElement.GetBorder)} is null).");
+    }
+}
+
+/// <summary>Subscribes to a Background sub-slot for the three fill-typed targets (<see cref="UIColorAnimationTargets"/>'s background slots,
+/// <see cref="UIExtraAnimationTargets"/>'s two gradients): the same container-swap and slot-reference-changed events
+/// <see cref="UIContainerSlotSubscription"/> already reacts to, PLUS the container's <see cref="VisualStateFillBrush.SlotBrushMutatedPropertyName"/>
+/// relay (ADR-0009, W5, "Decisions taken during delivery"). Needed because a run's clone, once written into the slot, never changes reference
+/// again (no allocation past the first tick): the slot-reference name a plain <see cref="UIContainerSlotSubscription"/> listens for only fires
+/// once, at <see cref="Animation.IUIBrushAnimationTarget{T}.BeginAnimatedValue"/> -- every later tick only mutates the clone's own fields, which
+/// the container relays under the distinct <c>SlotBrushMutated</c> name specifically so the resolved-value store ignores it (W4); a
+/// <see cref="Animation.UITransition{T}"/> subscribed through <see cref="UIContainerSlotSubscription"/> would therefore never notice a named
+/// state exiting or a local write changing the value below a running clone. Kept as its own type rather than widening
+/// <see cref="UIContainerSlotSubscription"/> itself: that shared type also serves <c>Foreground</c>/<c>DefaultTextForeground</c>, whose
+/// <see cref="Color"/>? slots have no such relay and no clone to mutate in place.</summary>
+internal sealed class BackgroundSlotSubscription : IDisposable
+{
+    private readonly MGElement _Element;
+    private readonly string _SlotPropertyName;
+    private readonly Action _Changed;
+    private VisualStateFillBrush _Container;
+    private bool _Disposed;
+
+    public BackgroundSlotSubscription(MGElement element, string slotPropertyName, Action changed)
+    {
+        _Element = element ?? throw new ArgumentNullException(nameof(element));
+        _SlotPropertyName = slotPropertyName ?? throw new ArgumentNullException(nameof(slotPropertyName));
+        _Changed = changed ?? throw new ArgumentNullException(nameof(changed));
+        _Element.PropertyChanged += HandleElementPropertyChanged;
+        AttachContainer();
+    }
+
+    private void AttachContainer()
+    {
+        var container = _Element.BackgroundBrush;
+        if (ReferenceEquals(container, _Container))
+        {
+            return;
+        }
+
+        if (_Container != null)
+        {
+            _Container.PropertyChanged -= HandleContainerPropertyChanged;
+        }
+
+        _Container = container;
+        if (_Container != null)
+        {
+            _Container.PropertyChanged += HandleContainerPropertyChanged;
+        }
+    }
+
+    private void HandleElementPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (_Disposed || e.PropertyName != nameof(MGElement.BackgroundBrush))
+        {
+            return;
+        }
+
+        AttachContainer();
+        _Changed();
+    }
+
+    private void HandleContainerPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (!_Disposed && (e.PropertyName == _SlotPropertyName || e.PropertyName == VisualStateFillBrush.SlotBrushMutatedPropertyName))
+        {
+            _Changed();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_Disposed)
+        {
+            return;
+        }
+
+        _Disposed = true;
+        _Element.PropertyChanged -= HandleElementPropertyChanged;
+        if (_Container != null)
+        {
+            _Container.PropertyChanged -= HandleContainerPropertyChanged;
+            _Container = null;
+        }
     }
 }

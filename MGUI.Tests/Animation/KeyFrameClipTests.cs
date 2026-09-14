@@ -364,8 +364,8 @@ public class KeyFrameClipTests
     {
         // Opacity (plain CLR write) and Margin (tagged pilot write of a struct) are the framework's known zero-allocation targets
         // (KeyFrameTests.Animation_AllocatesNothingPerTick, TransitionTests.RunningPilotTransition_AllocatesNothingPerTick_AfterWarmUp);
-        // Background is deliberately not exercised here, since every SetValue on that target allocates a new MGSolidFillBrush regardless
-        // of this slice (RunningPilotTransition's own target is Margin for the same reason).
+        // Background now joins them (ADR-0009, W5): the run's clone is created once when the track starts and mutated in place every
+        // tick, so the allocation this comment used to document (a new MGSolidFillBrush per tick) no longer happens.
         AnimationTestScene scene = AnimationTestScene.Build();
         TimeSpan duration = TimeSpan.FromMilliseconds(100000);
         UIStoryboard source = new()
@@ -373,6 +373,7 @@ public class KeyFrameClipTests
             new UIKeyFrameAnimation<float>(UIBuiltInAnimationTargets.Paths.Opacity) { Duration = duration, Track = { { 0f, 0f }, { 1f, 1f } } },
             new UIKeyFrameAnimation<Vector2>(UIBuiltInAnimationTargets.Paths.RenderTransformScale) { Duration = duration, Track = { { 0f, Vector2.Zero }, { 1f, Vector2.One } } },
             new UIKeyFrameAnimation<Thickness>(UIBuiltInAnimationTargets.Paths.Margin) { Duration = duration, Track = { { 0f, new Thickness(0) }, { 1f, new Thickness(10) } } },
+            new UIKeyFrameAnimation<Color>(UIColorAnimationTargets.Paths.Background) { Duration = duration, Track = { { 0f, Color.Black }, { 1f, Color.White } } },
         };
         source.Duration = duration;
         string json = UIKeyFrameClipSerializer.Serialize(source);

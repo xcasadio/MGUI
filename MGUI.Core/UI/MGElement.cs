@@ -1735,13 +1735,25 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         try
         {
             if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, out var normal) && normal.IsSet && normal.Source.Precedence >= effectivePrecedence)
+            {
+                PromoteSwappedContainerValueBelowRunningAnimation(UIValueSlot.Normal, normal, whole.Source);
                 _backgroundBrush.NormalValue = normal.Value;
+            }
             if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Selected, out var selected) && selected.IsSet && selected.Source.Precedence >= effectivePrecedence)
+            {
+                PromoteSwappedContainerValueBelowRunningAnimation(UIValueSlot.Selected, selected, whole.Source);
                 _backgroundBrush.SelectedValue = selected.Value;
+            }
             if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Disabled, out var disabled) && disabled.IsSet && disabled.Source.Precedence >= effectivePrecedence)
+            {
+                PromoteSwappedContainerValueBelowRunningAnimation(UIValueSlot.Disabled, disabled, whole.Source);
                 _backgroundBrush.DisabledValue = disabled.Value;
+            }
             if (_resolvedValues.TryGetWinner<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Focused, out var focused) && focused.IsSet && focused.Source.Precedence >= effectivePrecedence)
+            {
+                PromoteSwappedContainerValueBelowRunningAnimation(UIValueSlot.Focused, focused, whole.Source);
                 _backgroundBrush.FocusedValue = focused.Value;
+            }
             if (_resolvedValues.TryGetWinner<Color?>(UIPilotProperty.Background, UIValueSlot.FocusedColor, out var focusedColor) && focusedColor.IsSet && focusedColor.Source.Precedence >= effectivePrecedence)
                 _backgroundBrush.FocusedColor = focusedColor.Value;
         }
@@ -1749,6 +1761,47 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             _suppressBackgroundContainerNotify = false;
         }
+    }
+
+    /// <summary>ADR-0009, W5: a whole-container swap (theme change) while a run's clone still wins a sub-slot would otherwise silently
+    /// discard the SWAPPED-IN container's own construction-time value for that slot -- <see cref="ReapplyBackgroundSubSlots"/> is about to
+    /// overwrite it with the clone a few lines below this call, and nothing else ever reads it. When the sub-slot is still dormant (no
+    /// contribution recorded besides the run's own <see cref="UIValueSourceKind.Animation"/> one), this records that about-to-be-discarded
+    /// value as an explicit contribution under the new container's own <paramref name="wholeSource"/> -- exactly the attribution the
+    /// dormant physical-fallback read (<see cref="TryGetResolvedBackgroundSubSlotValue{T}"/>) already reports for it, just made durable so
+    /// the run's own end (<see cref="Animation.IUIBrushAnimationTarget{T}.EndAnimatedValue"/>, which re-reads "the value below the
+    /// animation" at that point) can still recover it once the animation contribution above it is gone -- letting the run end on the NEW
+    /// theme's base rather than the one it started on. A no-op when the sub-slot already carries an explicit non-animation contribution
+    /// (a local write or a named state already tracks its own base; the swapped container's construction value is irrelevant there) or when
+    /// the winner is not the run's own contribution (nothing about to be silently discarded).</summary>
+    private void PromoteSwappedContainerValueBelowRunningAnimation(UIValueSlot slot, UIResolvedValue<IFillBrush> winner, UIValueResolutionSource wholeSource)
+    {
+        if (winner.Source.Kind != UIValueSourceKind.Animation || _backgroundBrush == null)
+            return;
+
+        foreach (var kind in _resolvedValues.Contributions(UIPilotProperty.Background, slot))
+        {
+            if (kind != UIValueSourceKind.Animation)
+            {
+                return;
+            }
+        }
+
+        IFillBrush current = slot switch
+        {
+            UIValueSlot.Normal => _backgroundBrush.NormalValue,
+            UIValueSlot.Selected => _backgroundBrush.SelectedValue,
+            UIValueSlot.Disabled => _backgroundBrush.DisabledValue,
+            UIValueSlot.Focused => _backgroundBrush.FocusedValue,
+            _ => null,
+        };
+
+        if (current == null || ReferenceEquals(current, winner.Value))
+        {
+            return;
+        }
+
+        ResolvedValues.Set<IFillBrush>(UIPilotProperty.Background, slot, current, wholeSource, System.Collections.Generic.ReferenceEqualityComparer.Instance, out _, out _);
     }
 
     private void ApplyBackgroundBrushSlotPhysical(UIValueSlot slot, IFillBrush value)
