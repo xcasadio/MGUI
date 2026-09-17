@@ -30,6 +30,7 @@ public class DockPlaceholderGroupHostTests
         public MGDesktop Desktop;
         public MGWindow MainWindow;
         public MGDockHost Host;
+        public DockableRegistry Registry;
 
         public DockPanelNode Xaml;
         public DockPanelNode Preview;
@@ -44,6 +45,8 @@ public class DockPlaceholderGroupHostTests
         public DockTabGroupNode DiagnosticsGroup;
 
         public List<DockPanelNode> FloatablePanels => new() { Xaml, Document, Properties, Diagnostics };
+
+        public List<DockPanelNode> AllPanels => new() { Xaml, Preview, Document, Properties, Diagnostics };
 
         private int _elapsedMs;
 
@@ -71,11 +74,22 @@ public class DockPlaceholderGroupHostTests
         MGDesktop desktop = new(runtime);
         MGWindow mainWindow = new(desktop, 0, 0, 1280, 720) { WindowStyle = WindowStyle.None };
 
-        DockPanelNode xaml = new() { Title = "XAML", ContentFactory = () => new MGBorder(mainWindow) };
-        DockPanelNode preview = new() { Title = "Preview", CanFloat = false, ContentFactory = () => new MGBorder(mainWindow) };
-        DockPanelNode document = new() { Title = "Document", ContentFactory = () => new MGBorder(mainWindow) };
-        DockPanelNode properties = new() { Title = "Properties", ContentFactory = () => new MGBorder(mainWindow) };
-        DockPanelNode diagnostics = new() { Title = "Diagnostics", ContentFactory = () => new MGBorder(mainWindow) };
+        DockableRegistry registry = new();
+        DockableDefinition xamlDef = new("xaml", "XAML") { ContentFactory = () => new MGBorder(mainWindow) };
+        DockableDefinition previewDef = new("preview", "Preview") { CanFloat = false, ContentFactory = () => new MGBorder(mainWindow) };
+        DockableDefinition documentDef = new("document", "Document") { ContentFactory = () => new MGBorder(mainWindow) };
+        DockableDefinition propertiesDef = new("properties", "Properties") { ContentFactory = () => new MGBorder(mainWindow) };
+        DockableDefinition diagnosticsDef = new("diagnostics", "Diagnostics") { ContentFactory = () => new MGBorder(mainWindow) };
+        foreach (var def in new[] { xamlDef, previewDef, documentDef, propertiesDef, diagnosticsDef })
+        {
+            registry.Register(def);
+        }
+
+        DockPanelNode xaml = xamlDef.CreatePanelNode();
+        DockPanelNode preview = previewDef.CreatePanelNode();
+        DockPanelNode document = documentDef.CreatePanelNode();
+        DockPanelNode properties = propertiesDef.CreatePanelNode();
+        DockPanelNode diagnostics = diagnosticsDef.CreatePanelNode();
 
         DockTabGroupNode xamlGroup = new();
         xamlGroup.AddPanel(xaml, -1);
@@ -126,6 +140,15 @@ public class DockPlaceholderGroupHostTests
             VerticalAlignment = VerticalAlignment.Stretch,
             LayoutModel = new DockLayoutModel(root),
         };
+        host.DockableRegistry = registry;
+
+        // Register the five panels already sitting in the tree (the "LayoutModel then
+        // RegisterPanel" pattern, P10), so ShowDockable's _panelRegistry lookup (a) and the
+        // DockableRegistry's TryGetById (P4/T4) see them as any real host would.
+        foreach (var panel in new[] { xaml, preview, document, properties, diagnostics })
+        {
+            host.RegisterPanel(panel);
+        }
 
         mainWindow.SetContent(host);
         desktop.Windows.Add(mainWindow);
@@ -136,6 +159,7 @@ public class DockPlaceholderGroupHostTests
             Desktop = desktop,
             MainWindow = mainWindow,
             Host = host,
+            Registry = registry,
             Xaml = xaml,
             Preview = preview,
             Document = document,
@@ -217,6 +241,7 @@ public class DockPlaceholderGroupHostTests
 
             Assert.Empty(harness.Host.FloatingWindows);
             Assert.Equal(originalJson, Json(harness));
+            Assert.Empty(harness.Host.LayoutModel.Placements);
         }
     }
 
@@ -255,6 +280,7 @@ public class DockPlaceholderGroupHostTests
 
             Assert.Empty(harness.Host.FloatingWindows);
             Assert.Equal(originalJson, Json(harness));
+            Assert.Empty(harness.Host.LayoutModel.Placements);
         }
     }
 
@@ -336,6 +362,7 @@ public class DockPlaceholderGroupHostTests
 
         Assert.Equal(originalJson, Json(harness));
         Assert.Empty(harness.Host.LayoutModel.GetAllAutoHidePanels());
+        Assert.Empty(harness.Host.LayoutModel.Placements);
     }
 
     // ── mixed: one pane floated, one pane unpinned, returned in a crossed order ──────
@@ -370,6 +397,7 @@ public class DockPlaceholderGroupHostTests
         Assert.Equal(originalJson, Json(harness));
         Assert.Empty(harness.Host.LayoutModel.GetAllAutoHidePanels());
         Assert.Empty(harness.Host.FloatingWindows);
+        Assert.Empty(harness.Host.LayoutModel.Placements);
     }
 
     // ── A8 for the auto-hide paths (P12) ──────────────────────────────────
@@ -788,6 +816,538 @@ public class DockPlaceholderGroupHostTests
         Assert.Contains(floatingWindow, harness.Host.FloatingWindows);
         Assert.Contains(harness.Document, floatingWindow.GroupNode.Panels);
         Assert.Contains(floatingWindow.FloatingGroup, harness.Host.LayoutModel.FloatingGroups);
+    }
+
+    // ── fix round: RemovePanel on a currently auto-hidden panel ─────────────
+
+    [Fact]
+    public void RemovePanel_OnAnAutoHiddenPanel_RefreshesItsStripButton_AndClosesItsDrawer()
+    {
+        Harness harness = CreateHarness();
+        Unpin(harness, harness.Properties);
+
+        harness.Host.ShowAutoHideDrawer(harness.Properties);
+        harness.Frame();
+
+        MGDockAutoHideStrip strip = harness.Host.TraverseVisualTree<MGDockAutoHideStrip>(IncludeSelf: true)
+            .Single(s => s.GetChildren().Any());
+        Assert.Single(strip.GetChildren());
+
+        MGDockAutoHideDrawer drawer = harness.Host.TraverseVisualTree<MGDockAutoHideDrawer>(IncludeSelf: true).Single();
+        Assert.Equal(Visibility.Visible, drawer.Visibility);
+
+        Assert.True(harness.Host.RemovePanel(harness.Properties.Id));
+        harness.Frame();
+        harness.Frame();
+
+        // The stale button must be gone, not just the model entry, or clicking it would reopen
+        // the drawer on a panel that was just told it is closed.
+        Assert.Empty(strip.GetChildren());
+        Assert.Equal(Visibility.Collapsed, drawer.Visibility);
+    }
+
+    // ── T4: close then reopen at the original place ─────────────────────────
+
+    /// <summary>Uniqueness invariant (T4): each panel id appears at most once across the layout
+    /// tree, the floating store and the auto-hide store.</summary>
+    private static void AssertUniquePanelIds(Harness h)
+    {
+        var ids = new List<string>();
+        ids.AddRange(CollectTreeIds(h.Host.LayoutModel.RootNode));
+        ids.AddRange(h.Host.LayoutModel.FloatingGroups.SelectMany(g => g.Group.Panels.Select(p => p.Id)));
+        ids.AddRange(h.Host.LayoutModel.GetAllAutoHidePanels().Select(p => p.Id));
+
+        var duplicates = ids.GroupBy(id => id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        Assert.True(duplicates.Count == 0, $"Duplicate panel id(s) found: {string.Join(", ", duplicates)}.");
+    }
+
+    private static IEnumerable<string> CollectTreeIds(DockNode node)
+    {
+        switch (node)
+        {
+            case null:
+                yield break;
+            case DockTabGroupNode group:
+                foreach (var p in group.Panels)
+                {
+                    yield return p.Id;
+                }
+                yield break;
+            case DockSplitNode split:
+                foreach (var id in CollectTreeIds(split.FirstChild))
+                {
+                    yield return id;
+                }
+                foreach (var id in CollectTreeIds(split.SecondChild))
+                {
+                    yield return id;
+                }
+                yield break;
+        }
+    }
+
+    // ── A4: each panel closed then reopened with ShowDockable ────────────────
+
+    [Fact]
+    public void A4_EachPanel_ClosedThenReopened_OneAtATime_RestoresOriginalJson()
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        foreach (var panel in harness.AllPanels)
+        {
+            string id = panel.Id;
+
+            Assert.True(harness.Host.RemovePanel(id));
+            harness.Frame();
+            harness.Frame();
+            AssertUniquePanelIds(harness);
+
+            Assert.True(harness.Host.ShowDockable(id));
+            harness.Frame();
+            harness.Frame();
+            AssertUniquePanelIds(harness);
+
+            Assert.Equal(originalJson, Json(harness));
+        }
+
+        Assert.Empty(harness.Host.LayoutModel.Placements);
+    }
+
+    [Fact]
+    public void A4_AllPanels_ClosedThenReopened_InReverseOrder_RestoresOriginalJson()
+    {
+        var ids = new[] { "xaml", "preview", "document", "properties", "diagnostics" };
+        RunA4(CreateHarness(), ids, ids.Reverse().ToArray());
+    }
+
+    [Fact]
+    public void A4_AllPanels_ClosedThenReopened_InACrossedOrder_RestoresOriginalJson()
+    {
+        var closeOrder = new[] { "xaml", "preview", "document", "properties", "diagnostics" };
+        var reopenOrder = new[] { "properties", "xaml", "diagnostics", "preview", "document" };
+        RunA4(CreateHarness(), closeOrder, reopenOrder);
+    }
+
+    private static void RunA4(Harness harness, string[] closeOrder, string[] reopenOrder)
+    {
+        string originalJson = Json(harness);
+
+        foreach (var id in closeOrder)
+        {
+            Assert.True(harness.Host.RemovePanel(id));
+            harness.Frame();
+            harness.Frame();
+            AssertUniquePanelIds(harness);
+        }
+
+        foreach (var id in reopenOrder)
+        {
+            Assert.True(harness.Host.ShowDockable(id));
+            harness.Frame();
+            harness.Frame();
+            AssertUniquePanelIds(harness);
+        }
+
+        Assert.Equal(originalJson, Json(harness));
+        Assert.Empty(harness.Host.LayoutModel.Placements);
+    }
+
+    // ── closed from a floating window / the auto-hide drawer, reopened at the original place ──
+
+    [Fact]
+    public void ClosedFromFloatingWindow_ReopensAtItsOriginalDockedPlace()
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Document, new Point(1200, 650));
+        MGDockTabItem tab = GetSoleFloatingTabItem(floatingWindow, harness.Document);
+        List<DockPanelNode> removed = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        OpenContextMenu(harness, tab);
+        MGContextMenuButton closeButton = FindMenuButton(harness.Desktop.ActiveContextMenu, "Close");
+        Assert.NotNull(closeButton);
+        closeButton.Action.Invoke(closeButton);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(new[] { harness.Document }, removed);
+        Assert.Empty(harness.Host.FloatingWindows);
+
+        Assert.True(harness.Host.ShowDockable(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        var reopened = harness.Host.FindPanel(harness.Document.Id);
+        Assert.NotNull(reopened);
+        AssertPanelInGroupVisual(harness, reopened, harness.DocumentGroup);
+        Assert.Equal(originalJson, Json(harness));
+    }
+
+    [Fact]
+    public void ClosedFromAutoHideDrawer_ReopensAtItsOriginalDockedPlace()
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        Unpin(harness, harness.Properties);
+        List<DockPanelNode> removed = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        harness.Host.ShowAutoHideDrawer(harness.Properties);
+        harness.Frame();
+        harness.Host.CloseAutoHidePanel(harness.Properties);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(new[] { harness.Properties }, removed);
+        Assert.Empty(harness.Host.LayoutModel.GetAllAutoHidePanels());
+
+        Assert.True(harness.Host.ShowDockable(harness.Properties.Id));
+        harness.Frame();
+        harness.Frame();
+
+        var reopened = harness.Host.FindPanel(harness.Properties.Id);
+        Assert.NotNull(reopened);
+        AssertPanelInGroupVisual(harness, reopened, harness.PropertiesGroup);
+        Assert.Equal(originalJson, Json(harness));
+    }
+
+    [Fact]
+    public void ClosedByClosingTheFloatingWindow_ViaTryCloseWindow_ReopensAtItsOriginalDockedPlace()
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Document, new Point(1200, 650));
+
+        Assert.True(floatingWindow.TryCloseWindow());
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Empty(harness.Host.FloatingWindows);
+        Assert.True(harness.Host.LayoutModel.TryGetPlacement(harness.Document.Id, out _));
+
+        Assert.True(harness.Host.ShowDockable(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        var reopened = harness.Host.FindPanel(harness.Document.Id);
+        Assert.NotNull(reopened);
+        AssertPanelInGroupVisual(harness, reopened, harness.DocumentGroup);
+        Assert.Equal(originalJson, Json(harness));
+    }
+
+    [Fact]
+    public void ClosedByClosingTheFloatingWindow_ViaCloseFloatingWindow_ReopensAtItsOriginalDockedPlace()
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Document, new Point(1200, 650));
+
+        harness.Host.CloseFloatingWindow(floatingWindow);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Empty(harness.Host.FloatingWindows);
+        Assert.True(harness.Host.LayoutModel.TryGetPlacement(harness.Document.Id, out _));
+
+        Assert.True(harness.Host.ShowDockable(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        var reopened = harness.Host.FindPanel(harness.Document.Id);
+        Assert.NotNull(reopened);
+        AssertPanelInGroupVisual(harness, reopened, harness.DocumentGroup);
+        Assert.Equal(originalJson, Json(harness));
+    }
+
+    // ── ShowDockable on an already-floating panel: activate, no duplicate ────
+
+    [Fact]
+    public void ShowDockable_OnFloatingPanel_ActivatesItWithoutDuplicate()
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Document, new Point(1200, 650));
+
+        bool result = harness.Host.ShowDockable(harness.Document.Id);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.True(result);
+        AssertUniquePanelIds(harness);
+        Assert.Contains(floatingWindow, harness.Host.FloatingWindows);
+        Assert.Equal(harness.Document.Id, floatingWindow.GroupNode.ActivePanel?.Id);
+        Assert.True(harness.Host.LayoutModel.TryGetPlacement(harness.Document.Id, out _));
+
+        Dock(harness, harness.Document, floatingWindow);
+
+        Assert.Empty(harness.Host.FloatingWindows);
+        Assert.Equal(originalJson, Json(harness));
+    }
+
+    [Fact]
+    public void ShowDockable_OnFloatingPanel_WithMultipleTabs_ActivatesTheRequestedTab()
+    {
+        Harness harness = CreateHarness();
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Document, new Point(1200, 650));
+
+        // Give the floating group a second tab directly at the model level (equivalent to
+        // dragging Properties onto the floating window's own tab strip), then make the other tab
+        // (Properties) the active one, so ShowDockable(Document) has something to switch away from.
+        harness.PropertiesGroup.RemovePanel(harness.Properties);
+        floatingWindow.GroupNode.AddPanel(harness.Properties, -1);
+        floatingWindow.GroupNode.SetActivePanel(harness.Properties.Id);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(harness.Properties.Id, floatingWindow.GroupNode.ActivePanel?.Id);
+
+        bool result = harness.Host.ShowDockable(harness.Document.Id);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.True(result);
+        Assert.Equal(harness.Document.Id, floatingWindow.GroupNode.ActivePanel?.Id);
+    }
+
+    // ── a panel with no definition in the registry, closed: no placeholder is left ──
+
+    [Fact]
+    public void ClosingAPanelWithNoRegistryDefinition_LeavesNoPlaceholder_AndCollapsesLikeAPlainClose()
+    {
+        Harness withUnknownId = CreateHarness();
+        withUnknownId.Registry.Unregister(withUnknownId.Diagnostics.Id);
+        DockNode topSplitOfUnknown = withUnknownId.XamlGroup.Parent;
+        DockSplitNode rootOfUnknown = Assert.IsType<DockSplitNode>(withUnknownId.Host.LayoutModel.RootNode);
+
+        Harness withNoRegistry = CreateHarness();
+        withNoRegistry.Host.DockableRegistry = null;
+        DockNode topSplitOfPlain = withNoRegistry.XamlGroup.Parent;
+        DockSplitNode rootOfPlain = Assert.IsType<DockSplitNode>(withNoRegistry.Host.LayoutModel.RootNode);
+
+        Assert.True(withUnknownId.Host.RemovePanel(withUnknownId.Diagnostics.Id));
+        withUnknownId.Frame();
+        withUnknownId.Frame();
+
+        Assert.True(withNoRegistry.Host.RemovePanel(withNoRegistry.Diagnostics.Id));
+        withNoRegistry.Frame();
+        withNoRegistry.Frame();
+
+        // No placement is kept, so the placeholder is unreferenced and collapses immediately.
+        Assert.False(withUnknownId.Host.LayoutModel.TryGetPlacement(withUnknownId.Diagnostics.Id, out _));
+        Assert.DoesNotContain(withUnknownId.DiagnosticsGroup, withUnknownId.Host.LayoutModel.GetAllTabGroups());
+        Assert.Same(topSplitOfUnknown, rootOfUnknown.FirstChild);
+
+        // Same collapse when there is no DockableRegistry at all (today's behaviour, unchanged).
+        Assert.DoesNotContain(withNoRegistry.DiagnosticsGroup, withNoRegistry.Host.LayoutModel.GetAllTabGroups());
+        Assert.Same(topSplitOfPlain, rootOfPlain.FirstChild);
+    }
+
+    // ── event counts: exactly one PanelRemoved/NotifyClosed on close, one PanelAdded/OnShown on reopen ──
+
+    [Fact]
+    public void ClosingAndReopeningAPanel_RaisesLifecycleEventsExactlyOnce()
+    {
+        Harness harness = CreateHarness();
+        List<DockPanelNode> removed = new();
+        List<DockPanelNode> added = new();
+        List<DockableDefinition> closedNotifications = new();
+        List<DockableDefinition> shownNotifications = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+        harness.Host.PanelAdded += (_, panel) => added.Add(panel);
+        harness.Registry.OnClosed += (_, def) => closedNotifications.Add(def);
+        harness.Registry.OnShown += (_, def) => shownNotifications.Add(def);
+
+        Assert.True(harness.Host.RemovePanel(harness.Properties.Id));
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Single(removed);
+        Assert.Equal("properties", removed[0].Id);
+        Assert.Single(closedNotifications);
+        Assert.Equal("properties", closedNotifications[0].DockableId);
+        Assert.Empty(added);
+        Assert.Empty(shownNotifications);
+
+        Assert.True(harness.Host.ShowDockable("properties"));
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Single(added);
+        Assert.Equal("properties", added[0].Id);
+        Assert.Single(shownNotifications);
+        Assert.Equal("properties", shownNotifications[0].DockableId);
+        Assert.Single(removed);
+        Assert.Single(closedNotifications);
+    }
+
+    // ── A8: display check across every path T4 touches ──────────────────────
+
+    [Fact]
+    public void A8_CloseDockedTab_FromTabContextMenu_Menu()
+    {
+        Harness harness = CreateHarness();
+        MGDockTabItem tab = GetSoleDockedTabItem(harness, harness.DocumentGroup);
+        List<DockPanelNode> removed = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        OpenContextMenu(harness, tab);
+        MGContextMenuButton closeButton = FindMenuButton(harness.Desktop.ActiveContextMenu, "Close");
+        Assert.NotNull(closeButton);
+        closeButton.Action.Invoke(closeButton);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(new[] { harness.Document }, removed);
+        AssertPanelNotInAnyHostVisual(harness, harness.Document);
+        AssertA8(harness);
+    }
+
+    [Fact]
+    public void A8_CloseOthers_FromTabContextMenu_Menu()
+    {
+        Harness harness = CreateHarness();
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Properties, new Point(1200, 650));
+        DockOntoGroupCenter(harness, harness.Properties, floatingWindow, harness.DocumentGroup);
+
+        MGDockTabItem keepTab = GetDockedTabItemForPanel(harness, harness.DocumentGroup, harness.Document);
+        List<DockPanelNode> removed = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        OpenContextMenu(harness, keepTab);
+        MGContextMenuButton closeOthersButton = FindMenuButton(harness.Desktop.ActiveContextMenu, "Close Others");
+        Assert.NotNull(closeOthersButton);
+        closeOthersButton.Action.Invoke(closeOthersButton);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(new[] { harness.Properties }, removed);
+        AssertPanelNotInAnyHostVisual(harness, harness.Properties);
+        AssertPanelInGroupVisual(harness, harness.Document, harness.DocumentGroup);
+        AssertA8(harness);
+    }
+
+    [Fact]
+    public void A8_CloseAll_FromTabContextMenu_Menu()
+    {
+        Harness harness = CreateHarness();
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Properties, new Point(1200, 650));
+        DockOntoGroupCenter(harness, harness.Properties, floatingWindow, harness.DocumentGroup);
+
+        MGDockTabItem tab = GetDockedTabItemForPanel(harness, harness.DocumentGroup, harness.Document);
+        List<DockPanelNode> removed = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        OpenContextMenu(harness, tab);
+        MGContextMenuButton closeAllButton = FindMenuButton(harness.Desktop.ActiveContextMenu, "Close All");
+        Assert.NotNull(closeAllButton);
+        closeAllButton.Action.Invoke(closeAllButton);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(2, removed.Count);
+        Assert.Contains(harness.Document, removed);
+        Assert.Contains(harness.Properties, removed);
+        AssertPanelNotInAnyHostVisual(harness, harness.Document);
+        AssertPanelNotInAnyHostVisual(harness, harness.Properties);
+        AssertA8(harness);
+    }
+
+    [Fact]
+    public void A8_RemovePanel_ByPublicApi()
+    {
+        Harness harness = CreateHarness();
+        List<DockPanelNode> removed = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        Assert.True(harness.Host.RemovePanel(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(new[] { harness.Document }, removed);
+        AssertPanelNotInAnyHostVisual(harness, harness.Document);
+        AssertA8(harness);
+    }
+
+    [Fact]
+    public void A8_ShowDockable_ReopensIntoAPlaceholder()
+    {
+        Harness harness = CreateHarness();
+        Assert.True(harness.Host.RemovePanel(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        Assert.True(harness.Host.ShowDockable(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        var reopened = harness.Host.FindPanel(harness.Document.Id);
+        Assert.NotNull(reopened);
+        AssertPanelInGroupVisual(harness, reopened, harness.DocumentGroup);
+        AssertA8(harness);
+    }
+
+    [Fact]
+    public void A8_ShowDockable_FallsBackToFirstVisibleGroup_WhenPlacementIsGone()
+    {
+        Harness harness = CreateHarness();
+        Assert.True(harness.Host.RemovePanel(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        // The application replaces the root entirely while the remembered placement still points
+        // at the old tree (P5): the placement no longer resolves, so ShowDockable falls back.
+        DockPanelNode freshPanel = new() { Title = "Fresh", ContentFactory = () => new MGBorder(harness.MainWindow) };
+        DockTabGroupNode freshGroup = new();
+        freshGroup.AddPanel(freshPanel, -1);
+        harness.Host.LayoutModel.RootNode = freshGroup;
+        harness.Frame();
+        harness.Frame();
+
+        Assert.True(harness.Host.ShowDockable(harness.Document.Id));
+        harness.Frame();
+        harness.Frame();
+
+        var reopened = harness.Host.FindPanel(harness.Document.Id);
+        Assert.NotNull(reopened);
+        AssertPanelInGroupVisual(harness, reopened, freshGroup);
+        AssertA8(harness);
+
+        // The stale placement — pointing at a group no longer in the tree, while the panel is
+        // now anchored elsewhere — must not survive the fallback (P5), or a later save/load would
+        // see both an anchored panel and a placement for it (P8's own rejection rule).
+        Assert.False(harness.Host.LayoutModel.TryGetPlacement(harness.Document.Id, out _));
+    }
+
+    /// <summary>Drags <paramref name="panel"/>'s tab from its floating window onto the center of
+    /// <paramref name="targetGroup"/>'s visual, docking it there as a second tab (used to build a
+    /// multi-tab group for the "Close Others" / "Close All" checks).</summary>
+    private static void DockOntoGroupCenter(Harness h, DockPanelNode panel, MGFloatingDockWindow floatingWindow, DockTabGroupNode targetGroup)
+    {
+        MGDockTabItem tab = GetSoleFloatingTabItem(floatingWindow, panel);
+        var targetVisual = Assert.Single(h.Host.GetAllVisibleTabGroups(), g => g.GroupNode == targetGroup);
+        Point pressPoint = tab.LayoutBounds.Center;
+        Point overTarget = targetVisual.LayoutBounds.Center;
+        Point midway = new((pressPoint.X + overTarget.X) / 2, (pressPoint.Y + overTarget.Y) / 2);
+
+        h.Frame(pressPoint, MouseButton.Left);
+        h.Frame(midway, MouseButton.Left);
+        h.Frame(overTarget, MouseButton.Left);
+        h.Frame(overTarget, MouseButton.Left);
+        h.Frame(overTarget);
+        h.Frame(overTarget);
+    }
+
+    private static MGDockTabItem GetDockedTabItemForPanel(Harness h, DockTabGroupNode group, DockPanelNode panel)
+    {
+        var visual = Assert.Single(h.Host.GetAllVisibleTabGroups(), g => g.GroupNode == group);
+        return visual.TraverseVisualTree<MGDockTabItem>(IncludeSelf: false).Single(t => t.Panel == panel);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────

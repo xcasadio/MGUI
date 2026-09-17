@@ -1076,16 +1076,36 @@ public class MGDockHost : MGSingleContentHost
             return false;
         }
 
-        // Remove from layout model
-        DockOperation.RemovePanel(LayoutModel, panel);
+        // An auto-hidden panel has no parent here but is still tracked by the registry; its
+        // strip button and, if it is the one currently displayed, its drawer must be refreshed
+        // too, exactly as CloseAutoHidePanel does — otherwise the strip keeps a stale, clickable
+        // button for a panel the model no longer holds.
+        var wasAutoHidden = !panel.IsPinned;
+        if (wasAutoHidden)
+        {
+            HideAutoHideDrawer();
+        }
 
-        // Remove from registry
-        _panelRegistry.Remove(panelId);
-            
-        PanelRemoved?.Invoke(this, panel);
-        // Treat removal as close (user explicitly removed the panel)
-        _dockableRegistry?.NotifyClosed(panelId);
+        MutateModelSuspended(() =>
+        {
+            // Remove from registry
+            _panelRegistry.Remove(panelId);
 
+            // Remove from layout model, remembering its place when the DockableRegistry can
+            // recreate it later (P4).
+            DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: ShouldRememberPlace(panelId));
+
+            PanelRemoved?.Invoke(this, panel);
+            // Treat removal as close (user explicitly removed the panel)
+            _dockableRegistry?.NotifyClosed(panelId);
+
+            if (wasAutoHidden)
+            {
+                RefreshAutoHideStrips();
+            }
+        });
+
+        SyncRegistryVisibility();
         return true;
     }
 
@@ -1254,9 +1274,13 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Shows a registered dockable by its ID. If it is already visible, activates its tab.
-    /// If it is hidden, creates it and adds it to the layout next to the most recently used tab group,
-    /// or at the root if no group exists.
+    /// Shows a registered dockable by its ID. Resolves in this order (T4), so a panel is never
+    /// duplicated: already docked or auto-hidden (a) → activate it; already floating (b) → activate
+    /// its tab and bring its window to the front, without touching its remembered place; already
+    /// auto-hidden (c) → already visible as a tab in its strip, nothing to do; otherwise (d) → the
+    /// registry's definition creates the panel, which is returned to its remembered place when one
+    /// still resolves (D5), or added next to the most recently used tab group, or at the root when
+    /// no group exists (P5/P6).
     /// </summary>
     /// <param name="dockableId">The ID of the dockable to show.</param>
     /// <returns>True if the dockable was shown or activated, false if not found in the registry.</returns>
@@ -1267,10 +1291,10 @@ public class MGDockHost : MGSingleContentHost
             return false;
         }
 
-        // Check if it is already visible
+        // (a) Already docked or auto-hidden in the host's own registry → activate its tab, if it
+        // has one (an auto-hidden panel has no parent group here; its strip already shows it).
         if (_panelRegistry.TryGetValue(dockableId, out var existingPanel))
         {
-            // Already in layout → activate it
             var parentGroup = existingPanel.Parent as DockTabGroupNode;
             if (parentGroup != null)
             {
@@ -1279,7 +1303,23 @@ public class MGDockHost : MGSingleContentHost
             return true;
         }
 
-        // Not visible → need to find definition and add it
+        // (b) Already floating → make it the active tab of its floating group and bring the
+        // window to the front. Its remembered place is left untouched and no node is created.
+        var floatingGroup = LayoutModel?.FindFloatingGroupOf(dockableId);
+        if (floatingGroup != null)
+        {
+            floatingGroup.Group.SetActivePanel(dockableId);
+            _floatingWindows.FirstOrDefault(w => w.FloatingGroup == floatingGroup)?.BringToFront();
+            return true;
+        }
+
+        // (c) Already auto-hidden → already visible as a tab in its strip.
+        if (LayoutModel != null && LayoutModel.GetAllAutoHidePanels().Any(p => p.Id == dockableId))
+        {
+            return true;
+        }
+
+        // (d) Not visible anywhere → need the registry's definition to recreate it.
         if (_dockableRegistry == null || !_dockableRegistry.TryGetById(dockableId, out var definition))
         {
             return false;
@@ -1287,31 +1327,56 @@ public class MGDockHost : MGSingleContentHost
 
         var panel = definition.CreatePanelNode();
 
-        // Find a suitable, non-hidden tab group to add the panel into (P6: a hidden placeholder
-        // group is skipped, exactly like a missing one).
-        var allGroups = GetAllTabGroups().Where(g => !g.IsHiddenInLayout).ToList();
-        var targetGroup = allGroups.FirstOrDefault();
+        MutateModelSuspended(() =>
+        {
+            if (DockOperation.RestoreToPlacement(LayoutModel, panel))
+            {
+                return;
+            }
 
-        if (targetGroup != null)
-        {
-            DockOperation.DockAsTab(LayoutModel, panel, targetGroup);
-        }
-        else if (LayoutModel.RootNode == null)
-        {
-            // Empty layout, start fresh with this panel
-            var newGroup = new DockTabGroupNode();
-            newGroup.AddPanel(panel, -1);
-            LayoutModel.RootNode = newGroup;
-        }
-        else
-        {
-            // Layout exists but no tab group found → split the root
-            DockOperation.SplitDock(LayoutModel, panel, LayoutModel.RootNode, DockZone.Right);
-        }
+            // No remembered place (or it no longer resolves): today's fallback, a suitable,
+            // non-hidden tab group (P6: a hidden placeholder group is skipped, exactly like a
+            // missing one), else start fresh at the root, else split the root.
+            var allGroups = GetAllTabGroups().Where(g => !g.IsHiddenInLayout).ToList();
+            var targetGroup = allGroups.FirstOrDefault();
+
+            if (targetGroup != null)
+            {
+                DockOperation.DockAsTab(LayoutModel, panel, targetGroup);
+            }
+            else if (LayoutModel.RootNode == null)
+            {
+                // Empty layout, start fresh with this panel
+                var newGroup = new DockTabGroupNode();
+                newGroup.AddPanel(panel, -1);
+                LayoutModel.RootNode = newGroup;
+            }
+            else
+            {
+                // Layout exists but no tab group found → split the root
+                DockOperation.SplitDock(LayoutModel, panel, LayoutModel.RootNode, DockZone.Right);
+            }
+
+            // The remembered place — now pointing nowhere useful — is forgotten (P5), mirroring
+            // RedockPanel's and RepinPanel's fallback: otherwise a stale Placements entry survives
+            // pointing at a group the panel is no longer waiting to return to, while the panel is
+            // simultaneously anchored elsewhere in the tree.
+            DockOperation.ForgetPlacement(LayoutModel, panel.Id);
+        });
 
         RegisterPanel(panel);
         return true;
     }
+
+    /// <summary>
+    /// Whether closing the panel with <paramref name="panelId"/> should remember its place (P4):
+    /// only when the <see cref="DockableRegistry"/> knows the id can <see cref="ShowDockable"/>
+    /// recreate the panel later; otherwise nothing could ever reopen it and its placeholder group
+    /// would never be released.
+    /// </summary>
+    /// <param name="panelId">Id of the panel about to be closed.</param>
+    private bool ShouldRememberPlace(string panelId)
+        => _dockableRegistry != null && _dockableRegistry.TryGetById(panelId, out _);
 
     #region Floating Windows — management
 
@@ -1372,8 +1437,8 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>
     /// A floating window closed itself (<see cref="MGWindow.TryCloseWindow"/> already removed it from the parent window's nested windows): the
     /// host stops tracking it and closes every panel it still held, as closing those panels one by one would — a model-backed window inside one
-    /// suspended mutation (one <see cref="PanelRemoved"/> per panel, place forgotten at this stage — T4 keeps it), a standalone window the same
-    /// way it always has.
+    /// suspended mutation (one <see cref="PanelRemoved"/> per panel, place remembered when the <see cref="DockableRegistry"/> can recreate the
+    /// panel, P4), a standalone window the same way it always has.
     /// </summary>
     private void OnFloatingWindowClosed(object sender, EventArgs e)
     {
@@ -1391,15 +1456,11 @@ public class MGDockHost : MGSingleContentHost
             {
                 foreach (var panel in panels)
                 {
-                    DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false);
+                    DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: ShouldRememberPlace(panel.Id));
+                    PanelRemoved?.Invoke(this, panel);
+                    _dockableRegistry?.NotifyClosed(panel.Id);
                 }
             });
-
-            foreach (var panel in panels)
-            {
-                PanelRemoved?.Invoke(this, panel);
-                _dockableRegistry?.NotifyClosed(panel.Id);
-            }
         }
         else
         {
@@ -1442,8 +1503,9 @@ public class MGDockHost : MGSingleContentHost
     /// Closes a floating window. For a window whose <see cref="MGFloatingDockWindow.FloatingGroup"/>
     /// is still live in <see cref="LayoutModel"/>'s floating store — this API called directly rather
     /// than through <see cref="MGWindow.TryCloseWindow"/> (<see cref="OnFloatingWindowClosed"/>) —
-    /// every panel it still holds is closed in the model first (rememberPlacement: false, as
-    /// <see cref="OnFloatingWindowClosed"/> does), and reported through <see cref="PanelRemoved"/>;
+    /// every panel it still holds is closed in the model first (place remembered when the
+    /// <see cref="DockableRegistry"/> can recreate it, P4, as <see cref="OnFloatingWindowClosed"/>
+    /// does), and reported through <see cref="PanelRemoved"/>;
     /// otherwise <see cref="LayoutModel"/>.<see cref="DockLayoutModel.FloatingGroups"/> would keep the
     /// orphaned <see cref="DockFloatingGroup"/> and <see cref="SyncFloatingWindows"/> would resurrect
     /// it as a new window on the next model commit (P1). Removing those panels re-enters this method
@@ -1466,15 +1528,11 @@ public class MGDockHost : MGSingleContentHost
             {
                 foreach (var panel in panels)
                 {
-                    DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false);
+                    DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: ShouldRememberPlace(panel.Id));
+                    PanelRemoved?.Invoke(this, panel);
+                    _dockableRegistry?.NotifyClosed(panel.Id);
                 }
             });
-
-            foreach (var panel in panels)
-            {
-                PanelRemoved?.Invoke(this, panel);
-                _dockableRegistry?.NotifyClosed(panel.Id);
-            }
 
             SyncRegistryVisibility();
             return;
@@ -1506,10 +1564,10 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>
     /// Closes <paramref name="panel"/> from a model-backed floating window's tab close button or
     /// context menu (<see cref="MGFloatingDockWindow.OnPanelCloseRequested"/>). Goes through
-    /// <see cref="DockOperation.ClosePanel"/> with <c>rememberPlacement: false</c>: the place is
-    /// forgotten at this stage of the plan (T4 keeps it so <c>ShowDockable</c> can reopen the panel).
-    /// The floating window itself is synced away by <see cref="SyncFloatingWindows"/> (part of the
-    /// commit point) once its <see cref="DockFloatingGroup"/> is removed from the model.
+    /// <see cref="DockOperation.ClosePanel"/>, remembering the place only when the
+    /// <see cref="DockableRegistry"/> can recreate the panel later (P4), so <c>ShowDockable</c> can
+    /// reopen it there. The floating window itself is synced away by <see cref="SyncFloatingWindows"/>
+    /// (part of the commit point) once its <see cref="DockFloatingGroup"/> is removed from the model.
     /// </summary>
     /// <param name="panel">The panel to close.</param>
     internal void CloseFloatingPanel(DockPanelNode panel)
@@ -1519,10 +1577,13 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
-        MutateModelSuspended(() => DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false));
+        MutateModelSuspended(() =>
+        {
+            DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: ShouldRememberPlace(panel.Id));
+            PanelRemoved?.Invoke(this, panel);
+            _dockableRegistry?.NotifyClosed(panel.Id);
+        });
 
-        PanelRemoved?.Invoke(this, panel);
-        _dockableRegistry?.NotifyClosed(panel.Id);
         SyncRegistryVisibility();
     }
 
@@ -1876,11 +1937,12 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Permanently closes an auto-hidden panel: removes it from the auto-hide store, forgets its
-    /// remembered place (so an unreferenced placeholder can collapse, exactly as a plain close
-    /// would), the panel registry, and notifies the dockable registry. Internal (rather than
-    /// private) so tests can drive the drawer's close path without the drawer's own button
-    /// wiring, which is out of scope here.
+    /// Permanently closes an auto-hidden panel: removes it from the auto-hide store, remembering
+    /// its place (so <c>ShowDockable</c> can reopen it there, D5) only when the
+    /// <see cref="DockableRegistry"/> can recreate it (P4) — otherwise forgets it, so an
+    /// unreferenced placeholder can collapse exactly as a plain close would — the panel registry,
+    /// and notifies the dockable registry. Internal (rather than private) so tests can drive the
+    /// drawer's close path without the drawer's own button wiring, which is out of scope here.
     /// </summary>
     internal void CloseAutoHidePanel(DockPanelNode panel)
     {
@@ -1900,7 +1962,7 @@ public class MGDockHost : MGSingleContentHost
             // mutating the model.
             _panelRegistry.Remove(panel.Id);
 
-            DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false);
+            DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: ShouldRememberPlace(panel.Id));
 
             PanelRemoved?.Invoke(this, panel);
             _dockableRegistry?.NotifyClosed(panel.Id);
@@ -2273,24 +2335,29 @@ public class MGDockHost : MGSingleContentHost
         // Track this visual so RebuildVisualTree can Detach() it later.
         _activeTabGroupVisuals.Add(tabGroup);
 
-        // Subscribe to panel close requests
+        // Subscribe to panel close requests (also covers "Close Others" and "Close All", which
+        // MGDockTabGroup raises through this same event, one panel at a time).
         tabGroup.PanelCloseRequested += (sender, panelToClose) =>
         {
             if (panelToClose != null && LayoutModel != null)
             {
-                // Remove from panel registry BEFORE removing from model,
-                // otherwise the registry becomes stale for any caller that
-                // inspects it synchronously in a LayoutChanged handler.
-                _panelRegistry.Remove(panelToClose.Id);
+                MutateModelSuspended(() =>
+                {
+                    // Remove from panel registry BEFORE removing from model,
+                    // otherwise the registry becomes stale for any caller that
+                    // inspects it synchronously in a LayoutChanged handler.
+                    _panelRegistry.Remove(panelToClose.Id);
 
-                // Remove panel from layout model
-                DockOperation.RemovePanel(LayoutModel, panelToClose);
+                    // Remove panel from layout model, remembering its place when the
+                    // DockableRegistry can recreate it later (P4).
+                    DockOperation.ClosePanel(LayoutModel, panelToClose, rememberPlacement: ShouldRememberPlace(panelToClose.Id));
 
-                // Notify event subscribers
-                PanelRemoved?.Invoke(this, panelToClose);
-                _dockableRegistry?.NotifyClosed(panelToClose.Id);
+                    // Notify event subscribers
+                    PanelRemoved?.Invoke(this, panelToClose);
+                    _dockableRegistry?.NotifyClosed(panelToClose.Id);
+                });
 
-                RebuildVisualTree();
+                SyncRegistryVisibility();
             }
         };
 

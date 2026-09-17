@@ -291,6 +291,35 @@ public class DockAutoHideRepinTests
         Assert.Contains(p, h.Host.LayoutModel.GetAllTabGroups().SelectMany(gr => gr.Panels));
     }
 
+    [Fact]
+    public void RepinPanel_WhenLayoutIsEntirelyEmpty_BecomesTheNewRoot()
+    {
+        // RestoreToPlacement's group is unreachable and RootNode itself is null (not merely an
+        // emptied placeholder, unlike UnpinThenRepin_EmptyLayout_RepinsIntoTheSurvivingEmptyRoot
+        // above): RepinPanel's fallback must create a fresh root rather than throw.
+        DockPanelNode p = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            return Group(p);
+        });
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+
+        // The application clears the layout entirely while p is auto-hidden.
+        h.Host.LayoutModel.RootNode = null;
+        h.Frame();
+
+        h.Host.RepinPanel(p);
+        h.Frame();
+
+        Assert.True(p.IsPinned);
+        Assert.False(h.Host.LayoutModel.TryGetPlacement(p.Id, out _));
+        DockTabGroupNode newRoot = Assert.IsType<DockTabGroupNode>(h.Host.LayoutModel.RootNode);
+        Assert.Contains(p, newRoot.Panels);
+    }
+
     // ── fallback: the place is gone because the application replaced the root ────
 
     [Fact]
@@ -330,7 +359,7 @@ public class DockAutoHideRepinTests
     // ── closing an auto-hidden panel ──────────────────────────────────────
 
     [Fact]
-    public void CloseAutoHidePanel_RemovesFromStore_RaisesPanelRemovedOnce_AndNotifiesRegistry()
+    public void CloseAutoHidePanel_RemovesFromStore_RaisesPanelRemovedOnce()
     {
         DockPanelNode p = null;
         DockTabGroupNode g = null;
@@ -364,10 +393,62 @@ public class DockAutoHideRepinTests
         Assert.Equal(new[] { p }, removed);
         Assert.False(AnySideAutoHidden(h.Host));
 
-        // The unreferenced placeholder collapses exactly as a plain close would: g is gone, its
-        // sibling takes over the split's area.
+        // No DockableRegistry knows p (T4/P4): its place is forgotten, so the unreferenced
+        // placeholder collapses exactly as a plain close would - g is gone, its sibling takes
+        // over the split's area.
         Assert.DoesNotContain(g, h.Host.LayoutModel.GetAllTabGroups());
         Assert.Same(gOther, h.Host.LayoutModel.RootNode);
+    }
+
+    [Fact]
+    public void CloseAutoHidePanel_WithKnownRegistryDefinition_RemembersPlace_AndNotifiesRegistry()
+    {
+        // T4/P4: unlike the no-registry case above, a DockableRegistry that knows p's id makes
+        // CloseAutoHidePanel remember its place - the placeholder survives, hidden, until
+        // ShowDockable reopens it there - and NotifyClosed actually reaches a real registry
+        // (the deferred point from T3's plan note), rather than merely being asserted by name.
+        DockPanelNode p = null;
+        DockTabGroupNode g = null;
+        DockTabGroupNode gOther = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            g = Group(p);
+            gOther = Group(Panel(window, "Other"));
+            return new DockSplitNode
+            {
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                FirstChild = g,
+                SecondChild = gOther,
+            };
+        });
+        List<DockPanelNode> removed = new();
+        h.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        DockableRegistry registry = new();
+        registry.Register(new DockableDefinition(p.Id, "P"));
+        h.Host.DockableRegistry = registry;
+        List<DockableDefinition> closedNotifications = new();
+        registry.OnClosed += (_, def) => closedNotifications.Add(def);
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+
+        h.Host.ShowAutoHideDrawer(p);
+        h.Frame();
+        h.Host.CloseAutoHidePanel(p);
+        h.Frame();
+
+        Assert.Equal(new[] { p }, removed);
+        Assert.Single(closedNotifications);
+        Assert.Equal(p.Id, closedNotifications[0].DockableId);
+        Assert.False(AnySideAutoHidden(h.Host));
+
+        Assert.True(h.Host.LayoutModel.TryGetPlacement(p.Id, out _));
+        Assert.Contains(g, h.Host.LayoutModel.GetAllTabGroups());
+        Assert.True(g.IsHiddenInLayout);
+        Assert.Same(g, ((DockSplitNode)h.Host.LayoutModel.RootNode).FirstChild);
     }
 
     [Fact]
