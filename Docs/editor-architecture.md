@@ -140,7 +140,7 @@ Une seule liste par session : les diagnostics du loader (code, message, ligne, c
 - Les styles, ressources et templates ne sont editables que dans le texte ; les parts de template de controle ne sont pas selectionnables.
 - Un contenu declare comme chaine (`Content="texte"`) n'a pas de noeud propre : il s'edite comme attribut de son parent.
 - Une racine `Window` plus grande que le volet est rognee, ni redimensionnee ni defilable.
-- Docking : les volets ne sont pas fermables (le menu contextuel d'un onglet montre quand meme « Close Others » et « Close All », sans effet) ; « Preview » ne flotte pas, car une racine `Window` de preview est une fenetre imbriquee de la fenetre de l'editeur ; un volet flottant re-docke revient en onglet du premier groupe visible, pas a sa place d'origine ; le layout n'est ni sauvegarde ni reinitialisable.
+- Docking : les volets ne sont pas fermables (le menu contextuel d'un onglet montre quand meme « Close Others » et « Close All », sans effet) ; « Preview » ne flotte pas, car une racine `Window` de preview est une fenetre imbriquee de la fenetre de l'editeur ; un volet flottant re-docke revient a sa place d'origine (groupes fantomes, ADR-0012) ; le layout n'est ni sauvegarde ni reinitialisable.
 - Pas de completion, pas de gouttiere de numeros de ligne.
 - Le volet « XAML » utilise la police du theme (Arial, proportionnelle) : le depot ne suit aucune police a chasse fixe.
 - Le document doit declarer ses namespaces ; un fragment sans namespace ne se charge pas.
