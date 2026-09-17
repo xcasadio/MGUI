@@ -66,6 +66,7 @@ public class AnimationDemoSampleTests
         ["16. Smooth scrolling"] = new[] { "ScrollDemoViewer", "ScrollDemoTopButton", "ScrollDemoBottomButton" },
         ["17. Sprite-sheet frames"] = new[] { "FramesTarget", "FramesPlayButton", "FramesPauseToggle" },
         ["18. Layout transitions"] = new[] { "LayoutListPanel", "LayoutInsertButton", "LayoutRemoveButton", "LayoutMoveButton", "LayoutSizeTarget", "LayoutResizeButton" },
+        ["19. Enter and exit"] = new[] { "EnterExitTarget", "EnterExitFadeButton", "EnterExitScaleButton", "EnterExitSlideButton", "EnterExitToggleButton" },
     };
 
     /// <summary>The XAML references a resource style ("Styles and theme" section, <c>StylesButtonA</c>/<c>StylesButtonB</c>'s

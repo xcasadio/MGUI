@@ -57,6 +57,7 @@ namespace MGUI.Samples.Features
             WireScrolling();
             WireFrames();
             WireLayout();
+            WireEnterExit();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -540,6 +541,33 @@ namespace MGUI.Samples.Features
                 sizeIsWide = !sizeIsWide;
                 sizeTarget.PreferredWidth = sizeIsWide ? 220 : 100;
             });
+        }
+
+        /// <summary>19. Enter and exit: <c>EnterExitTarget</c> stays <c>Visible</c> and laid out at load (nothing plays before its first
+        /// draw). Each effect button sets both <see cref="UIEnterExitSettings.EnterEffect"/> and <see cref="UIEnterExitSettings.ExitEffect"/>
+        /// on the panel's <see cref="MGElement.EnterExit"/> and then toggles its visibility; "Show/Hide" replays whichever effect is
+        /// currently selected. Hiding the panel keeps it visible and non-interactive until the exit run ends, then it collapses.</summary>
+        private void WireEnterExit()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("EnterExitTarget");
+            target.EnterExit = new UIEnterExitSettings { EnterEffect = UIEnterExitEffect.Fade, ExitEffect = UIEnterExitEffect.Fade };
+
+            void SelectEffect(UIEnterExitEffect effect)
+            {
+                target.EnterExit.EnterEffect = effect;
+                target.EnterExit.ExitEffect = effect;
+                Toggle();
+            }
+
+            void Toggle()
+            {
+                target.Visibility = target.PendingVisibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            Window.GetElementByName<MGButton>("EnterExitFadeButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.Fade));
+            Window.GetElementByName<MGButton>("EnterExitScaleButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.Scale));
+            Window.GetElementByName<MGButton>("EnterExitSlideButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.SlideLeft));
+            Window.GetElementByName<MGButton>("EnterExitToggleButton").AddCommandHandler((btn, e) => Toggle());
         }
     }
 }

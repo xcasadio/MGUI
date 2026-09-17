@@ -946,6 +946,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             {
                 SelfOrParentWindow?.Desktop?.MarkHasLayoutTransitions();
             }
+            //  Y6: an element that just left or joined a parent has not been drawn under it yet, so a Visibility write right after (a
+            //  recycled virtualized container, a reparented item) never starts a false exit off a stale "already drawn" flag.
+            _hasDrawnSinceAttached = false;
             NotifyPropertyChanged(nameof(Parent));
             OnParentChanged?.Invoke(this, new(Previous, Parent));
         }
@@ -2878,6 +2881,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     // Set to true when IsEnabled, IsHitTestVisible, Visibility, or RecentDrawWasClipped changes
     // so the next Update() call knows it must recompute cached input eligibility.
     private bool _inputStateDirty = true;
+    //  Y6 (ADR-0011 decision 6): true while this element's exit run plays. Never exposed as a write to the public IsHitTestVisible;
+    //  contributes false to the computed hit-test visibility of this element and its whole subtree (ComputeTopmostHoveredElement, Update).
+    //  Changed only through SetIsExitingEnterExit, which also raises _inputStateDirty.
+    private bool _isExiting;
+    private bool _hasDrawnSinceAttached;
     // Cached values from the last recomputation so we can detect unchanged frames.
     private bool _cachedComputedEnabled;
     private bool _cachedComputedHtVisible;
@@ -3126,29 +3134,117 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Visibility _visibility;
+    /// <summary>An element with <see cref="EnterExit"/> plays an entry when this is set to <see cref="Visibility.Visible"/> (from
+    /// <see cref="Visibility.Hidden"/>/<see cref="Visibility.Collapsed"/>, or during its own exit) and, once it has been drawn at least once
+    /// since it was attached, plays an exit when set away from <see cref="Visibility.Visible"/>: this property then keeps returning
+    /// <see cref="Visibility.Visible"/> until the run completes, and <see cref="PendingVisibility"/> exposes the requested value
+    /// (ADR-0011 decision 6, Y6). An element with <see cref="EnterExit"/> null keeps applying every value at once, exactly as before Y6.</summary>
     public Visibility Visibility
     {
         get => _visibility;
-        set
+        set => SetVisibility(value);
+    }
+
+    /// <summary>Y6 (ADR-0011 decision 6): routes through the entry/exit logic when <see cref="EnterExit"/> is set (one null test otherwise, the
+    /// documented cost for an element that never opts in); <see cref="SetVisibilityCore"/> is the plain, unconditional write both paths use.</summary>
+    private void SetVisibility(Visibility value)
+    {
+        if (EnterExit == null)
         {
-            if (_visibility != value)
+            SetVisibilityCore(value);
+            return;
+        }
+
+        var isExitingEnterExit = _animationSlot?.IsExitingEnterExit == true;
+
+        if (value == Visibility.Visible)
+        {
+            if (!isExitingEnterExit && _visibility == Visibility.Visible)
             {
-                var Previous = Visibility;
-                _visibility = value;
-                _inputStateDirty = true;
-                if (Previous == Visibility.Collapsed || Visibility == Visibility.Collapsed)
+                return;
+            }
+
+            if (isExitingEnterExit)
+            {
+                //  Superseded: cancel the exit run without letting its own Completed/Cancelled handler apply its now-stale pending
+                //  value (DetachEnterExitHandlers removes it first) or restore base values (children cancel with KeepCurrent), so the
+                //  entry that follows starts from the current values with no jump.
+                var exitRun = _animationSlot.ActiveEnterExitRun;
+                _animationSlot.ActiveEnterExitRun = null;
+                if (exitRun != null)
                 {
-                    LayoutChanged(this, true);
+                    DetachEnterExitHandlers(exitRun);
+                    if (exitRun.IsActive)
+                    {
+                        exitRun.Cancel();
+                    }
                 }
 
-                NotifyPropertyChanged(nameof(Visibility));
-                NotifyPropertyChanged(nameof(IsVisibilityCollapsed));
+                _animationSlot.IsExitingEnterExit = false;
+                _animationSlot.PendingExitVisibility = null;
+                SetIsExitingEnterExit(false);
+                NotifyPropertyChanged(nameof(PendingVisibility));
             }
+
+            SetVisibilityCore(Visibility.Visible);
+            if (EnterExit.HasEnter)
+            {
+                PlayEnterExitEnter();
+            }
+
+            return;
+        }
+
+        //  value is Hidden or Collapsed.
+        if (isExitingEnterExit)
+        {
+            //  Already exiting: requesting another hidden value just updates what will be applied at the end of the run in progress.
+            if (_animationSlot.PendingExitVisibility != value)
+            {
+                _animationSlot.PendingExitVisibility = value;
+                NotifyPropertyChanged(nameof(PendingVisibility));
+            }
+
+            return;
+        }
+
+        if (_visibility == Visibility.Visible && _hasDrawnSinceAttached && EnterExit.HasExit)
+        {
+            PlayEnterExitExit(value);
+            return;
+        }
+
+        //  Not currently visible (nothing to exit from), or never drawn yet, or no exit configured: applies at once, like before Y6.
+        SetVisibilityCore(value);
+    }
+
+    /// <summary>The plain, unconditional write <see cref="MGElement.Visibility"/> used before Y6, and still what every path above ends up
+    /// calling: assigns <see cref="_visibility"/>, invalidates layout across a <see cref="UI.Visibility.Collapsed"/> transition, notifies.</summary>
+    private void SetVisibilityCore(Visibility value)
+    {
+        if (_visibility != value)
+        {
+            var Previous = _visibility;
+            _visibility = value;
+            _inputStateDirty = true;
+            if (Previous == Visibility.Collapsed || value == Visibility.Collapsed)
+            {
+                LayoutChanged(this, true);
+            }
+
+            NotifyPropertyChanged(nameof(Visibility));
+            NotifyPropertyChanged(nameof(IsVisibilityCollapsed));
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public bool IsVisibilityCollapsed => Visibility == Visibility.Collapsed;
+
+    /// <summary>The <see cref="Visibility"/> requested while an exit plays (ADR-0011 decision 6, Y6): equal to <see cref="Visibility"/> itself
+    /// outside of an exit, since <see cref="Visibility"/> keeps returning <see cref="UI.Visibility.Visible"/> until the run completes.</summary>
+    public Visibility PendingVisibility => _animationSlot?.IsExitingEnterExit == true
+        ? (_animationSlot.PendingExitVisibility ?? Visibility)
+        : Visibility;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private float _opacity;
@@ -3653,7 +3749,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
 
         var ComputedIsEnabled = IsParentEnabled && IsEnabled;
-        var ComputedIsHitTestVisible = isParentHitTestVisible && IsHitTestVisible;
+        //  Y6: an internal exiting state (never a write to the public IsHitTestVisible) contributes false here and to every value this
+        //  method passes down to components and visual children, removing the element and its whole subtree from hit testing while its
+        //  exit run plays, without ever writing the application-owned property (ADR-0011 decision 6).
+        var ComputedIsHitTestVisible = isParentHitTestVisible && IsHitTestVisible && !_isExiting;
 
         var BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
                                   && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
@@ -3707,7 +3806,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         using var performanceScope = UIPerformanceProbe.BeginElementUpdate(this);
         var ComputedIsEnabled = UA.IsEnabled && IsEnabled;
         var ComputedIsSelected = UA.IsSelected || IsSelected;
-        var ComputedIsHitTestVisible = UA.IsHitTestVisible && IsHitTestVisible;
+        //  Y6: see the matching comment in ComputeTopmostHoveredElement -- the exiting state removes the element and its subtree (through
+        //  UA, propagated to content children below) from mouse and keyboard eligibility without touching IsHitTestVisible.
+        var ComputedIsHitTestVisible = UA.IsHitTestVisible && IsHitTestVisible && !_isExiting;
 
         Origin = UA.Offset;
 
@@ -4001,6 +4102,212 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             }
         }
     }
+
+    #region Enter and Exit (Y6)
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Animation.UIEnterExitSettings _enterExit;
+
+    /// <summary>Opt-in settings for an entry and exit animation driven by <see cref="Visibility"/> (ADR-0011 decision 6, Y6): null by default,
+    /// a plain settings object with no side effect of its own -- only <see cref="Visibility"/>'s setter reads it, when it changes. See
+    /// <see cref="Animation.UIEnterExitSettings"/> for what it configures and <see cref="PendingVisibility"/> for the value requested while an
+    /// exit plays.</summary>
+    public Animation.UIEnterExitSettings EnterExit
+    {
+        get => _enterExit;
+        set
+        {
+            if (_enterExit != value)
+            {
+                _enterExit = value;
+                NotifyPropertyChanged(nameof(EnterExit));
+            }
+        }
+    }
+
+    /// <summary>Sets the internal exiting state (ADR-0011 decision 6): never a write to the public <see cref="IsHitTestVisible"/>, read by
+    /// <see cref="ComputeTopmostHoveredElement"/> and <see cref="Update"/>. Raises <see cref="_inputStateDirty"/> whether it is posed or
+    /// lifted.</summary>
+    private void SetIsExitingEnterExit(bool value)
+    {
+        if (_isExiting != value)
+        {
+            _isExiting = value;
+            _inputStateDirty = true;
+        }
+    }
+
+    /// <summary>Starts (or restarts) this element's exit run (ADR-0011 decision 6): called by <see cref="SetVisibility"/> once it has decided
+    /// an exit should actually play. Cancels a run of the OPPOSITE direction left over from an interruption first, with
+    /// <see cref="DetachEnterExitHandlers"/> so its own handler never reacts to that cancellation.</summary>
+    private void PlayEnterExitExit(Visibility requested)
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+
+        if (slot.ActiveEnterExitRun is { } activeRun)
+        {
+            DetachEnterExitHandlers(activeRun);
+            slot.ActiveEnterExitRun = null;
+            if (activeRun.IsActive)
+            {
+                activeRun.Cancel();
+            }
+        }
+
+        slot.IsExitingEnterExit = true;
+        slot.PendingExitVisibility = requested;
+        SetIsExitingEnterExit(true);
+        NotifyPropertyChanged(nameof(PendingVisibility));
+
+        var isFreshCycle = !slot.HasCapturedEnterExitBase;
+        if (isFreshCycle)
+        {
+            CaptureEnterExitBase(slot);
+        }
+
+        var run = EnterExit.ExitAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, EnterExit, isEntry: false, isFreshCycle);
+        if (run == null)
+        {
+            //  Defensive: HasExit already guarantees an explicit animation or a real effect+duration, so this should not happen.
+            slot.IsExitingEnterExit = false;
+            slot.PendingExitVisibility = null;
+            SetIsExitingEnterExit(false);
+            SetVisibilityCore(requested);
+            return;
+        }
+
+        slot.ActiveEnterExitRun = run;
+        run.Completed += HandleEnterExitRunFinished;
+        run.Cancelled += HandleEnterExitRunFinished;
+        Animations.Start(run);
+    }
+
+    /// <summary>Starts (or restarts) this element's entry run (ADR-0011 decision 6): called by <see cref="SetVisibility"/> once
+    /// <see cref="Visibility"/> is already <see cref="Visibility.Visible"/> and <see cref="Animation.UIEnterExitSettings.HasEnter"/> is true.
+    /// A leftover exit run was already cancelled and detached by <see cref="SetVisibility"/> before this runs.</summary>
+    private void PlayEnterExitEnter()
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+
+        if (slot.ActiveEnterExitRun is { } activeRun)
+        {
+            DetachEnterExitHandlers(activeRun);
+            slot.ActiveEnterExitRun = null;
+            if (activeRun.IsActive)
+            {
+                activeRun.Cancel();
+            }
+        }
+
+        var isFreshCycle = !slot.HasCapturedEnterExitBase;
+        if (isFreshCycle)
+        {
+            CaptureEnterExitBase(slot);
+        }
+
+        var run = EnterExit.EnterAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, EnterExit, isEntry: true, isFreshCycle);
+        if (run == null)
+        {
+            return;
+        }
+
+        slot.ActiveEnterExitRun = run;
+        run.Completed += HandleEnterExitRunFinished;
+        run.Cancelled += HandleEnterExitRunFinished;
+        Animations.Start(run);
+    }
+
+    private void DetachEnterExitHandlers(Animation.UIAnimation run)
+    {
+        run.Completed -= HandleEnterExitRunFinished;
+        run.Cancelled -= HandleEnterExitRunFinished;
+    }
+
+    /// <summary>Captures <see cref="Animation.UIElementAnimationSlot.BaseOpacity"/>/<c>BaseScale</c>/<c>BaseTranslation</c>/<c>BaseOrigin</c>
+    /// from the element's current values: called once per entry/exit cycle, only when it starts from rest (ADR-0011 decision 6). Allocates
+    /// <see cref="RenderTransform"/> on first access, like any other read of it.</summary>
+    private void CaptureEnterExitBase(Animation.UIElementAnimationSlot slot)
+    {
+        slot.BaseOpacity = Opacity;
+        slot.BaseScale = RenderTransform.Scale;
+        slot.BaseTranslation = RenderTransform.Translation;
+        slot.BaseOrigin = RenderTransform.Origin;
+        slot.HasCapturedEnterExitBase = true;
+    }
+
+    /// <summary>Ends the element's current entry/exit run, called for both <see cref="Animation.UIAnimation.Completed"/> and
+    /// <see cref="Animation.UIAnimation.Cancelled"/>: releases the held <see cref="Animation.UIRenderTransform.Origin"/> (if any), forces the
+    /// captured base values back on a cancellation (a natural completion already leaves the effect's own end values in place, which is what
+    /// <see cref="Animation.UIAnimationFillBehavior.HoldEnd"/> is for), then -- if this was an exit -- clears the exiting state and applies the
+    /// pending <see cref="Visibility"/> (ADR-0011 decision 6). A stale event from a run this element has already detached (superseded, see
+    /// <see cref="SetVisibility"/>/<see cref="PlayEnterExitEnter"/>/<see cref="PlayEnterExitExit"/>) is ignored.</summary>
+    private void HandleEnterExitRunFinished(object sender, EventArgs e)
+    {
+        var slot = _animationSlot;
+        if (slot == null || !ReferenceEquals(slot.ActiveEnterExitRun, sender))
+        {
+            return;
+        }
+
+        var run = (Animation.UIAnimation)sender;
+        DetachEnterExitHandlers(run);
+        slot.ActiveEnterExitRun = null;
+
+        var wasExiting = slot.IsExitingEnterExit;
+        var wasCancelled = run.State == Animation.UIAnimationState.Cancelled;
+
+        RestoreEnterExitOriginIfHeld(slot);
+        if (!wasCancelled && !wasExiting)
+        {
+            //  A natural entry completion leaves the element visible at whatever its own run decided (an explicit EnterAnimation
+            //  need not target the captured base): truly at rest, so the next cycle captures a fresh base (picking up any change
+            //  the application made while it was visible), with nothing forced.
+            slot.HasCapturedEnterExitBase = false;
+        }
+        else
+        {
+            //  Cancelled (entry or exit), or a natural exit completion: force the true base back on top of whatever the run's own
+            //  end/KeepCurrent values left in place (ADR-0011 decision 6: an exit that completes naturally "restores the base
+            //  values" just like one cancelled from the outside, so the element never comes back a ghost even when a later show
+            //  uses a different effect that does not touch the same paths), and the next cycle starts fresh.
+            ForceRestoreEnterExitBase(slot);
+            slot.HasCapturedEnterExitBase = false;
+        }
+
+        if (wasExiting)
+        {
+            slot.IsExitingEnterExit = false;
+            SetIsExitingEnterExit(false);
+            var pending = slot.PendingExitVisibility ?? Visibility.Collapsed;
+            slot.PendingExitVisibility = null;
+            SetVisibilityCore(pending);
+            NotifyPropertyChanged(nameof(PendingVisibility));
+        }
+    }
+
+    private void RestoreEnterExitOriginIfHeld(Animation.UIElementAnimationSlot slot)
+    {
+        if (slot.EnterExitOriginHeld)
+        {
+            RenderTransform.Origin = slot.BaseOrigin;
+            slot.EnterExitOriginHeld = false;
+        }
+    }
+
+    /// <summary>Writes the captured base opacity, scale and translation back (ADR-0011 decision 6: "a sortie annulee de l'exterieur ...
+    /// restaure les valeurs de base"), the authoritative restore this element applies on top of whatever each child run's own
+    /// <see cref="Animation.UIAnimationCancelBehavior.KeepCurrent"/> left in place.</summary>
+    private void ForceRestoreEnterExitBase(Animation.UIElementAnimationSlot slot)
+    {
+        if (!slot.HasCapturedEnterExitBase)
+        {
+            return;
+        }
+
+        Opacity = slot.BaseOpacity;
+        RenderTransform.Scale = slot.BaseScale;
+        RenderTransform.Translation = slot.BaseTranslation;
+    }
+    #endregion Enter and Exit
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Animation.UIElementAnimationSlot _animationSlot;
@@ -4590,6 +4897,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             RecentDrawWasClipped = true;
             return;
         }
+
+        //  Y6: past this point the element is actually drawn -- the one-shot flag an exit checks before it is allowed to start
+        //  (ADR-0011 decision 6: "an exit only starts for an element that has been drawn since it was attached").
+        _hasDrawnSinceAttached = true;
 
         // Four-corner bounds (ADR-0006): the current transform may carry an ancestor rotation, under which the two-corner helper returns a negative size.
         var TargetBounds = LayoutBounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();

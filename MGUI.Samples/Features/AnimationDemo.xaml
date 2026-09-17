@@ -517,6 +517,28 @@
                         LayoutTransitionDuration="0.3" LayoutTransitionEasing="CubicOut" LayoutTransitionAnimatesSize="True" />
             </StackPanel>
 
+            <Separator/>
+
+            <!-- 19. Enter and exit -->
+            <TextBlock StyleNames="Header1" Text="19. Enter and exit" />
+            <TextBlock>
+                [c=Turquoise][i]EnterExit[/i][/c] settings, set in code, drive an entry animation when the element becomes visible and an exit
+                animation when it is hidden. The exit keeps the element visible, drawn and in the layout, but non-interactive, until it
+                completes: only then is the requested visibility actually applied. Nothing plays before the element's first draw, so the panel
+                below stays put at load.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="EnterExitFadeButton" Content="Fade" />
+                    <Button Name="EnterExitScaleButton" Content="Scale" />
+                    <Button Name="EnterExitSlideButton" Content="Slide" />
+                    <Button Name="EnterExitToggleButton" Content="Show/Hide" />
+                </StackPanel>
+                <Border Name="EnterExitTarget" Width="160" Height="60" Background="#8E44AD" HorizontalAlignment="Left">
+                    <TextBlock Text="Enter/Exit" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </StackPanel>
+
             <Spacer Height="70" />
         </StackPanel>
     </ScrollViewer>

@@ -86,4 +86,42 @@ internal sealed class UIElementAnimationSlot
             Owner.SelfOrParentWindow?.Desktop?.Animations.RefreshOwnerWindow(Owner);
         }
     }
+
+    #region Enter and Exit (Y6)
+    /// <summary>True while an exit run is in progress (ADR-0011 decision 6): <see cref="MGElement.Visibility"/> keeps its value in effect
+    /// (<see cref="UI.Visibility.Visible"/>) until the run ends, and <see cref="PendingExitVisibility"/> exposes the requested value.</summary>
+    public bool IsExitingEnterExit { get; set; }
+
+    /// <summary>The <see cref="UI.Visibility"/> requested while <see cref="IsExitingEnterExit"/> is true; null once the exit ends.</summary>
+    public Visibility? PendingExitVisibility { get; set; }
+
+    /// <summary>The entry or exit run currently in progress (an explicit <see cref="UIEnterExitSettings.EnterAnimation"/> /
+    /// <see cref="UIEnterExitSettings.ExitAnimation"/>, or the <see cref="UIStoryboard"/> a predefined effect builds), null at rest. Cancelling
+    /// it to let a new one supersede it (an entry interrupting an exit, or the reverse) is done without restoring base values, so the new run
+    /// starts from the current values with no jump (ADR-0011 decision 6).</summary>
+    public UIAnimation ActiveEnterExitRun { get; set; }
+
+    /// <summary>True once <see cref="BaseOpacity"/>, <see cref="BaseScale"/>, <see cref="BaseTranslation"/> and <see cref="BaseOrigin"/> have
+    /// been captured for the entry/exit cycle in progress. Cleared at the end of every run (completed or cancelled, entry or exit), so the
+    /// next cycle that starts from rest captures a fresh base (ADR-0011 decision 6: "captured when a cycle starts from rest, not mid-run").</summary>
+    public bool HasCapturedEnterExitBase { get; set; }
+
+    /// <summary>The element's <see cref="MGElement.Opacity"/> captured at the start of the current entry/exit cycle: the value a predefined
+    /// <see cref="UIEnterExitEffect.Fade"/>/<see cref="UIEnterExitEffect.FadeScale"/> entry heads to, or its exit starts from.</summary>
+    public float BaseOpacity { get; set; }
+
+    /// <summary>The element's <see cref="Animation.UIRenderTransform.Scale"/> captured at the start of the current entry/exit cycle.</summary>
+    public Vector2 BaseScale { get; set; }
+
+    /// <summary>The element's <see cref="Animation.UIRenderTransform.Translation"/> captured at the start of the current entry/exit cycle.</summary>
+    public Vector2 BaseTranslation { get; set; }
+
+    /// <summary>The element's <see cref="Animation.UIRenderTransform.Origin"/> captured at the start of the current entry/exit cycle, restored
+    /// once a <see cref="UIEnterExitEffect.Scale"/>/<see cref="UIEnterExitEffect.FadeScale"/> run releases <see cref="EnterExitOriginHeld"/>.</summary>
+    public Vector2 BaseOrigin { get; set; }
+
+    /// <summary>True while <see cref="Animation.UIRenderTransform.Origin"/> is pinned at (0.5, 0.5) for the duration of a
+    /// <see cref="UIEnterExitEffect.Scale"/>/<see cref="UIEnterExitEffect.FadeScale"/> run.</summary>
+    public bool EnterExitOriginHeld { get; set; }
+    #endregion
 }
