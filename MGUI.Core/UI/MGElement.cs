@@ -927,6 +927,25 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             Interlocked.Increment(ref _treeTopologyGeneration);
             LocalResources?.SetParent(GetInheritedResources());
             InvalidateLayoutTree();
+            //  Y4: an element that just left or joined a parent has not been laid out under it yet, so it never starts a false layout
+            //  transition on its first pass there (reorder, detachment and re-attachment, a recycled virtualized container).
+            //  Fix round 1 (P1): a container-only element that is reparented (recycled or reordered) raises OnParentChanged on itself,
+            //  but its descendants never go through SetParent, so their own flag stayed up and their now-meaningless previous
+            //  LayoutBounds let them start a false run off the recycled/reordered container's stale position. Once any element on the
+            //  desktop has opted in, lower the flag on the whole subtree being reparented, not just on this element; while nobody has
+            //  opted in anywhere, no layout transition can ever read the flag, so the cheap single-field reset is kept.
+            if (SelfOrParentWindow?.Desktop?.HasLayoutTransitions == true)
+            {
+                ResetLayoutTransitionAttachStateRecursive();
+            }
+            else
+            {
+                _hasLaidOutSinceAttached = false;
+            }
+            if (_layoutTransition != null)
+            {
+                SelfOrParentWindow?.Desktop?.MarkHasLayoutTransitions();
+            }
             NotifyPropertyChanged(nameof(Parent));
             OnParentChanged?.Invoke(this, new(Previous, Parent));
         }
@@ -3956,6 +3975,34 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Animation.UILayoutTransition _layoutTransition;
+
+    /// <summary>Opt-in settings for a layout transition (ADR-0011 decision 5): null by default. This is a settings object, never carrying an
+    /// animated value itself -- reading or writing any animation target never opts this element in on its own; only a non-null value whose
+    /// <see cref="Animation.UILayoutTransition.Duration"/> is greater than zero does, checked by <see cref="UpdateLayout"/> at the moment it
+    /// would start a run.<para/>
+    /// Setting a non-null value raises this element's desktop's sticky <see cref="MGDesktop.HasLayoutTransitions"/> flag at once when the
+    /// element already has one; <see cref="SetParent"/> and <see cref="UpdateLayout"/> raise it too, for an element that already carries
+    /// non-null settings when it gets (or first lays out on) a desktop whose flag is still down.</summary>
+    public Animation.UILayoutTransition LayoutTransition
+    {
+        get => _layoutTransition;
+        set
+        {
+            if (_layoutTransition != value)
+            {
+                _layoutTransition = value;
+                if (value != null)
+                {
+                    SelfOrParentWindow?.Desktop?.MarkHasLayoutTransitions();
+                }
+
+                NotifyPropertyChanged(nameof(LayoutTransition));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Animation.UIElementAnimationSlot _animationSlot;
     /// <summary>The animations owned by this element (ADR-0006): start one with <see cref="Animation.UIAnimationCollection.Start"/>; it is ticked
     /// by the <see cref="MGDesktop.Animations"/> manager of this element's desktop whatever the element's visibility, and cancelled when the element
@@ -4254,6 +4301,39 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         NotifyPropertyChanged(nameof(RenderTransform));
     }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _hasActiveLayoutOffset;
+
+    /// <summary>True while this element's layout-transition offset (ADR-0011 decision 5) is not the identity. Never true for an
+    /// <see cref="MGWindow"/>: a window never starts its own run (see <see cref="UpdateLayout"/>), so <see cref="SetLayoutOffset"/> is never
+    /// called on one.</summary>
+    internal bool HasActiveLayoutOffset => _hasActiveLayoutOffset;
+
+    /// <summary>The current layout-transition offset (ADR-0011 decision 5; <see cref="Animation.UILayoutTransform.Offset"/>), zero when the
+    /// element never opted in or its run is not active. Read by <see cref="Animation.UILayoutTransitionOffsetTarget.GetValue"/> and by
+    /// <see cref="TryGetRenderTransformMatrix"/>; never allocates the animation slot.</summary>
+    internal Vector2 LayoutOffset => _animationSlot?.LayoutTransformOrNull?.Offset ?? Vector2.Zero;
+
+    /// <summary>Writes the layout-transition offset (ADR-0011 decision 5) through the counting setter shared by the internal run's
+    /// unregistered target: allocates the animation slot and its <see cref="Animation.UILayoutTransform"/> on demand, adjusts
+    /// <see cref="MGDesktop.ActiveRenderTransformCount"/> exactly like <see cref="RenderTransform"/> and <see cref="RenderScale"/> when the
+    /// offset crosses identity (a separate boolean, so the two contributions never double count or cancel each other), and invalidates hover.</summary>
+    internal void SetLayoutOffset(Vector2 value)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        var Transform = Slot.EnsureLayoutTransform();
+        Transform.Offset = value;
+
+        var IsActive = !Transform.IsIdentity;
+        if (IsActive != _hasActiveLayoutOffset)
+        {
+            _hasActiveLayoutOffset = IsActive;
+            SelfOrParentWindow?.Desktop?.AdjustActiveRenderTransformCount(IsActive ? 1 : -1);
+        }
+
+        InvalidateHoverForRenderTransformChange();
+    }
+
     /// <summary>The state-driven scale of <see cref="RenderScale"/> for the current <see cref="VisualState"/>, ignoring the animated override
     /// (the underlying value a <c>RenderScale</c> transition heads to). False when there is none.</summary>
     internal bool TryGetStateScaleWithoutOverride(out float Scale)
@@ -4307,13 +4387,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Builds the render-only matrix of this element for its bounds in unscaled screen space (the space of <see cref="ElementDrawArgs.Offset"/>
-    /// and of the input hit-test): the state-driven scale around the centre, then <see cref="RenderTransform"/> around its origin.
+    /// and of the input hit-test): the state-driven scale around the centre, then <see cref="RenderTransform"/> around its origin, then the
+    /// layout-transition offset (ADR-0011 decision 5) -- appended last, so it moves the already-transformed element as a whole and composes
+    /// with an application animation on <see cref="RenderTransform"/> instead of fighting it.
     /// Returns false, and the identity, when nothing needs to be pushed.</summary>
     internal bool TryGetRenderTransformMatrix(Rectangle UnscaledBounds, out Matrix transform)
     {
         var HasStateScale = TryGetEffectiveStateScale(out var StateScale) && Math.Abs(StateScale - 1.0f) > Animation.UIRenderTransform.IdentityEpsilon;
         var HasTransform = HasActiveRenderTransform;
-        if (!HasStateScale && !HasTransform)
+        var HasLayoutOffset = _hasActiveLayoutOffset;
+        if (!HasStateScale && !HasTransform && !HasLayoutOffset)
         {
             transform = Matrix.Identity;
             return false;
@@ -4324,6 +4407,12 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             var Local = _renderTransform.ToMatrix(UnscaledBounds);
             transform = HasStateScale ? transform * Local : Local;
+        }
+
+        if (HasLayoutOffset)
+        {
+            var Offset = LayoutOffset;
+            transform *= Matrix.CreateTranslation(Offset.X, Offset.Y, 0);
         }
 
         return true;
@@ -4363,10 +4452,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         TryApplyInverseRenderTransform(ref UnscaledPosition);
     }
 
-    /// <summary>Applies the inverse of this element's own render transform, if any, to a position in unscaled screen space.</summary>
+    /// <summary>Applies the inverse of this element's own render transform, if any (including the layout-transition offset, ADR-0011
+    /// decision 5), to a position in unscaled screen space.</summary>
     private void TryApplyInverseRenderTransform(ref Vector2 UnscaledPosition)
     {
-        if (!HasActiveRenderTransform && !_renderScale.HasValue && _animationSlot?.StateScaleOverride == null)
+        if (!HasActiveRenderTransform && !_renderScale.HasValue && _animationSlot?.StateScaleOverride == null && !_hasActiveLayoutOffset)
         {
             return;
         }
@@ -4776,14 +4866,65 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     #region Arrange
     protected internal bool IsUpdatingLayout { get; private set; }
 
+    /// <summary>True once this element has completed at least one non-empty layout pass since it last (re-)joined a parent (ADR-0011
+    /// decision 5): lowered in <see cref="SetParent"/> whenever the parent actually changes, raised right after the real, non-empty
+    /// assignment of <see cref="LayoutBounds"/> in <see cref="UpdateLayout"/>. A detached element keeps its old <see cref="LayoutBounds"/>,
+    /// so it is this flag, not the animations clearing on detachment, that stops a first layout under a new parent from playing a false
+    /// layout transition. Maintained unconditionally (a plain field write, never allocating) whether or not any element of the desktop has
+    /// opted into a layout transition.</summary>
+    private bool _hasLaidOutSinceAttached;
+
+    /// <summary>Lowers <see cref="_hasLaidOutSinceAttached"/> on this element and its entire descendant subtree (visual-tree children and
+    /// components), mirroring <see cref="InvalidateLayoutTree"/>. Called from <see cref="SetParent"/> instead of a single-field reset once
+    /// the desktop has any layout transition in use, so that reparenting a container-only element (recycling, reordering) does not leave a
+    /// stale flag on descendants that were never themselves reparented (fix round 1, P1).</summary>
+    private void ResetLayoutTransitionAttachStateRecursive()
+    {
+        _hasLaidOutSinceAttached = false;
+        var vtcAll = GetVisualTreeChildren(true, true);
+        for (var i = 0; i < vtcAll.Count; i++)
+        {
+            vtcAll[i].ResetLayoutTransitionAttachStateRecursive();
+        }
+
+        foreach (var Component in Components)
+        {
+            Component.BaseElement.ResetLayoutTransitionAttachStateRecursive();
+        }
+    }
+
     internal protected void UpdateLayout(Rectangle Bounds)
     {
         using var performanceScope = UIPerformanceProbe.BeginElementLayout(this);
+
+        //  ADR-0011 decision 5: while nobody on this desktop has opted into a layout transition, this is the only added cost of this method.
+        var Desktop = SelfOrParentWindow?.Desktop;
+        if (Desktop != null && _layoutTransition != null && !Desktop.HasLayoutTransitions)
+        {
+            Desktop.MarkHasLayoutTransitions();
+        }
+
+        var HasLayoutTransitions = Desktop?.HasLayoutTransitions ?? false;
+        var PushedLayoutTransitionEntry = false;
+
         try
         {
             IsUpdatingLayout = true;
 
             var PreviousLayoutBounds = LayoutBounds;
+            //  Fix round 1 (P2): captured before AllocatedBounds is overwritten below, so a resize can be detected against the previous
+            //  ALLOCATED size. LayoutBounds has the window's Margin removed, while Bounds (the new allocation) does not, so comparing
+            //  PreviousLayoutBounds.Size to Bounds.Size reported every pass of a margined window as a resize (the two sizes always
+            //  differ by the margin) and silently suppressed every layout transition in that window.
+            var PreviousAllocatedBounds = AllocatedBounds;
+
+            if (HasLayoutTransitions)
+            {
+                //  A window's entry starts fresh (no inherited displacement); any other element inherits its parent's current entry.
+                var WindowResized = IsWindow && PreviousAllocatedBounds != Rectangle.Empty && PreviousAllocatedBounds.Size != Bounds.Size;
+                Desktop.PushLayoutTransitionEntry(IsWindow, WindowResized);
+                PushedLayoutTransitionEntry = true;
+            }
 
             if (Bounds.Width <= 0 || Bounds.Height <= 0)
             {
@@ -4846,6 +4987,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     }
                     else
                     {
+                        //  ADR-0011 decision 5: right after the real, non-empty assignment of LayoutBounds above, before components and
+                        //  children lay out -- so that a parent's decision is visible to its descendants through the ambient entry before
+                        //  they push their own.
+                        var WasLaidOutSinceAttached = _hasLaidOutSinceAttached;
+                        _hasLaidOutSinceAttached = true;
+                        if (HasLayoutTransitions)
+                        {
+                            HandleLayoutTransitionAfterBoundsAssigned(PreviousLayoutBounds, Desktop, WasLaidOutSinceAttached);
+                        }
+
                         var RemainingComponentBounds = LayoutBounds;
                         foreach (var Component in Components)
                         {
@@ -4916,7 +5067,64 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             OnLayoutUpdated?.Invoke(this, EventArgs.Empty);
             OnLayoutBoundsChanged?.Invoke(this, new(PreviousLayoutBounds, LayoutBounds));
         }
-        finally { IsUpdatingLayout = false; }
+        finally
+        {
+            if (PushedLayoutTransitionEntry)
+            {
+                Desktop.PopLayoutTransitionEntry();
+            }
+
+            IsUpdatingLayout = false;
+        }
+    }
+
+    /// <summary>Decides whether this element starts (or restarts) its layout-transition run, right after the real, non-empty assignment of
+    /// its own <see cref="LayoutBounds"/> (ADR-0011 decision 5). Never called for an <see cref="MGWindow"/>: a window's ambient entry
+    /// already carries the right values as pushed (zero displacement, its own <c>WindowResized</c>), since a window never starts a run of
+    /// its own (a window move goes through <c>TranslateAllBounds</c>, not through here).<para/>
+    /// Own delta is this element's raw movement; effective delta subtracts the displacement already applied to its subtree by an ancestor's
+    /// own run (the ambient entry) -- when that leaves nothing, the element is only being carried along and starts no run of its own. Either
+    /// way, the entry is updated in place with the own delta, so descendants see the total displacement at instant zero, not just the part
+    /// this element still has to animate itself.</summary>
+    private void HandleLayoutTransitionAfterBoundsAssigned(Rectangle PreviousLayoutBounds, MGDesktop Desktop, bool WasLaidOutSinceAttached)
+    {
+        if (IsWindow)
+        {
+            return;
+        }
+
+        var Entry = Desktop.PeekLayoutTransitionEntry();
+        var Settings = LayoutTransition;
+        var StartsTransition =
+            Settings != null && Settings.Duration > TimeSpan.Zero &&
+            PreviousLayoutBounds != Rectangle.Empty && LayoutBounds.Location != PreviousLayoutBounds.Location &&
+            WasLaidOutSinceAttached && !Entry.WindowResized;
+
+        if (StartsTransition)
+        {
+            Vector2 OwnDelta = new(LayoutBounds.Left - PreviousLayoutBounds.Left, LayoutBounds.Top - PreviousLayoutBounds.Top);
+            var EffectiveDelta = OwnDelta - Entry.Displacement;
+            if (EffectiveDelta != Vector2.Zero)
+            {
+                StartLayoutTransitionRun(Settings, EffectiveDelta);
+            }
+
+            Desktop.SetLayoutTransitionEntryDisplacement(OwnDelta);
+        }
+    }
+
+    /// <summary>Starts or restarts this element's reused layout-transition run (ADR-0011 decision 5) so it glides from the current visual
+    /// offset minus <paramref name="EffectiveDelta"/> back to <see cref="Vector2.Zero"/>: a second change in the same tick, or while the
+    /// run is already active, restarts the same instance from the still-current visual offset, so the drawn translation never jumps.</summary>
+    private void StartLayoutTransitionRun(Animation.UILayoutTransition Settings, Vector2 EffectiveDelta)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        var Run = Slot.EnsureLayoutTransitionRun();
+        Run.From = LayoutOffset - EffectiveDelta;
+        Run.To = Vector2.Zero;
+        Run.Duration = Settings.Duration;
+        Run.Easing = Settings.Easing;
+        Animations.Start(Run);
     }
 
     public event EventHandler<EventArgs> OnLayoutUpdated;

@@ -39,6 +39,53 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     internal void AdjustActiveRenderTransformCount(int Delta) => ActiveRenderTransformCount = Math.Max(0, ActiveRenderTransformCount + Delta);
 
+    /// <summary>One ambient entry of the layout-transition pass stack (ADR-0011 decision 5): the visual displacement already applied to the
+    /// enclosing subtree at instant zero (own delta of the closest ancestor that started a run this pass, or inherited from further up), and
+    /// whether the current pass is a resize of the displaying window (inherited from the window root, never raised again below it).</summary>
+    internal readonly record struct LayoutTransitionStackEntry(Vector2 Displacement, bool WindowResized);
+
+    /// <summary>Sticky flag: true once at least one element of this desktop has opted into <see cref="MGElement.LayoutTransition"/> (ADR-0011
+    /// decision 5). Raised by the <c>LayoutTransition</c> setter and never lowered: while it is down, <see cref="MGElement.UpdateLayout"/>
+    /// pays exactly one flag read and nothing else.</summary>
+    internal bool HasLayoutTransitions { get; private set; }
+
+    internal void MarkHasLayoutTransitions() => HasLayoutTransitions = true;
+
+    private LayoutTransitionStackEntry[] _LayoutTransitionStack = new LayoutTransitionStackEntry[8];
+    private int _LayoutTransitionStackCount;
+
+    /// <summary>The ambient entry of the element currently enclosing the one about to lay out (the parent's entry, already updated with its
+    /// own displacement), or the default (no displacement, not a resize pass) when the stack is empty. Never allocates.</summary>
+    internal LayoutTransitionStackEntry PeekLayoutTransitionEntry() =>
+        _LayoutTransitionStackCount > 0 ? _LayoutTransitionStack[_LayoutTransitionStackCount - 1] : default;
+
+    /// <summary>Pushes the ambient entry of the element entering <see cref="MGElement.UpdateLayout"/>, at the very top of its <c>try</c>: for a
+    /// window, a fresh entry (no inherited displacement, <paramref name="WindowResized"/> as computed by the caller); for any other element,
+    /// a copy of the parent's current entry (<see cref="PeekLayoutTransitionEntry"/>). Grows the backing array by doubling, only when the
+    /// depth exceeds the current capacity -- never in a steady state. Must be paired with <see cref="PopLayoutTransitionEntry"/> in a
+    /// <c>finally</c>, on every branch, including one where a child's layout throws.</summary>
+    internal void PushLayoutTransitionEntry(bool IsWindowElement, bool WindowResized)
+    {
+        var Entry = IsWindowElement ? new LayoutTransitionStackEntry(Vector2.Zero, WindowResized) : PeekLayoutTransitionEntry();
+        if (_LayoutTransitionStackCount == _LayoutTransitionStack.Length)
+        {
+            Array.Resize(ref _LayoutTransitionStack, _LayoutTransitionStack.Length * 2);
+        }
+
+        _LayoutTransitionStack[_LayoutTransitionStackCount++] = Entry;
+    }
+
+    /// <summary>Overwrites the displacement of the current (topmost) ambient entry in place: called right after the owning element's own
+    /// <see cref="MGElement.LayoutBounds"/> assignment, before its components and its children lay out, so their push inherits it.</summary>
+    internal void SetLayoutTransitionEntryDisplacement(Vector2 Displacement)
+    {
+        var Top = _LayoutTransitionStackCount - 1;
+        _LayoutTransitionStack[Top] = _LayoutTransitionStack[Top] with { Displacement = Displacement };
+    }
+
+    /// <summary>Pops the entry pushed by <see cref="PushLayoutTransitionEntry"/> for the element leaving <see cref="MGElement.UpdateLayout"/>.</summary>
+    internal void PopLayoutTransitionEntry() => _LayoutTransitionStackCount--;
+
     /// <summary>The animation engine of this desktop (ADR-0006, decision 7): its clock, the active animations and their conflict rule.
     /// Ticked first in <see cref="Update"/>, so every animated value is written before the windows are laid out, updated and drawn.</summary>
     public Animation.UIAnimationManager Animations { get; } = new();

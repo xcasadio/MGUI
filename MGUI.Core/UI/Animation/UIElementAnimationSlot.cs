@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 
 namespace MGUI.Core.UI.Animation;
@@ -34,6 +35,29 @@ internal sealed class UIElementAnimationSlot
 
     /// <summary>The animated value of the state-driven scale (<see cref="MGElement.RenderScale"/>), set by the <c>RenderScale</c> target; null when not animated.</summary>
     public float? StateScaleOverride { get; set; }
+
+    private UILayoutTransform _LayoutTransform;
+
+    /// <summary>The layout-transition transform (Y4), or null while the element has never run one.</summary>
+    public UILayoutTransform LayoutTransformOrNull => _LayoutTransform;
+
+    /// <summary>Allocates <see cref="LayoutTransformOrNull"/> on first access.</summary>
+    public UILayoutTransform EnsureLayoutTransform() => _LayoutTransform ??= new UILayoutTransform();
+
+    private UIPropertyAnimation<Vector2> _LayoutTransitionRun;
+
+    /// <summary>The reused run of the element's layout transition (Y4): one <see cref="UIPropertyAnimation{T}"/> instance per element, created
+    /// on the first transition and restarted (never replaced) by every later one, targeting the explicit, unregistered
+    /// <see cref="UILayoutTransitionOffsetTarget"/>.</summary>
+    public UIPropertyAnimation<Vector2> EnsureLayoutTransitionRun() => _LayoutTransitionRun ??= new UIPropertyAnimation<Vector2>
+    {
+        Target = UILayoutTransitionOffsetTarget.Instance,
+        To = Vector2.Zero,
+        FillBehavior = UIAnimationFillBehavior.HoldEnd,
+        CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
+        InheritsBaseValue = false,
+        Name = "layout-transition",
+    };
 
     private void HandleOwnerParentChanged(object sender, EventArgs<MGElement> e)
     {
