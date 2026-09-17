@@ -9,6 +9,7 @@ using MGUI.Core.UI.Animation.KeyFrames;
 using MGUI.Core.UI.Animation.Targets;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.XAML;
 using MGUI.Core.Tooling;
 using System;
@@ -55,6 +56,7 @@ namespace MGUI.Samples.Features
             WireAwait();
             WireScrolling();
             WireFrames();
+            WireLayout();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -483,6 +485,61 @@ namespace MGUI.Samples.Features
                     _framesAnimation.Resume();
                 }
             };
+        }
+
+        /// <summary>The "Layout transitions" section's running counter for freshly inserted rows (Y5): every new row gets an increasing label
+        /// so insert and move are visually distinguishable across clicks. Starts after the four rows declared in XAML.</summary>
+        private int _layoutRowCounter = 4;
+
+        /// <summary>18. Layout transitions: <c>LayoutListPanel</c>'s rows opt in through <c>LayoutTransitionDuration</c>/
+        /// <c>LayoutTransitionEasing</c> (the "LayoutRow" style, in XAML) -- insert, remove and move (a removal followed by an insertion,
+        /// <c>MGStackPanel</c> has no reorder API) glide the remaining/displaced rows to their new place, never the row that was itself just
+        /// attached. <c>LayoutSizeTarget</c> additionally opts into <c>LayoutTransitionAnimatesSize</c> (declared in XAML): "Resize" toggles
+        /// its width between two values, stretching its content during the run. A row created here by "Insert at top" gets the same
+        /// <see cref="MGElement.LayoutTransition"/> settings as the ones declared in XAML. Nothing starts at load.</summary>
+        private void WireLayout()
+        {
+            MGStackPanel list = Window.GetElementByName<MGStackPanel>("LayoutListPanel");
+            MGBorder sizeTarget = Window.GetElementByName<MGBorder>("LayoutSizeTarget");
+
+            MGBorder CreateRow(string text)
+            {
+                MGBorder row = new(Window) { LayoutTransition = new UILayoutTransition { Duration = TimeSpan.FromSeconds(0.3), Easing = UIEasing.CubicOut } };
+                row.SetContent(new MGTextBlock(Window, text));
+                return row;
+            }
+
+            Window.GetElementByName<MGButton>("LayoutInsertButton").AddCommandHandler((btn, e) =>
+            {
+                _layoutRowCounter++;
+                list.TryInsertChild(0, CreateRow($"Row {_layoutRowCounter}"));
+            });
+
+            Window.GetElementByName<MGButton>("LayoutRemoveButton").AddCommandHandler((btn, e) =>
+            {
+                MGElement first = list.Children.FirstOrDefault();
+                if (first != null)
+                {
+                    list.TryRemoveChild(first);
+                }
+            });
+
+            Window.GetElementByName<MGButton>("LayoutMoveButton").AddCommandHandler((btn, e) =>
+            {
+                MGElement last = list.Children.LastOrDefault();
+                if (last != null)
+                {
+                    list.TryRemoveChild(last);
+                    list.TryInsertChild(0, last);
+                }
+            });
+
+            bool sizeIsWide = false;
+            Window.GetElementByName<MGButton>("LayoutResizeButton").AddCommandHandler((btn, e) =>
+            {
+                sizeIsWide = !sizeIsWide;
+                sizeTarget.PreferredWidth = sizeIsWide ? 220 : 100;
+            });
         }
     }
 }

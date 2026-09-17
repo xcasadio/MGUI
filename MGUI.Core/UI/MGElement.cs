@@ -4304,9 +4304,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _hasActiveLayoutOffset;
 
-    /// <summary>True while this element's layout-transition offset (ADR-0011 decision 5) is not the identity. Never true for an
-    /// <see cref="MGWindow"/>: a window never starts its own run (see <see cref="UpdateLayout"/>), so <see cref="SetLayoutOffset"/> is never
-    /// called on one.</summary>
+    /// <summary>True while this element's layout transform (ADR-0011 decision 5: <see cref="Animation.UILayoutTransform.Offset"/> and, since
+    /// Y5, <see cref="Animation.UILayoutTransform.Scale"/>) is not the identity. Never true for an <see cref="MGWindow"/>: a window never
+    /// starts its own run (see <see cref="UpdateLayout"/>), so <see cref="SetLayoutOffset"/>/<see cref="SetLayoutScale"/> are never called on
+    /// one.</summary>
     internal bool HasActiveLayoutOffset => _hasActiveLayoutOffset;
 
     /// <summary>The current layout-transition offset (ADR-0011 decision 5; <see cref="Animation.UILayoutTransform.Offset"/>), zero when the
@@ -4314,17 +4315,37 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <see cref="TryGetRenderTransformMatrix"/>; never allocates the animation slot.</summary>
     internal Vector2 LayoutOffset => _animationSlot?.LayoutTransformOrNull?.Offset ?? Vector2.Zero;
 
-    /// <summary>Writes the layout-transition offset (ADR-0011 decision 5) through the counting setter shared by the internal run's
-    /// unregistered target: allocates the animation slot and its <see cref="Animation.UILayoutTransform"/> on demand, adjusts
-    /// <see cref="MGDesktop.ActiveRenderTransformCount"/> exactly like <see cref="RenderTransform"/> and <see cref="RenderScale"/> when the
-    /// offset crosses identity (a separate boolean, so the two contributions never double count or cancel each other), and invalidates hover.</summary>
+    /// <summary>The current layout-transition scale (Y5; <see cref="Animation.UILayoutTransform.Scale"/>), <see cref="Vector2.One"/> when the
+    /// element never opted into <see cref="Animation.UILayoutTransition.AnimateSize"/> or its size run is not active. Read by
+    /// <see cref="Animation.UILayoutTransitionScaleTarget.GetValue"/> and by <see cref="TryGetRenderTransformMatrix"/>; never allocates the
+    /// animation slot.</summary>
+    internal Vector2 LayoutScale => _animationSlot?.LayoutTransformOrNull?.Scale ?? Vector2.One;
+
+    /// <summary>Writes the layout-transition offset (ADR-0011 decision 5) through the counting setter shared by the internal offset run's
+    /// unregistered target. See <see cref="RefreshActiveLayoutTransformState"/> for the shared identity/counter bookkeeping.</summary>
     internal void SetLayoutOffset(Vector2 value)
     {
         var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
-        var Transform = Slot.EnsureLayoutTransform();
-        Transform.Offset = value;
+        Slot.EnsureLayoutTransform().Offset = value;
+        RefreshActiveLayoutTransformState();
+    }
 
-        var IsActive = !Transform.IsIdentity;
+    /// <summary>Writes the layout-transition scale (Y5) through the counting setter shared by the internal size run's unregistered target.
+    /// See <see cref="RefreshActiveLayoutTransformState"/> for the shared identity/counter bookkeeping.</summary>
+    internal void SetLayoutScale(Vector2 value)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        Slot.EnsureLayoutTransform().Scale = value;
+        RefreshActiveLayoutTransformState();
+    }
+
+    /// <summary>Recomputes <see cref="HasActiveLayoutOffset"/> from the combined identity of <see cref="Animation.UILayoutTransform.Offset"/>
+    /// and <see cref="Animation.UILayoutTransform.Scale"/> (Y5) after either was written, adjusting
+    /// <see cref="MGDesktop.ActiveRenderTransformCount"/> exactly like <see cref="RenderTransform"/> and <see cref="RenderScale"/> when the
+    /// combined state crosses identity -- one contribution per element for both fields together, never two -- and invalidates hover.</summary>
+    private void RefreshActiveLayoutTransformState()
+    {
+        var IsActive = !(_animationSlot?.LayoutTransformOrNull?.IsIdentity ?? true);
         if (IsActive != _hasActiveLayoutOffset)
         {
             _hasActiveLayoutOffset = IsActive;
@@ -4388,15 +4409,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     /// <summary>Builds the render-only matrix of this element for its bounds in unscaled screen space (the space of <see cref="ElementDrawArgs.Offset"/>
     /// and of the input hit-test): the state-driven scale around the centre, then <see cref="RenderTransform"/> around its origin, then the
-    /// layout-transition offset (ADR-0011 decision 5) -- appended last, so it moves the already-transformed element as a whole and composes
-    /// with an application animation on <see cref="RenderTransform"/> instead of fighting it.
+    /// layout transition (ADR-0011 decision 5: scale around the top-left corner of <paramref name="UnscaledBounds"/>, since Y5, then the
+    /// offset) -- appended last, so it moves the already-transformed element as a whole and composes with an application animation on
+    /// <see cref="RenderTransform"/> instead of fighting it.
     /// Returns false, and the identity, when nothing needs to be pushed.</summary>
     internal bool TryGetRenderTransformMatrix(Rectangle UnscaledBounds, out Matrix transform)
     {
         var HasStateScale = TryGetEffectiveStateScale(out var StateScale) && Math.Abs(StateScale - 1.0f) > Animation.UIRenderTransform.IdentityEpsilon;
         var HasTransform = HasActiveRenderTransform;
-        var HasLayoutOffset = _hasActiveLayoutOffset;
-        if (!HasStateScale && !HasTransform && !HasLayoutOffset)
+        var HasLayoutTransform = _hasActiveLayoutOffset;
+        if (!HasStateScale && !HasTransform && !HasLayoutTransform)
         {
             transform = Matrix.Identity;
             return false;
@@ -4409,10 +4431,22 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             transform = HasStateScale ? transform * Local : Local;
         }
 
-        if (HasLayoutOffset)
+        if (HasLayoutTransform)
         {
             var Offset = LayoutOffset;
-            transform *= Matrix.CreateTranslation(Offset.X, Offset.Y, 0);
+            var Scale = LayoutScale;
+            var HasLayoutScale = Math.Abs(Scale.X - 1f) > Animation.UIRenderTransform.IdentityEpsilon || Math.Abs(Scale.Y - 1f) > Animation.UIRenderTransform.IdentityEpsilon;
+            if (HasLayoutScale)
+            {
+                //  Scale around the top-left corner of the NEW bounds, then translate: T(-newTopLeft) * S(scale) * T(newTopLeft + offset).
+                float PivotX = UnscaledBounds.Left;
+                float PivotY = UnscaledBounds.Top;
+                transform *= Matrix.CreateTranslation(-PivotX, -PivotY, 0) * Matrix.CreateScale(Scale.X, Scale.Y, 1f) * Matrix.CreateTranslation(PivotX + Offset.X, PivotY + Offset.Y, 0);
+            }
+            else
+            {
+                transform *= Matrix.CreateTranslation(Offset.X, Offset.Y, 0);
+            }
         }
 
         return true;
@@ -5095,9 +5129,12 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         var Entry = Desktop.PeekLayoutTransitionEntry();
         var Settings = LayoutTransition;
+        var LocationChanged = LayoutBounds.Location != PreviousLayoutBounds.Location;
+        //  Y5: a size change alone also starts a run when the element opted into AnimateSize, under the same guard conditions as a move.
+        var SizeChanged = Settings?.AnimateSize == true && (LayoutBounds.Width != PreviousLayoutBounds.Width || LayoutBounds.Height != PreviousLayoutBounds.Height);
         var StartsTransition =
             Settings != null && Settings.Duration > TimeSpan.Zero &&
-            PreviousLayoutBounds != Rectangle.Empty && LayoutBounds.Location != PreviousLayoutBounds.Location &&
+            PreviousLayoutBounds != Rectangle.Empty && (LocationChanged || SizeChanged) &&
             WasLaidOutSinceAttached && !Entry.WindowResized;
 
         if (StartsTransition)
@@ -5106,22 +5143,43 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             var EffectiveDelta = OwnDelta - Entry.Displacement;
             if (EffectiveDelta != Vector2.Zero)
             {
-                StartLayoutTransitionRun(Settings, EffectiveDelta);
+                StartLayoutTransitionOffsetRun(Settings, EffectiveDelta);
+            }
+
+            if (SizeChanged)
+            {
+                StartLayoutTransitionScaleRun(Settings, PreviousLayoutBounds, LayoutBounds);
             }
 
             Desktop.SetLayoutTransitionEntryDisplacement(OwnDelta);
         }
     }
 
-    /// <summary>Starts or restarts this element's reused layout-transition run (ADR-0011 decision 5) so it glides from the current visual
-    /// offset minus <paramref name="EffectiveDelta"/> back to <see cref="Vector2.Zero"/>: a second change in the same tick, or while the
-    /// run is already active, restarts the same instance from the still-current visual offset, so the drawn translation never jumps.</summary>
-    private void StartLayoutTransitionRun(Animation.UILayoutTransition Settings, Vector2 EffectiveDelta)
+    /// <summary>Starts or restarts this element's reused layout-transition offset run (ADR-0011 decision 5) so it glides from the current
+    /// visual offset minus <paramref name="EffectiveDelta"/> back to <see cref="Vector2.Zero"/>: a second change in the same tick, or while
+    /// the run is already active, restarts the same instance from the still-current visual offset, so the drawn translation never jumps.</summary>
+    private void StartLayoutTransitionOffsetRun(Animation.UILayoutTransition Settings, Vector2 EffectiveDelta)
     {
         var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
         var Run = Slot.EnsureLayoutTransitionRun();
         Run.From = LayoutOffset - EffectiveDelta;
         Run.To = Vector2.Zero;
+        Run.Duration = Settings.Duration;
+        Run.Easing = Settings.Easing;
+        Animations.Start(Run);
+    }
+
+    /// <summary>Starts or restarts this element's reused layout-transition scale run (Y5) so it glides from the ratio of the previous size to
+    /// the new one -- combined with the current visual scale, exactly like the offset restarts from the current visual position -- back to
+    /// <see cref="Vector2.One"/>: a second size change in the same tick, or while the run is already active, restarts the same instance from
+    /// the still-current visual scale, so the drawn size never jumps.</summary>
+    private void StartLayoutTransitionScaleRun(Animation.UILayoutTransition Settings, Rectangle PreviousLayoutBounds, Rectangle NewLayoutBounds)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        var Run = Slot.EnsureLayoutTransitionScaleRun();
+        Vector2 SizeRatio = new((float)PreviousLayoutBounds.Width / NewLayoutBounds.Width, (float)PreviousLayoutBounds.Height / NewLayoutBounds.Height);
+        Run.From = LayoutScale * SizeRatio;
+        Run.To = Vector2.One;
         Run.Duration = Settings.Duration;
         Run.Easing = Settings.Easing;
         Animations.Start(Run);

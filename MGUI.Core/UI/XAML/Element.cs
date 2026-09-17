@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Animation.States;
 using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Styling;
@@ -297,6 +298,49 @@ public abstract class Element : XAMLBindableBase
     /// <summary>The transitions attached to the element (ADR-0006): <c>&lt;Button.Transitions&gt;&lt;Transition Property="Opacity" Duration="0.2" Easing="CubicOut" /&gt;&lt;/Button.Transitions&gt;</c>.</summary>
     [Category("Appearance")]
     public List<Transition> Transitions { get; set; } = new();
+
+    private string _layoutTransitionDuration;
+    /// <summary>How long this element's layout transition (ADR-0011 decision 5) glide takes, accepting the same formats as
+    /// <see cref="Transition.Duration"/> (seconds, milliseconds or a <see cref="TimeSpan"/>). A zero or absent value leaves
+    /// <see cref="MGElement.LayoutTransition"/> null, exactly like never setting it; usable in a style <c>Setter</c>.</summary>
+    [Category("Layout")]
+    public string LayoutTransitionDuration
+    {
+        get => _layoutTransitionDuration;
+        set
+        {
+            if (!AnimationXamlParser.TryParseDuration(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to a layout transition duration: use seconds (0.15), milliseconds (150ms) or a TimeSpan (0:0:0.15).");
+            }
+
+            _layoutTransitionDuration = value;
+        }
+    }
+
+    private string _layoutTransitionEasing;
+    /// <summary>The easing function of this element's layout transition (ADR-0011 decision 5), a name known to <see cref="UIEasing"/>. Null
+    /// (the default) means linear; usable in a style <c>Setter</c>.</summary>
+    [Category("Layout")]
+    public string LayoutTransitionEasing
+    {
+        get => _layoutTransitionEasing;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !UIEasing.TryGet(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to an easing function. Known names: {string.Join(", ", UIEasing.Names)}.");
+            }
+
+            _layoutTransitionEasing = value;
+        }
+    }
+
+    /// <summary>Whether this element's layout transition (ADR-0011 decision 5) also animates a size change (Y5:
+    /// <see cref="Animation.UILayoutTransition.AnimateSize"/>). Null or false (the default) leaves size changes alone, exactly like Y4;
+    /// usable in a style <c>Setter</c>. Alone, without a positive <see cref="LayoutTransitionDuration"/>, this has no effect.</summary>
+    [Category("Layout")]
+    public bool? LayoutTransitionAnimatesSize { get; set; }
 
     /// <summary>The named visual states of the element (ADR-0007, decisions 3 and 5): <c>&lt;Button.VisualStates&gt;&lt;VisualStateDefinition Name="Hover"&gt;&lt;Setter Property="RenderTransform.Scale" Value="1.05" /&gt;&lt;/VisualStateDefinition&gt;&lt;/Button.VisualStates&gt;</c>.</summary>
     [Category("Appearance")]
@@ -630,6 +674,23 @@ public abstract class Element : XAMLBindableBase
             if (RenderTransform != null)
             {
                 RenderTransform.ApplyTo(Element.RenderTransform);
+            }
+
+            //  Y5: a zero or absent duration leaves LayoutTransition null, exactly like never setting it (the easing or the size flag alone do nothing).
+            if (AnimationXamlParser.TryParseDuration(LayoutTransitionDuration, out var LayoutTransitionDurationValue) && LayoutTransitionDurationValue > TimeSpan.Zero)
+            {
+                IUIEasingFunction LayoutTransitionEasingValue = null;
+                if (!string.IsNullOrWhiteSpace(LayoutTransitionEasing))
+                {
+                    UIEasing.TryGet(LayoutTransitionEasing, out LayoutTransitionEasingValue);
+                }
+
+                Element.LayoutTransition = new Animation.UILayoutTransition
+                {
+                    Duration = LayoutTransitionDurationValue,
+                    Easing = LayoutTransitionEasingValue,
+                    AnimateSize = LayoutTransitionAnimatesSize ?? false,
+                };
             }
 
             //  Visual states, then transitions, are attached last, once the declared values above are in place: a transition reads the current value

@@ -46,8 +46,8 @@ internal sealed class UIElementAnimationSlot
 
     private UIPropertyAnimation<Vector2> _LayoutTransitionRun;
 
-    /// <summary>The reused run of the element's layout transition (Y4): one <see cref="UIPropertyAnimation{T}"/> instance per element, created
-    /// on the first transition and restarted (never replaced) by every later one, targeting the explicit, unregistered
+    /// <summary>The reused run of the element's layout-transition offset (Y4): one <see cref="UIPropertyAnimation{T}"/> instance per element,
+    /// created on the first transition and restarted (never replaced) by every later one, targeting the explicit, unregistered
     /// <see cref="UILayoutTransitionOffsetTarget"/>.</summary>
     public UIPropertyAnimation<Vector2> EnsureLayoutTransitionRun() => _LayoutTransitionRun ??= new UIPropertyAnimation<Vector2>
     {
@@ -57,6 +57,22 @@ internal sealed class UIElementAnimationSlot
         CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
         InheritsBaseValue = false,
         Name = "layout-transition",
+    };
+
+    private UIPropertyAnimation<Vector2> _LayoutTransitionScaleRun;
+
+    /// <summary>The reused run of the element's layout-transition size (Y5): one <see cref="UIPropertyAnimation{T}"/> instance per element,
+    /// separate from <see cref="EnsureLayoutTransitionRun"/> (ADR-0011, "Decisions taken during delivery", Y5), created on the first size
+    /// change and restarted (never replaced) by every later one, targeting the explicit, unregistered
+    /// <see cref="UILayoutTransitionScaleTarget"/>.</summary>
+    public UIPropertyAnimation<Vector2> EnsureLayoutTransitionScaleRun() => _LayoutTransitionScaleRun ??= new UIPropertyAnimation<Vector2>
+    {
+        Target = UILayoutTransitionScaleTarget.Instance,
+        To = Vector2.One,
+        FillBehavior = UIAnimationFillBehavior.HoldEnd,
+        CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
+        InheritsBaseValue = false,
+        Name = "layout-transition-scale",
     };
 
     private void HandleOwnerParentChanged(object sender, EventArgs<MGElement> e)

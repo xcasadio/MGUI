@@ -554,6 +554,218 @@ public class LayoutTransitionTests
         Assert.False(top.HasActiveLayoutOffset);
     }
 
+    // ---- AnimateSize (Y5) ----------------------------------------------------------------------------------------
+
+    private static UILayoutTransition SizeTransition(int milliseconds = 200) => new() { Duration = TimeSpan.FromMilliseconds(milliseconds), AnimateSize = true };
+
+    [Fact]
+    public void AnimateSize_WidthGrows_ScalesXAroundNewTopLeft_AndEndsAtIdentity()
+    {
+        Scene scene = Scene.Build();
+        MGButton top = scene.AddButton(width: 100);
+        top.LayoutTransition = SizeTransition();
+        scene.Frames(2);
+
+        Point previousTopLeft = top.LayoutBounds.Location;
+        top.PreferredWidth = 200;
+        scene.Frames(1);
+
+        Assert.Equal(previousTopLeft, top.LayoutBounds.Location);
+        Assert.True(top.HasActiveLayoutOffset);
+        Assert.Equal(Vector2.Zero, top.LayoutOffset);
+
+        GraphNoOpDrawTransaction transaction = scene.Draw();
+        Matrix push = Assert.Single(transaction.TransformPushes);
+        // Scaling X by 0.5 (100/200) around the new top-left maps the new right edge (200) back onto the old one (100).
+        Rectangle bounds = top.LayoutBounds;
+        Vector2 newRightEdge = new(bounds.Right, bounds.Top);
+        Vector2 mapped = Vector2.Transform(newRightEdge, push);
+        Assert.Equal(bounds.Left + 100, mapped.X, 2);
+        Assert.Equal(0.5f, push.M11, 3);
+
+        scene.Frames(30);
+        Assert.Equal(Vector2.One, top.LayoutScale);
+        Assert.False(top.HasActiveLayoutOffset);
+        Assert.Equal(0, scene.Desktop.ActiveRenderTransformCount);
+    }
+
+    [Fact]
+    public void AnimateSize_CombinedWithAMove_BothAnimateTogether_AndEndAtIdentity()
+    {
+        Scene scene = Scene.Build();
+        MGButton top = scene.AddButton(width: 100);
+        top.LayoutTransition = SizeTransition();
+        scene.AddButton();
+        scene.Frames(2);
+
+        Point previousLocation = top.LayoutBounds.Location;
+        scene.Panel.TryInsertChild(0, new MGButton(scene.Window) { PreferredWidth = 120, PreferredHeight = 25 });
+        top.PreferredWidth = 200;
+        scene.Frames(1);
+
+        Assert.NotEqual(previousLocation, top.LayoutBounds.Location);
+        Assert.NotEqual(Vector2.Zero, top.LayoutOffset);
+        Assert.NotEqual(Vector2.One, top.LayoutScale);
+        Assert.True(top.HasActiveLayoutOffset);
+
+        scene.Frames(30);
+        Assert.Equal(Vector2.Zero, top.LayoutOffset);
+        Assert.Equal(Vector2.One, top.LayoutScale);
+        Assert.False(top.HasActiveLayoutOffset);
+        Assert.Equal(0, scene.Desktop.ActiveRenderTransformCount);
+    }
+
+    [Fact]
+    public void AnimateSize_HitTestFollowsTheDrawnScale_DuringTheRun()
+    {
+        Scene scene = Scene.Build();
+        MGButton top = scene.AddButton(width: 100, height: 40);
+        top.LayoutTransition = SizeTransition(200);
+        scene.Frames(2);
+
+        top.PreferredWidth = 200;
+        scene.Frames(1);
+
+        // Right after the change, the visual width is still ~100 (scaled by ~0.5): a point near the new right edge (200) misses,
+        // while the centre still hits.
+        Rectangle bounds = top.LayoutBounds;
+        Point nearNewRightEdge = new(bounds.Right - 2, bounds.Top + bounds.Height / 2);
+        scene.Frames(1, nearNewRightEdge);
+        Assert.False(top.IsHovered);
+
+        Point centre = bounds.Center;
+        scene.Frames(1, centre);
+        Assert.True(top.IsHovered);
+    }
+
+    [Fact]
+    public void AnimateSize_SecondSizeChangeDuringTheRun_RestartsFromTheCurrentVisualScale_WithoutAJump()
+    {
+        Scene scene = Scene.Build();
+        MGButton top = scene.AddButton(width: 100);
+        top.LayoutTransition = SizeTransition(200);
+        scene.Frames(2);
+
+        top.PreferredWidth = 200;
+        scene.Frames(3);
+        Vector2 scaleBeforeSecondChange = top.LayoutScale;
+        Assert.NotEqual(Vector2.One, scaleBeforeSecondChange);
+        float visualWidthBeforeSecondChange = top.LayoutBounds.Width * scaleBeforeSecondChange.X;
+
+        top.PreferredWidth = 300;
+        scene.Frames(1);
+
+        // No jump: the drawn (visual) width right after the restart is a near-continuation of where it already was.
+        float visualWidthAfterSecondChange = top.LayoutBounds.Width * top.LayoutScale.X;
+        float jump = Math.Abs(visualWidthBeforeSecondChange - visualWidthAfterSecondChange);
+        Assert.True(jump < 15f, $"Expected a near-continuous visual width, moved by {jump}px ({visualWidthBeforeSecondChange} -> {visualWidthAfterSecondChange}).");
+
+        scene.Frames(30);
+        Assert.Equal(Vector2.One, top.LayoutScale);
+        Assert.False(top.HasActiveLayoutOffset);
+    }
+
+    [Fact]
+    public void AnimateSizeFalse_ASizeChangeAlonePlaysNothing_LikeY4()
+    {
+        Scene scene = Scene.Build();
+        MGButton top = scene.AddButton(width: 100);
+        top.LayoutTransition = Transition();
+        scene.Frames(2);
+
+        top.PreferredWidth = 200;
+        scene.Frames(1);
+
+        Assert.False(top.HasActiveLayoutOffset);
+        Assert.Equal(Vector2.One, top.LayoutScale);
+        Assert.Equal(Vector2.Zero, top.LayoutOffset);
+    }
+
+    [Fact]
+    public void AnimateSize_ActiveRenderTransformCount_ReturnsToItsInitialValue_AfterDetachingMidRun()
+    {
+        Scene scene = Scene.Build();
+        MGButton top = scene.AddButton(width: 100);
+        top.LayoutTransition = SizeTransition(500);
+        scene.Frames(2);
+        int initial = scene.Desktop.ActiveRenderTransformCount;
+
+        top.PreferredWidth = 200;
+        scene.Frames(1);
+        Assert.True(scene.Desktop.ActiveRenderTransformCount > initial);
+
+        scene.Panel.TryRemoveChild(top);
+        Assert.Equal(initial, scene.Desktop.ActiveRenderTransformCount);
+        Assert.Equal(Vector2.One, top.LayoutScale);
+        Assert.Equal(Vector2.Zero, top.LayoutOffset);
+    }
+
+    [Fact]
+    public void AnimateSize_ActiveRenderTransformCount_ReturnsToItsInitialValue_AfterClosingTheWindowMidRun()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 400, 300) { WindowStyle = WindowStyle.None };
+        MGStackPanel panel = new(window, Orientation.Vertical) { Spacing = 0, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        MGButton top = new(window) { PreferredWidth = 100, PreferredHeight = 40 };
+        top.LayoutTransition = SizeTransition(500);
+        panel.TryAddChild(top);
+        window.SetContent(panel);
+        desktop.Windows.Add(window);
+
+        int frameIndex = 0;
+        void Frames(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                frameIndex++;
+                MouseState state = new(1, 1, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+                runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(FrameMilliseconds * (double)frameIndex), TimeSpan.FromMilliseconds(FrameMilliseconds), state, new KeyboardState()));
+                desktop.Update();
+            }
+        }
+        Frames(2);
+        int initial = desktop.ActiveRenderTransformCount;
+
+        top.PreferredWidth = 200;
+        Frames(1);
+        Assert.True(desktop.ActiveRenderTransformCount > initial);
+
+        Assert.True(window.TryCloseWindow());
+        Assert.Equal(initial, desktop.ActiveRenderTransformCount);
+        Assert.Equal(Vector2.One, top.LayoutScale);
+        Assert.Equal(Vector2.Zero, top.LayoutOffset);
+    }
+
+    [Fact]
+    public void AnimateSize_ActiveRun_AllocatesNothingPerTick_AfterWarmUp()
+    {
+        Scene scene = Scene.Build();
+        MGButton top = scene.AddButton(width: 100);
+        top.LayoutTransition = SizeTransition(100_000);
+        scene.Frames(2);
+
+        top.PreferredWidth = 200;
+        scene.Frames(1);
+        Assert.True(top.HasActiveLayoutOffset);
+
+        UIAnimationManager manager = scene.Desktop.Animations;
+        TimeSpan frame = TimeSpan.FromMilliseconds(FrameMilliseconds);
+        for (int i = 0; i < 20; i++)
+        {
+            manager.Update(frame);
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 200; i++)
+        {
+            manager.Update(frame);
+        }
+        long after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(0, after - before);
+    }
+
     // ---- Nesting --------------------------------------------------------------------------------------------------
 
     [Fact]

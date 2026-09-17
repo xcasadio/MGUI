@@ -65,6 +65,7 @@ public class AnimationDemoSampleTests
         ["15. Awaitable animations"] = new[] { "AwaitPlayButton", "AwaitCancelButton", "AwaitTarget", "AwaitResultText" },
         ["16. Smooth scrolling"] = new[] { "ScrollDemoViewer", "ScrollDemoTopButton", "ScrollDemoBottomButton" },
         ["17. Sprite-sheet frames"] = new[] { "FramesTarget", "FramesPlayButton", "FramesPauseToggle" },
+        ["18. Layout transitions"] = new[] { "LayoutListPanel", "LayoutInsertButton", "LayoutRemoveButton", "LayoutMoveButton", "LayoutSizeTarget", "LayoutResizeButton" },
     };
 
     /// <summary>The XAML references a resource style ("Styles and theme" section, <c>StylesButtonA</c>/<c>StylesButtonB</c>'s
