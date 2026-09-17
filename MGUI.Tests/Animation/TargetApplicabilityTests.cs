@@ -50,6 +50,7 @@ public class TargetApplicabilityTests
         [UIExtraAnimationTargets.Paths.BackgroundDiagonalGradient] = null,
         [UIExtraAnimationTargets.Paths.ScrollViewerVerticalOffset] = typeof(MGScrollViewer),
         [UIExtraAnimationTargets.Paths.ScrollViewerHorizontalOffset] = typeof(MGScrollViewer),
+        [UIExtraAnimationTargets.Paths.BackgroundTextureFrame] = null,
     };
 
     /// <summary>Other test classes (<c>AnimationManagerTests</c>, <c>TransitionTests</c>) register throwaway targets under a <c>Test.</c>

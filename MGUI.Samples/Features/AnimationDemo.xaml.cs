@@ -54,6 +54,7 @@ namespace MGUI.Samples.Features
             WireDiagnostics();
             WireAwait();
             WireScrolling();
+            WireFrames();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -442,6 +443,46 @@ namespace MGUI.Samples.Features
 
             Window.GetElementByName<MGButton>("ScrollDemoBottomButton").AddCommandHandler((btn, e)
                 => viewer.ScrollTo(null, viewer.MaxVerticalOffset, TimeSpan.FromSeconds(0.4), UIEasing.CubicInOut));
+        }
+
+        /// <summary>The "Sprite-sheet frames" section's current run, restarted by every "Play" click and paused/resumed in place by
+        /// <c>FramesPauseToggle</c> (<see cref="UIAnimation.Pause"/>/<see cref="UIAnimation.Resume"/>). Null until the first click.</summary>
+        private UIAnimation _framesAnimation;
+
+        /// <summary>17. Sprite-sheet frames: <c>FramesTarget</c>'s background (declared in XAML as a <c>TextureFillBrush</c> with a
+        /// <c>FrameGrid</c> over the "AngryMeteor" sheet) animates <see cref="UIExtraAnimationTargets.Paths.BackgroundTextureFrame"/> as a
+        /// plain float whose integer part selects the cell; "Play" (re)starts a <see cref="UIAnimation.RepeatForever"/> run from 0 to the
+        /// grid's own frame count over ~0.6s, and the toggle pauses/resumes that exact run without restarting it. Nothing starts at load.</summary>
+        private void WireFrames()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("FramesTarget");
+            MGTextureFillBrush frameBrush = (MGTextureFillBrush)target.BackgroundBrush.NormalValue;
+            float frameCount = frameBrush.FrameGrid!.Value.EffectiveFrameCount;
+            MGToggleButton pauseToggle = Window.GetElementByName<MGToggleButton>("FramesPauseToggle");
+
+            Window.GetElementByName<MGButton>("FramesPlayButton").AddCommandHandler((btn, e) =>
+            {
+                _framesAnimation = target.Animate(UIExtraAnimationTargets.Paths.BackgroundTextureFrame, 0f, frameCount, 0.6)
+                    .RepeatForever().Named("frames-play").Play();
+                pauseToggle.IsChecked = false;
+            });
+
+            pauseToggle.OnCheckStateChanged += (sender, e) =>
+            {
+                if (_framesAnimation == null)
+                {
+                    return;
+                }
+
+                if (pauseToggle.IsChecked)
+                {
+                    _framesAnimation.Pause();
+                }
+                else
+                {
+                    _framesAnimation.Resume();
+                }
+            };
         }
     }
 }

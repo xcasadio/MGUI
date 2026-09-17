@@ -30,6 +30,11 @@ public static class UIExtraAnimationTargets
         public const string ScrollViewerVerticalOffset = "ScrollViewer.VerticalOffset";
         /// <summary>The horizontal scroll offset of an <see cref="MGScrollViewer"/>: see <see cref="ScrollViewerVerticalOffset"/>.</summary>
         public const string ScrollViewerHorizontalOffset = "ScrollViewer.HorizontalOffset";
+        /// <summary>The sprite-sheet frame of the background's Normal slot when it is an <see cref="MGTextureFillBrush"/> with a
+        /// <see cref="MGTextureFillBrush.FrameGrid"/> (ADR-0011, decision C4): a store-backed, brush-valued target like
+        /// <see cref="BackgroundGradient"/>, but not observable -- see <see cref="BackgroundTextureFrameTarget"/> for why a
+        /// <see cref="UITransition{T}"/> on this path is refused.</summary>
+        public const string BackgroundTextureFrame = "Background.Texture.Frame";
     }
 
     internal static void RegisterAll()
@@ -41,6 +46,7 @@ public static class UIExtraAnimationTargets
         UIAnimationTargets.Register(new BackgroundDiagonalGradientTarget());
         UIAnimationTargets.Register(new ScrollViewerOffsetTarget(Paths.ScrollViewerVerticalOffset, isVertical: true));
         UIAnimationTargets.Register(new ScrollViewerOffsetTarget(Paths.ScrollViewerHorizontalOffset, isVertical: false));
+        UIAnimationTargets.Register(new BackgroundTextureFrameTarget());
     }
 
     private static UIValueResolutionSource AnimationSource(string animationName)
@@ -304,5 +310,124 @@ public static class UIExtraAnimationTargets
         private MGScrollViewer Require(MGElement element)
             => element as MGScrollViewer ?? throw new InvalidOperationException(
                 $"'{Path}' animates the scroll offset of an {nameof(MGScrollViewer)}; {element.GetType().Name} has none.");
+    }
+
+    /// <summary><c>Background.Texture.Frame</c> (ADR-0011, decision C4): a store-backed, brush-valued target over the background's Normal slot,
+    /// like <see cref="BackgroundGradientTarget"/>/<see cref="BackgroundDiagonalGradientTarget"/>, but written and read as a plain
+    /// <see langword="float"/> mapped onto <see cref="MGTextureFillBrush.FrameIndex"/> (<see cref="MapFrameIndex"/>: floored, then clamped to
+    /// <c>[0, FrameGrid.Value.EffectiveFrameCount - 1]</c>) rather than a set of colours. Deliberately NOT <see cref="IUIObservableAnimationTarget{T}"/>
+    /// (decision taken during delivery, ADR-0011): a frame index has no meaningful "underlying value" to retarget a transition from/to the way a
+    /// colour or a gradient does, so a <see cref="UITransition{T}"/> on this path is refused by <see cref="UITransition{T}"/>'s own cast (it is
+    /// simply not observable), an explicit <see cref="UIPropertyAnimation{T}"/> being the only way to play it. Every member that needs "the
+    /// texture brush below the animation" requires it to already be an <see cref="MGTextureFillBrush"/> with a <see cref="MGTextureFillBrush.FrameGrid"/>
+    /// set: unlike the colour/gradient targets, nothing here ever builds a texture brush out of a bare number, so a solid background, a texture
+    /// brush without a grid, or an empty background all throw <see cref="InvalidOperationException"/> rather than silently starting one.</summary>
+    private sealed class BackgroundTextureFrameTarget : IUIBrushAnimationTarget<float>
+    {
+        public string Path => Paths.BackgroundTextureFrame;
+
+        public bool IsStoreBacked => true;
+
+        public UIPilotProperty Pilot => UIPilotProperty.Background;
+
+        private static int MapFrameIndex(float value, int effectiveFrameCount) => Math.Clamp((int)Math.Floor(value), 0, effectiveFrameCount - 1);
+
+        private static string Describe(IFillBrush brush) => brush switch
+        {
+            null => "empty",
+            MGTextureFillBrush { FrameGrid: null } => $"a {nameof(MGTextureFillBrush)} without a {nameof(MGTextureFillBrush.FrameGrid)}",
+            _ => "a " + brush.GetType().Name,
+        };
+
+        /// <summary>The texture brush below the animation (same read as <see cref="TryGetValueBelowAnimation"/>), required to already carry a
+        /// <see cref="MGTextureFillBrush.FrameGrid"/>: throws <see cref="InvalidOperationException"/> otherwise, naming what was actually found.
+        /// No fallback construction (decision taken during delivery, ADR-0011): a frame index alone never carries enough information to build a
+        /// texture brush.</summary>
+        private MGTextureFillBrush RequireGridBrushBelowAnimation(MGElement element)
+        {
+            var found = element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var brush)
+                ? brush : null;
+            if (found is MGTextureFillBrush { FrameGrid: not null } texture)
+            {
+                return texture;
+            }
+
+            throw new InvalidOperationException(
+                $"'{Path}' of {element.GetType().Name} is {Describe(found)}: only a texture brush with a {nameof(MGTextureFillBrush.FrameGrid)} can be animated on this path.");
+        }
+
+        public float GetValue(MGElement element)
+        {
+            var brush = element.BackgroundBrush?.NormalValue;
+            if (brush is MGTextureFillBrush { FrameGrid: not null } texture)
+            {
+                return texture.FrameIndex;
+            }
+
+            throw new InvalidOperationException(
+                $"'{Path}' of {element.GetType().Name} is {Describe(brush)}: only a texture brush with a {nameof(MGTextureFillBrush.FrameGrid)} can be animated on this path.");
+        }
+
+        public bool TryGetValueBelowAnimation(MGElement element, out float value)
+        {
+            if (element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var brush)
+                && brush is MGTextureFillBrush { FrameGrid: not null } texture)
+            {
+                value = texture.FrameIndex;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public void SetValue(MGElement element, float value, string animationName)
+            => SetValue(element, value, AnimationSource(animationName));
+
+        /// <summary>Named visual state setters and the explicit-animation fallback path: copies the texture brush below the animation (must
+        /// already carry a grid) and writes the mapped frame index on that copy under <paramref name="source"/>. Never mutates the brush it
+        /// copied from.</summary>
+        public void SetValue(MGElement element, float value, UIValueResolutionSource source)
+        {
+            var below = RequireGridBrushBelowAnimation(element);
+            var copy = (MGTextureFillBrush)below.Copy();
+            copy.FrameIndex = MapFrameIndex(value, below.FrameGrid.Value.EffectiveFrameCount);
+            element.SetBackgroundSlot(UIValueSlot.Normal, copy, source);
+        }
+
+        public bool ClearContribution(MGElement element, UIValueResolutionSource source, float baseValue)
+            => UIStoreBackedTargets.Restore(element, UIPilotProperty.Background, UIValueSlot.Normal, source, s => SetValue(element, baseValue, s));
+
+        public void RestoreBaseValue(MGElement element, float baseValue)
+            => UIColorAnimationTargets.RestoreSlot(element, UIPilotProperty.Background, UIValueSlot.Normal, source => SetValue(element, baseValue, source));
+
+        /// <summary>ADR-0011: the clone is a <see cref="IFillBrush.Copy"/> of the texture brush recovered below the animation, required to
+        /// already carry a grid -- see <see cref="RequireGridBrushBelowAnimation"/>, no fallback construction.</summary>
+        public object BeginAnimatedValue(MGElement element, string animationName)
+        {
+            var original = RequireGridBrushBelowAnimation(element);
+            var clone = (MGTextureFillBrush)original.Copy();
+            element.SetBackgroundSlot(UIValueSlot.Normal, clone, AnimationSource(animationName));
+            return new UIBrushAnimationHandle<IFillBrush>(clone, original);
+        }
+
+        /// <summary>Mutates the clone's own <see cref="MGTextureFillBrush.FrameIndex"/> setter. No store write; no allocation.</summary>
+        public void ApplyAnimatedValue(object handle, float value)
+        {
+            var clone = (MGTextureFillBrush)((UIBrushAnimationHandle<IFillBrush>)handle).Clone;
+            clone.FrameIndex = MapFrameIndex(value, clone.FrameGrid.Value.EffectiveFrameCount);
+        }
+
+        /// <summary>Restores the exact base instance: re-reads "the value below the animation" first (a container swap mid-run promotes the
+        /// swapped-in container's own value into a real contribution, see <c>UIColorAnimationTargets</c>'s <c>BackgroundSlotTarget.EndAnimatedValue</c>),
+        /// falling back to the instance <see cref="BeginAnimatedValue"/> captured -- always non-null, since that call throws rather than
+        /// starting without one.</summary>
+        public void EndAnimatedValue(MGElement element, object handle, float baseValue)
+        {
+            var h = (UIBrushAnimationHandle<IFillBrush>)handle;
+            var restored = (element.TryGetResolvedPilotValueExcluding<IFillBrush>(UIPilotProperty.Background, UIValueSlot.Normal, UIValueSourceKind.Animation, out var below) ? below : null)
+                ?? h.Original;
+            UIColorAnimationTargets.RestoreSlot(element, UIPilotProperty.Background, UIValueSlot.Normal, source => element.SetBackgroundSlot(UIValueSlot.Normal, restored, source));
+        }
     }
 }

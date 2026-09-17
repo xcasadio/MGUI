@@ -64,6 +64,7 @@ public class AnimationDemoSampleTests
         ["14. Diagnostics"] = new[] { "DiagnosticsPathsButton", "DiagnosticsPathsText", "DiagnosticsMeasureButton", "DiagnosticsTarget", "DiagnosticsAllocationText" },
         ["15. Awaitable animations"] = new[] { "AwaitPlayButton", "AwaitCancelButton", "AwaitTarget", "AwaitResultText" },
         ["16. Smooth scrolling"] = new[] { "ScrollDemoViewer", "ScrollDemoTopButton", "ScrollDemoBottomButton" },
+        ["17. Sprite-sheet frames"] = new[] { "FramesTarget", "FramesPlayButton", "FramesPauseToggle" },
     };
 
     /// <summary>The XAML references a resource style ("Styles and theme" section, <c>StylesButtonA</c>/<c>StylesButtonB</c>'s
@@ -76,6 +77,7 @@ public class AnimationDemoSampleTests
         GraphTestRuntime runtime = new(new Rectangle(0, 0, 1280, 800));
         MGDesktop desktop = new(runtime);
         desktop.Resources.AddStyle("StylesSharedStyle", new Style { TargetType = MGElementType.Button });
+        desktop.Resources.AddTexture("AngryMeteor", new MGTextureData(new GraphTestImageResource("AngryMeteor", 40, 48)));
         MGWindow window = XAMLParser.LoadRootWindow(desktop, XamlDocumentSource.FromFile(SamplePath), XamlLoaderMode.Strict, false, true);
         desktop.Windows.Add(window);
         return (runtime, desktop, window);

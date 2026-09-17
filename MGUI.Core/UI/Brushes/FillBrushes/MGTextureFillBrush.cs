@@ -36,13 +36,49 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
     }
 
     private bool _Tile;
-    /// <summary>If true, the texture is drawn at its natural pixel size (<see cref="MGTextureData.RenderSize"/>) and tiled
-    /// repeatedly to fill the entire bounds. When true, <see cref="Stretch"/> is ignored.<para/>
+    /// <summary>If true, the texture is drawn at its natural pixel size (<see cref="MGTextureData.RenderSize"/>, or the frame's cell size when
+    /// <see cref="FrameGrid"/> is set) and tiled repeatedly to fill the entire bounds. When true, <see cref="Stretch"/> is ignored.<para/>
     /// Default value: false</summary>
     public bool Tile
     {
         get => _Tile;
         set => SetProperty(ref _Tile, value);
+    }
+
+    private MGSpriteSheetGrid? _FrameGrid;
+    /// <summary>When set, this brush draws one cell of a sprite sheet (ADR-0011, decision C4) instead of the whole of <see cref="Source"/>:
+    /// <see cref="FrameIndex"/> selects the cell inside <see cref="MGTextureData.SourceRect"/> (or the whole image when it has none), which
+    /// becomes the effective source rectangle of every drawing path, and the cell's <see cref="MGSpriteSheetGrid.CellSize"/> becomes the
+    /// natural size (still overridden by an explicit <see cref="MGTextureData.RenderSizeOverride"/>). Null (the default) leaves every path
+    /// exactly as it behaves without a grid. Validated on set (<see cref="MGSpriteSheetGrid.Validate"/>); throws when frozen.</summary>
+    public MGSpriteSheetGrid? FrameGrid
+    {
+        get => _FrameGrid;
+        set
+        {
+            ThrowIfFrozen();
+            value?.Validate();
+            SetProperty(ref _FrameGrid, value);
+        }
+    }
+
+    private int _FrameIndex;
+    /// <summary>The frame of <see cref="FrameGrid"/> this brush currently draws, clamped to <c>[0, FrameGrid.Value.EffectiveFrameCount - 1]</c>
+    /// by <see cref="MGSpriteSheetGrid.GetFrameRectangle(int, Rectangle)"/> when a grid is set; ignored otherwise. Must not be negative.
+    /// Default value: 0.</summary>
+    public int FrameIndex
+    {
+        get => _FrameIndex;
+        set
+        {
+            ThrowIfFrozen();
+            if (value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(FrameIndex)} cannot be negative.");
+            }
+
+            SetProperty(ref _FrameIndex, value);
+        }
     }
 
     /// <param name="SourceName">The name of the <see cref="MGTextureData"/> in <see cref="MGResources.Textures"/> that should be drawn by this <see cref="MGTextureFillBrush"/>.<para/>
@@ -78,9 +114,28 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
         _Tile = Tile;
     }
 
-    private int UnstretchedWidth => Source.RenderSize.Width;
-    private int UnstretchedHeight => Source.RenderSize.Height;
+    /// <summary>The natural size used by every drawing path (ADR-0011, decision C4): <see cref="MGTextureData.RenderSize"/> without a
+    /// <see cref="FrameGrid"/> (unchanged), or <see cref="MGTextureData.RenderSizeOverride"/> when set, else the grid's
+    /// <see cref="MGSpriteSheetGrid.CellSize"/>, when one is set.</summary>
+    private Size EffectiveNaturalSize => FrameGrid is { } grid ? Source.RenderSizeOverride ?? new Size(grid.CellSize.X, grid.CellSize.Y) : Source.RenderSize;
+
+    private int UnstretchedWidth => EffectiveNaturalSize.Width;
+    private int UnstretchedHeight => EffectiveNaturalSize.Height;
     private double UnstretchedAspectRatio => UnstretchedHeight == 0 ? 1.0 : UnstretchedWidth * 1.0 / UnstretchedHeight;
+
+    /// <summary>The source region <see cref="FrameGrid"/> operates over: <see cref="MGTextureData.SourceRect"/>, or the whole image when it
+    /// has none.</summary>
+    private Rectangle SourceRegion => Source.SourceRect ?? new Rectangle(0, 0, Source.Image.Width, Source.Image.Height);
+
+    /// <summary>The effective source rectangle used by the tiled paths and the rounded path (both always need a concrete <see cref="Rectangle"/>,
+    /// never null): <see cref="SourceRegion"/> without a grid (unchanged), or the current frame's cell (<see cref="MGSpriteSheetGrid.GetFrameRectangle(int, Rectangle)"/>)
+    /// with one.</summary>
+    private Rectangle EffectiveFullSource => FrameGrid is { } grid ? grid.GetFrameRectangle(FrameIndex, SourceRegion) : SourceRegion;
+
+    /// <summary>The effective source rectangle used by the non-tiled rectangle path, which passes null through to
+    /// <see cref="IUIDrawContext.DrawTextureTo(IUIImageResource, Rectangle?, Rectangle, Color)"/> exactly as today when there is no grid (so a
+    /// null <see cref="MGTextureData.SourceRect"/> keeps meaning "the whole texture" to the renderer, byte-for-byte unchanged).</summary>
+    private Rectangle? EffectiveSourceRectOrNull => FrameGrid is { } grid ? grid.GetFrameRectangle(FrameIndex, SourceRegion) : Source.SourceRect;
 
     private static int GetWidthByAspectRatio(int Height, double AspectRatio) => (int)Math.Round(Height * AspectRatio, MidpointRounding.ToEven);
     private static int GetHeightByAspectRatio(int Width, double AspectRatio) => (int)Math.Round(Width * 1 / AspectRatio, MidpointRounding.ToEven);
@@ -98,7 +153,7 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
                 var tileH = UnstretchedHeight;
                 if (tileW > 0 && tileH > 0)
                 {
-                    var fullSrc = Source.SourceRect ?? new Rectangle(0, 0, Source.Image.Width, Source.Image.Height);
+                    var fullSrc = EffectiveFullSource;
                     for (var y = Bounds.Top; y < Bounds.Bottom; y += tileH)
                     {
                         for (var x = Bounds.Left; x < Bounds.Right; x += tileW)
@@ -117,7 +172,7 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
             }
 
             var Destination = GetStretchedDestination(Bounds);
-            DA.Context.DrawTextureTo(Source.Image, Source.SourceRect, Destination.GetTranslated(DA.Offset), drawColor);
+            DA.Context.DrawTextureTo(Source.Image, EffectiveSourceRectOrNull, Destination.GetTranslated(DA.Offset), drawColor);
         }
     }
 
@@ -189,7 +244,7 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
         var bounds = Shape.OuterBounds;
         var drawColor = Color * DA.Opacity * Source.Opacity;
         var origin = DA.Offset.ToVector2();
-        var fullSource = Source.SourceRect ?? new Rectangle(0, 0, image.Width, image.Height);
+        var fullSource = EffectiveFullSource;
         var vertices = Geometry.Vertices;
 
         if (Tile)
@@ -343,16 +398,18 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
         Flush();
     }
 
-    public IFillBrush Copy() => new MGTextureFillBrush(Source, Stretch, Color, Tile);
+    public IFillBrush Copy() => new MGTextureFillBrush(Source, Stretch, Color, Tile) { FrameGrid = FrameGrid, FrameIndex = FrameIndex };
 
     /// <summary>Value equality (ADR-0009): two texture brushes are equal when <see cref="Source"/> (a record struct: this compares its
     /// <see cref="MGTextureData.Image"/> by reference, the same underlying texture data, plus its other fields by value), <see cref="Stretch"/>,
-    /// <see cref="Color"/> and <see cref="Tile"/> all match, regardless of frozen state or instance identity.</summary>
+    /// <see cref="Color"/>, <see cref="Tile"/>, <see cref="FrameGrid"/> and <see cref="FrameIndex"/> (ADR-0011, decision C4) all match,
+    /// regardless of frozen state or instance identity.</summary>
     public bool ValueEquals(IFillBrush other) => other is MGTextureFillBrush t
-        && t.Source.Equals(Source) && t.Stretch == Stretch && t.Color == Color && t.Tile == Tile;
+        && t.Source.Equals(Source) && t.Stretch == Stretch && t.Color == Color && t.Tile == Tile
+        && t.FrameGrid.Equals(FrameGrid) && t.FrameIndex == FrameIndex;
 
     /// <summary>Decision taken during delivery (ADR-0009): see <see cref="MGSolidFillBrush.Equals(object)"/> for the rationale
     /// (by-value <see cref="object.Equals(object)"/>/<see cref="GetHashCode"/>, applied consistently to every converted fill brush).</summary>
     public override bool Equals(object obj) => ValueEquals(obj as IFillBrush);
-    public override int GetHashCode() => HashCode.Combine(Source, Stretch, Color, Tile);
+    public override int GetHashCode() => HashCode.Combine(Source, Stretch, Color, Tile, FrameGrid, FrameIndex);
 }

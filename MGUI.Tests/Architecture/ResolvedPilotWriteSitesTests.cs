@@ -92,6 +92,7 @@ public class ResolvedPilotWriteSitesTests
         (@"MGUI.Core\UI\Containers\MGContentHost.cs", 316, "method parameter (`Color? Foreground = null`), not a pilot write"),
         (@"MGUI.Core\UI\Containers\Grids\MGGridSplitter.cs", 263, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\TextEditing\MGRichTextStyle.cs", 5, "record struct parameter (`Color? Foreground = null`), not a pilot write"),
+        (@"MGUI.Core\UI\Brushes\FillBrushes\MGSpriteSheetGrid.cs", 18, "record struct parameter (`Point Margin = default`, ADR-0011 decision C4: the sprite sheet's pixel margin), not the MGElement.Margin pilot"),
     };
 
     /// <summary>

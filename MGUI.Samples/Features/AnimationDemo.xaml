@@ -458,6 +458,31 @@
                 </ScrollViewer>
             </StackPanel>
 
+            <Separator/>
+
+            <!-- 17. Sprite-sheet frames -->
+            <TextBlock StyleNames="Header1" Text="17. Sprite-sheet frames" />
+            <TextBlock>
+                A [c=Turquoise][i]TextureFillBrush[/i][/c] can carry a [c=Turquoise][i]FrameGrid[/i][/c] (columns, rows, cell size, spacing,
+                margin): [c=Turquoise][i]FramesTarget[/i][/c]'s background is a 2x2 grid over the "AngryMeteor" sample sheet's four green arrow
+                icons (16px cells, 1px spacing, top margin 6, columns 0-1 of rows 0-1 - see [c=Turquoise][i]MGDesktop.LoadDefaultResources[/i][/c]).
+                [c=Turquoise][i]Background.Texture.Frame[/i][/c] animates the frame as a plain float, whose integer part selects the cell
+                (floored and clamped); "Play" loops it forever, and the toggle pauses/resumes that one run in place
+                ([c=Turquoise][i]UIAnimation.Pause[/i][/c]/[c=Turquoise][i]Resume[/i][/c]).
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="FramesPlayButton" Content="Play" />
+                    <ToggleButton Name="FramesPauseToggle" Content="Pause" />
+                </StackPanel>
+                <Border Name="FramesTarget" Width="48" Height="48" HorizontalAlignment="Left">
+                    <Border.Background>
+                        <TextureFillBrush SourceName="AngryMeteor" Stretch="Uniform"
+                                           FrameColumns="2" FrameRows="2" FrameCellSize="16,16" FrameSpacing="1,1" FrameMargin="0,6" />
+                    </Border.Background>
+                </Border>
+            </StackPanel>
+
             <Spacer Height="70" />
         </StackPanel>
     </ScrollViewer>
