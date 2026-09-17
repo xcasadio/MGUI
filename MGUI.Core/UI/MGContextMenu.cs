@@ -459,6 +459,11 @@ public class MGContextMenu : MGWindow, IContextMenuHost
     /// <summary>The currently open nested <see cref="MGContextMenu"/>.</summary>
     public MGContextMenu ActiveContextMenu { get; private set; }
 
+    /// <summary>Y8: the submenu whose exit is playing after it stopped being <see cref="ActiveContextMenu"/>, kept drawn until the run ends,
+    /// then cleared -- one level at a time, the same rule <see cref="MGDesktop.HandleOutgoingContextMenu"/> applies to a root-level menu, but held
+    /// here since each <see cref="MGContextMenu"/> hosts its own single level of submenu.</summary>
+    private MGContextMenu _ExitingSubmenu;
+
     /// <returns>True if there was no <see cref="ActiveContextMenu"/> or it was successfully closed, false otherwise.</returns>
     public bool TryCloseActiveContextMenu()
     {
@@ -475,9 +480,37 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             NotifyPropertyChanged(nameof(ActiveContextMenu));
             Previous.InvokeContextMenuClosed();
             SubmenuClosed?.Invoke(this, Previous);
+
+            //  Y8: kept drawn in the exiting slot until its exit ends -- unless it has none (3b).
+            HandleOutgoingSubmenu(Previous);
         }
 
         return true;
+    }
+
+    /// <summary>Y8: moves <paramref name="Outgoing"/> (the submenu that just stopped being <see cref="ActiveContextMenu"/>) into this menu's
+    /// exiting slot and plays its exit, unless it has none. Ends whatever OTHER submenu was already sitting in the slot at once first (only
+    /// one occupant at a time) -- the submenu-level counterpart of <see cref="MGDesktop.HandleOutgoingContextMenu"/>.</summary>
+    private void HandleOutgoingSubmenu(MGContextMenu Outgoing)
+    {
+        if (_ExitingSubmenu != null && _ExitingSubmenu != Outgoing)
+        {
+            _ExitingSubmenu.CancelPlayingEnterExitExitForWindow();
+            _ExitingSubmenu = null;
+        }
+
+        if (!Outgoing.TryPlayEnterExitExitForWindow(() =>
+            {
+                if (ReferenceEquals(_ExitingSubmenu, Outgoing))
+                {
+                    _ExitingSubmenu = null;
+                }
+            }))
+        {
+            return;
+        }
+
+        _ExitingSubmenu = Outgoing;
     }
 
     /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
@@ -492,6 +525,13 @@ public class MGContextMenu : MGWindow, IContextMenuHost
         if (Menu == null || !Menu.CanContextMenuOpen)
         {
             return false;
+        }
+
+        //  Y8: opening any submenu ends a previous exit at once (see MGDesktop.TryOpenContextMenu for the equivalent root-level rule).
+        if (_ExitingSubmenu != null)
+        {
+            _ExitingSubmenu.CancelPlayingEnterExitExitForWindow();
+            _ExitingSubmenu = null;
         }
 
         var ValidBounds = GetDesktop().ValidScreenBounds;
@@ -528,6 +568,7 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
 
             NotifyPropertyChanged(nameof(ActiveContextMenu));
+            Menu.PlayEnterExitEntryForWindow();
             ActiveContextMenu.InvokeContextMenuOpened();
             SubmenuOpened?.Invoke(this, Menu);
             return true;
@@ -868,6 +909,8 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                     using (e.DA.DT.PushRectangleClip(null, false))
                     {
                         ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
+                        //  Y8: an exiting submenu keeps being drawn (never updated) until its run ends.
+                        _ExitingSubmenu?.Draw(e.DA.AsZeroOffset());
                     }
                 };
             }
@@ -881,6 +924,8 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                     using (e.DA.DT.PushRectangleClip(null, false))
                     {
                         ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
+                        //  Y8: an exiting submenu keeps being drawn (never updated) until its run ends.
+                        _ExitingSubmenu?.Draw(e.DA.AsZeroOffset());
                     }
                 };
             }

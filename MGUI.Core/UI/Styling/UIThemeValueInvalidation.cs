@@ -103,6 +103,12 @@ public static class UIThemeValueInvalidation
             ["Animation.HoverEasing"] = RenderOnly,
             ["Animation.PressEasing"] = RenderOnly,
             ["Animation.FocusEasing"] = RenderOnly,
+            // MGTheme.Animation popup group (Y8): a window/tooltip/context menu/dropdown's default entry and exit
+            ["Animation.OpenDuration"] = RenderOnly,
+            ["Animation.CloseDuration"] = RenderOnly,
+            ["Animation.OpenEasing"] = RenderOnly,
+            ["Animation.CloseEasing"] = RenderOnly,
+            ["Animation.PopupEffect"] = RenderOnly,
 
             // MGTheme.FontSettings
             ["FontSettings.ContextMenuFontSize"] = LayoutAffecting,

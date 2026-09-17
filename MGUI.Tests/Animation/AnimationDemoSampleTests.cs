@@ -68,6 +68,7 @@ public class AnimationDemoSampleTests
         ["18. Layout transitions"] = new[] { "LayoutListPanel", "LayoutInsertButton", "LayoutRemoveButton", "LayoutMoveButton", "LayoutSizeTarget", "LayoutResizeButton" },
         ["19. Enter and exit"] = new[] { "EnterExitTarget", "EnterExitFadeButton", "EnterExitScaleButton", "EnterExitSlideButton", "EnterExitToggleButton" },
         ["20. Windows and dropdown"] = new[] { "WindowsOpenButton", "WindowsComboBox" },
+        ["21. Popup theme animations"] = new[] { "PopupThemeToggle", "PopupTooltipTarget", "PopupMenuButton", "PopupComboBox" },
     };
 
     /// <summary>The XAML references a resource style ("Styles and theme" section, <c>StylesButtonA</c>/<c>StylesButtonB</c>'s

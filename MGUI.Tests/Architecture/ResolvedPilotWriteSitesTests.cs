@@ -80,8 +80,8 @@ public class ResolvedPilotWriteSitesTests
     /// <summary>(relative path, 1-based line, reason) — a specific line is allowed regardless of file.</summary>
     private static readonly (string File, int Line, string Reason)[] AllowedLines =
     {
-        (@"MGUI.Core\UI\MGContextMenu.cs", 519, "local variable `var MinHeight`, not the MGElement.MinHeight pilot"),
-        (@"MGUI.Core\UI\MGDesktop.cs", 886, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it)"),
+        (@"MGUI.Core\UI\MGContextMenu.cs", 559, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y8 inserted the exiting-submenu handling above it)"),
+        (@"MGUI.Core\UI\MGDesktop.cs", 977, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling)"),
         (@"MGUI.Core\UI\MGWindow.cs", 231, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
         (@"MGUI.Core\UI\MGWindow.cs", 249, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
         (@"MGUI.Core\UI\MGChatBox.cs", 138, "commented-out code"),

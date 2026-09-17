@@ -870,7 +870,7 @@ public class MGWindow : MGSingleContentHost
                 }
             }
 
-            if (!SuppressWindowEnterExit && EnterExit?.HasExit == true)
+            if (!SuppressWindowEnterExit && HasEffectiveWindowExit)
             {
                 //  Focus leaves at once (idempotent: MGDesktop.NotifyWindowClosed's later call to the same navigation method is a
                 //  no-op once focus has already left), and this window's own nested windows are removed at once without their own

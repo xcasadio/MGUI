@@ -554,6 +554,31 @@
                 </StackPanel>
             </StackPanel>
 
+            <!-- 21. Popup theme animations -->
+            <TextBlock StyleNames="Header1" Text="21. Popup theme animations" />
+            <TextBlock>
+                The [c=Turquoise]Animation[/c] group of the theme gives windows, tooltips, menus and dropdowns their default entry and exit
+                when no explicit [c=Turquoise]EnterExit[/c] is set on the popup. An explicit [c=Turquoise]EnterExit[/c] on the element always
+                wins. [c=Turquoise]Enabled[/c] is false in every built-in theme, so nothing changes by default.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <ToggleButton Name="PopupThemeToggle" Content="Theme popup animations" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Border Name="PopupTooltipTarget" Width="140" Height="36" Background="White * 0.15" ToolTip="A tooltip using the theme's default entry and exit.">
+                        <TextBlock Text="Hover me" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Button Name="PopupMenuButton" Content="Right-click me">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <ContextMenuButton Content="Action 1" />
+                                <ContextMenuButton Content="Action 2" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <ComboBox Name="PopupComboBox" Width="160" />
+                </StackPanel>
+            </StackPanel>
+
             <Spacer Height="70" />
         </StackPanel>
     </ScrollViewer>

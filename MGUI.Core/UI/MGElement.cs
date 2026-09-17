@@ -3175,7 +3175,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             SetVisibilityCore(Visibility.Visible);
             if (EnterExit.HasEnter)
             {
-                PlayEnterExitEnter();
+                PlayEnterExitEnter(EnterExit);
             }
 
             return;
@@ -4126,19 +4126,23 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// an exit should actually play, with <paramref name="requested"/> the <see cref="UI.Visibility"/> to apply when it ends. Cancels a run
     /// of the OPPOSITE direction left over from an interruption first, with <see cref="DetachEnterExitHandlers"/> so its own handler never
     /// reacts to that cancellation.</summary>
-    private void PlayEnterExitExit(Visibility requested) => StartEnterExitExit(requested, null);
+    private void PlayEnterExitExit(Visibility requested) => StartEnterExitExit(requested, null, EnterExit);
 
     /// <summary>Starts (or restarts) this element's exit run with a completion callback instead of a <see cref="UI.Visibility"/> write
     /// (ADR-0011 decision 6, Y7): the window lifecycle's own overload, used by <see cref="MGWindow.TryCloseWindow"/> and
     /// <see cref="MGWindow.RemoveNestedWindow"/> so a window's removal -- not a property write -- is what the exit's end triggers. The
-    /// caller (<see cref="MGWindow"/>, through <see cref="TryPlayEnterExitExitForWindow"/>) has already checked <see cref="HasExit"/>.</summary>
-    private void PlayEnterExitExit(Action onExitFinished) => StartEnterExitExit(null, onExitFinished);
+    /// caller (<see cref="MGWindow"/>, through <see cref="TryPlayEnterExitExitForWindow"/>) has already checked <see cref="Animation.UIEnterExitSettings.HasExit"/> on
+    /// <paramref name="settings"/> (Y8: the resolved settings -- the element's own <see cref="EnterExit"/>, or the theme's popup defaults --
+    /// not necessarily <see cref="EnterExit"/> itself).</summary>
+    private void PlayEnterExitExit(Action onExitFinished, Animation.UIEnterExitSettings settings) => StartEnterExitExit(null, onExitFinished, settings);
 
     /// <summary>The run machinery shared by both exit overloads above (ADR-0011 decision 6, generalized in Y7): exactly one of
     /// <paramref name="requestedVisibility"/> (Y6, a plain element) or <paramref name="onExitFinishedForWindow"/> (Y7, a window) is set, and
     /// <see cref="HandleEnterExitRunFinished"/> reads back whichever one <see cref="Animation.UIElementAnimationSlot.PendingExitCompletion"/>
-    /// holds once the run ends.</summary>
-    private void StartEnterExitExit(Visibility? requestedVisibility, Action onExitFinishedForWindow)
+    /// holds once the run ends. <paramref name="settings"/> (Y8) is the resolved settings to build the run from: the element's own
+    /// <see cref="EnterExit"/> for the Y6 (plain element) path, or whichever <see cref="ResolveWindowEnterExit"/> returned for the window
+    /// path.</summary>
+    private void StartEnterExitExit(Visibility? requestedVisibility, Action onExitFinishedForWindow, Animation.UIEnterExitSettings settings)
     {
         var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
 
@@ -4164,7 +4168,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             CaptureEnterExitBase(slot);
         }
 
-        var run = EnterExit.ExitAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, EnterExit, isEntry: false, isFreshCycle);
+        var run = settings.ExitAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, settings, isEntry: false, isFreshCycle);
         if (run == null)
         {
             //  Defensive: HasExit already guarantees an explicit animation or a real effect+duration, so this should not happen.
@@ -4192,8 +4196,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <summary>Starts (or restarts) this element's entry run (ADR-0011 decision 6): called by <see cref="SetVisibility"/> once
     /// <see cref="Visibility"/> is already <see cref="Visibility.Visible"/> and <see cref="Animation.UIEnterExitSettings.HasEnter"/> is true,
     /// and by the window opening paths (Y7, through <see cref="PlayEnterExitEntryForWindow"/>). A leftover exit run, if any, was already
-    /// cancelled and detached by the caller (<see cref="SetVisibility"/> or <see cref="CancelActiveEnterExitExit"/>) before this runs.</summary>
-    private void PlayEnterExitEnter()
+    /// cancelled and detached by the caller (<see cref="SetVisibility"/> or <see cref="CancelActiveEnterExitExit"/>) before this runs.
+    /// <paramref name="settings"/> (Y8) is the resolved settings to build the run from.</summary>
+    private void PlayEnterExitEnter(Animation.UIEnterExitSettings settings)
     {
         var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
 
@@ -4213,7 +4218,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             CaptureEnterExitBase(slot);
         }
 
-        var run = EnterExit.EnterAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, EnterExit, isEntry: true, isFreshCycle);
+        var run = settings.EnterAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, settings, isEntry: true, isFreshCycle);
         if (run == null)
         {
             return;
@@ -4256,17 +4261,57 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         return true;
     }
 
+    /// <summary>Windows (Y8): resolves the settings a window (also a tooltip, context menu or dropdown, all <see cref="IsWindow"/>) plays an
+    /// entry or exit with: its own <see cref="EnterExit"/> when that has something for the requested direction (<see cref="Animation.UIEnterExitSettings.HasEnter"/>
+    /// / <see cref="Animation.UIEnterExitSettings.HasExit"/>), else -- only for a window, and only when <see cref="MGTheme.Animation"/>'s
+    /// <see cref="MGThemeAnimationSettings.Enabled"/> is true -- a settings object built from the theme's <c>Open</c>/<c>Close</c> popup
+    /// group at THIS moment (no caching, no <c>OnThemeChanged</c> hook: a run this cheap to resolve does not justify one, and a theme change
+    /// mid-run must not retroactively affect an already-resolved run). Never null when <see cref="EnterExit"/> itself is non-null; may be
+    /// null only for a non-window element with no <see cref="EnterExit"/> (defensive -- every real caller already knows better).</summary>
+    private Animation.UIEnterExitSettings ResolveWindowEnterExit(bool forEntry)
+    {
+        var explicitSettings = EnterExit;
+        if (explicitSettings != null && (forEntry ? explicitSettings.HasEnter : explicitSettings.HasExit))
+        {
+            return explicitSettings;
+        }
+
+        //  A docking floating window (MGWindow.SuppressWindowEnterExit) is excluded from the whole window enter/exit machinery
+        //  (Y7): its own explicit EnterExit, if any, is still honoured above, but it never gets a THEME default either.
+        if (!IsWindow || (this as MGWindow)?.SuppressWindowEnterExit == true)
+        {
+            return explicitSettings;
+        }
+
+        var themeAnimation = GetTheme()?.Animation;
+        if (themeAnimation is not { Enabled: true })
+        {
+            return explicitSettings;
+        }
+
+        return new Animation.UIEnterExitSettings
+        {
+            EnterEffect = themeAnimation.PopupEffect,
+            ExitEffect = themeAnimation.PopupEffect,
+            EnterDuration = themeAnimation.OpenDuration,
+            ExitDuration = themeAnimation.CloseDuration,
+            EnterEasing = Animation.Easing.UIEasing.TryGet(themeAnimation.OpenEasing, out var openEasing) ? openEasing : null,
+            ExitEasing = Animation.Easing.UIEasing.TryGet(themeAnimation.CloseEasing, out var closeEasing) ? closeEasing : null,
+        };
+    }
+
     /// <summary>Windows (Y7): cancels a running exit, if any (superseded, no restore -- see <see cref="CancelActiveEnterExitExit"/>), then
-    /// plays the entry when <see cref="Animation.UIEnterExitSettings.HasEnter"/> is true. Used by every window opening path
-    /// (<see cref="MGWindow.AddNestedWindow"/>, a modal push, the per-frame root window detection) and by
-    /// <see cref="MGWindow.AddNestedWindow"/> reopening a window whose exit is running -- both a fresh open and a reopen are the same call
-    /// here, since cancelling a non-existent exit is a no-op.</summary>
+    /// plays the entry when the resolved settings (Y8: <see cref="ResolveWindowEnterExit"/>) have one. Used by every window opening path
+    /// (<see cref="MGWindow.AddNestedWindow"/>, a modal push, the per-frame root window detection, and -- Y8 -- a tooltip becoming
+    /// <see cref="MGDesktop.ActiveToolTip"/> or a context menu opening) and by <see cref="MGWindow.AddNestedWindow"/> reopening a window
+    /// whose exit is running -- both a fresh open and a reopen are the same call here, since cancelling a non-existent exit is a no-op.</summary>
     internal void PlayEnterExitEntryForWindow()
     {
         CancelActiveEnterExitExit();
-        if (EnterExit?.HasEnter == true)
+        var settings = ResolveWindowEnterExit(forEntry: true);
+        if (settings?.HasEnter == true)
         {
-            PlayEnterExitEnter();
+            PlayEnterExitEnter(settings);
         }
     }
 
@@ -4274,19 +4319,35 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// started through the window overload, or a Y6 exit driven by <see cref="Visibility"/>: both share the same slot state.</summary>
     internal bool IsPlayingEnterExitExit => _animationSlot?.IsExitingEnterExit == true;
 
-    /// <summary>Windows (Y7): starts this window's exit when <see cref="Animation.UIEnterExitSettings.HasExit"/> is true, invoking
-    /// <paramref name="onExitFinished"/> when it ends (naturally or cancelled from the outside) instead of writing
+    /// <summary>Windows (Y8): true when this window (or tooltip, context menu, dropdown) would actually play an exit if
+    /// <see cref="TryPlayEnterExitExitForWindow"/> were called right now -- an explicit <see cref="EnterExit"/> with
+    /// <see cref="Animation.UIEnterExitSettings.HasExit"/>, or the theme's popup group when enabled. Used by <see cref="MGWindow.TryCloseWindow"/>
+    /// to decide, BEFORE its own side effects (focus leaving at once, nested windows removed at once), whether it is taking the deferred-exit
+    /// branch at all -- a plain pre-check, so it does not itself start anything.</summary>
+    internal bool HasEffectiveWindowExit => ResolveWindowEnterExit(forEntry: false)?.HasExit == true;
+
+    /// <summary>Windows (Y8): ends whichever exit is currently playing on this window at once -- no restore, no completion invoked -- for the
+    /// case where a popup slot (<see cref="MGDesktop.ActiveToolTip"/>'s exiting slot, the context menu one, a submenu's) is about to be
+    /// reused by a DIFFERENT instance: that other instance is not reopening this one, so unlike <see cref="PlayEnterExitEntryForWindow"/> no
+    /// entry follows. A thin wrapper over <see cref="CancelActiveEnterExitExit"/> so <see cref="MGDesktop"/> and <see cref="MGContextMenu"/>
+    /// (outside this class) can call it. A no-op when nothing is exiting.</summary>
+    internal void CancelPlayingEnterExitExitForWindow() => CancelActiveEnterExitExit();
+
+    /// <summary>Windows (Y7): starts this window's exit when the resolved settings (Y8: <see cref="ResolveWindowEnterExit"/>) have one,
+    /// invoking <paramref name="onExitFinished"/> when it ends (naturally or cancelled from the outside) instead of writing
     /// <see cref="Visibility"/> -- the window-removal completion path that generalizes <see cref="HandleEnterExitRunFinished"/> beyond Y6's
-    /// Visibility write (<see cref="MGWindow.TryCloseWindow"/>, <see cref="MGWindow.RemoveNestedWindow"/>). Returns false, and never calls
-    /// <paramref name="onExitFinished"/>, when no exit is configured, so the caller removes the window at once as it always did.</summary>
+    /// Visibility write (<see cref="MGWindow.TryCloseWindow"/>, <see cref="MGWindow.RemoveNestedWindow"/>, and -- Y8 -- a tooltip leaving
+    /// <see cref="MGDesktop.ActiveToolTip"/> or a context menu closing). Returns false, and never calls <paramref name="onExitFinished"/>,
+    /// when no exit is configured (explicitly, or through the theme), so the caller removes/disappears the popup at once as it always did.</summary>
     internal bool TryPlayEnterExitExitForWindow(Action onExitFinished)
     {
-        if (EnterExit?.HasExit != true)
+        var settings = ResolveWindowEnterExit(forEntry: false);
+        if (settings?.HasExit != true)
         {
             return false;
         }
 
-        PlayEnterExitExit(onExitFinished);
+        PlayEnterExitExit(onExitFinished, settings);
         return true;
     }
 

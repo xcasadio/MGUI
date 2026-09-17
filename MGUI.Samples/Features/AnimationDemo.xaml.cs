@@ -59,6 +59,7 @@ namespace MGUI.Samples.Features
             WireLayout();
             WireEnterExit();
             WireWindows();
+            WirePopupTheme();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -605,6 +606,27 @@ namespace MGUI.Samples.Features
             MGComboBox<object> comboBox = Window.GetElementByName<MGComboBox<object>>("WindowsComboBox");
             comboBox.SetItemsSource(new List<object> { "Alpha", "Beta", "Gamma" });
             comboBox.Dropdown.EnterExit = new UIEnterExitSettings { EnterEffect = UIEnterExitEffect.SlideDown, ExitEffect = UIEnterExitEffect.Fade };
+        }
+
+        /// <summary>21. Popup theme animations (Y8): <c>PopupThemeToggle</c> flips <see cref="MGThemeAnimationSettings.Enabled"/> by swapping
+        /// in a copy of the current theme with the flag toggled (ADR-0009: a theme's brushes are frozen once installed, so a copy -- not an
+        /// in-place edit -- is how a theme value changes here, the same pattern <see cref="MGResources.DefaultTheme"/> assignments use
+        /// elsewhere in the samples). None of <c>PopupTooltipTarget</c>'s <c>ToolTip</c>, <c>PopupMenuButton</c>'s <c>ContextMenu</c> or
+        /// <c>PopupComboBox</c>'s dropdown carries an explicit <see cref="MGElement.EnterExit"/>, so once the toggle is checked, all three take
+        /// their entry and exit from the theme's <c>Animation</c> group (<c>OpenDuration</c>/<c>CloseDuration</c>/<c>OpenEasing</c>/
+        /// <c>CloseEasing</c>/<c>PopupEffect</c>). Nothing starts at load; leaving the toggle checked when navigating away is not undone.</summary>
+        private void WirePopupTheme()
+        {
+            Window.GetElementByName<MGToggleButton>("PopupThemeToggle").OnCheckStateChanged += (sender, e) =>
+            {
+                MGTheme current = Window.GetTheme();
+                MGTheme toggled = current.Copy();
+                toggled.Animation.Enabled = !current.Animation.Enabled;
+                Window.GetResources().DefaultTheme = toggled;
+            };
+
+            MGComboBox<object> comboBox = Window.GetElementByName<MGComboBox<object>>("PopupComboBox");
+            comboBox.SetItemsSource(new List<object> { "Alpha", "Beta", "Gamma" });
         }
     }
 }

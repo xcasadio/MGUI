@@ -740,22 +740,75 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                     }
                 }
 
-                if (ActiveToolTip != null)
+                var Previous = ActiveToolTip;
+                if (Previous != null)
                 {
-                    ToolTipClosed?.Invoke(this, ActiveToolTip);
-                    ActiveToolTip.Host.ToolTipChanged -= Host_ToolTipChanged;
+                    ToolTipClosed?.Invoke(this, Previous);
+                    Previous.Host.ToolTipChanged -= Host_ToolTipChanged;
                 }
 
                 State.ActiveToolTip = value;
                 NotifyPropertyChanged(nameof(ActiveToolTip));
 
+                //  Y8: the outgoing tooltip goes into the exiting slot instead of vanishing at once, when it has an exit (explicit or
+                //  through the theme) -- kept drawn, at the position frozen right now, until its run ends. ToolTipClosed above already
+                //  fired at the moment ActiveToolTip changed, exactly as before Y8: the exit is a draw-only effect from here on.
+                if (Previous != null)
+                {
+                    HandleOutgoingToolTip(Previous);
+                }
+
                 if (ActiveToolTip != null)
                 {
+                    //  A tooltip becoming active ends whatever OTHER tooltip's exit was still sitting in the slot at once (no residual
+                    //  run); if it is the SAME tooltip returning while it sat there, this just releases the slot -- PlayEnterExitEntryForWindow
+                    //  below cancels its own exit and replays the entry, exactly like AddNestedWindow reopening a window mid-exit (Y7).
+                    if (State.ExitingToolTip != null)
+                    {
+                        if (State.ExitingToolTip != ActiveToolTip)
+                        {
+                            State.ExitingToolTip.CancelPlayingEnterExitExitForWindow();
+                        }
+
+                        State.ExitingToolTip = null;
+                    }
+
+                    ActiveToolTip.PlayEnterExitEntryForWindow();
                     ToolTipOpened?.Invoke(this, ActiveToolTip);
                     ActiveToolTip.Host.ToolTipChanged += Host_ToolTipChanged;
                 }
             }
         }
+    }
+
+    /// <summary>Y8: moves <paramref name="Outgoing"/> (the tooltip that just stopped being <see cref="ActiveToolTip"/>) into the exiting slot
+    /// and plays its exit, unless it has none (<see cref="MGElement.TryPlayEnterExitExitForWindow"/> returns false: 3b, nothing kept drawn).
+    /// Ends whatever OTHER tooltip was already sitting in the slot at once first (only one occupant at a time).</summary>
+    private void HandleOutgoingToolTip(MGToolTip Outgoing)
+    {
+        if (State.ExitingToolTip != null && State.ExitingToolTip != Outgoing)
+        {
+            State.ExitingToolTip.CancelPlayingEnterExitExitForWindow();
+            State.ExitingToolTip = null;
+        }
+
+        //  Frozen now, exactly what DrawAtDefaultPosition would use this frame (MGToolTip.DrawAtDefaultPosition/DrawAtMousePosition):
+        //  the tooltip no longer follows the mouse once it is exiting.
+        var FrozenPosition = InputTracker.Mouse.CurrentPosition + Outgoing.DrawOffset;
+
+        if (!Outgoing.TryPlayEnterExitExitForWindow(() =>
+            {
+                if (ReferenceEquals(State.ExitingToolTip, Outgoing))
+                {
+                    State.ExitingToolTip = null;
+                }
+            }))
+        {
+            return;
+        }
+
+        State.ExitingToolTip = Outgoing;
+        State.ExitingToolTipDrawPosition = FrozenPosition;
     }
 
     private void Host_ToolTipChanged(object sender, EventArgs<MGToolTip> e)
@@ -831,12 +884,40 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             Previous.InvokeContextMenuClosed();
             ContextMenuClosed?.Invoke(this, Previous);
 
+            //  Y8: kept drawn in the exiting slot, at its own position, until its exit ends -- unless it has none (3b).
+            HandleOutgoingContextMenu(Previous);
+
             return true;
         }
         else
         {
             return true;
         }
+    }
+
+    /// <summary>Y8: moves <paramref name="Outgoing"/> (the root-level menu that just stopped being <see cref="ActiveContextMenu"/>) into the
+    /// exiting slot and plays its exit, unless it has none. Ends whatever OTHER menu was already sitting in the slot at once first (only one
+    /// occupant at a time) -- the menu-level counterpart of <see cref="HandleOutgoingToolTip"/>.</summary>
+    private void HandleOutgoingContextMenu(MGContextMenu Outgoing)
+    {
+        if (State.ExitingContextMenu != null && State.ExitingContextMenu != Outgoing)
+        {
+            State.ExitingContextMenu.CancelPlayingEnterExitExitForWindow();
+            State.ExitingContextMenu = null;
+        }
+
+        if (!Outgoing.TryPlayEnterExitExitForWindow(() =>
+            {
+                if (ReferenceEquals(State.ExitingContextMenu, Outgoing))
+                {
+                    State.ExitingContextMenu = null;
+                }
+            }))
+        {
+            return;
+        }
+
+        State.ExitingContextMenu = Outgoing;
     }
 
     /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
@@ -851,6 +932,16 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         if (Menu == null || !Menu.CanContextMenuOpen)
         {
             return false;
+        }
+
+        //  Y8: opening any menu ends a previous exit at once, even one left over from an earlier close (only one popup sits in the
+        //  exiting slot at a time; unlike a tooltip, a context menu never "returns" to Active by reopening the same instance -- reopening
+        //  always goes through the full open path below, whose PlayEnterExitEntryForWindow cancels this same exit again if it is the
+        //  very instance being reopened, so clearing the slot here is always correct).
+        if (State.ExitingContextMenu != null)
+        {
+            State.ExitingContextMenu.CancelPlayingEnterExitExitForWindow();
+            State.ExitingContextMenu = null;
         }
 
         var ValidBounds = ValidScreenBounds;
@@ -895,6 +986,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
 
             NotifyPropertyChanged(nameof(ActiveContextMenu));
+            Menu.PlayEnterExitEntryForWindow();
             ActiveContextMenu.InvokeContextMenuOpened();
             ContextMenuOpened?.Invoke(this, Menu);
 
@@ -1664,6 +1756,11 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                     ActiveToolTip?.DrawAtDefaultPosition(DA);
                     ActiveContextMenu?.Draw(DA);
                 }
+
+                //  Y8: a popup sitting in its exiting slot keeps being drawn (never updated: it takes no input, see HandleOutgoingToolTip
+                //  / HandleOutgoingContextMenu) until its run ends, on top of everything above.
+                State.ExitingContextMenu?.Draw(DA);
+                State.ExitingToolTip?.DrawAtFrozenPosition(DA, State.ExitingToolTipDrawPosition);
             }
         }
     }

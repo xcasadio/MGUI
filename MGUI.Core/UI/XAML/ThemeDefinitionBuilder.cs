@@ -107,6 +107,13 @@ public static class ThemeDefinitionBuilder
         Target.HoverEasing = ParseAnimationEasing(Definition.HoverEasing, Target.HoverEasing, nameof(Definition.HoverEasing));
         Target.PressEasing = ParseAnimationEasing(Definition.PressEasing, Target.PressEasing, nameof(Definition.PressEasing));
         Target.FocusEasing = ParseAnimationEasing(Definition.FocusEasing, Target.FocusEasing, nameof(Definition.FocusEasing));
+
+        //  Y8 popup group: durations/easings use the same parsers as the three above; the effect is a simple presence test, like Enabled.
+        Target.OpenDuration = ParseAnimationDuration(Definition.OpenDuration, Target.OpenDuration, nameof(Definition.OpenDuration));
+        Target.CloseDuration = ParseAnimationDuration(Definition.CloseDuration, Target.CloseDuration, nameof(Definition.CloseDuration));
+        Target.OpenEasing = ParseAnimationEasing(Definition.OpenEasing, Target.OpenEasing, nameof(Definition.OpenEasing));
+        Target.CloseEasing = ParseAnimationEasing(Definition.CloseEasing, Target.CloseEasing, nameof(Definition.CloseEasing));
+        if (Definition.PopupEffect.HasValue) Target.PopupEffect = Definition.PopupEffect.Value;
     }
 
     private static TimeSpan ParseAnimationDuration(string Value, TimeSpan Current, string Name)
