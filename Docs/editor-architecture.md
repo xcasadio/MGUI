@@ -25,7 +25,7 @@ Note d'etat : cette page decrit l'etat cible du programme [Tasks/xaml-editor-tas
 | --- | --- |
 | `MGUI.Core` | loader XAML avec positions source, resolution de type d'element, hit test d'outillage, tokenizer et highlighter XAML, `MGRichTextBox`, `MGPropertyGrid`, `MGTreeView`, adorners |
 | `MGUI.Editor` | bibliotheque : session, modele de document, preview, selection, source de proprietes, vue composee |
-| `MGUI.Editor.Host` | executable minimal (`GameRenderHost`) qui ouvre un fichier dans `XamlEditorView` |
+| `MGUI.Editor.Host` | executable minimal (`GameRenderHost`, theme `Dark`, moteur de texte FontStashSharp) qui ouvre un fichier dans `XamlEditorView` |
 | `MGUI.Tests` | tests des briques de `MGUI.Core` et de `MGUI.Editor` (desktop headless) |
 
 Flux d'une frappe : texte modifie, modele de document re-parse tout de suite, preview marquee sale, re-parse du loader apres le delai, selection retrouvee par ordinal, arbre et grille rafraichis.
@@ -48,7 +48,9 @@ Regles que le docking impose aux taches de l'editeur :
 - un volet peut etre cache : le contenu d'un onglet inactif ou d'un tiroir auto-hide ferme est detache de l'arbre visuel (`Parent == null`) et garde ses derniers bounds ; `MGElement.OnParentChanged` signale chaque attache et detache, dans tous les etats (onglet, fenetre flottante, tiroir) ; un volet qui redevient actif en recoit trois (attache, detache, re-attache) : un gestionnaire doit etre idempotent et lire le `Parent` final ;
 - une vue n'est hebergee que par un seul hote de docking a la fois.
 
-Integration dans un hote : creer une session, creer la vue contre une fenetre de l'hote, renseigner `DesignDataContext` si l'hote dispose d'un modele de donnees. Un hote simple fait `window.SetContent(view.CreateDockHost())` : c'est ce que fait `MGUI.Editor.Host`, et rien de plus. Un hote qui a deja son docking (CasaEngine) enregistre `view.Dockables` dans son propre `MGDockHost` : pas de docking imbrique.
+Integration dans un hote : creer une session, creer la vue contre une fenetre de l'hote, renseigner `DesignDataContext` si l'hote dispose d'un modele de donnees. Un hote simple fait `window.SetContent(view.CreateDockHost())` : c'est ce que fait `MGUI.Editor.Host`. Un hote qui a deja son docking (CasaEngine) enregistre `view.Dockables` dans son propre `MGDockHost` : pas de docking imbrique.
+
+Le theme et le moteur de texte sont des choix de l'hote, pas de la bibliotheque : `XamlEditorView` n'en fixe aucun. `MGUI.Editor.Host` regle, avant de creer sa fenetre, `Desktop.Resources.DefaultTheme` sur le theme integre `Dark` et `Desktop.TextEngine` sur un moteur FontStashSharp charge avec les polices Arial du depot et calibre par `MatchSpriteFontSizing` ; si ce chargement echoue, il garde le moteur SpriteFont. Le theme est pose avant toute creation d'element, car changer de theme apres coup declenche des defauts connus (items de `MGTreeView`, chrome des fenetres).
 
 ## Positions source du loader
 
@@ -140,6 +142,7 @@ Une seule liste par session : les diagnostics du loader (code, message, ligne, c
 - Une racine `Window` plus grande que le volet est rognee, ni redimensionnee ni defilable.
 - Docking : les volets ne sont pas fermables (le menu contextuel d'un onglet montre quand meme « Close Others » et « Close All », sans effet) ; « Preview » ne flotte pas, car une racine `Window` de preview est une fenetre imbriquee de la fenetre de l'editeur ; un volet flottant re-docke revient en onglet du premier groupe visible, pas a sa place d'origine ; le layout n'est ni sauvegarde ni reinitialisable.
 - Pas de completion, pas de gouttiere de numeros de ligne.
+- Le volet « XAML » utilise la police du theme (Arial, proportionnelle) : le depot ne suit aucune police a chasse fixe.
 - Le document doit declarer ses namespaces ; un fragment sans namespace ne se charge pas.
 - L'etat d'execution de la preview est perdu a chaque re-parse.
 
