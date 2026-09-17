@@ -9,11 +9,13 @@ using MGUI.Core.UI.Animation.KeyFrames;
 using MGUI.Core.UI.Animation.Targets;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
+using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.XAML;
 using MGUI.Core.Tooling;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace MGUI.Samples.Features
 {
@@ -29,6 +31,10 @@ namespace MGUI.Samples.Features
         /// <summary>The "Preview and seek" section's preview instance: attached once to <c>PreviewTarget</c>, driven by <c>PreviewSlider</c>
         /// and ended by <c>PreviewDetachButton</c>. Never registered with the live <see cref="UIAnimationManager"/>.</summary>
         private UIStoryboard _previewAnimation;
+
+        /// <summary>The "Awaitable animations" section's current run, cancelled and replaced by every "Play" click, and cancelled alone by
+        /// "Cancel". Null until the first click.</summary>
+        private CancellationTokenSource _awaitCancellation;
 
         public AnimationDemoSample(ContentManager content, MGDesktop desktop)
             : base(content, desktop, "Features", "AnimationDemo.xaml", () => RegisterSharedStyle(desktop))
@@ -47,6 +53,13 @@ namespace MGUI.Samples.Features
             WireSerialization();
             WireControls();
             WireDiagnostics();
+            WireAwait();
+            WireScrolling();
+            WireFrames();
+            WireLayout();
+            WireEnterExit();
+            WireWindows();
+            WirePopupTheme();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -375,6 +388,274 @@ namespace MGUI.Samples.Features
                     }
                 }
             };
+        }
+
+        /// <summary>15. Awaitable animations: "Play three steps" creates a fresh <see cref="CancellationTokenSource"/> (cancelling and
+        /// disposing the previous one), then an <c>async</c> handler <c>await</c>s a fade, a scale pop and a background colour change on
+        /// <c>AwaitTarget</c> in turn, passing the same token to all three <see cref="UIAnimationBuilder.PlayAsync"/> calls; it stops at the
+        /// first step that resolves <see langword="false"/> and writes "Completed" or "Cancelled at step N" into <c>AwaitResultText</c>.
+        /// "Cancel" only cancels the current source: nothing here throws, per <see cref="UIAnimationCollection.StartAsync"/>'s contract. Each
+        /// run only ever writes its OWN status: a second click starts a new <see cref="CancellationTokenSource"/> and cancels the previous
+        /// one, but that previous run's own continuation is still going to resolve (with <see langword="false"/>) and would otherwise write
+        /// its stale "Cancelled at step N" over the new run's freshly-written status; every write below is therefore guarded by
+        /// <c>IsCurrentRun</c>, comparing THIS continuation's own <see cref="CancellationTokenSource"/> instance against <c>_awaitCancellation</c>
+        /// (only the run a click most recently started holds that reference).</summary>
+        private void WireAwait()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("AwaitTarget");
+            MGTextBlock resultText = Window.GetElementByName<MGTextBlock>("AwaitResultText");
+
+            Window.GetElementByName<MGButton>("AwaitPlayButton").AddCommandHandler(async (btn, e) =>
+            {
+                _awaitCancellation?.Cancel();
+                _awaitCancellation?.Dispose();
+                CancellationTokenSource cancellation = new();
+                _awaitCancellation = cancellation;
+                CancellationToken token = cancellation.Token;
+
+                bool IsCurrentRun() => ReferenceEquals(_awaitCancellation, cancellation);
+                void SetStatusIfCurrentRun(string text)
+                {
+                    if (IsCurrentRun())
+                    {
+                        resultText.SetText(text);
+                    }
+                }
+
+                SetStatusIfCurrentRun("Running: step 1 (fade)");
+                if (!await target.Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0f, 1f, 0.3).Ease(UIEasing.CubicOut).Named("await-fade").PlayAsync(token))
+                {
+                    SetStatusIfCurrentRun("Cancelled at step 1");
+                    return;
+                }
+
+                SetStatusIfCurrentRun("Running: step 2 (scale pop)");
+                if (!await target.Animate(UIBuiltInAnimationTargets.Paths.RenderTransformScale, Vector2.One, new Vector2(1.25f), 0.2).Ease("BackOut").AutoReverse().Named("await-scale").PlayAsync(token))
+                {
+                    SetStatusIfCurrentRun("Cancelled at step 2");
+                    return;
+                }
+
+                SetStatusIfCurrentRun("Running: step 3 (background)");
+                if (!await target.Animate(UIColorAnimationTargets.Paths.Background, Color.OrangeRed, 0.3).Named("await-background").PlayAsync(token))
+                {
+                    SetStatusIfCurrentRun("Cancelled at step 3");
+                    return;
+                }
+
+                SetStatusIfCurrentRun("Completed");
+            });
+
+            Window.GetElementByName<MGButton>("AwaitCancelButton").AddCommandHandler((btn, e) => _awaitCancellation?.Cancel());
+        }
+
+        /// <summary>16. Smooth scrolling: <c>ScrollDemoViewer</c>'s <c>ScrollAnimationDuration</c>/<c>ScrollAnimationEasing</c> (set in XAML)
+        /// make its mouse wheel and any keyboard scroll smooth already, nothing wired here; "Top"/"Bottom" call
+        /// <see cref="MGScrollViewer.ScrollTo"/> directly, with their own duration and easing, which is independent of the viewer's own
+        /// wheel/keyboard settings. Nothing starts at load.</summary>
+        private void WireScrolling()
+        {
+            MGScrollViewer viewer = Window.GetElementByName<MGScrollViewer>("ScrollDemoViewer");
+
+            Window.GetElementByName<MGButton>("ScrollDemoTopButton").AddCommandHandler((btn, e)
+                => viewer.ScrollTo(null, 0f, TimeSpan.FromSeconds(0.4), UIEasing.CubicInOut));
+
+            Window.GetElementByName<MGButton>("ScrollDemoBottomButton").AddCommandHandler((btn, e)
+                => viewer.ScrollTo(null, viewer.MaxVerticalOffset, TimeSpan.FromSeconds(0.4), UIEasing.CubicInOut));
+        }
+
+        /// <summary>The "Sprite-sheet frames" section's current run, restarted by every "Play" click and paused/resumed in place by
+        /// <c>FramesPauseToggle</c> (<see cref="UIAnimation.Pause"/>/<see cref="UIAnimation.Resume"/>). Null until the first click.</summary>
+        private UIAnimation _framesAnimation;
+
+        /// <summary>17. Sprite-sheet frames: <c>FramesTarget</c>'s background (declared in XAML as a <c>TextureFillBrush</c> with a
+        /// <c>FrameGrid</c> over the "AngryMeteor" sheet) animates <see cref="UIExtraAnimationTargets.Paths.BackgroundTextureFrame"/> as a
+        /// plain float whose integer part selects the cell; "Play" (re)starts a <see cref="UIAnimation.RepeatForever"/> run from 0 to the
+        /// grid's own frame count over ~0.6s, and the toggle pauses/resumes that exact run without restarting it. Nothing starts at load.</summary>
+        private void WireFrames()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("FramesTarget");
+            MGTextureFillBrush frameBrush = (MGTextureFillBrush)target.BackgroundBrush.NormalValue;
+            float frameCount = frameBrush.FrameGrid!.Value.EffectiveFrameCount;
+            MGToggleButton pauseToggle = Window.GetElementByName<MGToggleButton>("FramesPauseToggle");
+
+            Window.GetElementByName<MGButton>("FramesPlayButton").AddCommandHandler((btn, e) =>
+            {
+                _framesAnimation = target.Animate(UIExtraAnimationTargets.Paths.BackgroundTextureFrame, 0f, frameCount, 0.6)
+                    .RepeatForever().Named("frames-play").Play();
+                pauseToggle.IsChecked = false;
+            });
+
+            pauseToggle.OnCheckStateChanged += (sender, e) =>
+            {
+                if (_framesAnimation == null)
+                {
+                    return;
+                }
+
+                if (pauseToggle.IsChecked)
+                {
+                    _framesAnimation.Pause();
+                }
+                else
+                {
+                    _framesAnimation.Resume();
+                }
+            };
+        }
+
+        /// <summary>The "Layout transitions" section's running counter for freshly inserted rows (Y5): every new row gets an increasing label
+        /// so insert and move are visually distinguishable across clicks. Starts after the four rows declared in XAML.</summary>
+        private int _layoutRowCounter = 4;
+
+        /// <summary>18. Layout transitions: <c>LayoutListPanel</c>'s rows opt in through <c>LayoutTransitionDuration</c>/
+        /// <c>LayoutTransitionEasing</c> (the "LayoutRow" style, in XAML) -- insert, remove and move (a removal followed by an insertion,
+        /// <c>MGStackPanel</c> has no reorder API) glide the remaining/displaced rows to their new place, never the row that was itself just
+        /// attached. <c>LayoutSizeTarget</c> additionally opts into <c>LayoutTransitionAnimatesSize</c> (declared in XAML): "Resize" toggles
+        /// its width between two values, stretching its content during the run. <c>StyleNames</c> is a XAML-loader concept (applied once,
+        /// at load, by <c>Element.ProcessStyles</c>): a row created here by "Insert at top" cannot pick up the "LayoutRow" style by name at
+        /// runtime, so <c>CreateRow</c> sets the same values that style's setters declare -- <see cref="MGElement.LayoutTransition"/>,
+        /// <see cref="MGElement.BackgroundBrush"/> and <see cref="MGElement.Padding"/> -- directly, so an inserted row looks exactly like the
+        /// four declared in XAML rather than only matching their layout-transition settings. Nothing starts at load.</summary>
+        private void WireLayout()
+        {
+            MGStackPanel list = Window.GetElementByName<MGStackPanel>("LayoutListPanel");
+            MGBorder sizeTarget = Window.GetElementByName<MGBorder>("LayoutSizeTarget");
+
+            MGBorder CreateRow(string text)
+            {
+                MGBorder row = new(Window)
+                {
+                    LayoutTransition = new UILayoutTransition { Duration = TimeSpan.FromSeconds(0.3), Easing = UIEasing.CubicOut },
+                    // Same values as the "LayoutRow" style's own setters (Background, Padding): StyleNames is a XAML-loader concept and
+                    // cannot be applied to a row created here in code, at runtime, by name.
+                    BackgroundBrush = new VisualStateFillBrush(new MGSolidFillBrush(new Color(48, 48, 48))),
+                    Padding = new MonoGame.Extended.Thickness(4, 3),
+                };
+                row.SetContent(new MGTextBlock(Window, text));
+                return row;
+            }
+
+            Window.GetElementByName<MGButton>("LayoutInsertButton").AddCommandHandler((btn, e) =>
+            {
+                _layoutRowCounter++;
+                list.TryInsertChild(0, CreateRow($"Row {_layoutRowCounter}"));
+            });
+
+            Window.GetElementByName<MGButton>("LayoutRemoveButton").AddCommandHandler((btn, e) =>
+            {
+                MGElement first = list.Children.FirstOrDefault();
+                if (first != null)
+                {
+                    list.TryRemoveChild(first);
+                }
+            });
+
+            Window.GetElementByName<MGButton>("LayoutMoveButton").AddCommandHandler((btn, e) =>
+            {
+                MGElement last = list.Children.LastOrDefault();
+                if (last != null)
+                {
+                    list.TryRemoveChild(last);
+                    list.TryInsertChild(0, last);
+                }
+            });
+
+            bool sizeIsWide = false;
+            Window.GetElementByName<MGButton>("LayoutResizeButton").AddCommandHandler((btn, e) =>
+            {
+                sizeIsWide = !sizeIsWide;
+                sizeTarget.PreferredWidth = sizeIsWide ? 220 : 100;
+            });
+        }
+
+        /// <summary>19. Enter and exit: <c>EnterExitTarget</c> stays <c>Visible</c> and laid out at load (nothing plays before its first
+        /// draw). Each effect button sets both <see cref="UIEnterExitSettings.EnterEffect"/> and <see cref="UIEnterExitSettings.ExitEffect"/>
+        /// on the panel's <see cref="MGElement.EnterExit"/> and then toggles its visibility; "Show/Hide" replays whichever effect is
+        /// currently selected. Hiding the panel keeps it visible and non-interactive until the exit run ends, then it collapses.</summary>
+        private void WireEnterExit()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("EnterExitTarget");
+            target.EnterExit = new UIEnterExitSettings { EnterEffect = UIEnterExitEffect.Fade, ExitEffect = UIEnterExitEffect.Fade };
+
+            void SelectEffect(UIEnterExitEffect effect)
+            {
+                target.EnterExit.EnterEffect = effect;
+                target.EnterExit.ExitEffect = effect;
+                Toggle();
+            }
+
+            void Toggle()
+            {
+                target.Visibility = target.PendingVisibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            Window.GetElementByName<MGButton>("EnterExitFadeButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.Fade));
+            Window.GetElementByName<MGButton>("EnterExitScaleButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.Scale));
+            Window.GetElementByName<MGButton>("EnterExitSlideButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.SlideLeft));
+            Window.GetElementByName<MGButton>("EnterExitToggleButton").AddCommandHandler((btn, e) => Toggle());
+        }
+
+        /// <summary>20. Windows and dropdown (ADR-0011 decision 6, Y7): <c>WindowsOpenButton</c> opens a small nested window, created once
+        /// here, whose <see cref="MGElement.EnterExit"/> uses <see cref="UIEnterExitEffect.FadeScale"/> for both the entry (played by
+        /// <see cref="MGWindow.AddNestedWindow"/>) and the exit (played by its own close button through <see cref="MGWindow.TryCloseWindow"/>,
+        /// before the window is actually removed). Clicking "Open window" again WHILE the window is still playing that exit
+        /// (<see cref="MGWindow.IsClosing"/>) reopens it there and then, mid-exit, from its current faded/scaled values: <c>AddNestedWindow</c>
+        /// has cancelled a running exit and replayed the entry instead of throwing its usual duplicate-add exception since Y7, precisely so
+        /// this works. <c>WindowsComboBox</c>'s dropdown gets its own <see cref="MGElement.EnterExit"/> -- <see cref="UIEnterExitEffect.SlideDown"/>
+        /// in, <see cref="UIEnterExitEffect.Fade"/> out -- played on open and close. Nothing starts at load: the nested window is not shown
+        /// until "Open window" is clicked.</summary>
+        private void WireWindows()
+        {
+            MGWindow nestedWindow = new(Window, 0, 0, 220, 120)
+            {
+                TitleText = "Enter/exit window",
+                EnterExit = new UIEnterExitSettings { EnterEffect = UIEnterExitEffect.FadeScale, ExitEffect = UIEnterExitEffect.FadeScale },
+            };
+            MGTextBlock nestedWindowText = new(nestedWindow, "This window fades and scales in and out.")
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            nestedWindow.SetContent(nestedWindowText);
+            //  IsCloseButtonVisible defaults to true: the built-in title bar close button already calls TryCloseWindow()
+            //  (MGControlTemplateCatalog), so the FadeScale exit plays before the window is actually removed.
+            Window.GetElementByName<MGButton>("WindowsOpenButton").AddCommandHandler((btn, e) =>
+            {
+                //  A window still exiting stays in NestedWindows until its run ends (deferred removal, Y7): only a window that is
+                //  neither listed NOR closing is a genuine duplicate to skip -- one that IS closing gets reopened mid-exit instead.
+                if (!Window.NestedWindows.Contains(nestedWindow) || nestedWindow.IsClosing)
+                {
+                    nestedWindow.Left = Window.Left + 40;
+                    nestedWindow.Top = Window.Top + 40;
+                    Window.AddNestedWindow(nestedWindow);
+                }
+            });
+
+            MGComboBox<object> comboBox = Window.GetElementByName<MGComboBox<object>>("WindowsComboBox");
+            comboBox.SetItemsSource(new List<object> { "Alpha", "Beta", "Gamma" });
+            comboBox.Dropdown.EnterExit = new UIEnterExitSettings { EnterEffect = UIEnterExitEffect.SlideDown, ExitEffect = UIEnterExitEffect.Fade };
+        }
+
+        /// <summary>21. Popup theme animations (Y8): <c>PopupThemeToggle</c> flips <see cref="MGThemeAnimationSettings.Enabled"/> by swapping
+        /// in a copy of the current theme with the flag toggled (ADR-0009: a theme's brushes are frozen once installed, so a copy -- not an
+        /// in-place edit -- is how a theme value changes here, the same pattern <see cref="MGResources.DefaultTheme"/> assignments use
+        /// elsewhere in the samples). None of <c>PopupTooltipTarget</c>'s <c>ToolTip</c>, <c>PopupMenuButton</c>'s <c>ContextMenu</c> or
+        /// <c>PopupComboBox</c>'s dropdown carries an explicit <see cref="MGElement.EnterExit"/>, so once the toggle is checked, all three take
+        /// their entry and exit from the theme's <c>Animation</c> group (<c>OpenDuration</c>/<c>CloseDuration</c>/<c>OpenEasing</c>/
+        /// <c>CloseEasing</c>/<c>PopupEffect</c>). Nothing starts at load; leaving the toggle checked when navigating away is not undone.</summary>
+        private void WirePopupTheme()
+        {
+            Window.GetElementByName<MGToggleButton>("PopupThemeToggle").OnCheckStateChanged += (sender, e) =>
+            {
+                MGTheme current = Window.GetTheme();
+                MGTheme toggled = current.Copy();
+                toggled.Animation.Enabled = !current.Animation.Enabled;
+                Window.GetResources().DefaultTheme = toggled;
+            };
+
+            MGComboBox<object> comboBox = Window.GetElementByName<MGComboBox<object>>("PopupComboBox");
+            comboBox.SetItemsSource(new List<object> { "Alpha", "Beta", "Gamma" });
         }
     }
 }

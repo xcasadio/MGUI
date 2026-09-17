@@ -479,6 +479,47 @@ public class FreezableBrushTests
         copy.Tile = false; // does not throw
     }
 
+    /// <summary>ADR-0011, decision C4: <see cref="MGTextureFillBrush.FrameGrid"/>/<see cref="MGTextureFillBrush.FrameIndex"/> follow the same
+    /// freezable contract as every other property of the brush -- notify, throw when frozen, and survive an unfrozen <see cref="MGTextureFillBrush.Copy"/>
+    /// (value-equal, independently mutable). An invalid grid is refused by the setter regardless of frozen state.</summary>
+    [Fact]
+    public void MGTextureFillBrush_FrameGridAndFrameIndex_NotifyAndThrowWhenFrozen_ThenCopyIsUnfrozenAndValueEqual()
+    {
+        Recorder recorder = Recorder.Create();
+        MGSpriteSheetGrid grid = new(4, 2, new Point(16, 16), new Point(1, 1), new Point(0, 6));
+        MGTextureFillBrush brush = new(new MGTextureData(recorder.Image(64, 64)));
+        int gridNotifications = 0;
+        int indexNotifications = 0;
+        brush.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MGTextureFillBrush.FrameGrid)) { gridNotifications++; }
+            if (e.PropertyName == nameof(MGTextureFillBrush.FrameIndex)) { indexNotifications++; }
+        };
+
+        brush.FrameGrid = grid;
+        Assert.Equal(1, gridNotifications);
+        brush.FrameIndex = 3;
+        Assert.Equal(1, indexNotifications);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => brush.FrameGrid = new MGSpriteSheetGrid(0, 1, new Point(4, 4)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => brush.FrameIndex = -1);
+
+        brush.Freeze();
+        Assert.Throws<InvalidOperationException>(() => brush.FrameGrid = null);
+        Assert.Throws<InvalidOperationException>(() => brush.FrameIndex = 0);
+
+        MGTextureFillBrush copy = (MGTextureFillBrush)brush.Copy();
+        Assert.False(copy.IsFrozen);
+        Assert.True(copy.ValueEquals(brush));
+        Assert.Equal(grid, copy.FrameGrid);
+        Assert.Equal(3, copy.FrameIndex);
+        copy.FrameIndex = 0; // does not throw
+        Assert.False(brush.ValueEquals(copy));
+
+        MGTextureFillBrush withoutGrid = new(new MGTextureData(recorder.Image(64, 64)));
+        Assert.False(withoutGrid.ValueEquals(brush));
+    }
+
     [Fact]
     public void MGNineSliceFillBrush_Setter_Notifies_And_Throws_When_Frozen_Then_Copy_Is_Unfrozen_And_ValueEqual()
     {

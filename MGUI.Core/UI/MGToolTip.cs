@@ -108,4 +108,9 @@ public class MGToolTip : MGWindow
         var CurrentMousePosition = InputTracker.Mouse.CurrentPosition;
         Draw(DA with { Offset = DA.Offset + CurrentMousePosition + new Point(XOffset, YOffset) });
     }
+
+    /// <summary>Y8: draws this tooltip at a fixed screen <paramref name="Position"/> instead of the current mouse position -- used only for a
+    /// tooltip sitting in <see cref="MGDesktop"/>'s exiting slot, whose position was frozen (mouse position plus <see cref="DrawOffset"/>,
+    /// exactly what <see cref="DrawAtDefaultPosition"/> would compute) the instant its exit started, since it no longer follows the mouse.</summary>
+    internal void DrawAtFrozenPosition(ElementDrawArgs DA, Point Position) => Draw(DA with { Offset = DA.Offset + Position });
 }

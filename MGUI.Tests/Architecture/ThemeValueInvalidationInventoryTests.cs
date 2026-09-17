@@ -97,6 +97,11 @@ public class ThemeValueInvalidationInventoryTests
             ["Animation.HoverEasing"] = UIThemeValueInvalidation.RenderOnly,
             ["Animation.PressEasing"] = UIThemeValueInvalidation.RenderOnly,
             ["Animation.FocusEasing"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.OpenDuration"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.CloseDuration"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.OpenEasing"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.CloseEasing"] = UIThemeValueInvalidation.RenderOnly,
+            ["Animation.PopupEffect"] = UIThemeValueInvalidation.RenderOnly,
         };
 
         IEnumerable<string> valuesWithoutPilotShape = EnumerateThemeValues()

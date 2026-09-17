@@ -189,6 +189,14 @@ public class DockSplitNode : DockNode
     }
 
     /// <summary>
+    /// A split is hidden from the visual tree when both children are hidden or absent:
+    /// there is then nothing left to show on either side of the splitter.
+    /// </summary>
+    internal override bool IsHiddenInLayout =>
+        (FirstChild == null || FirstChild.IsHiddenInLayout) &&
+        (SecondChild == null || SecondChild.IsHiddenInLayout);
+
+    /// <summary>
     /// Validates the current state of the split node.
     /// </summary>
     /// <returns>True if valid (both children present), false otherwise.</returns>
@@ -228,12 +236,32 @@ public class DockSplitNode : DockNode
     /// <returns>The minimum width in pixels required to display this node and all its children.</returns>
     public override int CalculateEffectiveMinWidth()
     {
+        // A hidden child does not count towards the effective minimum: it has no visual and
+        // occupies no space (and there is no splitter to account for when only one side shows).
+        var firstHidden = FirstChild != null && FirstChild.IsHiddenInLayout;
+        var secondHidden = SecondChild != null && SecondChild.IsHiddenInLayout;
+
+        if (firstHidden && secondHidden)
+        {
+            return 0;
+        }
+
+        if (firstHidden)
+        {
+            return SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
+        }
+
+        if (secondHidden)
+        {
+            return FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
+        }
+
         if (Orientation == Orientation.Horizontal)
         {
             // Horizontal split: widths add up
             var firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
             var secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
-            
+
             // Total width = first child + splitter + second child
             return firstMinWidth + 4 + secondMinWidth; // 4 is default splitter thickness
         }
@@ -242,7 +270,7 @@ public class DockSplitNode : DockNode
             // Vertical split: width is the maximum of children
             var firstMinWidth = FirstChild?.CalculateEffectiveMinWidth() ?? MinFirstSize;
             var secondMinWidth = SecondChild?.CalculateEffectiveMinWidth() ?? MinSecondSize;
-            
+
             return Math.Max(firstMinWidth, secondMinWidth);
         }
     }
@@ -253,12 +281,32 @@ public class DockSplitNode : DockNode
     /// <returns>The minimum height in pixels required to display this node and all its children.</returns>
     public override int CalculateEffectiveMinHeight()
     {
+        // A hidden child does not count towards the effective minimum: it has no visual and
+        // occupies no space (and there is no splitter to account for when only one side shows).
+        var firstHidden = FirstChild != null && FirstChild.IsHiddenInLayout;
+        var secondHidden = SecondChild != null && SecondChild.IsHiddenInLayout;
+
+        if (firstHidden && secondHidden)
+        {
+            return 0;
+        }
+
+        if (firstHidden)
+        {
+            return SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
+        }
+
+        if (secondHidden)
+        {
+            return FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
+        }
+
         if (Orientation == Orientation.Vertical)
         {
             // Vertical split: heights add up
             var firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
             var secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
-            
+
             // Total height = first child + splitter + second child
             return firstMinHeight + 4 + secondMinHeight; // 4 is default splitter thickness
         }
@@ -267,7 +315,7 @@ public class DockSplitNode : DockNode
             // Horizontal split: height is the maximum of children
             var firstMinHeight = FirstChild?.CalculateEffectiveMinHeight() ?? MinFirstSize;
             var secondMinHeight = SecondChild?.CalculateEffectiveMinHeight() ?? MinSecondSize;
-            
+
             return Math.Max(firstMinHeight, secondMinHeight);
         }
     }

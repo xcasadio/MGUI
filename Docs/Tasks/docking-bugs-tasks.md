@@ -173,5 +173,5 @@ Les cinq taches sont livrees le 7 septembre 2026 (commits `39cc6c4`, `ce1d488`, 
 ## Points ouverts
 
 - Tache 3 : l'espace des boutons reveles reste-t-il reserve (pas de reflow au survol) ? Hypothese retenue : oui (implementee ainsi).
-- Tache 4 : le groupe source memorise au flottement n'est pas persiste ; apres un save/load de layout avec une fenetre flottante ouverte, "Dock" retombe au centre du premier groupe visible. Hypothese retenue : oui (implementee ainsi).
+- Tache 4 : le groupe source memorise au flottement n'etait pas persiste ; apres un save/load de layout avec une fenetre flottante ouverte, "Dock" retombait au centre du premier groupe visible. **Resolu le 17 septembre 2026** par le chantier des groupes fantomes ([docking-ghost-groups-tasks.md](docking-ghost-groups-tasks.md), ADR-0012) : le groupe source survit en fantome cache, la place et les fenetres flottantes sont persistees dans le format 2.0, et le repli sur le premier groupe visible ne sert plus que si l'application a remplace l'arbre.
 - Reste hors perimetre : couleurs codees en dur de `MGDockTabGroup` et `MGDockPreviewOverlay` (taches 8 et 9 du backlog styling) ; `CreateFloatingWindow`, public mais sans appelant, ne memorise pas de groupe source (repli sur le premier groupe visible).

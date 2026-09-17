@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Animation;
 using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.DataBinding;
 
@@ -341,7 +342,9 @@ public class ThemeNumericUpDownSettingsDefinition : XAMLBindableBase
 }
 
 /// <summary>The <c>Animation</c> group of a theme definition (ADR-0007, decision 5; <see cref="MGThemeAnimationSettings"/>): durations accept seconds
-/// (<c>0.15</c>), milliseconds (<c>150ms</c>) or a <see cref="TimeSpan"/>, easings are names known to <c>UIEasing</c>; an unset value keeps the base theme's.</summary>
+/// (<c>0.15</c>), milliseconds (<c>150ms</c>) or a <see cref="TimeSpan"/>, easings are names known to <c>UIEasing</c>; an unset value keeps the base theme's.
+/// Y8 adds the popup group (<see cref="OpenDuration"/>, <see cref="CloseDuration"/>, <see cref="OpenEasing"/>, <see cref="CloseEasing"/>,
+/// <see cref="PopupEffect"/>): a window, tooltip, context menu or the combo box dropdown's default entry and exit.</summary>
 public class ThemeAnimationSettingsDefinition : XAMLBindableBase
 {
     public bool? Enabled { get; set; }
@@ -351,6 +354,11 @@ public class ThemeAnimationSettingsDefinition : XAMLBindableBase
     public string HoverEasing { get; set; }
     public string PressEasing { get; set; }
     public string FocusEasing { get; set; }
+    public string OpenDuration { get; set; }
+    public string CloseDuration { get; set; }
+    public string OpenEasing { get; set; }
+    public string CloseEasing { get; set; }
+    public UIEnterExitEffect? PopupEffect { get; set; }
 }
 
 public class ThemeDockingSettingsDefinition : XAMLBindableBase

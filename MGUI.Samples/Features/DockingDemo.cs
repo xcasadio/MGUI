@@ -382,8 +382,11 @@ namespace MGUI.Samples.Features
             {
                 try
                 {
-                    LoadLayout();
-                    ShowNotification("Layout loaded successfully!", Color.LightGreen);
+                    if (LoadLayout())
+                    {
+                        ShowNotification("Layout loaded successfully!", Color.LightGreen);
+                    }
+                    // On failure, LoadLayout() already showed the diagnostics notification (D7/D8).
                 }
                 catch (Exception ex)
                 {
@@ -441,9 +444,11 @@ namespace MGUI.Samples.Features
         }
 
         /// <summary>
-        /// Loads the docking layout from a JSON file.
+        /// Loads the docking layout from a JSON file. Returns false, after showing a diagnostics
+        /// notification, when the file's content could not be loaded (D7/D8) - the host's current
+        /// layout is left untouched in that case.
         /// </summary>
-        private void LoadLayout()
+        private bool LoadLayout()
         {
             if (!File.Exists(LayoutFilePath))
             {
@@ -451,9 +456,9 @@ namespace MGUI.Samples.Features
             }
 
             string json = File.ReadAllText(LayoutFilePath);
-            
+
             // Load with a factory that recreates panel content based on panel ID
-            _dockHost.LoadLayoutFromJson(json, panelFactory: panelId =>
+            bool loaded = _dockHost.TryLoadLayoutFromJson(json, panelFactory: panelId =>
             {
                 // Map panel IDs to their content factories
                 Func<MGElement> factory = panelId switch
@@ -466,16 +471,25 @@ namespace MGUI.Samples.Features
                     "panel_readme" => () => CreateDocumentContent("README.md"),
                     _ => null
                 };
-                
+
                 if (factory == null)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DockingDemo] Warning: Unknown panel ID '{panelId}'");
                 }
-                
+
                 return factory;
-            });
+            }, out var diagnostics);
+
+            if (!loaded)
+            {
+                // D7/D8: a bad layout file is reported without touching the host's current layout.
+                string reason = diagnostics.Count > 0 ? string.Join("\n", diagnostics) : "Unknown reason.";
+                ShowNotification($"Could not load layout:\n{reason}", Color.OrangeRed);
+                return false;
+            }
 
             System.Diagnostics.Debug.WriteLine($"[DockingDemo] Layout loaded from: {Path.GetFullPath(LayoutFilePath)}");
+            return true;
         }
 
         /// <summary>

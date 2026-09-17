@@ -426,6 +426,159 @@ public class DockNodeModelTests
     /// Fix applied: CyclePanel sets ActiveDockable = nextPanel unconditionally after
     /// ActivatePanel().
     /// </summary>
+    // ══════════════════════════════════════════════════════════════════════
+    // IsHiddenInLayout (Task T1: placeholder groups)
+    // ══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void IsHiddenInLayout_False_ForRootEmptyGroup()
+    {
+        var g = new DockTabGroupNode();
+        _ = new DockLayoutModel(g); // root assignment sets g.Parent = null (unchanged)
+
+        Assert.False(g.IsHiddenInLayout);
+    }
+
+    [Fact]
+    public void IsHiddenInLayout_True_ForNonRootEmptyGroup()
+    {
+        var empty = new DockTabGroupNode();
+        var other = Group(Panel());
+        var split = new DockSplitNode { FirstChild = empty, SecondChild = other };
+
+        Assert.True(empty.IsHiddenInLayout);
+    }
+
+    [Fact]
+    public void IsHiddenInLayout_False_ForGroupWithPanels()
+    {
+        var g = Group(Panel());
+        var other = Group(Panel());
+        var split = new DockSplitNode { FirstChild = g, SecondChild = other };
+
+        Assert.False(g.IsHiddenInLayout);
+    }
+
+    [Fact]
+    public void IsHiddenInLayout_Split_False_WhenOneChildVisible()
+    {
+        var hidden = new DockTabGroupNode();
+        var visible = Group(Panel());
+        var split = new DockSplitNode { FirstChild = hidden, SecondChild = visible };
+
+        Assert.True(hidden.IsHiddenInLayout);
+        Assert.False(visible.IsHiddenInLayout);
+        Assert.False(split.IsHiddenInLayout);
+    }
+
+    [Fact]
+    public void IsHiddenInLayout_Split_True_WhenBothChildrenHidden()
+    {
+        var hidden1 = new DockTabGroupNode();
+        var hidden2 = new DockTabGroupNode();
+        var innerSplit = new DockSplitNode { FirstChild = hidden2 }; // SecondChild null too
+        var split = new DockSplitNode { FirstChild = hidden1, SecondChild = innerSplit };
+
+        Assert.True(split.IsHiddenInLayout);
+    }
+
+    [Fact]
+    public void IsHiddenInLayout_Split_True_WhenNestedSplitHidden()
+    {
+        // outer[first=visible, second=split[hidden,hidden]] -> outer visible because first child visible
+        var hidden1 = new DockTabGroupNode();
+        var hidden2 = new DockTabGroupNode();
+        var innerSplit = new DockSplitNode { FirstChild = hidden1, SecondChild = hidden2 };
+        Assert.True(innerSplit.IsHiddenInLayout);
+
+        var visible = Group(Panel());
+        var outer = new DockSplitNode { FirstChild = visible, SecondChild = innerSplit };
+        Assert.False(outer.IsHiddenInLayout);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Effective minimum sizes with hidden children (Task T1)
+    // ══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void CalculateEffectiveMinWidth_Horizontal_IgnoresHiddenFirstChild()
+    {
+        var hidden = new DockTabGroupNode();
+        var visible = Group(Panel());
+        var split = new DockSplitNode { Orientation = Orientation.Horizontal, FirstChild = hidden, SecondChild = visible };
+
+        Assert.Equal(visible.CalculateEffectiveMinWidth(), split.CalculateEffectiveMinWidth());
+    }
+
+    [Fact]
+    public void CalculateEffectiveMinWidth_Horizontal_IgnoresHiddenSecondChild()
+    {
+        var visible = Group(Panel());
+        var hidden = new DockTabGroupNode();
+        var split = new DockSplitNode { Orientation = Orientation.Horizontal, FirstChild = visible, SecondChild = hidden };
+
+        Assert.Equal(visible.CalculateEffectiveMinWidth(), split.CalculateEffectiveMinWidth());
+    }
+
+    [Fact]
+    public void CalculateEffectiveMinWidth_Horizontal_BothHidden_IsZero()
+    {
+        var hidden1 = new DockTabGroupNode();
+        var hidden2 = new DockTabGroupNode();
+        var split = new DockSplitNode { Orientation = Orientation.Horizontal, FirstChild = hidden1, SecondChild = hidden2 };
+
+        Assert.Equal(0, split.CalculateEffectiveMinWidth());
+    }
+
+    [Fact]
+    public void CalculateEffectiveMinHeight_Vertical_IgnoresHiddenFirstChild()
+    {
+        var hidden = new DockTabGroupNode();
+        var visible = Group(Panel());
+        var split = new DockSplitNode { Orientation = Orientation.Vertical, FirstChild = hidden, SecondChild = visible };
+
+        Assert.Equal(visible.CalculateEffectiveMinHeight(), split.CalculateEffectiveMinHeight());
+    }
+
+    [Fact]
+    public void CalculateEffectiveMinHeight_Vertical_IgnoresHiddenSecondChild()
+    {
+        var visible = Group(Panel());
+        var hidden = new DockTabGroupNode();
+        var split = new DockSplitNode { Orientation = Orientation.Vertical, FirstChild = visible, SecondChild = hidden };
+
+        Assert.Equal(visible.CalculateEffectiveMinHeight(), split.CalculateEffectiveMinHeight());
+    }
+
+    [Fact]
+    public void CalculateEffectiveMinHeight_Vertical_BothHidden_IsZero()
+    {
+        var hidden1 = new DockTabGroupNode();
+        var hidden2 = new DockTabGroupNode();
+        var split = new DockSplitNode { Orientation = Orientation.Vertical, FirstChild = hidden1, SecondChild = hidden2 };
+
+        Assert.Equal(0, split.CalculateEffectiveMinHeight());
+    }
+
+    [Fact]
+    public void CalculateEffectiveMinWidth_NestedSplitWithHiddenChild_IsIgnored()
+    {
+        // inner[hidden, visible] nested as FirstChild of outer[inner, otherVisible]
+        var hidden = new DockTabGroupNode();
+        var innerVisible = Group(Panel());
+        var inner = new DockSplitNode { Orientation = Orientation.Horizontal, FirstChild = hidden, SecondChild = innerVisible };
+
+        var otherVisible = Group(Panel());
+        var outer = new DockSplitNode { Orientation = Orientation.Horizontal, FirstChild = inner, SecondChild = otherVisible };
+
+        // inner's effective min width equals innerVisible's (hidden child ignored)
+        Assert.Equal(innerVisible.CalculateEffectiveMinWidth(), inner.CalculateEffectiveMinWidth());
+
+        // outer combines inner (not itself hidden, since innerVisible keeps it visible) and otherVisible normally
+        var expected = inner.CalculateEffectiveMinWidth() + 4 + otherVisible.CalculateEffectiveMinWidth();
+        Assert.Equal(expected, outer.CalculateEffectiveMinWidth());
+    }
+
     [Fact]
     public void SetActivePanel_WithSameId_DoesNotFirePropertyChanged()
     {

@@ -50,7 +50,7 @@ public class ToolingHooksTests
     [Fact]
     public void Designer_UsesSharedToolingPreviewHook()
     {
-        string designerSource = System.IO.File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGXAMLDesigner.cs");
+        string designerSource = System.IO.File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGXAMLDesigner.cs"));
 
         Assert.Contains("UIToolingService.LoadPreview", designerSource);
     }

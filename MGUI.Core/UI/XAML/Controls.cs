@@ -9,6 +9,7 @@ using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Graph;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.UI.Animation.Easing;
 
 #if UseWPF
 using System.Windows.Markup;
@@ -2494,6 +2495,43 @@ public class ScrollViewer : SingleContentHost
     [Category("Layout")]
     public float? HorizontalOffset { get; set; }
 
+    private string _scrollAnimationDuration;
+    /// <summary>The duration <see cref="MGScrollViewer.ScrollTo"/> uses for the mouse wheel, <see cref="MGScrollViewer.EnsureElementVisible"/>
+    /// and the keyboard scroll sites: seconds (<c>0.2</c>), milliseconds (<c>200ms</c>) or a <see cref="TimeSpan"/> (<c>0:0:0.2</c>), exactly
+    /// like <see cref="Transition.Duration"/>.</summary>
+    [Category("Animation")]
+    public string ScrollAnimationDuration
+    {
+        get => _scrollAnimationDuration;
+        set
+        {
+            if (!AnimationXamlParser.TryParseDuration(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to a ScrollAnimationDuration: use seconds (0.2), milliseconds (200ms) or a TimeSpan (0:0:0.2).");
+            }
+
+            _scrollAnimationDuration = value;
+        }
+    }
+
+    private string _scrollAnimationEasing;
+    /// <summary>The easing <see cref="MGScrollViewer.ScrollTo"/>'s sites use, a name known to <see cref="UIEasing"/>, exactly like
+    /// <see cref="Transition.Easing"/>.</summary>
+    [Category("Animation")]
+    public string ScrollAnimationEasing
+    {
+        get => _scrollAnimationEasing;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !UIEasing.TryGet(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to an easing function. Known names: {string.Join(", ", UIEasing.Names)}.");
+            }
+
+            _scrollAnimationEasing = value;
+        }
+    }
+
     [Category("Appearance")]
     public FillBrush ScrollBarUnfocusedOuterBrush { get; set; }
     [Category("Appearance")]
@@ -2529,6 +2567,18 @@ public class ScrollViewer : SingleContentHost
         if (HorizontalOffset.HasValue)
         {
             ScrollViewer.HorizontalOffset = HorizontalOffset.Value;
+        }
+
+        if (_scrollAnimationDuration != null)
+        {
+            AnimationXamlParser.TryParseDuration(_scrollAnimationDuration, out var duration);
+            ScrollViewer.ScrollAnimationDuration = duration;
+        }
+
+        if (_scrollAnimationEasing != null)
+        {
+            UIEasing.TryGet(_scrollAnimationEasing, out var easing);
+            ScrollViewer.ScrollAnimationEasing = easing;
         }
 
         if (ScrollBarUnfocusedOuterBrush != null)

@@ -6,6 +6,9 @@ using MGUI.Shared.Input.Mouse;
 using System.Diagnostics;
 using MGUI.Shared.Rendering.Clipping;
 using MGUI.Core.UI.Styling;
+using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.Easing;
+using MGUI.Core.UI.Animation.Targets;
 
 namespace MGUI.Core.UI;
 
@@ -104,19 +107,21 @@ public class MGScrollViewer : MGSingleContentHost
             return;
         }
 
-        var verticalViewportStart = Content.LayoutBounds.Top + VerticalOffset;
-        var horizontalViewportStart = Content.LayoutBounds.Left + HorizontalOffset;
-        var newVerticalOffset = GetVisibleOffset(VerticalOffset, verticalViewportStart, ContentViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
-        var newHorizontalOffset = GetVisibleOffset(HorizontalOffset, horizontalViewportStart, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
+        var pendingVerticalOffset = PendingVerticalOffset;
+        var pendingHorizontalOffset = PendingHorizontalOffset;
+        var verticalViewportStart = Content.LayoutBounds.Top + pendingVerticalOffset;
+        var horizontalViewportStart = Content.LayoutBounds.Left + pendingHorizontalOffset;
+        var newVerticalOffset = GetVisibleOffset(pendingVerticalOffset, verticalViewportStart, ContentViewport.Height, MaxVerticalOffset, bounds.Top, bounds.Bottom);
+        var newHorizontalOffset = GetVisibleOffset(pendingHorizontalOffset, horizontalViewportStart, ContentViewport.Width, MaxHorizontalOffset, bounds.Left, bounds.Right);
 
-        if (Math.Abs(newVerticalOffset - VerticalOffset) > 0.5f)
+        if (Math.Abs(newVerticalOffset - pendingVerticalOffset) > 0.5f)
         {
-            VerticalOffset = newVerticalOffset;
+            ScrollTo(null, newVerticalOffset, ScrollAnimationDuration, ScrollAnimationEasing);
         }
 
-        if (Math.Abs(newHorizontalOffset - HorizontalOffset) > 0.5f)
+        if (Math.Abs(newHorizontalOffset - pendingHorizontalOffset) > 0.5f)
         {
-            HorizontalOffset = newHorizontalOffset;
+            ScrollTo(newHorizontalOffset, null, ScrollAnimationDuration, ScrollAnimationEasing);
         }
     }
 
@@ -265,25 +270,41 @@ public class MGScrollViewer : MGSingleContentHost
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private float _VerticalOffset;
-    /// <summary>See also: <see cref="MaxVerticalOffset"/></summary>
+    /// <summary>See also: <see cref="MaxVerticalOffset"/><para/>
+    /// An external write (this setter): cancels an explicit <see cref="ScrollTo"/> run on this axis (keeping the written value), but leaves a
+    /// <see cref="UITransition{T}"/> attached to <see cref="UIExtraAnimationTargets.Paths.ScrollViewerVerticalOffset"/> running: it retargets
+    /// itself from its current animated value, like any other observed property.</summary>
     public float VerticalOffset
     {
         get => _VerticalOffset;
         set
         {
             var ClampedValue = Math.Clamp(value, 0, MaxVerticalOffset);
-            if (_VerticalOffset != ClampedValue)
-            {
-                var Previous = VerticalOffset;
-                _VerticalOffset = ClampedValue;
-                ParentWindow.InvalidatePressedAndHoveredElements = true;
-                NotifyPropertyChanged(nameof(VerticalOffset));
-                VerticalOffsetChanged?.Invoke(this, new(Previous, VerticalOffset));
-                OffsetChanged?.Invoke(this, EventArgs.Empty);
-            }
+            CancelExternalScrollWrite(UIExtraAnimationTargets.Paths.ScrollViewerVerticalOffset);
+            SetVerticalOffsetCore(ClampedValue);
         }
     }
 
+    /// <summary>Writes <see cref="VerticalOffset"/> and raises the same notifications and events as the public setter, but never cancels a
+    /// running animation on the path: used by the animated apply path (<see cref="ApplyAnimatedVerticalOffset"/>) and by the
+    /// <see cref="MaxVerticalOffset"/> re-clamp, so a shrinking content lets an active <see cref="ScrollTo"/> run finish at the new bound
+    /// instead of being cancelled.</summary>
+    private void SetVerticalOffsetCore(float clampedValue)
+    {
+        if (_VerticalOffset != clampedValue)
+        {
+            var Previous = VerticalOffset;
+            _VerticalOffset = clampedValue;
+            ParentWindow.InvalidatePressedAndHoveredElements = true;
+            NotifyPropertyChanged(nameof(VerticalOffset));
+            VerticalOffsetChanged?.Invoke(this, new(Previous, VerticalOffset));
+            OffsetChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Writes the animated value of <see cref="UIExtraAnimationTargets.Paths.ScrollViewerVerticalOffset"/> (clamped to the current
+    /// bounds): used by that target's <c>SetValue</c>/<c>RestoreBaseValue</c>. Never cancels a run.</summary>
+    internal void ApplyAnimatedVerticalOffset(float value) => SetVerticalOffsetCore(Math.Clamp(value, 0, MaxVerticalOffset));
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private float _MaxVerticalOffset;
@@ -298,7 +319,8 @@ public class MGScrollViewer : MGSingleContentHost
             {
                 var Previous = MaxVerticalOffset;
                 _MaxVerticalOffset = value;
-                VerticalOffset = Math.Clamp(VerticalOffset, 0, MaxVerticalOffset);
+                //  The re-clamp is not an external write: a running ScrollTo (or transition) is left alone, and finishes at the new bound.
+                SetVerticalOffsetCore(Math.Clamp(VerticalOffset, 0, MaxVerticalOffset));
                 NotifyPropertyChanged(nameof(MaxVerticalOffset));
                 MaxVerticalOffsetChanged?.Invoke(this, new(Previous, MaxVerticalOffset));
             }
@@ -332,24 +354,41 @@ public class MGScrollViewer : MGSingleContentHost
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private float _HorizontalOffset;
-    /// <summary>See also: <see cref="MaxHorizontalOffset"/></summary>
+    /// <summary>See also: <see cref="MaxHorizontalOffset"/><para/>
+    /// An external write (this setter): cancels an explicit <see cref="ScrollTo"/> run on this axis (keeping the written value), but leaves a
+    /// <see cref="UITransition{T}"/> attached to <see cref="UIExtraAnimationTargets.Paths.ScrollViewerHorizontalOffset"/> running: it retargets
+    /// itself from its current animated value, like any other observed property.</summary>
     public float HorizontalOffset
     {
         get => _HorizontalOffset;
         set
         {
             var ClampedValue = Math.Clamp(value, 0, MaxHorizontalOffset);
-            if (_HorizontalOffset != ClampedValue)
-            {
-                var Previous = HorizontalOffset;
-                _HorizontalOffset = ClampedValue;
-                ParentWindow.InvalidatePressedAndHoveredElements = true;
-                NotifyPropertyChanged(nameof(HorizontalOffset));
-                HorizontalOffsetChanged?.Invoke(this, new(Previous, HorizontalOffset));
-                OffsetChanged?.Invoke(this, EventArgs.Empty);
-            }
+            CancelExternalScrollWrite(UIExtraAnimationTargets.Paths.ScrollViewerHorizontalOffset);
+            SetHorizontalOffsetCore(ClampedValue);
         }
     }
+
+    /// <summary>Writes <see cref="HorizontalOffset"/> and raises the same notifications and events as the public setter, but never cancels a
+    /// running animation on the path: used by the animated apply path (<see cref="ApplyAnimatedHorizontalOffset"/>) and by the
+    /// <see cref="MaxHorizontalOffset"/> re-clamp, so a shrinking content lets an active <see cref="ScrollTo"/> run finish at the new bound
+    /// instead of being cancelled.</summary>
+    private void SetHorizontalOffsetCore(float clampedValue)
+    {
+        if (_HorizontalOffset != clampedValue)
+        {
+            var Previous = HorizontalOffset;
+            _HorizontalOffset = clampedValue;
+            ParentWindow.InvalidatePressedAndHoveredElements = true;
+            NotifyPropertyChanged(nameof(HorizontalOffset));
+            HorizontalOffsetChanged?.Invoke(this, new(Previous, HorizontalOffset));
+            OffsetChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Writes the animated value of <see cref="UIExtraAnimationTargets.Paths.ScrollViewerHorizontalOffset"/> (clamped to the current
+    /// bounds): used by that target's <c>SetValue</c>/<c>RestoreBaseValue</c>. Never cancels a run.</summary>
+    internal void ApplyAnimatedHorizontalOffset(float value) => SetHorizontalOffsetCore(Math.Clamp(value, 0, MaxHorizontalOffset));
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private float _MaxHorizontalOffset;
@@ -365,13 +404,165 @@ public class MGScrollViewer : MGSingleContentHost
                 var Previous = MaxHorizontalOffset;
                 _MaxHorizontalOffset = value;
                 NotifyPropertyChanged(nameof(MaxHorizontalOffset));
-                HorizontalOffset = Math.Clamp(HorizontalOffset, 0, MaxHorizontalOffset);
+                //  The re-clamp is not an external write: a running ScrollTo (or transition) is left alone, and finishes at the new bound.
+                SetHorizontalOffsetCore(Math.Clamp(HorizontalOffset, 0, MaxHorizontalOffset));
                 MaxHorizontalOffsetChanged?.Invoke(this, new(Previous, MaxHorizontalOffset));
             }
         }
     }
 
     public event EventHandler<EventArgs<float>> MaxHorizontalOffsetChanged;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private UIPropertyAnimation<float> _VerticalScrollAnimation;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private UIPropertyAnimation<float> _HorizontalScrollAnimation;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TimeSpan _ScrollAnimationDuration;
+    /// <summary>The duration <see cref="ScrollTo"/> uses for the mouse wheel (<see cref="MouseHandler"/>'s <c>Scrolled</c> handler) and for the
+    /// keyboard/programmatic sites that call it with this viewer's own settings (<see cref="EnsureElementVisible"/>, a virtualized
+    /// <see cref="MGListBox{TItemType}"/>'s focused item, <see cref="MGTreeView.ScrollIntoView"/>).<para/>
+    /// Default value: <see cref="TimeSpan.Zero"/> (every one of those sites then writes the offset directly, unchanged behaviour).</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative.</exception>
+    public TimeSpan ScrollAnimationDuration
+    {
+        get => _ScrollAnimationDuration;
+        set
+        {
+            if (value < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, $"{nameof(ScrollAnimationDuration)} cannot be negative.");
+            }
+
+            if (_ScrollAnimationDuration != value)
+            {
+                _ScrollAnimationDuration = value;
+                NotifyPropertyChanged(nameof(ScrollAnimationDuration));
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private IUIEasingFunction _ScrollAnimationEasing;
+    /// <summary>The easing <see cref="ScrollAnimationDuration"/>'s sites pass to <see cref="ScrollTo"/>. Null means linear.</summary>
+    public IUIEasingFunction ScrollAnimationEasing
+    {
+        get => _ScrollAnimationEasing;
+        set
+        {
+            if (_ScrollAnimationEasing != value)
+            {
+                _ScrollAnimationEasing = value;
+                NotifyPropertyChanged(nameof(ScrollAnimationEasing));
+            }
+        }
+    }
+
+    /// <summary>The destination of this viewer's own <see cref="ScrollTo"/> run on <see cref="VerticalOffset"/> while it is active (clamped to
+    /// the current <c>[0, MaxVerticalOffset]</c> at read time); <see cref="VerticalOffset"/> otherwise (including while an application
+    /// animation or a <see cref="UITransition{T}"/> drives the path).</summary>
+    public float PendingVerticalOffset
+        => _VerticalScrollAnimation != null && _VerticalScrollAnimation.IsActive
+            ? Math.Clamp(_VerticalScrollAnimation.To, 0, MaxVerticalOffset)
+            : VerticalOffset;
+
+    /// <summary>The destination of this viewer's own <see cref="ScrollTo"/> run on <see cref="HorizontalOffset"/> while it is active (clamped
+    /// to the current <c>[0, MaxHorizontalOffset]</c> at read time); <see cref="HorizontalOffset"/> otherwise (including while an application
+    /// animation or a <see cref="UITransition{T}"/> drives the path).</summary>
+    public float PendingHorizontalOffset
+        => _HorizontalScrollAnimation != null && _HorizontalScrollAnimation.IsActive
+            ? Math.Clamp(_HorizontalScrollAnimation.To, 0, MaxHorizontalOffset)
+            : HorizontalOffset;
+
+    /// <summary>Scrolls smoothly to the given destination(s) (a null axis is left untouched; each destination is clamped to
+    /// <c>[0, Max...Offset]</c> at this call) over <paramref name="duration"/>, with <paramref name="easing"/> (null means linear).<para/>
+    /// <paramref name="duration"/> zero or less, or this viewer having no desktop yet (<see cref="MGElement.SelfOrParentWindow"/>'s
+    /// <see cref="MGWindow.Desktop"/> is null): a direct write through the public setter, which cancels any run on that axis exactly like any
+    /// other external write.<para/>
+    /// Otherwise starts (or restarts) one <see cref="UIPropertyAnimation{T}"/> per axis, reused across calls (a repeated wheel notch restarts
+    /// the same instance instead of allocating a new one): <c>From</c> unset (starts from the current value), <c>CancelBehavior</c>
+    /// <see cref="UIAnimationCancelBehavior.KeepCurrent"/>, <c>FillBehavior</c> <see cref="UIAnimationFillBehavior.HoldEnd"/>,
+    /// <c>InheritsBaseValue</c> false (a plain target: nothing to restore).</summary>
+    public void ScrollTo(float? horizontalOffset, float? verticalOffset, TimeSpan duration, IUIEasingFunction easing = null)
+    {
+        if (verticalOffset.HasValue)
+        {
+            ScrollVerticalTo(verticalOffset.Value, duration, easing);
+        }
+
+        if (horizontalOffset.HasValue)
+        {
+            ScrollHorizontalTo(horizontalOffset.Value, duration, easing);
+        }
+    }
+
+    private void ScrollVerticalTo(float destination, TimeSpan duration, IUIEasingFunction easing)
+    {
+        var clamped = Math.Clamp(destination, 0, MaxVerticalOffset);
+        if (duration <= TimeSpan.Zero || SelfOrParentWindow?.Desktop == null)
+        {
+            VerticalOffset = clamped;
+            return;
+        }
+
+        var animation = _VerticalScrollAnimation ??= new UIPropertyAnimation<float>(UIExtraAnimationTargets.Paths.ScrollViewerVerticalOffset)
+        {
+            CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
+            FillBehavior = UIAnimationFillBehavior.HoldEnd,
+            InheritsBaseValue = false,
+            Name = "scroll:vertical",
+        };
+        animation.ClearFrom();
+        animation.To = clamped;
+        animation.Duration = duration;
+        animation.Easing = easing;
+        Animations.Start(animation);
+    }
+
+    private void ScrollHorizontalTo(float destination, TimeSpan duration, IUIEasingFunction easing)
+    {
+        var clamped = Math.Clamp(destination, 0, MaxHorizontalOffset);
+        if (duration <= TimeSpan.Zero || SelfOrParentWindow?.Desktop == null)
+        {
+            HorizontalOffset = clamped;
+            return;
+        }
+
+        var animation = _HorizontalScrollAnimation ??= new UIPropertyAnimation<float>(UIExtraAnimationTargets.Paths.ScrollViewerHorizontalOffset)
+        {
+            CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
+            FillBehavior = UIAnimationFillBehavior.HoldEnd,
+            InheritsBaseValue = false,
+            Name = "scroll:horizontal",
+        };
+        animation.ClearFrom();
+        animation.To = clamped;
+        animation.Duration = duration;
+        animation.Easing = easing;
+        Animations.Start(animation);
+    }
+
+    /// <summary>Cancels the explicit run active on <paramref name="path"/>, if any, unless it is the run of a <see cref="UITransition{T}"/>
+    /// attached to the same path (identified by reference to its own <see cref="UITransition{T}.Animation"/>, never by name): a transition
+    /// keeps retargeting itself instead, through its own subscription to the property notification this write is about to raise.<para/>
+    /// Never allocates the animation slot (<see cref="MGElement.AnimationSlotOrNull"/>): a viewer that animates nothing pays one null test.</summary>
+    private void CancelExternalScrollWrite(string path)
+    {
+        var manager = SelfOrParentWindow?.Desktop?.Animations;
+        var animation = manager?.GetActive(this, path);
+        if (animation == null)
+        {
+            return;
+        }
+
+        if (AnimationSlotOrNull?.Transitions[path] is UITransition<float> transition && ReferenceEquals(transition.Animation, animation))
+        {
+            return;
+        }
+
+        animation.CancelCore(UIAnimationCancelBehavior.KeepCurrent);
+    }
     #endregion Offset
 
     private bool IsHoveringVSB { get; set; }
@@ -689,32 +880,34 @@ public class MGScrollViewer : MGSingleContentHost
 
             MouseHandler.Scrolled += (sender, e) =>
             {
-                //  Attempt to scroll vertically
+                //  Attempt to scroll vertically. The guards read PendingVerticalOffset (the current value when nothing of this viewer's own
+                //  is running, so a zero ScrollAnimationDuration is byte-for-byte the same as before this decision existed) so that consumption
+                //  follows the destination of an in-flight smooth scroll rather than its momentary animated position.
                 if (VSBBounds.HasValue)
                 {
-                    if (e.ScrollWheelDelta > 0 && VerticalOffset > 0)
+                    if (e.ScrollWheelDelta > 0 && PendingVerticalOffset > 0)
                     {
                         e.SetHandledBy(this, false);
-                        VerticalOffset -= VerticalScrollInterval;
+                        ScrollTo(null, PendingVerticalOffset - VerticalScrollInterval, ScrollAnimationDuration, ScrollAnimationEasing);
                     }
-                    else if (e.ScrollWheelDelta < 0 && VerticalOffset < MaxVerticalOffset)
+                    else if (e.ScrollWheelDelta < 0 && PendingVerticalOffset < MaxVerticalOffset)
                     {
                         e.SetHandledBy(this, false);
-                        VerticalOffset += VerticalScrollInterval;
+                        ScrollTo(null, PendingVerticalOffset + VerticalScrollInterval, ScrollAnimationDuration, ScrollAnimationEasing);
                     }
                 }
                 //  Scroll horizontally if there is only a horizontal scrollbar but no vertical scrollbar
                 else if (HSBBounds.HasValue)
                 {
-                    if (e.ScrollWheelDelta > 0 && HorizontalOffset > 0)
+                    if (e.ScrollWheelDelta > 0 && PendingHorizontalOffset > 0)
                     {
                         e.SetHandledBy(this, false);
-                        HorizontalOffset -= VerticalScrollInterval;
+                        ScrollTo(PendingHorizontalOffset - VerticalScrollInterval, null, ScrollAnimationDuration, ScrollAnimationEasing);
                     }
-                    else if (e.ScrollWheelDelta < 0 && HorizontalOffset < MaxHorizontalOffset)
+                    else if (e.ScrollWheelDelta < 0 && PendingHorizontalOffset < MaxHorizontalOffset)
                     {
                         e.SetHandledBy(this, false);
-                        HorizontalOffset += VerticalScrollInterval;
+                        ScrollTo(PendingHorizontalOffset + VerticalScrollInterval, null, ScrollAnimationDuration, ScrollAnimationEasing);
                     }
                 }
             };

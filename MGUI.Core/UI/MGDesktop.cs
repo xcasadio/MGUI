@@ -39,6 +39,53 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     internal void AdjustActiveRenderTransformCount(int Delta) => ActiveRenderTransformCount = Math.Max(0, ActiveRenderTransformCount + Delta);
 
+    /// <summary>One ambient entry of the layout-transition pass stack (ADR-0011 decision 5): the visual displacement already applied to the
+    /// enclosing subtree at instant zero (own delta of the closest ancestor that started a run this pass, or inherited from further up), and
+    /// whether the current pass is a resize of the displaying window (inherited from the window root, never raised again below it).</summary>
+    internal readonly record struct LayoutTransitionStackEntry(Vector2 Displacement, bool WindowResized);
+
+    /// <summary>Sticky flag: true once at least one element of this desktop has opted into <see cref="MGElement.LayoutTransition"/> (ADR-0011
+    /// decision 5). Raised by the <c>LayoutTransition</c> setter and never lowered: while it is down, <see cref="MGElement.UpdateLayout"/>
+    /// pays exactly one flag read and nothing else.</summary>
+    internal bool HasLayoutTransitions { get; private set; }
+
+    internal void MarkHasLayoutTransitions() => HasLayoutTransitions = true;
+
+    private LayoutTransitionStackEntry[] _LayoutTransitionStack = new LayoutTransitionStackEntry[8];
+    private int _LayoutTransitionStackCount;
+
+    /// <summary>The ambient entry of the element currently enclosing the one about to lay out (the parent's entry, already updated with its
+    /// own displacement), or the default (no displacement, not a resize pass) when the stack is empty. Never allocates.</summary>
+    internal LayoutTransitionStackEntry PeekLayoutTransitionEntry() =>
+        _LayoutTransitionStackCount > 0 ? _LayoutTransitionStack[_LayoutTransitionStackCount - 1] : default;
+
+    /// <summary>Pushes the ambient entry of the element entering <see cref="MGElement.UpdateLayout"/>, at the very top of its <c>try</c>: for a
+    /// window, a fresh entry (no inherited displacement, <paramref name="WindowResized"/> as computed by the caller); for any other element,
+    /// a copy of the parent's current entry (<see cref="PeekLayoutTransitionEntry"/>). Grows the backing array by doubling, only when the
+    /// depth exceeds the current capacity -- never in a steady state. Must be paired with <see cref="PopLayoutTransitionEntry"/> in a
+    /// <c>finally</c>, on every branch, including one where a child's layout throws.</summary>
+    internal void PushLayoutTransitionEntry(bool IsWindowElement, bool WindowResized)
+    {
+        var Entry = IsWindowElement ? new LayoutTransitionStackEntry(Vector2.Zero, WindowResized) : PeekLayoutTransitionEntry();
+        if (_LayoutTransitionStackCount == _LayoutTransitionStack.Length)
+        {
+            Array.Resize(ref _LayoutTransitionStack, _LayoutTransitionStack.Length * 2);
+        }
+
+        _LayoutTransitionStack[_LayoutTransitionStackCount++] = Entry;
+    }
+
+    /// <summary>Overwrites the displacement of the current (topmost) ambient entry in place: called right after the owning element's own
+    /// <see cref="MGElement.LayoutBounds"/> assignment, before its components and its children lay out, so their push inherits it.</summary>
+    internal void SetLayoutTransitionEntryDisplacement(Vector2 Displacement)
+    {
+        var Top = _LayoutTransitionStackCount - 1;
+        _LayoutTransitionStack[Top] = _LayoutTransitionStack[Top] with { Displacement = Displacement };
+    }
+
+    /// <summary>Pops the entry pushed by <see cref="PushLayoutTransitionEntry"/> for the element leaving <see cref="MGElement.UpdateLayout"/>.</summary>
+    internal void PopLayoutTransitionEntry() => _LayoutTransitionStackCount--;
+
     /// <summary>The animation engine of this desktop (ADR-0006, decision 7): its clock, the active animations and their conflict rule.
     /// Ticked first in <see cref="Update"/>, so every animated value is written before the windows are laid out, updated and drawn.</summary>
     public Animation.UIAnimationManager Animations { get; } = new();
@@ -46,6 +93,31 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     public InputTracker InputTracker => Runtime.Input;
     public string DefaultFontFamily => Runtime.DefaultFontFamily;
     private List<ModalStackEntry> ModalStackEntries { get; } = new();
+
+    //  Root window entry detection (ADR-0011 decision 6, Y7): Desktop.Windows is a plain list with no add/remove notification, so a root
+    //  window's entry is detected here, by comparing it against the previous frame's snapshot -- two lists swapped every frame, never
+    //  allocating in a steady state (Capacity stays put once both have grown to the window count). BringToFront/BringToBack/click
+    //  activation remove and re-add within the same frame, so the window is still present in both snapshots and replays nothing; a window
+    //  removed then re-added in a LATER frame is absent from the previous snapshot and replays its entry.
+    private List<MGWindow> _previousRootWindows = new();
+    private List<MGWindow> _currentRootWindowsScratch = new();
+
+    internal void DetectRootWindowEntries()
+    {
+        _currentRootWindowsScratch.Clear();
+        _currentRootWindowsScratch.AddRange(Windows);
+
+        for (var i = 0; i < _currentRootWindowsScratch.Count; i++)
+        {
+            var window = _currentRootWindowsScratch[i];
+            if (!_previousRootWindows.Contains(window))
+            {
+                window.PlayEnterExitEntryForWindow();
+            }
+        }
+
+        (_previousRootWindows, _currentRootWindowsScratch) = (_currentRootWindowsScratch, _previousRootWindows);
+    }
     public IReadOnlyList<MGWindow> ActiveModalWindows => ModalStackEntries.Select(x => x.Modal).ToList();
     internal event EventHandler EndUpdate;
 
@@ -668,22 +740,72 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                     }
                 }
 
-                if (ActiveToolTip != null)
+                var Previous = ActiveToolTip;
+                if (Previous != null)
                 {
-                    ToolTipClosed?.Invoke(this, ActiveToolTip);
-                    ActiveToolTip.Host.ToolTipChanged -= Host_ToolTipChanged;
+                    ToolTipClosed?.Invoke(this, Previous);
+                    Previous.Host.ToolTipChanged -= Host_ToolTipChanged;
                 }
 
                 State.ActiveToolTip = value;
                 NotifyPropertyChanged(nameof(ActiveToolTip));
 
+                //  Y8: the outgoing tooltip goes into the exiting slot instead of vanishing at once, when it has an exit (explicit or
+                //  through the theme) -- kept drawn, at the position frozen right now, until its run ends. ToolTipClosed above already
+                //  fired at the moment ActiveToolTip changed, exactly as before Y8: the exit is a draw-only effect from here on.
+                if (Previous != null)
+                {
+                    HandleOutgoingToolTip(Previous);
+                }
+
                 if (ActiveToolTip != null)
                 {
+                    //  Y9 fix: the slot is released here ONLY when its occupant is the instance that is becoming active again --
+                    //  PlayEnterExitEntryForWindow below cancels that instance's own exit and replays the entry, exactly like
+                    //  AddNestedWindow reopening a window mid-exit (Y7). Any OTHER occupant (a tooltip replaced DIRECTLY by a
+                    //  different one) is left alone: it keeps playing its own exit at its frozen position, since HandleOutgoingToolTip
+                    //  already ended a previous stale occupant, if any, before parking THIS Outgoing a few lines above.
+                    if (State.ExitingToolTip == ActiveToolTip)
+                    {
+                        State.ExitingToolTip = null;
+                    }
+
+                    ActiveToolTip.PlayEnterExitEntryForWindow();
                     ToolTipOpened?.Invoke(this, ActiveToolTip);
                     ActiveToolTip.Host.ToolTipChanged += Host_ToolTipChanged;
                 }
             }
         }
+    }
+
+    /// <summary>Y8: moves <paramref name="Outgoing"/> (the tooltip that just stopped being <see cref="ActiveToolTip"/>) into the exiting slot
+    /// and plays its exit, unless it has none (<see cref="MGElement.TryPlayEnterExitExitForWindow"/> returns false: 3b, nothing kept drawn).
+    /// Ends whatever OTHER tooltip was already sitting in the slot at once first (only one occupant at a time).</summary>
+    private void HandleOutgoingToolTip(MGToolTip Outgoing)
+    {
+        if (State.ExitingToolTip != null && State.ExitingToolTip != Outgoing)
+        {
+            State.ExitingToolTip.CancelPlayingEnterExitExitForWindow();
+            State.ExitingToolTip = null;
+        }
+
+        //  Frozen now, exactly what DrawAtDefaultPosition would use this frame (MGToolTip.DrawAtDefaultPosition/DrawAtMousePosition):
+        //  the tooltip no longer follows the mouse once it is exiting.
+        var FrozenPosition = InputTracker.Mouse.CurrentPosition + Outgoing.DrawOffset;
+
+        if (!Outgoing.TryPlayEnterExitExitForWindow(() =>
+            {
+                if (ReferenceEquals(State.ExitingToolTip, Outgoing))
+                {
+                    State.ExitingToolTip = null;
+                }
+            }))
+        {
+            return;
+        }
+
+        State.ExitingToolTip = Outgoing;
+        State.ExitingToolTipDrawPosition = FrozenPosition;
     }
 
     private void Host_ToolTipChanged(object sender, EventArgs<MGToolTip> e)
@@ -759,12 +881,40 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             Previous.InvokeContextMenuClosed();
             ContextMenuClosed?.Invoke(this, Previous);
 
+            //  Y8: kept drawn in the exiting slot, at its own position, until its exit ends -- unless it has none (3b).
+            HandleOutgoingContextMenu(Previous);
+
             return true;
         }
         else
         {
             return true;
         }
+    }
+
+    /// <summary>Y8: moves <paramref name="Outgoing"/> (the root-level menu that just stopped being <see cref="ActiveContextMenu"/>) into the
+    /// exiting slot and plays its exit, unless it has none. Ends whatever OTHER menu was already sitting in the slot at once first (only one
+    /// occupant at a time) -- the menu-level counterpart of <see cref="HandleOutgoingToolTip"/>.</summary>
+    private void HandleOutgoingContextMenu(MGContextMenu Outgoing)
+    {
+        if (State.ExitingContextMenu != null && State.ExitingContextMenu != Outgoing)
+        {
+            State.ExitingContextMenu.CancelPlayingEnterExitExitForWindow();
+            State.ExitingContextMenu = null;
+        }
+
+        if (!Outgoing.TryPlayEnterExitExitForWindow(() =>
+            {
+                if (ReferenceEquals(State.ExitingContextMenu, Outgoing))
+                {
+                    State.ExitingContextMenu = null;
+                }
+            }))
+        {
+            return;
+        }
+
+        State.ExitingContextMenu = Outgoing;
     }
 
     /// <returns>True if the <paramref name="Menu"/> was already opened, or was successfully opened.<br/>
@@ -779,6 +929,16 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         if (Menu == null || !Menu.CanContextMenuOpen)
         {
             return false;
+        }
+
+        //  Y8: opening any menu ends a previous exit at once, even one left over from an earlier close (only one popup sits in the
+        //  exiting slot at a time; unlike a tooltip, a context menu never "returns" to Active by reopening the same instance -- reopening
+        //  always goes through the full open path below, whose PlayEnterExitEntryForWindow cancels this same exit again if it is the
+        //  very instance being reopened, so clearing the slot here is always correct).
+        if (State.ExitingContextMenu != null)
+        {
+            State.ExitingContextMenu.CancelPlayingEnterExitExitForWindow();
+            State.ExitingContextMenu = null;
         }
 
         var ValidBounds = ValidScreenBounds;
@@ -823,6 +983,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             _ = Menu.ApplySizeToContent(SizeToContent.WidthAndHeight, MinWidth, MinHeight, MaxWidth, MaxHeight, true);
 
             NotifyPropertyChanged(nameof(ActiveContextMenu));
+            Menu.PlayEnterExitEntryForWindow();
             ActiveContextMenu.InvokeContextMenuOpened();
             ContextMenuOpened?.Invoke(this, Menu);
 
@@ -1366,6 +1527,13 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             Animations.Update(Runtime.UpdateArgs.FrameElapsed);
         }
 
+        //  Root window entries (ADR-0011 decision 6, Y7): right after Animations.Update, before layout/focus/windows, so a root window's
+        //  entry starts on the very frame it appears in Desktop.Windows.
+        using (UIPerformanceProbe.BeginDesktopPhase("RootWindowEntries"))
+        {
+            DetectRootWindowEntries();
+        }
+
         using (UIPerformanceProbe.BeginDesktopPhase("ResponsiveMetrics"))
         {
             RecalculateResponsiveMetrics(true);
@@ -1585,6 +1753,11 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
                     ActiveToolTip?.DrawAtDefaultPosition(DA);
                     ActiveContextMenu?.Draw(DA);
                 }
+
+                //  Y8: a popup sitting in its exiting slot keeps being drawn (never updated: it takes no input, see HandleOutgoingToolTip
+                //  / HandleOutgoingContextMenu) until its run ends, on top of everything above.
+                State.ExitingContextMenu?.Draw(DA);
+                State.ExitingToolTip?.DrawAtFrozenPosition(DA, State.ExitingToolTipDrawPosition);
             }
         }
     }

@@ -927,6 +927,28 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             Interlocked.Increment(ref _treeTopologyGeneration);
             LocalResources?.SetParent(GetInheritedResources());
             InvalidateLayoutTree();
+            //  Y4: an element that just left or joined a parent has not been laid out under it yet, so it never starts a false layout
+            //  transition on its first pass there (reorder, detachment and re-attachment, a recycled virtualized container).
+            //  Fix round 1 (P1): a container-only element that is reparented (recycled or reordered) raises OnParentChanged on itself,
+            //  but its descendants never go through SetParent, so their own flag stayed up and their now-meaningless previous
+            //  LayoutBounds let them start a false run off the recycled/reordered container's stale position. Once any element on the
+            //  desktop has opted in, lower the flag on the whole subtree being reparented, not just on this element; while nobody has
+            //  opted in anywhere, no layout transition can ever read the flag, so the cheap single-field reset is kept.
+            if (SelfOrParentWindow?.Desktop?.HasLayoutTransitions == true)
+            {
+                ResetLayoutTransitionAttachStateRecursive();
+            }
+            else
+            {
+                _hasLaidOutSinceAttached = false;
+            }
+            if (_layoutTransition != null)
+            {
+                SelfOrParentWindow?.Desktop?.MarkHasLayoutTransitions();
+            }
+            //  Y6: an element that just left or joined a parent has not been drawn under it yet, so a Visibility write right after (a
+            //  recycled virtualized container, a reparented item) never starts a false exit off a stale "already drawn" flag.
+            _hasDrawnSinceAttached = false;
             NotifyPropertyChanged(nameof(Parent));
             OnParentChanged?.Invoke(this, new(Previous, Parent));
         }
@@ -2859,6 +2881,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     // Set to true when IsEnabled, IsHitTestVisible, Visibility, or RecentDrawWasClipped changes
     // so the next Update() call knows it must recompute cached input eligibility.
     private bool _inputStateDirty = true;
+    //  Y6 (ADR-0011 decision 6): true while this element's exit run plays. Never exposed as a write to the public IsHitTestVisible;
+    //  contributes false to the computed hit-test visibility of this element and its whole subtree (ComputeTopmostHoveredElement, Update).
+    //  Changed only through SetIsExitingEnterExit, which also raises _inputStateDirty.
+    private bool _isExiting;
+    private bool _hasDrawnSinceAttached;
     // Cached values from the last recomputation so we can detect unchanged frames.
     private bool _cachedComputedEnabled;
     private bool _cachedComputedHtVisible;
@@ -3107,29 +3134,103 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Visibility _visibility;
+    /// <summary>An element with <see cref="EnterExit"/> plays an entry when this is set to <see cref="Visibility.Visible"/> (from
+    /// <see cref="Visibility.Hidden"/>/<see cref="Visibility.Collapsed"/>, or during its own exit) and, once it has been drawn at least once
+    /// since it was attached, plays an exit when set away from <see cref="Visibility.Visible"/>: this property then keeps returning
+    /// <see cref="Visibility.Visible"/> until the run completes, and <see cref="PendingVisibility"/> exposes the requested value
+    /// (ADR-0011 decision 6, Y6). An element with <see cref="EnterExit"/> null keeps applying every value at once, exactly as before Y6.</summary>
     public Visibility Visibility
     {
         get => _visibility;
-        set
-        {
-            if (_visibility != value)
-            {
-                var Previous = Visibility;
-                _visibility = value;
-                _inputStateDirty = true;
-                if (Previous == Visibility.Collapsed || Visibility == Visibility.Collapsed)
-                {
-                    LayoutChanged(this, true);
-                }
+        set => SetVisibility(value);
+    }
 
-                NotifyPropertyChanged(nameof(Visibility));
-                NotifyPropertyChanged(nameof(IsVisibilityCollapsed));
+    /// <summary>Y6 (ADR-0011 decision 6): routes through the entry/exit logic when <see cref="EnterExit"/> is set (one null test otherwise, the
+    /// documented cost for an element that never opts in); <see cref="SetVisibilityCore"/> is the plain, unconditional write both paths use.</summary>
+    private void SetVisibility(Visibility value)
+    {
+        if (EnterExit == null)
+        {
+            SetVisibilityCore(value);
+            return;
+        }
+
+        var isExitingEnterExit = _animationSlot?.IsExitingEnterExit == true;
+
+        if (value == Visibility.Visible)
+        {
+            if (!isExitingEnterExit && _visibility == Visibility.Visible)
+            {
+                return;
             }
+
+            if (isExitingEnterExit)
+            {
+                //  Superseded: cancel the exit run without letting its own Completed/Cancelled handler apply its now-stale pending
+                //  value or restore base values (children cancel with KeepCurrent), so the entry that follows starts from the current
+                //  values with no jump. Shared with the window opening paths (Y7) through CancelActiveEnterExitExit.
+                CancelActiveEnterExitExit();
+            }
+
+            SetVisibilityCore(Visibility.Visible);
+            if (EnterExit.HasEnter)
+            {
+                PlayEnterExitEnter(EnterExit);
+            }
+
+            return;
+        }
+
+        //  value is Hidden or Collapsed.
+        if (isExitingEnterExit)
+        {
+            //  Already exiting: requesting another hidden value just updates what will be applied at the end of the run in progress.
+            if (_animationSlot.PendingExitVisibility != value)
+            {
+                _animationSlot.PendingExitVisibility = value;
+                NotifyPropertyChanged(nameof(PendingVisibility));
+            }
+
+            return;
+        }
+
+        if (_visibility == Visibility.Visible && _hasDrawnSinceAttached && EnterExit.HasExit)
+        {
+            PlayEnterExitExit(value);
+            return;
+        }
+
+        //  Not currently visible (nothing to exit from), or never drawn yet, or no exit configured: applies at once, like before Y6.
+        SetVisibilityCore(value);
+    }
+
+    /// <summary>The plain, unconditional write <see cref="MGElement.Visibility"/> used before Y6, and still what every path above ends up
+    /// calling: assigns <see cref="_visibility"/>, invalidates layout across a <see cref="UI.Visibility.Collapsed"/> transition, notifies.</summary>
+    private void SetVisibilityCore(Visibility value)
+    {
+        if (_visibility != value)
+        {
+            var Previous = _visibility;
+            _visibility = value;
+            _inputStateDirty = true;
+            if (Previous == Visibility.Collapsed || value == Visibility.Collapsed)
+            {
+                LayoutChanged(this, true);
+            }
+
+            NotifyPropertyChanged(nameof(Visibility));
+            NotifyPropertyChanged(nameof(IsVisibilityCollapsed));
         }
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public bool IsVisibilityCollapsed => Visibility == Visibility.Collapsed;
+
+    /// <summary>The <see cref="Visibility"/> requested while an exit plays (ADR-0011 decision 6, Y6): equal to <see cref="Visibility"/> itself
+    /// outside of an exit, since <see cref="Visibility"/> keeps returning <see cref="UI.Visibility.Visible"/> until the run completes.</summary>
+    public Visibility PendingVisibility => _animationSlot?.IsExitingEnterExit == true
+        ? (_animationSlot.PendingExitVisibility ?? Visibility)
+        : Visibility;
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private float _opacity;
@@ -3634,7 +3735,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
 
         var ComputedIsEnabled = IsParentEnabled && IsEnabled;
-        var ComputedIsHitTestVisible = isParentHitTestVisible && IsHitTestVisible;
+        //  Y6: an internal exiting state (never a write to the public IsHitTestVisible) contributes false here and to every value this
+        //  method passes down to components and visual children, removing the element and its whole subtree from hit testing while its
+        //  exit run plays, without ever writing the application-owned property (ADR-0011 decision 6).
+        var ComputedIsHitTestVisible = isParentHitTestVisible && IsHitTestVisible && !_isExiting;
 
         var BaseCanReceiveInput = (Visibility == Visibility.Visible || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden)) && ComputedIsEnabled && ComputedIsHitTestVisible
                                   && (!RecentDrawWasClipped || (Visibility == Visibility.Hidden && CanHandleInputsWhileHidden));
@@ -3688,7 +3792,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         using var performanceScope = UIPerformanceProbe.BeginElementUpdate(this);
         var ComputedIsEnabled = UA.IsEnabled && IsEnabled;
         var ComputedIsSelected = UA.IsSelected || IsSelected;
-        var ComputedIsHitTestVisible = UA.IsHitTestVisible && IsHitTestVisible;
+        //  Y6: see the matching comment in ComputeTopmostHoveredElement -- the exiting state removes the element and its subtree (through
+        //  UA, propagated to content children below) from mouse and keyboard eligibility without touching IsHitTestVisible.
+        var ComputedIsHitTestVisible = UA.IsHitTestVisible && IsHitTestVisible && !_isExiting;
 
         Origin = UA.Offset;
 
@@ -3954,6 +4060,472 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         }
     }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Animation.UILayoutTransition _layoutTransition;
+
+    /// <summary>Opt-in settings for a layout transition (ADR-0011 decision 5): null by default. This is a settings object, never carrying an
+    /// animated value itself -- reading or writing any animation target never opts this element in on its own; only a non-null value whose
+    /// <see cref="Animation.UILayoutTransition.Duration"/> is greater than zero does, checked by <see cref="UpdateLayout"/> at the moment it
+    /// would start a run.<para/>
+    /// Setting a non-null value raises this element's desktop's sticky <see cref="MGDesktop.HasLayoutTransitions"/> flag at once when the
+    /// element already has one; <see cref="SetParent"/> and <see cref="UpdateLayout"/> raise it too, for an element that already carries
+    /// non-null settings when it gets (or first lays out on) a desktop whose flag is still down.</summary>
+    public Animation.UILayoutTransition LayoutTransition
+    {
+        get => _layoutTransition;
+        set
+        {
+            if (_layoutTransition != value)
+            {
+                _layoutTransition = value;
+                if (value != null)
+                {
+                    SelfOrParentWindow?.Desktop?.MarkHasLayoutTransitions();
+                }
+
+                NotifyPropertyChanged(nameof(LayoutTransition));
+            }
+        }
+    }
+
+    #region Enter and Exit (Y6)
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Animation.UIEnterExitSettings _enterExit;
+
+    /// <summary>Opt-in settings for an entry and exit animation driven by <see cref="Visibility"/> (ADR-0011 decision 6, Y6): null by default,
+    /// a plain settings object with no side effect of its own -- only <see cref="Visibility"/>'s setter reads it, when it changes. See
+    /// <see cref="Animation.UIEnterExitSettings"/> for what it configures and <see cref="PendingVisibility"/> for the value requested while an
+    /// exit plays.</summary>
+    public Animation.UIEnterExitSettings EnterExit
+    {
+        get => _enterExit;
+        set
+        {
+            if (_enterExit != value)
+            {
+                _enterExit = value;
+                NotifyPropertyChanged(nameof(EnterExit));
+            }
+        }
+    }
+
+    /// <summary>Sets the internal exiting state (ADR-0011 decision 6): never a write to the public <see cref="IsHitTestVisible"/>, read by
+    /// <see cref="ComputeTopmostHoveredElement"/> and <see cref="Update"/>. Raises <see cref="_inputStateDirty"/> whether it is posed or
+    /// lifted.</summary>
+    private void SetIsExitingEnterExit(bool value)
+    {
+        if (_isExiting != value)
+        {
+            _isExiting = value;
+            _inputStateDirty = true;
+        }
+    }
+
+    /// <summary>Starts (or restarts) this element's exit run (ADR-0011 decision 6): called by <see cref="SetVisibility"/> once it has decided
+    /// an exit should actually play, with <paramref name="requested"/> the <see cref="UI.Visibility"/> to apply when it ends. Cancels a run
+    /// of the OPPOSITE direction left over from an interruption first, with <see cref="DetachEnterExitHandlers"/> so its own handler never
+    /// reacts to that cancellation.</summary>
+    private void PlayEnterExitExit(Visibility requested) => StartEnterExitExit(requested, null, EnterExit);
+
+    /// <summary>Starts (or restarts) this element's exit run with a completion callback instead of a <see cref="UI.Visibility"/> write
+    /// (ADR-0011 decision 6, Y7): the window lifecycle's own overload, used by <see cref="MGWindow.TryCloseWindow"/> and
+    /// <see cref="MGWindow.RemoveNestedWindow"/> so a window's removal -- not a property write -- is what the exit's end triggers. The
+    /// caller (<see cref="MGWindow"/>, through <see cref="TryPlayEnterExitExitForWindow"/>) has already checked <see cref="Animation.UIEnterExitSettings.HasExit"/> on
+    /// <paramref name="settings"/> (Y8: the resolved settings -- the element's own <see cref="EnterExit"/>, or the theme's popup defaults --
+    /// not necessarily <see cref="EnterExit"/> itself).</summary>
+    private void PlayEnterExitExit(Action onExitFinished, Animation.UIEnterExitSettings settings) => StartEnterExitExit(null, onExitFinished, settings);
+
+    /// <summary>The run machinery shared by both exit overloads above (ADR-0011 decision 6, generalized in Y7): exactly one of
+    /// <paramref name="requestedVisibility"/> (Y6, a plain element) or <paramref name="onExitFinishedForWindow"/> (Y7, a window) is set, and
+    /// <see cref="HandleEnterExitRunFinished"/> reads back whichever one <see cref="Animation.UIElementAnimationSlot.PendingExitCompletion"/>
+    /// holds once the run ends. <paramref name="settings"/> (Y8) is the resolved settings to build the run from: the element's own
+    /// <see cref="EnterExit"/> for the Y6 (plain element) path, or whichever <see cref="ResolveWindowEnterExit"/> returned for the window
+    /// path.</summary>
+    private void StartEnterExitExit(Visibility? requestedVisibility, Action onExitFinishedForWindow, Animation.UIEnterExitSettings settings)
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+
+        if (slot.ActiveEnterExitRun is { } activeRun)
+        {
+            DetachEnterExitHandlers(activeRun);
+            slot.ActiveEnterExitRun = null;
+            if (activeRun.IsActive)
+            {
+                activeRun.Cancel();
+            }
+        }
+
+        slot.IsExitingEnterExit = true;
+        slot.PendingExitVisibility = requestedVisibility;
+        slot.PendingExitCompletion = onExitFinishedForWindow;
+        SetIsExitingEnterExit(true);
+        NotifyPropertyChanged(nameof(PendingVisibility));
+
+        var isFreshCycle = !slot.HasCapturedEnterExitBase;
+        if (isFreshCycle)
+        {
+            CaptureEnterExitBase(slot);
+        }
+
+        var run = settings.ExitAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, settings, isEntry: false, isFreshCycle);
+        if (run == null)
+        {
+            //  Defensive: HasExit already guarantees an explicit animation or a real effect+duration, so this should not happen.
+            slot.IsExitingEnterExit = false;
+            slot.PendingExitVisibility = null;
+            slot.PendingExitCompletion = null;
+            SetIsExitingEnterExit(false);
+            if (requestedVisibility.HasValue)
+            {
+                SetVisibilityCore(requestedVisibility.Value);
+            }
+            else
+            {
+                onExitFinishedForWindow?.Invoke();
+            }
+            return;
+        }
+
+        slot.ActiveEnterExitRun = run;
+        run.Completed += HandleEnterExitRunFinished;
+        run.Cancelled += HandleEnterExitRunFinished;
+        Animations.Start(run);
+    }
+
+    /// <summary>Starts (or restarts) this element's entry run (ADR-0011 decision 6): called by <see cref="SetVisibility"/> once
+    /// <see cref="Visibility"/> is already <see cref="Visibility.Visible"/> and <see cref="Animation.UIEnterExitSettings.HasEnter"/> is true,
+    /// and by the window opening paths (Y7, through <see cref="PlayEnterExitEntryForWindow"/>). A leftover exit run, if any, was already
+    /// cancelled and detached by the caller (<see cref="SetVisibility"/> or <see cref="CancelActiveEnterExitExit"/>) before this runs.
+    /// <paramref name="settings"/> (Y8) is the resolved settings to build the run from.</summary>
+    private void PlayEnterExitEnter(Animation.UIEnterExitSettings settings)
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+
+        if (slot.ActiveEnterExitRun is { } activeRun)
+        {
+            DetachEnterExitHandlers(activeRun);
+            slot.ActiveEnterExitRun = null;
+            if (activeRun.IsActive)
+            {
+                activeRun.Cancel();
+            }
+        }
+
+        var isFreshCycle = !slot.HasCapturedEnterExitBase;
+        if (isFreshCycle)
+        {
+            CaptureEnterExitBase(slot);
+        }
+
+        var run = settings.EnterAnimation ?? Animation.UIEnterExitEffectFactory.Build(this, slot, settings, isEntry: true, isFreshCycle);
+        if (run == null)
+        {
+            return;
+        }
+
+        slot.ActiveEnterExitRun = run;
+        run.Completed += HandleEnterExitRunFinished;
+        run.Cancelled += HandleEnterExitRunFinished;
+        Animations.Start(run);
+    }
+
+    /// <summary>Cancels this element's active exit run, if any, without restoring base values or notifying the run's own pending completion
+    /// (ADR-0011 decision 6): the run is superseded, so whoever supersedes it (an entry, or a window reopened mid-exit) continues from the
+    /// current values with no jump. Extracted out of <see cref="SetVisibility"/>'s own interruption branch in Y7 so
+    /// <see cref="PlayEnterExitEntryForWindow"/> can reuse it. Returns false (nothing to do) when no exit is in progress.</summary>
+    private bool CancelActiveEnterExitExit()
+    {
+        var slot = _animationSlot;
+        if (slot == null || !slot.IsExitingEnterExit)
+        {
+            return false;
+        }
+
+        var exitRun = slot.ActiveEnterExitRun;
+        slot.ActiveEnterExitRun = null;
+        if (exitRun != null)
+        {
+            DetachEnterExitHandlers(exitRun);
+            if (exitRun.IsActive)
+            {
+                exitRun.Cancel();
+            }
+        }
+
+        slot.IsExitingEnterExit = false;
+        slot.PendingExitVisibility = null;
+        slot.PendingExitCompletion = null;
+        SetIsExitingEnterExit(false);
+        NotifyPropertyChanged(nameof(PendingVisibility));
+        return true;
+    }
+
+    /// <summary>Windows (Y8): resolves the settings a window (also a tooltip, context menu or dropdown, all <see cref="IsWindow"/>) plays an
+    /// entry or exit with: its own <see cref="EnterExit"/> when that has something for the requested direction (<see cref="Animation.UIEnterExitSettings.HasEnter"/>
+    /// / <see cref="Animation.UIEnterExitSettings.HasExit"/>), else -- only for a window, and only when <see cref="MGTheme.Animation"/>'s
+    /// <see cref="MGThemeAnimationSettings.Enabled"/> is true -- a settings object built from the theme's <c>Open</c>/<c>Close</c> popup
+    /// group at THIS moment (no caching, no <c>OnThemeChanged</c> hook: a run this cheap to resolve does not justify one, and a theme change
+    /// mid-run must not retroactively affect an already-resolved run). Never null when <see cref="EnterExit"/> itself is non-null; may be
+    /// null only for a non-window element with no <see cref="EnterExit"/> (defensive -- every real caller already knows better).</summary>
+    private Animation.UIEnterExitSettings ResolveWindowEnterExit(bool forEntry)
+    {
+        var explicitSettings = EnterExit;
+        if (explicitSettings != null && (forEntry ? explicitSettings.HasEnter : explicitSettings.HasExit))
+        {
+            return explicitSettings;
+        }
+
+        //  A docking floating window (MGWindow.SuppressWindowEnterExit) is excluded from the whole window enter/exit machinery
+        //  (Y7): its own explicit EnterExit, if any, is still honoured above, but it never gets a THEME default either.
+        if (!IsWindow || (this as MGWindow)?.SuppressWindowEnterExit == true)
+        {
+            return explicitSettings;
+        }
+
+        var themeAnimation = GetTheme()?.Animation;
+        if (themeAnimation is not { Enabled: true })
+        {
+            return explicitSettings;
+        }
+
+        return new Animation.UIEnterExitSettings
+        {
+            EnterEffect = themeAnimation.PopupEffect,
+            ExitEffect = themeAnimation.PopupEffect,
+            EnterDuration = themeAnimation.OpenDuration,
+            ExitDuration = themeAnimation.CloseDuration,
+            EnterEasing = Animation.Easing.UIEasing.TryGet(themeAnimation.OpenEasing, out var openEasing) ? openEasing : null,
+            ExitEasing = Animation.Easing.UIEasing.TryGet(themeAnimation.CloseEasing, out var closeEasing) ? closeEasing : null,
+        };
+    }
+
+    /// <summary>Windows (Y7): cancels a running exit, if any (superseded, no restore -- see <see cref="CancelActiveEnterExitExit"/>), then
+    /// plays the entry when the resolved settings (Y8: <see cref="ResolveWindowEnterExit"/>) have one. Used by every window opening path
+    /// (<see cref="MGWindow.AddNestedWindow"/>, a modal push, the per-frame root window detection, and -- Y8 -- a tooltip becoming
+    /// <see cref="MGDesktop.ActiveToolTip"/> or a context menu opening) and by <see cref="MGWindow.AddNestedWindow"/> reopening a window
+    /// whose exit is running -- both a fresh open and a reopen are the same call here, since cancelling a non-existent exit is a no-op.</summary>
+    internal void PlayEnterExitEntryForWindow()
+    {
+        CancelActiveEnterExitExit();
+        var settings = ResolveWindowEnterExit(forEntry: true);
+        if (settings?.HasEnter == true)
+        {
+            PlayEnterExitEnter(settings);
+        }
+    }
+
+    /// <summary>True while this element (a window, in practice -- see <see cref="MGWindow.IsClosing"/>) is playing an entry or exit run
+    /// started through the window overload, or a Y6 exit driven by <see cref="Visibility"/>: both share the same slot state.</summary>
+    internal bool IsPlayingEnterExitExit => _animationSlot?.IsExitingEnterExit == true;
+
+    /// <summary>Windows (Y8): true when this window (or tooltip, context menu, dropdown) would actually play an exit if
+    /// <see cref="TryPlayEnterExitExitForWindow"/> were called right now -- an explicit <see cref="EnterExit"/> with
+    /// <see cref="Animation.UIEnterExitSettings.HasExit"/>, or the theme's popup group when enabled. Used by <see cref="MGWindow.TryCloseWindow"/>
+    /// to decide, BEFORE its own side effects (focus leaving at once, nested windows removed at once), whether it is taking the deferred-exit
+    /// branch at all -- a plain pre-check, so it does not itself start anything.</summary>
+    internal bool HasEffectiveWindowExit => ResolveWindowEnterExit(forEntry: false)?.HasExit == true;
+
+    /// <summary>Windows (Y8): ends whichever exit is currently playing on this window at once -- no restore, no completion invoked -- for the
+    /// case where a popup slot (<see cref="MGDesktop.ActiveToolTip"/>'s exiting slot, the context menu one, a submenu's) is about to be
+    /// reused by a DIFFERENT instance: that other instance is not reopening this one, so unlike <see cref="PlayEnterExitEntryForWindow"/> no
+    /// entry follows. A thin wrapper over <see cref="CancelActiveEnterExitExit"/> so <see cref="MGDesktop"/> and <see cref="MGContextMenu"/>
+    /// (outside this class) can call it. A no-op when nothing is exiting.</summary>
+    internal void CancelPlayingEnterExitExitForWindow() => CancelActiveEnterExitExit();
+
+    /// <summary>Windows (Y7): starts this window's exit when the resolved settings (Y8: <see cref="ResolveWindowEnterExit"/>) have one,
+    /// invoking <paramref name="onExitFinished"/> when it ends (naturally or cancelled from the outside) instead of writing
+    /// <see cref="Visibility"/> -- the window-removal completion path that generalizes <see cref="HandleEnterExitRunFinished"/> beyond Y6's
+    /// Visibility write (<see cref="MGWindow.TryCloseWindow"/>, <see cref="MGWindow.RemoveNestedWindow"/>, and -- Y8 -- a tooltip leaving
+    /// <see cref="MGDesktop.ActiveToolTip"/> or a context menu closing). Returns false, and never calls <paramref name="onExitFinished"/>,
+    /// when no exit is configured (explicitly, or through the theme), so the caller removes/disappears the popup at once as it always did.</summary>
+    internal bool TryPlayEnterExitExitForWindow(Action onExitFinished)
+    {
+        var settings = ResolveWindowEnterExit(forEntry: false);
+        if (settings?.HasExit != true)
+        {
+            return false;
+        }
+
+        PlayEnterExitExit(onExitFinished, settings);
+        return true;
+    }
+
+    /// <summary>Windows (Y7-R1 fix): chains <paramref name="extra"/> onto whichever exit is already playing on this window (a
+    /// <see cref="Visibility"/>-driven Y6 exit as well as a window-removal one), instead of starting a new one, so
+    /// <see cref="MGWindow.RemoveNestedWindow"/> can still remove a window whose exit was started by a plain Visibility write: without this,
+    /// that exit's completion only applied the pending <see cref="Visibility"/> and never removed the window (P2 regression). A no-op call
+    /// (nothing exiting) never happens in practice since every caller has already checked <see cref="MGWindow.IsClosing"/>, but is harmless if
+    /// it did: <paramref name="extra"/> is simply never invoked.</summary>
+    internal void AppendPendingExitCompletion(Action extra)
+    {
+        if (extra == null)
+        {
+            return;
+        }
+
+        var slot = _animationSlot;
+        if (slot == null || !slot.IsExitingEnterExit)
+        {
+            return;
+        }
+
+        slot.PendingExitCompletion += extra;
+    }
+
+    private void DetachEnterExitHandlers(Animation.UIAnimation run)
+    {
+        run.Completed -= HandleEnterExitRunFinished;
+        run.Cancelled -= HandleEnterExitRunFinished;
+    }
+
+    /// <summary>Captures <see cref="Animation.UIElementAnimationSlot.BaseOpacity"/>/<c>BaseScale</c>/<c>BaseTranslation</c>/<c>BaseOrigin</c>
+    /// from the element's current values: called once per entry/exit cycle, only when it starts from rest (ADR-0011 decision 6). For a window
+    /// (Y7), the scale and translation come from its own internal <see cref="EnterExitWindowScale"/>/<see cref="EnterExitWindowTranslation"/>
+    /// draw transform instead of <see cref="RenderTransform"/> (a window does not honour it, ADR-0006), and <see cref="Animation.UIElementAnimationSlot.BaseOrigin"/>
+    /// is left at its default since a window's pivot is always its own centre, never held/restored. Allocates <see cref="RenderTransform"/> on
+    /// first access for a non-window element, like any other read of it.</summary>
+    private void CaptureEnterExitBase(Animation.UIElementAnimationSlot slot)
+    {
+        slot.BaseOpacity = Opacity;
+        if (IsWindow)
+        {
+            slot.BaseScale = EnterExitWindowScale;
+            slot.BaseTranslation = EnterExitWindowTranslation;
+        }
+        else
+        {
+            slot.BaseScale = RenderTransform.Scale;
+            slot.BaseTranslation = RenderTransform.Translation;
+            slot.BaseOrigin = RenderTransform.Origin;
+        }
+        slot.HasCapturedEnterExitBase = true;
+    }
+
+    /// <summary>Ends the element's current entry/exit run, called for both <see cref="Animation.UIAnimation.Completed"/> and
+    /// <see cref="Animation.UIAnimation.Cancelled"/>: releases the held <see cref="Animation.UIRenderTransform.Origin"/> (if any), forces the
+    /// captured base values back on a cancellation (a natural completion already leaves the effect's own end values in place, which is what
+    /// <see cref="Animation.UIAnimationFillBehavior.HoldEnd"/> is for), then -- if this was an exit -- clears the exiting state and invokes
+    /// whichever completion <see cref="Animation.UIElementAnimationSlot.PendingExitCompletion"/> holds: the window removal callback (Y7) when
+    /// set, or the pending <see cref="Visibility"/> write (Y6) otherwise. A stale event from a run this element has already detached
+    /// (superseded, see <see cref="SetVisibility"/>/<see cref="PlayEnterExitEnter"/>/<see cref="StartEnterExitExit"/>) is ignored.</summary>
+    private void HandleEnterExitRunFinished(object sender, EventArgs e)
+    {
+        var slot = _animationSlot;
+        if (slot == null || !ReferenceEquals(slot.ActiveEnterExitRun, sender))
+        {
+            return;
+        }
+
+        var run = (Animation.UIAnimation)sender;
+        DetachEnterExitHandlers(run);
+        slot.ActiveEnterExitRun = null;
+
+        var wasExiting = slot.IsExitingEnterExit;
+        var wasCancelled = run.State == Animation.UIAnimationState.Cancelled;
+
+        RestoreEnterExitOriginIfHeld(slot);
+        if (!wasCancelled && !wasExiting)
+        {
+            //  A natural entry completion leaves the element visible at whatever its own run decided (an explicit EnterAnimation
+            //  need not target the captured base): truly at rest, so the next cycle captures a fresh base (picking up any change
+            //  the application made while it was visible), with nothing forced.
+            slot.HasCapturedEnterExitBase = false;
+        }
+        else
+        {
+            //  Cancelled (entry or exit), or a natural exit completion: force the true base back on top of whatever the run's own
+            //  end/KeepCurrent values left in place (ADR-0011 decision 6: an exit that completes naturally "restores the base
+            //  values" just like one cancelled from the outside, so the element never comes back a ghost even when a later show
+            //  uses a different effect that does not touch the same paths), and the next cycle starts fresh.
+            ForceRestoreEnterExitBase(slot);
+            slot.HasCapturedEnterExitBase = false;
+        }
+
+        if (wasExiting)
+        {
+            slot.IsExitingEnterExit = false;
+            SetIsExitingEnterExit(false);
+
+            //  Both can be set together since the Y7-R1 fix (a window-removal completion chained by AppendPendingExitCompletion onto
+            //  a Y6 Visibility-driven exit that was already running, see RemoveNestedWindow): apply the pending Visibility write
+            //  first, exactly as a plain Y6 exit always did, then invoke the completion so the removal still happens.
+            if (slot.PendingExitVisibility.HasValue)
+            {
+                var pending = slot.PendingExitVisibility.Value;
+                slot.PendingExitVisibility = null;
+                SetVisibilityCore(pending);
+            }
+
+            var completion = slot.PendingExitCompletion;
+            slot.PendingExitCompletion = null;
+            completion?.Invoke();
+
+            NotifyPropertyChanged(nameof(PendingVisibility));
+        }
+    }
+
+    private void RestoreEnterExitOriginIfHeld(Animation.UIElementAnimationSlot slot)
+    {
+        if (slot.EnterExitOriginHeld)
+        {
+            RenderTransform.Origin = slot.BaseOrigin;
+            slot.EnterExitOriginHeld = false;
+        }
+    }
+
+    /// <summary>Writes the captured base opacity, scale and translation back (ADR-0011 decision 6: "a sortie annulee de l'exterieur ...
+    /// restaure les valeurs de base"), the authoritative restore this element applies on top of whatever each child run's own
+    /// <see cref="Animation.UIAnimationCancelBehavior.KeepCurrent"/> left in place. A window (Y7) restores its own internal draw transform
+    /// instead of <see cref="RenderTransform"/>.</summary>
+    private void ForceRestoreEnterExitBase(Animation.UIElementAnimationSlot slot)
+    {
+        if (!slot.HasCapturedEnterExitBase)
+        {
+            return;
+        }
+
+        Opacity = slot.BaseOpacity;
+        if (IsWindow)
+        {
+            SetEnterExitWindowScale(slot.BaseScale);
+            SetEnterExitWindowTranslation(slot.BaseTranslation);
+        }
+        else
+        {
+            RenderTransform.Scale = slot.BaseScale;
+            RenderTransform.Translation = slot.BaseTranslation;
+        }
+    }
+
+    /// <summary>The window's current internal enter/exit scale (Y7): <see cref="Vector2.One"/> (identity) when the window has never run
+    /// one. Never allocates the animation slot.</summary>
+    internal Vector2 EnterExitWindowScale => _animationSlot?.WindowTransformOrNull?.Scale ?? Vector2.One;
+
+    /// <summary>The window's current internal enter/exit translation (Y7): <see cref="Vector2.Zero"/> (identity) when the window has never
+    /// run one. Never allocates the animation slot.</summary>
+    internal Vector2 EnterExitWindowTranslation => _animationSlot?.WindowTransformOrNull?.Translation ?? Vector2.Zero;
+
+    /// <summary>The window's internal enter/exit draw transform (Y7), or null while it has never run one -- read by <see cref="MGWindow.Draw"/>
+    /// to decide whether to push a transform at all. Never allocates the animation slot.</summary>
+    internal Animation.UIWindowTransform EnterExitWindowTransformOrNull => _animationSlot?.WindowTransformOrNull;
+
+    /// <summary>Writes <see cref="EnterExitWindowScale"/> (Y7): the target of the window's internal enter/exit scale run
+    /// (<see cref="Animation.UIWindowEnterExitScaleTarget"/>).</summary>
+    internal void SetEnterExitWindowScale(Vector2 value)
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        slot.EnsureWindowTransform().Scale = value;
+    }
+
+    /// <summary>Writes <see cref="EnterExitWindowTranslation"/> (Y7): the target of the window's internal enter/exit translation run
+    /// (<see cref="Animation.UIWindowEnterExitTranslationTarget"/>).</summary>
+    internal void SetEnterExitWindowTranslation(Vector2 value)
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        slot.EnsureWindowTransform().Translation = value;
+    }
+    #endregion Enter and Exit
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Animation.UIElementAnimationSlot _animationSlot;
@@ -4254,6 +4826,60 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         NotifyPropertyChanged(nameof(RenderTransform));
     }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _hasActiveLayoutOffset;
+
+    /// <summary>True while this element's layout transform (ADR-0011 decision 5: <see cref="Animation.UILayoutTransform.Offset"/> and, since
+    /// Y5, <see cref="Animation.UILayoutTransform.Scale"/>) is not the identity. Never true for an <see cref="MGWindow"/>: a window never
+    /// starts its own run (see <see cref="UpdateLayout"/>), so <see cref="SetLayoutOffset"/>/<see cref="SetLayoutScale"/> are never called on
+    /// one.</summary>
+    internal bool HasActiveLayoutOffset => _hasActiveLayoutOffset;
+
+    /// <summary>The current layout-transition offset (ADR-0011 decision 5; <see cref="Animation.UILayoutTransform.Offset"/>), zero when the
+    /// element never opted in or its run is not active. Read by <see cref="Animation.UILayoutTransitionOffsetTarget.GetValue"/> and by
+    /// <see cref="TryGetRenderTransformMatrix"/>; never allocates the animation slot.</summary>
+    internal Vector2 LayoutOffset => _animationSlot?.LayoutTransformOrNull?.Offset ?? Vector2.Zero;
+
+    /// <summary>The current layout-transition scale (Y5; <see cref="Animation.UILayoutTransform.Scale"/>), <see cref="Vector2.One"/> when the
+    /// element never opted into <see cref="Animation.UILayoutTransition.AnimateSize"/> or its size run is not active. Read by
+    /// <see cref="Animation.UILayoutTransitionScaleTarget.GetValue"/> and by <see cref="TryGetRenderTransformMatrix"/>; never allocates the
+    /// animation slot.</summary>
+    internal Vector2 LayoutScale => _animationSlot?.LayoutTransformOrNull?.Scale ?? Vector2.One;
+
+    /// <summary>Writes the layout-transition offset (ADR-0011 decision 5) through the counting setter shared by the internal offset run's
+    /// unregistered target. See <see cref="RefreshActiveLayoutTransformState"/> for the shared identity/counter bookkeeping.</summary>
+    internal void SetLayoutOffset(Vector2 value)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        Slot.EnsureLayoutTransform().Offset = value;
+        RefreshActiveLayoutTransformState();
+    }
+
+    /// <summary>Writes the layout-transition scale (Y5) through the counting setter shared by the internal size run's unregistered target.
+    /// See <see cref="RefreshActiveLayoutTransformState"/> for the shared identity/counter bookkeeping.</summary>
+    internal void SetLayoutScale(Vector2 value)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        Slot.EnsureLayoutTransform().Scale = value;
+        RefreshActiveLayoutTransformState();
+    }
+
+    /// <summary>Recomputes <see cref="HasActiveLayoutOffset"/> from the combined identity of <see cref="Animation.UILayoutTransform.Offset"/>
+    /// and <see cref="Animation.UILayoutTransform.Scale"/> (Y5) after either was written, adjusting
+    /// <see cref="MGDesktop.ActiveRenderTransformCount"/> exactly like <see cref="RenderTransform"/> and <see cref="RenderScale"/> when the
+    /// combined state crosses identity -- one contribution per element for both fields together, never two -- and invalidates hover.</summary>
+    private void RefreshActiveLayoutTransformState()
+    {
+        var IsActive = !(_animationSlot?.LayoutTransformOrNull?.IsIdentity ?? true);
+        if (IsActive != _hasActiveLayoutOffset)
+        {
+            _hasActiveLayoutOffset = IsActive;
+            SelfOrParentWindow?.Desktop?.AdjustActiveRenderTransformCount(IsActive ? 1 : -1);
+        }
+
+        InvalidateHoverForRenderTransformChange();
+    }
+
     /// <summary>The state-driven scale of <see cref="RenderScale"/> for the current <see cref="VisualState"/>, ignoring the animated override
     /// (the underlying value a <c>RenderScale</c> transition heads to). False when there is none.</summary>
     internal bool TryGetStateScaleWithoutOverride(out float Scale)
@@ -4307,13 +4933,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Builds the render-only matrix of this element for its bounds in unscaled screen space (the space of <see cref="ElementDrawArgs.Offset"/>
-    /// and of the input hit-test): the state-driven scale around the centre, then <see cref="RenderTransform"/> around its origin.
+    /// and of the input hit-test): the state-driven scale around the centre, then <see cref="RenderTransform"/> around its origin, then the
+    /// layout transition (ADR-0011 decision 5: scale around the top-left corner of <paramref name="UnscaledBounds"/>, since Y5, then the
+    /// offset) -- appended last, so it moves the already-transformed element as a whole and composes with an application animation on
+    /// <see cref="RenderTransform"/> instead of fighting it.
     /// Returns false, and the identity, when nothing needs to be pushed.</summary>
     internal bool TryGetRenderTransformMatrix(Rectangle UnscaledBounds, out Matrix transform)
     {
         var HasStateScale = TryGetEffectiveStateScale(out var StateScale) && Math.Abs(StateScale - 1.0f) > Animation.UIRenderTransform.IdentityEpsilon;
         var HasTransform = HasActiveRenderTransform;
-        if (!HasStateScale && !HasTransform)
+        var HasLayoutTransform = _hasActiveLayoutOffset;
+        if (!HasStateScale && !HasTransform && !HasLayoutTransform)
         {
             transform = Matrix.Identity;
             return false;
@@ -4324,6 +4954,24 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             var Local = _renderTransform.ToMatrix(UnscaledBounds);
             transform = HasStateScale ? transform * Local : Local;
+        }
+
+        if (HasLayoutTransform)
+        {
+            var Offset = LayoutOffset;
+            var Scale = LayoutScale;
+            var HasLayoutScale = Math.Abs(Scale.X - 1f) > Animation.UIRenderTransform.IdentityEpsilon || Math.Abs(Scale.Y - 1f) > Animation.UIRenderTransform.IdentityEpsilon;
+            if (HasLayoutScale)
+            {
+                //  Scale around the top-left corner of the NEW bounds, then translate: T(-newTopLeft) * S(scale) * T(newTopLeft + offset).
+                float PivotX = UnscaledBounds.Left;
+                float PivotY = UnscaledBounds.Top;
+                transform *= Matrix.CreateTranslation(-PivotX, -PivotY, 0) * Matrix.CreateScale(Scale.X, Scale.Y, 1f) * Matrix.CreateTranslation(PivotX + Offset.X, PivotY + Offset.Y, 0);
+            }
+            else
+            {
+                transform *= Matrix.CreateTranslation(Offset.X, Offset.Y, 0);
+            }
         }
 
         return true;
@@ -4363,10 +5011,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         TryApplyInverseRenderTransform(ref UnscaledPosition);
     }
 
-    /// <summary>Applies the inverse of this element's own render transform, if any, to a position in unscaled screen space.</summary>
+    /// <summary>Applies the inverse of this element's own render transform, if any (including the layout-transition offset, ADR-0011
+    /// decision 5), to a position in unscaled screen space.</summary>
     private void TryApplyInverseRenderTransform(ref Vector2 UnscaledPosition)
     {
-        if (!HasActiveRenderTransform && !_renderScale.HasValue && _animationSlot?.StateScaleOverride == null)
+        if (!HasActiveRenderTransform && !_renderScale.HasValue && _animationSlot?.StateScaleOverride == null && !_hasActiveLayoutOffset)
         {
             return;
         }
@@ -4466,6 +5115,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             RecentDrawWasClipped = true;
             return;
         }
+
+        //  Y6: past this point the element is actually drawn -- the one-shot flag an exit checks before it is allowed to start
+        //  (ADR-0011 decision 6: "an exit only starts for an element that has been drawn since it was attached").
+        _hasDrawnSinceAttached = true;
 
         // Four-corner bounds (ADR-0006): the current transform may carry an ancestor rotation, under which the two-corner helper returns a negative size.
         var TargetBounds = LayoutBounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
@@ -4776,14 +5429,65 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     #region Arrange
     protected internal bool IsUpdatingLayout { get; private set; }
 
+    /// <summary>True once this element has completed at least one non-empty layout pass since it last (re-)joined a parent (ADR-0011
+    /// decision 5): lowered in <see cref="SetParent"/> whenever the parent actually changes, raised right after the real, non-empty
+    /// assignment of <see cref="LayoutBounds"/> in <see cref="UpdateLayout"/>. A detached element keeps its old <see cref="LayoutBounds"/>,
+    /// so it is this flag, not the animations clearing on detachment, that stops a first layout under a new parent from playing a false
+    /// layout transition. Maintained unconditionally (a plain field write, never allocating) whether or not any element of the desktop has
+    /// opted into a layout transition.</summary>
+    private bool _hasLaidOutSinceAttached;
+
+    /// <summary>Lowers <see cref="_hasLaidOutSinceAttached"/> on this element and its entire descendant subtree (visual-tree children and
+    /// components), mirroring <see cref="InvalidateLayoutTree"/>. Called from <see cref="SetParent"/> instead of a single-field reset once
+    /// the desktop has any layout transition in use, so that reparenting a container-only element (recycling, reordering) does not leave a
+    /// stale flag on descendants that were never themselves reparented (fix round 1, P1).</summary>
+    private void ResetLayoutTransitionAttachStateRecursive()
+    {
+        _hasLaidOutSinceAttached = false;
+        var vtcAll = GetVisualTreeChildren(true, true);
+        for (var i = 0; i < vtcAll.Count; i++)
+        {
+            vtcAll[i].ResetLayoutTransitionAttachStateRecursive();
+        }
+
+        foreach (var Component in Components)
+        {
+            Component.BaseElement.ResetLayoutTransitionAttachStateRecursive();
+        }
+    }
+
     internal protected void UpdateLayout(Rectangle Bounds)
     {
         using var performanceScope = UIPerformanceProbe.BeginElementLayout(this);
+
+        //  ADR-0011 decision 5: while nobody on this desktop has opted into a layout transition, this is the only added cost of this method.
+        var Desktop = SelfOrParentWindow?.Desktop;
+        if (Desktop != null && _layoutTransition != null && !Desktop.HasLayoutTransitions)
+        {
+            Desktop.MarkHasLayoutTransitions();
+        }
+
+        var HasLayoutTransitions = Desktop?.HasLayoutTransitions ?? false;
+        var PushedLayoutTransitionEntry = false;
+
         try
         {
             IsUpdatingLayout = true;
 
             var PreviousLayoutBounds = LayoutBounds;
+            //  Fix round 1 (P2): captured before AllocatedBounds is overwritten below, so a resize can be detected against the previous
+            //  ALLOCATED size. LayoutBounds has the window's Margin removed, while Bounds (the new allocation) does not, so comparing
+            //  PreviousLayoutBounds.Size to Bounds.Size reported every pass of a margined window as a resize (the two sizes always
+            //  differ by the margin) and silently suppressed every layout transition in that window.
+            var PreviousAllocatedBounds = AllocatedBounds;
+
+            if (HasLayoutTransitions)
+            {
+                //  A window's entry starts fresh (no inherited displacement); any other element inherits its parent's current entry.
+                var WindowResized = IsWindow && PreviousAllocatedBounds != Rectangle.Empty && PreviousAllocatedBounds.Size != Bounds.Size;
+                Desktop.PushLayoutTransitionEntry(IsWindow, WindowResized);
+                PushedLayoutTransitionEntry = true;
+            }
 
             if (Bounds.Width <= 0 || Bounds.Height <= 0)
             {
@@ -4846,6 +5550,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     }
                     else
                     {
+                        //  ADR-0011 decision 5: right after the real, non-empty assignment of LayoutBounds above, before components and
+                        //  children lay out -- so that a parent's decision is visible to its descendants through the ambient entry before
+                        //  they push their own.
+                        var WasLaidOutSinceAttached = _hasLaidOutSinceAttached;
+                        _hasLaidOutSinceAttached = true;
+                        if (HasLayoutTransitions)
+                        {
+                            HandleLayoutTransitionAfterBoundsAssigned(PreviousLayoutBounds, Desktop, WasLaidOutSinceAttached);
+                        }
+
                         var RemainingComponentBounds = LayoutBounds;
                         foreach (var Component in Components)
                         {
@@ -4916,7 +5630,88 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             OnLayoutUpdated?.Invoke(this, EventArgs.Empty);
             OnLayoutBoundsChanged?.Invoke(this, new(PreviousLayoutBounds, LayoutBounds));
         }
-        finally { IsUpdatingLayout = false; }
+        finally
+        {
+            if (PushedLayoutTransitionEntry)
+            {
+                Desktop.PopLayoutTransitionEntry();
+            }
+
+            IsUpdatingLayout = false;
+        }
+    }
+
+    /// <summary>Decides whether this element starts (or restarts) its layout-transition run, right after the real, non-empty assignment of
+    /// its own <see cref="LayoutBounds"/> (ADR-0011 decision 5). Never called for an <see cref="MGWindow"/>: a window's ambient entry
+    /// already carries the right values as pushed (zero displacement, its own <c>WindowResized</c>), since a window never starts a run of
+    /// its own (a window move goes through <c>TranslateAllBounds</c>, not through here).<para/>
+    /// Own delta is this element's raw movement; effective delta subtracts the displacement already applied to its subtree by an ancestor's
+    /// own run (the ambient entry) -- when that leaves nothing, the element is only being carried along and starts no run of its own. Either
+    /// way, the entry is updated in place with the own delta, so descendants see the total displacement at instant zero, not just the part
+    /// this element still has to animate itself.</summary>
+    private void HandleLayoutTransitionAfterBoundsAssigned(Rectangle PreviousLayoutBounds, MGDesktop Desktop, bool WasLaidOutSinceAttached)
+    {
+        if (IsWindow)
+        {
+            return;
+        }
+
+        var Entry = Desktop.PeekLayoutTransitionEntry();
+        var Settings = LayoutTransition;
+        var LocationChanged = LayoutBounds.Location != PreviousLayoutBounds.Location;
+        //  Y5: a size change alone also starts a run when the element opted into AnimateSize, under the same guard conditions as a move.
+        var SizeChanged = Settings?.AnimateSize == true && (LayoutBounds.Width != PreviousLayoutBounds.Width || LayoutBounds.Height != PreviousLayoutBounds.Height);
+        var StartsTransition =
+            Settings != null && Settings.Duration > TimeSpan.Zero &&
+            PreviousLayoutBounds != Rectangle.Empty && (LocationChanged || SizeChanged) &&
+            WasLaidOutSinceAttached && !Entry.WindowResized;
+
+        if (StartsTransition)
+        {
+            Vector2 OwnDelta = new(LayoutBounds.Left - PreviousLayoutBounds.Left, LayoutBounds.Top - PreviousLayoutBounds.Top);
+            var EffectiveDelta = OwnDelta - Entry.Displacement;
+            if (EffectiveDelta != Vector2.Zero)
+            {
+                StartLayoutTransitionOffsetRun(Settings, EffectiveDelta);
+            }
+
+            if (SizeChanged)
+            {
+                StartLayoutTransitionScaleRun(Settings, PreviousLayoutBounds, LayoutBounds);
+            }
+
+            Desktop.SetLayoutTransitionEntryDisplacement(OwnDelta);
+        }
+    }
+
+    /// <summary>Starts or restarts this element's reused layout-transition offset run (ADR-0011 decision 5) so it glides from the current
+    /// visual offset minus <paramref name="EffectiveDelta"/> back to <see cref="Vector2.Zero"/>: a second change in the same tick, or while
+    /// the run is already active, restarts the same instance from the still-current visual offset, so the drawn translation never jumps.</summary>
+    private void StartLayoutTransitionOffsetRun(Animation.UILayoutTransition Settings, Vector2 EffectiveDelta)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        var Run = Slot.EnsureLayoutTransitionRun();
+        Run.From = LayoutOffset - EffectiveDelta;
+        Run.To = Vector2.Zero;
+        Run.Duration = Settings.Duration;
+        Run.Easing = Settings.Easing;
+        Animations.Start(Run);
+    }
+
+    /// <summary>Starts or restarts this element's reused layout-transition scale run (Y5) so it glides from the ratio of the previous size to
+    /// the new one -- combined with the current visual scale, exactly like the offset restarts from the current visual position -- back to
+    /// <see cref="Vector2.One"/>: a second size change in the same tick, or while the run is already active, restarts the same instance from
+    /// the still-current visual scale, so the drawn size never jumps.</summary>
+    private void StartLayoutTransitionScaleRun(Animation.UILayoutTransition Settings, Rectangle PreviousLayoutBounds, Rectangle NewLayoutBounds)
+    {
+        var Slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        var Run = Slot.EnsureLayoutTransitionScaleRun();
+        Vector2 SizeRatio = new((float)PreviousLayoutBounds.Width / NewLayoutBounds.Width, (float)PreviousLayoutBounds.Height / NewLayoutBounds.Height);
+        Run.From = LayoutScale * SizeRatio;
+        Run.To = Vector2.One;
+        Run.Duration = Settings.Duration;
+        Run.Easing = Settings.Easing;
+        Animations.Start(Run);
     }
 
     public event EventHandler<EventArgs> OnLayoutUpdated;

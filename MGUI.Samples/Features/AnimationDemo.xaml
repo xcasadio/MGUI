@@ -18,6 +18,12 @@
             <Setter Property="Padding" Value="4" />
             <Setter Property="Background" Value="White * 0.1" />
         </Style>
+        <Style Name="LayoutRow" TargetType="Border">
+            <Setter Property="LayoutTransitionDuration" Value="0.3" />
+            <Setter Property="LayoutTransitionEasing" Value="CubicOut" />
+            <Setter Property="Background" Value="rgb(48,48,48)" />
+            <Setter Property="Padding" Value="4,3" />
+        </Style>
     </Window.Styles>
 
     <ScrollViewer Name="RootScrollViewer" VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
@@ -392,6 +398,187 @@
                     <Border Name="DiagnosticsTarget" Width="24" Height="24" Background="#3D6C9E" />
                 </StackPanel>
                 <TextBlock Name="DiagnosticsAllocationText" Text="Allocations per tick: not measured" />
+            </StackPanel>
+            <Separator/>
+
+            <!-- 15. Awaitable animations -->
+            <TextBlock StyleNames="Header1" Text="15. Awaitable animations" />
+            <TextBlock>
+                [c=Turquoise][i]PlayAsync[/i][/c] returns a [c=Turquoise][i]Task&lt;bool&gt;[/i][/c]: [c=Turquoise][i]true[/i][/c] once the run
+                completes, [c=Turquoise][i]false[/i][/c] if it is cancelled, never an exception. The three steps below are chained with
+                [c=Turquoise][i]await[/i][/c] in an [c=Turquoise][i]async[/i][/c] handler; "Cancel" cancels the same
+                [c=Turquoise][i]CancellationToken[/i][/c] passed to all three [c=Turquoise][i]PlayAsync[/i][/c] calls.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="AwaitPlayButton" Content="Play three steps" />
+                    <Button Name="AwaitCancelButton" Content="Cancel" />
+                </StackPanel>
+                <Border Name="AwaitTarget" Width="90" Height="50" Background="#16A085" CornerRadius="8" HorizontalAlignment="Left">
+                    <Border.RenderTransform>
+                        <RenderTransform Origin="0.5,0.5" />
+                    </Border.RenderTransform>
+                </Border>
+                <TextBlock Name="AwaitResultText" Text="Idle" />
+            </StackPanel>
+            <Separator/>
+
+            <!-- 16. Smooth scrolling -->
+            <TextBlock StyleNames="Header1" Text="16. Smooth scrolling" />
+            <TextBlock>
+                [c=Turquoise][i]ScrollTo[/i][/c] animates [c=Turquoise][i]VerticalOffset[/i][/c]/[c=Turquoise][i]HorizontalOffset[/i][/c] to a
+                clamped destination. [c=Turquoise][i]ScrollAnimationDuration[/i][/c]/[c=Turquoise][i]ScrollAnimationEasing[/i][/c] (set below
+                on the viewer itself) make the mouse wheel and keyboard navigation smooth too, following the destination rather than the
+                momentary animated position. An external write -- dragging the scrollbar, for instance -- takes over immediately and keeps
+                the value it wrote.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="ScrollDemoTopButton" Content="Top" />
+                    <Button Name="ScrollDemoBottomButton" Content="Bottom" />
+                </StackPanel>
+                <ScrollViewer Name="ScrollDemoViewer" Height="120" VerticalScrollBarVisibility="Auto"
+                              ScrollAnimationDuration="0.25" ScrollAnimationEasing="CubicOut" Background="rgb(48,48,48)">
+                    <StackPanel Orientation="Vertical" Spacing="0">
+                        <TextBlock Text="Row 1" Padding="4,3" />
+                        <TextBlock Text="Row 2" Padding="4,3" />
+                        <TextBlock Text="Row 3" Padding="4,3" />
+                        <TextBlock Text="Row 4" Padding="4,3" />
+                        <TextBlock Text="Row 5" Padding="4,3" />
+                        <TextBlock Text="Row 6" Padding="4,3" />
+                        <TextBlock Text="Row 7" Padding="4,3" />
+                        <TextBlock Text="Row 8" Padding="4,3" />
+                        <TextBlock Text="Row 9" Padding="4,3" />
+                        <TextBlock Text="Row 10" Padding="4,3" />
+                        <TextBlock Text="Row 11" Padding="4,3" />
+                        <TextBlock Text="Row 12" Padding="4,3" />
+                        <TextBlock Text="Row 13" Padding="4,3" />
+                        <TextBlock Text="Row 14" Padding="4,3" />
+                        <TextBlock Text="Row 15" Padding="4,3" />
+                        <TextBlock Text="Row 16" Padding="4,3" />
+                        <TextBlock Text="Row 17" Padding="4,3" />
+                        <TextBlock Text="Row 18" Padding="4,3" />
+                        <TextBlock Text="Row 19" Padding="4,3" />
+                        <TextBlock Text="Row 20" Padding="4,3" />
+                    </StackPanel>
+                </ScrollViewer>
+            </StackPanel>
+
+            <Separator/>
+
+            <!-- 17. Sprite-sheet frames -->
+            <TextBlock StyleNames="Header1" Text="17. Sprite-sheet frames" />
+            <TextBlock>
+                A [c=Turquoise][i]TextureFillBrush[/i][/c] can carry a [c=Turquoise][i]FrameGrid[/i][/c] (columns, rows, cell size, spacing,
+                margin): [c=Turquoise][i]FramesTarget[/i][/c]'s background is a 2x2 grid over the "AngryMeteor" sample sheet's four green arrow
+                icons (16px cells, 1px spacing, top margin 6, columns 0-1 of rows 0-1 - see [c=Turquoise][i]MGDesktop.LoadDefaultResources[/i][/c]).
+                [c=Turquoise][i]Background.Texture.Frame[/i][/c] animates the frame as a plain float, whose integer part selects the cell
+                (floored and clamped); "Play" loops it forever, and the toggle pauses/resumes that one run in place
+                ([c=Turquoise][i]UIAnimation.Pause[/i][/c]/[c=Turquoise][i]Resume[/i][/c]).
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="FramesPlayButton" Content="Play" />
+                    <ToggleButton Name="FramesPauseToggle" Content="Pause" />
+                </StackPanel>
+                <Border Name="FramesTarget" Width="48" Height="48" HorizontalAlignment="Left">
+                    <Border.Background>
+                        <TextureFillBrush SourceName="AngryMeteor" Stretch="Uniform"
+                                           FrameColumns="2" FrameRows="2" FrameCellSize="16,16" FrameSpacing="1,1" FrameMargin="0,6" />
+                    </Border.Background>
+                </Border>
+            </StackPanel>
+
+            <Separator/>
+
+            <!-- 18. Layout transitions -->
+            <TextBlock StyleNames="Header1" Text="18. Layout transitions" />
+            <TextBlock>
+                An element opts in per element or through a style ([c=Turquoise][i]LayoutTransitionDuration[/i][/c]/
+                [c=Turquoise][i]LayoutTransitionEasing[/i][/c]): when a real layout pass moves it, it glides from its previous visual position
+                to the new one. The neighbours that the layout moves slide to their new place; the element that is itself inserted, removed
+                or moved does not slide, since it has just been attached. [c=Turquoise][i]LayoutTransitionAnimatesSize[/i][/c] stretches the
+                content during a size change too.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="LayoutInsertButton" Content="Insert at top" />
+                    <Button Name="LayoutRemoveButton" Content="Remove first" />
+                    <Button Name="LayoutMoveButton" Content="Move last to top" />
+                </StackPanel>
+                <StackPanel Name="LayoutListPanel" Orientation="Vertical" Spacing="4">
+                    <Border StyleNames="LayoutRow"><TextBlock Text="Row 1" /></Border>
+                    <Border StyleNames="LayoutRow"><TextBlock Text="Row 2" /></Border>
+                    <Border StyleNames="LayoutRow"><TextBlock Text="Row 3" /></Border>
+                    <Border StyleNames="LayoutRow"><TextBlock Text="Row 4" /></Border>
+                </StackPanel>
+                <Button Name="LayoutResizeButton" Content="Resize" HorizontalAlignment="Left" />
+                <Border Name="LayoutSizeTarget" Width="100" Height="40" Background="#16A085" HorizontalAlignment="Left"
+                        LayoutTransitionDuration="0.3" LayoutTransitionEasing="CubicOut" LayoutTransitionAnimatesSize="True" />
+            </StackPanel>
+
+            <Separator/>
+
+            <!-- 19. Enter and exit -->
+            <TextBlock StyleNames="Header1" Text="19. Enter and exit" />
+            <TextBlock>
+                [c=Turquoise][i]EnterExit[/i][/c] settings, set in code, drive an entry animation when the element becomes visible and an exit
+                animation when it is hidden. The exit keeps the element visible, drawn and in the layout, but non-interactive, until it
+                completes: only then is the requested visibility actually applied. Nothing plays before the element's first draw, so the panel
+                below stays put at load.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="EnterExitFadeButton" Content="Fade" />
+                    <Button Name="EnterExitScaleButton" Content="Scale" />
+                    <Button Name="EnterExitSlideButton" Content="Slide" />
+                    <Button Name="EnterExitToggleButton" Content="Show/Hide" />
+                </StackPanel>
+                <Border Name="EnterExitTarget" Width="160" Height="60" Background="#8E44AD" HorizontalAlignment="Left">
+                    <TextBlock Text="Enter/Exit" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </StackPanel>
+
+            <!-- 20. Windows and dropdown -->
+            <TextBlock StyleNames="Header1" Text="20. Windows and dropdown" />
+            <TextBlock>
+                [c=Turquoise][i]EnterExit[/i][/c] on a window plays on [c=Turquoise]AddNestedWindow[/c] / a modal push / a root window's
+                addition to [c=Turquoise]Desktop.Windows[/c], and on [c=Turquoise]TryCloseWindow[/c] before the window is actually removed.
+                The dropdown below plays its own entry and exit the same way, on open and close. A window does not honour
+                [c=Turquoise]RenderTransform[/c], so a scale or slide effect on a window uses an internal draw transform instead. Clicking
+                "Open window" again WHILE the window is still fading/scaling out reopens it right there, mid-exit, instead of waiting for it
+                to finish closing first.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="WindowsOpenButton" Content="Open window" />
+                    <ComboBox Name="WindowsComboBox" Width="160" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 21. Popup theme animations -->
+            <TextBlock StyleNames="Header1" Text="21. Popup theme animations" />
+            <TextBlock>
+                The [c=Turquoise]Animation[/c] group of the theme gives windows, tooltips, menus and dropdowns their default entry and exit
+                when no explicit [c=Turquoise]EnterExit[/c] is set on the popup. An explicit [c=Turquoise]EnterExit[/c] on the element always
+                wins. [c=Turquoise]Enabled[/c] is false in every built-in theme, so nothing changes by default.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <ToggleButton Name="PopupThemeToggle" Content="Theme popup animations" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Border Name="PopupTooltipTarget" Width="140" Height="36" Background="White * 0.15" ToolTip="A tooltip using the theme's default entry and exit.">
+                        <TextBlock Text="Hover me" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Button Name="PopupMenuButton" Content="Right-click me">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <ContextMenuButton Content="Action 1" />
+                                <ContextMenuButton Content="Action 2" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <ComboBox Name="PopupComboBox" Width="160" />
+                </StackPanel>
             </StackPanel>
 
             <Spacer Height="70" />

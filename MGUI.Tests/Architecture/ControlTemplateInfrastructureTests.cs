@@ -13,7 +13,7 @@ namespace MGUI.Tests.Architecture;
 
 public class ControlTemplateInfrastructureTests
 {
-    private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    private static readonly string RepoRoot = TestRepository.Root;
 
     [Fact]
     public void Child_Scope_Falls_Back_To_Parent_Control_Template()
@@ -131,7 +131,7 @@ public class ControlTemplateInfrastructureTests
         Assert.NotNull(typeof(MGDockPreviewOverlay).GetField(nameof(MGDockPreviewOverlay.BorderPartName), flags));
         Assert.True(typeof(MGBoundsAdorner).IsAssignableFrom(typeof(MGDockPreviewOverlay)));
 
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockPreviewOverlay.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockPreviewOverlay.cs"));
 
         Assert.Contains("public class MGDockPreviewOverlay : MGBoundsAdorner", source);
         Assert.Contains("TargetBoundsOverride", source);
@@ -146,10 +146,10 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Splitter_Uses_Explicit_Surface_Accent_And_Grip_Parts()
     {
-        string splitterSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockSplitterBar.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
-        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+        string splitterSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockSplitterBar.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string symbolElementsSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolElements.cs"));
+        string symbolDrawingSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolDrawing.cs"));
 
         // Backlog task 8: the control declares and attaches its parts, only the Dock.Splitter.Default template creates them.
         Assert.Contains("protected internal override IEnumerable<MGControlTemplatePartRequirement> GetRequiredControlTemplateParts()", splitterSource);
@@ -165,10 +165,10 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Tab_Item_Uses_Explicit_Accent_And_Icon_Parts()
     {
-        string tabItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabItem.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
-        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+        string tabItemSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockTabItem.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string symbolElementsSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolElements.cs"));
+        string symbolDrawingSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolDrawing.cs"));
 
         // Backlog task 9: the seven parts come from the Dock.TabItem.Default template, the tab attaches them and wires the close click.
         Assert.Contains("protected internal override void AttachControlTemplateStructure", tabItemSource);
@@ -187,10 +187,10 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Tab_Group_Uses_Explicit_Accent_And_Header_Icon_Parts()
     {
-        string tabGroupSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabGroup.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
-        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+        string tabGroupSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockTabGroup.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string symbolElementsSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolElements.cs"));
+        string symbolDrawingSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolDrawing.cs"));
 
         // Backlog task 9: the four parts come from the Dock.TabGroup.Default template; the compact button hover and the icon colors come from the theme.
         Assert.Contains("DefaultControlTemplateName = MGControlTemplateCatalog.DockTabGroupTemplateName;", tabGroupSource);
@@ -211,9 +211,9 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Auto_Hide_Strip_Uses_Rotated_Label_And_Separator_Part()
     {
-        string stripSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockAutoHideStrip.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string rotatedTextSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGRotatedTextLabel.cs");
+        string stripSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockAutoHideStrip.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string rotatedTextSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGRotatedTextLabel.cs"));
 
         // Backlog task 8: the separator comes from the Dock.AutoHideStrip.Default template; the panel buttons stay built by the strip.
         Assert.Contains("protected internal override void AttachControlTemplateStructure", stripSource);
@@ -228,9 +228,9 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Drop_Indicators_Use_Explicit_Zone_Elements()
     {
-        string indicatorsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockDropIndicators.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string symbolDrawingSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
+        string indicatorsSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockDropIndicators.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string symbolDrawingSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolDrawing.cs"));
 
         Assert.Contains("internal sealed class MGDockDropZoneIndicator : MGElement", indicatorsSource);
         // Backlog task 8: the nine zones come from the Dock.DropIndicators.Default template, the control gives each its zone.
@@ -250,8 +250,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Auto_Hide_Drawer_Uses_Explicit_Border_Grip_And_Icon_Parts()
     {
-        string drawerSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockAutoHideDrawer.cs");
-        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+        string drawerSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockAutoHideDrawer.cs"));
+        string symbolElementsSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolElements.cs"));
 
         // Backlog task 9: the eight parts come from the Dock.AutoHideDrawer.Default template, the drawer attaches them and wires the pin and close clicks.
         Assert.Contains("protected internal override void AttachControlTemplateStructure", drawerSource);
@@ -267,7 +267,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Split_Container_Relies_On_Child_Rendering_Only()
     {
-        string splitContainerSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockSplitContainer.cs");
+        string splitContainerSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockSplitContainer.cs"));
 
         Assert.Contains("public override IEnumerable<MGElement> GetChildren()", splitContainerSource);
         Assert.DoesNotContain("public override void DrawSelf", splitContainerSource);
@@ -278,7 +278,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Dock_Host_Declares_Explicit_Overlay_And_Auto_Hide_Parts()
     {
-        string hostSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockHost.cs");
+        string hostSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Docking", "Controls", "MGDockHost.cs"));
 
         Assert.Contains("public const string PreviewOverlayPartName = \"PART_PreviewOverlay\";", hostSource);
         Assert.Contains("public const string DropIndicatorsPartName = \"PART_DropIndicators\";", hostSource);
@@ -286,7 +286,7 @@ public class ControlTemplateInfrastructureTests
         Assert.Contains("public const string BottomAutoHideStripPartName = \"PART_BottomAutoHideStrip\";", hostSource);
         Assert.Contains("public const string AutoHideDrawerPartName = \"PART_AutoHideDrawer\";", hostSource);
         // Backlog task 9: the seven surfaces come from the Dock.Host.Default template; the host attaches them and keeps the docking orchestration.
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
         Assert.Contains("protected internal override void AttachControlTemplateStructure", hostSource);
         Assert.DoesNotContain("RegisterTemplatePart(", hostSource);
         Assert.Contains("structure.AddPart(MGDockHost.AutoHideDrawerPartName, new MGDockAutoHideDrawer(window));", catalogSource);
@@ -420,7 +420,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGElement_Runtime_Path_Separates_Structure_From_Theme_Refresh()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGElement.cs"));
 
         Assert.Contains("Template.CreateStructure", source);
         Assert.Contains("AttachControlTemplateStructure(Structure)", source);
@@ -431,7 +431,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGElement_Resolves_Control_Templates_In_Local_Theme_Default_Order()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGElement.cs"));
 
         int localIndex = source.IndexOf("return ControlTemplateName;", StringComparison.Ordinal);
         int runtimeTypeThemeIndex = source.IndexOf("Theme.TryGetControlTemplateMapping(GetType()", StringComparison.Ordinal);
@@ -447,12 +447,12 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Composite_Controls_Rebind_Components_When_Template_Structure_Changes()
     {
-        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
-        string listBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs");
-        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
-        string textBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs");
-        string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
-        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+        string tabControlSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTabControl.cs"));
+        string listBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGListBox.cs"));
+        string comboBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGComboBox.cs"));
+        string textBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTextBox.cs"));
+        string windowSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGWindow.cs"));
+        string overlaySource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGOverlay.cs"));
 
         Assert.Contains("EnsureComponentBinding", tabControlSource);
         Assert.Contains("EnsureComponentBinding", listBoxSource);
@@ -467,16 +467,16 @@ public class ControlTemplateInfrastructureTests
     {
         string[] paths = new[]
         {
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGListView.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs",
-            @"d:\development\repo\MGUI\MGUI.Core\UI\MGToolTip.cs",
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGWindow.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGOverlay.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGContextMenu.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGListBox.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGListView.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeView.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTextBox.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTabControl.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGComboBox.cs"),
+            Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGToolTip.cs"),
         };
 
         foreach (string path in paths)
@@ -489,7 +489,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGTabControl_Template_Attach_Binds_Headers_Panel_Directly_To_HeaderPresenter()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTabControl.cs"));
 
         Assert.Contains("HeaderPresenter.SetContent(HeadersPanelElement);", source);
         Assert.Contains("HeadersPanelElement.TryRemoveAll();", source);
@@ -498,8 +498,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGTabControl_Default_Header_Wrappers_Use_Control_Template_Names()
     {
-        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string tabControlSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTabControl.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         Assert.Contains("SelectedTabHeaderControlTemplateName", tabControlSource);
         Assert.Contains("UnselectedTabHeaderControlTemplateName", tabControlSource);
@@ -520,8 +520,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGTabControl_Side_Header_Defaults_Differentiate_Selected_And_Unselected_Offsets()
     {
-        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string tabControlSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTabControl.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         // Backlog task 14: the side header padding comes from the theme (TabControl.SideHeaderPadding, default 6,5,6,5).
         Assert.Contains("ApplyThemeDefault(IsSelected ? \"TabHeader.Selected.Padding.Left\" : \"TabHeader.Unselected.Padding.Left\", tabSettings.SideHeaderPadding", catalogSource);
@@ -541,7 +541,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Focus_Scope_Restore_Uses_Pointer_Focus_To_Avoid_Context_Menu_Autoscroll()
     {
-        string navigationServiceSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Navigation\UIFocusNavigationService.cs");
+        string navigationServiceSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Navigation", "UIFocusNavigationService.cs"));
 
         Assert.Contains("entry.RestoreFocusTarget.Focus(KeyboardFocusSource.Pointer);", navigationServiceSource);
     }
@@ -549,7 +549,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGDesktop_Does_Not_Scroll_Ancestor_Viewports_For_Floating_Context_Menu_Focus()
     {
-        string contextMenuSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+        string contextMenuSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGContextMenu.cs"));
 
         Assert.Contains("initialFocusTarget?.Focus(KeyboardFocusSource.Pointer);", contextMenuSource);
     }
@@ -557,7 +557,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGScrollViewer_Reapplies_Theme_Scrollbar_Brushes_On_Theme_Change()
     {
-        string scrollViewerSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGScrollViewer.cs");
+        string scrollViewerSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGScrollViewer.cs"));
 
         Assert.Contains("protected internal override void OnThemeChanged", scrollViewerSource);
         Assert.Contains("ScrollBarOuterBrush = CurrentTheme.ScrollBarOuterBrush.GetValue(true);", scrollViewerSource);
@@ -567,8 +567,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGTabControl_Custom_Header_Factories_Are_Not_ReTemplated_After_Xaml_Factory_Application()
     {
-        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
-        string xamlControlsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\Controls.cs");
+        string tabControlSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTabControl.cs"));
+        string xamlControlsSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "XAML", "Controls.cs"));
 
         Assert.Contains("if (UsesCustomHeaderFactories)", tabControlSource);
         Assert.Contains("HeaderWrapper.IsSelected = IsSelected;", tabControlSource);
@@ -596,9 +596,9 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void TreeView_And_TextBox_Default_Templates_Are_Structural()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
-        string textBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string treeViewSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeView.cs"));
+        string textBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTextBox.cs"));
 
         Assert.Contains("CreateTreeViewTemplate()", source);
         Assert.Contains("CreateTextBoxTemplate()", source);
@@ -611,8 +611,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Control_Template_Value_Application_Uses_Template_Source_Metadata()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplate.cs");
-        string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplate.cs"));
+        string elementSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGElement.cs"));
 
         Assert.Contains("UIValueResolutionSource.Template", source);
         Assert.Contains("Owner.InvalidateTemplateValue(Invalidation);", source);
@@ -623,7 +623,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Parent_And_Selected_State_Changes_Invalidate_Layout_Subtrees()
     {
-        string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+        string elementSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGElement.cs"));
 
         Assert.Contains("protected internal void SetParent(MGElement Value)", elementSource);
         Assert.Contains("InvalidateLayoutTree();", elementSource);
@@ -652,7 +652,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Window_Template_Adds_Title_Bar_Children_Before_Locking_Content()
     {
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         int addCloseButtonIndex = catalogSource.IndexOf("titleBar.TryAddChild(closeButton, Dock.Right);", StringComparison.Ordinal);
         int addTitleTextIndex = catalogSource.IndexOf("titleBar.TryAddChild(titleText, Dock.Left);", StringComparison.Ordinal);
@@ -668,7 +668,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MGContextMenu_Requirements_Handle_Base_Window_Template_During_Construction()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGContextMenu.cs"));
 
         Assert.Contains("MGControlTemplateCatalog.WindowTemplateName", source);
         Assert.Contains("base.GetRequiredControlTemplateParts()", source);
@@ -677,8 +677,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ToolTip_Uses_Dedicated_Control_Template_Defaults()
     {
-        string toolTipSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGToolTip.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string toolTipSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGToolTip.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         Assert.Contains("ControlTemplateName = MGControlTemplateCatalog.ToolTipTemplateName;", toolTipSource);
         Assert.Contains("ToolTipTemplateName = \"ToolTip.Default\"", catalogSource);
@@ -690,7 +690,7 @@ public class ControlTemplateInfrastructureTests
     public void MGOverlay_Close_Button_Can_Be_Configured_Before_Template_Parts_Attach()
 #pragma warning restore SYSLIB0050
     {
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         MGOverlay overlay = (MGOverlay)FormatterServices.GetUninitializedObject(typeof(MGOverlay));
 
@@ -712,7 +712,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ComboBox_Template_Sets_Initial_Content_Before_Locking_Content_Hosts()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string source = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         int setContentIndex = source.IndexOf("dropdownScrollViewer.SetContent(dropdownStackPanel);", StringComparison.Ordinal);
         int lockIndex = source.IndexOf("dropdownScrollViewer.CanChangeContent = false;", StringComparison.Ordinal);
@@ -724,8 +724,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ComboBox_Default_Dropdown_Item_Chrome_Uses_Control_Template_Resources()
     {
-        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string comboBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGComboBox.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         Assert.Contains("DropdownItemControlTemplateName", comboBoxSource);
         Assert.Contains("Target.ControlTemplateName = DropdownItemControlTemplateName;", comboBoxSource);
@@ -760,8 +760,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void TabControl_And_ComboBox_Theme_Dependent_Chrome_Is_Applied_From_Template_Catalog()
     {
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string comboBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGComboBox.cs"));
 
         Assert.Contains("TabControl.Background", catalogSource);
         Assert.Contains("Theme.GetBackgroundBrush(MGElementType.TabControl)", catalogSource);
@@ -777,7 +777,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ComboBox_Default_Template_Structure_Does_Not_Hardcode_Dropdown_Arrow_Margins()
     {
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         Assert.DoesNotContain("dropdownArrow.Margin = new(MGComboBox<object>.DefaultDropdownArrowLeftMargin, 0, MGComboBox<object>.DefaultDropdownArrowRightMargin, 0);", catalogSource);
         Assert.Contains("Context.ApplyThemeDefault(\"ComboBox.DropdownArrowMargin\"", catalogSource);
@@ -786,9 +786,9 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void TabControl_ComboBox_And_TreeView_No_Longer_Project_Theme_Values_In_OnThemeChanged()
     {
-        string tabControlSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTabControl.cs");
-        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
-        string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
+        string tabControlSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTabControl.cs"));
+        string comboBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGComboBox.cs"));
+        string treeViewSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeView.cs"));
 
         Assert.DoesNotContain("protected internal override void OnThemeChanged", tabControlSource);
         Assert.DoesNotContain("protected internal override void OnThemeChanged", comboBoxSource);
@@ -800,9 +800,9 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void TreeView_Selection_Visuals_Refresh_From_Selection_Property_Setters()
     {
-        string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
-        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string treeViewSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeView.cs"));
+        string treeViewItemSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeViewItem.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         Assert.Contains("_SelectionBackgroundBrush = value;", treeViewSource);
         Assert.Contains("SelectedItem?.RefreshSelectionVisual();", treeViewSource);
@@ -872,9 +872,9 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ListBox_Does_Not_Overwrite_Template_Owned_ItemsPanel_Chrome()
     {
-        string listBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListBox.cs");
-        string themeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTheme.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string listBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGListBox.cs"));
+        string themeSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTheme.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         Assert.Contains("private void SyncVirtualizedItemsPanelChrome()", listBoxSource);
         Assert.Contains("VirtualizingPanel.SetBorderThicknessTagged(ItemsPanel?.BorderThickness ?? MGControlTemplateCatalog.DefaultListBoxItemBorderThickness, UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));", listBoxSource);
@@ -909,8 +909,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ListView_Grid_Chrome_And_Header_Spacer_Use_Template_Defaults()
     {
-        string listViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListView.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string listViewSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGListView.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
 
         Assert.Contains("internal interface IMGListViewTemplateDefaults", listViewSource);
         Assert.Contains("IMGListViewTemplateDefaults", catalogSource);
@@ -936,12 +936,12 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Window_And_Overlay_Do_Not_Hardcode_Template_Owned_Padding_In_Constructors()
     {
-        string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
-        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
-        string themeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTheme.cs");
-        string themeBuilderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\ThemeDefinitionBuilder.cs");
-        string xamlThemeSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\Themes.cs");
+        string windowSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGWindow.cs"));
+        string overlaySource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGOverlay.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
+        string themeSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTheme.cs"));
+        string themeBuilderSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "XAML", "ThemeDefinitionBuilder.cs"));
+        string xamlThemeSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "XAML", "Themes.cs"));
 
         // ADR-0005/S7a: Window.Padding/Overlay.Padding target the control itself, so the catalogue now uses the
         // owner-targeting overload (tagged Theme) instead of ApplyThemeDefault (Template).
@@ -970,8 +970,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void TextBox_Default_Layout_Chrome_Comes_From_Template_Defaults()
     {
-        string textBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTextBox.cs");
-        string catalogSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs");
+        string textBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTextBox.cs"));
+        string catalogSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs"));
         int attachIndex = textBoxSource.IndexOf("protected internal override void AttachControlTemplateStructure", StringComparison.Ordinal);
         string attachSlice = attachIndex >= 0 ? textBoxSource.Substring(attachIndex, Math.Min(2500, textBoxSource.Length - attachIndex)) : textBoxSource;
 
@@ -1010,14 +1010,14 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Shared_Triangle_Arrow_Helper_Is_Used_By_Composite_And_Manual_Controls()
     {
-        string helperSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolDrawing.cs");
-        string symbolElementsSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
-        string checkBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGCheckBox.cs");
-        string comboBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGComboBox.cs");
-        string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
-        string expanderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGExpander.cs");
-        string radioButtonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGRadioButton.cs");
-        string treeViewItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeViewItem.cs");
+        string helperSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolDrawing.cs"));
+        string symbolElementsSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "UISymbolElements.cs"));
+        string checkBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGCheckBox.cs"));
+        string comboBoxSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGComboBox.cs"));
+        string contextMenuItemSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGContextMenuItem.cs"));
+        string expanderSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGExpander.cs"));
+        string radioButtonSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGRadioButton.cs"));
+        string treeViewItemSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGTreeViewItem.cs"));
 
         Assert.Contains("public static class UISymbolDrawing", helperSource);
         Assert.Contains("DrawCheckMark", helperSource);
@@ -1051,7 +1051,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MenuBarItem_Reapplies_MenuBarItem_Background_On_Theme_Change()
     {
-        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+        string menuBarSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGMenuBar.cs"));
 
         Assert.Contains("protected internal override void OnThemeChanged", menuBarSource);
         Assert.Contains("var background = GetTheme().GetBackgroundBrush(MGElementType.MenuBarItem);", menuBarSource);
@@ -1072,8 +1072,8 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void MenuBarItem_Projects_Owner_Visual_State_To_Internal_Button_Wrapper()
     {
-        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
-        string builtInThemesSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Themes\BuiltInThemes.xaml");
+        string menuBarSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGMenuBar.cs"));
+        string builtInThemesSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Themes", "BuiltInThemes.xaml"));
 
         Assert.Contains("private MGVisualStateProjection OwnerVisualStateProjection", menuBarSource);
         Assert.Contains("private MGVisualStateProjection ContentWrapperVisualStateProjection", menuBarSource);
@@ -1095,9 +1095,9 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void ContextMenuItem_Projects_Highlight_From_Owner_And_Wrapper_States()
     {
-        string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
-        string contextMenuSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
-        string builtInThemesSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Themes\BuiltInThemes.xaml");
+        string contextMenuItemSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGContextMenuItem.cs"));
+        string contextMenuSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGContextMenu.cs"));
+        string builtInThemesSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "Themes", "BuiltInThemes.xaml"));
 
         Assert.Contains("private MGVisualStateProjection OwnerVisualStateProjection", contextMenuItemSource);
         Assert.Contains("OwnerVisualStateProjection = new(this, (_, __) => ApplyProjectedHighlightState());", contextMenuItemSource);
@@ -1121,7 +1121,7 @@ public class ControlTemplateInfrastructureTests
     [Fact]
     public void Expander_Initializes_Arrow_Color_From_Current_Theme()
     {
-        string expanderSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGExpander.cs");
+        string expanderSource = File.ReadAllText(Path.Combine(RepoRoot, "MGUI.Core", "UI", "MGExpander.cs"));
 
         Assert.Contains("ExpanderDropdownArrowColor = GetTheme().DropdownArrowColor;", expanderSource);
         Assert.Contains("ExpanderDropdownArrowColor = CurrentTheme.DropdownArrowColor;", expanderSource);

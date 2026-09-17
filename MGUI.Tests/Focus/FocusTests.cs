@@ -369,7 +369,7 @@ public class FocusTests
     [Fact]
     public void DockPinIcon_Source_Uses_Pin_When_Panel_Is_Pinned_And_PinOff_When_AutoHidden()
     {
-        string iconSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\UISymbolElements.cs");
+        string iconSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "UISymbolElements.cs"));
 
         Assert.Contains("public string PinnedTextureName { get; set; } = \"DockPin\";", iconSource);
         Assert.Contains("public string AutoHideTextureName { get; set; } = \"DockPinOff\";", iconSource);

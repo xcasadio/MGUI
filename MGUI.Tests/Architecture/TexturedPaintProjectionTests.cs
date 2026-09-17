@@ -220,6 +220,63 @@ public class TexturedPaintProjectionTests
         Assert.Null(recorder.Transaction.CurrentClipBounds);
     }
 
+    /// <summary>ADR-0011, decision C4: a tiled texture brush with a <see cref="MGTextureFillBrush.FrameGrid"/> always takes the atlas
+    /// sub-rectangle path on the rounded geometry, even when the grid's own region covers the whole image, because the current frame's cell
+    /// is still a strict sub-rectangle of it -- a wrap sampler over the whole image would show neighbouring frames instead of tiling the
+    /// current one.</summary>
+    [Fact]
+    public void TextureFillBrush_TileWithFrameGrid_RoundedShape_NeverUsesTheWrapSampler_EvenWhenTheGridCoversTheWholeImage()
+    {
+        Recorder recorder = Recorder.Create();
+        MGBoxShape shape = RoundedShape(160, 80, 0, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        GraphTestImageResource atlas = recorder.Image(32, 16);
+        MGSpriteSheetGrid grid = new(2, 1, new Point(16, 16));
+        MGTextureFillBrush brush = new(new MGTextureData(atlas), Stretch.Fill, null, Tile: true) { FrameGrid = grid, FrameIndex = 1 };
+
+        brush.Draw(recorder.Args(), null!, shape, geometry);
+
+        List<GraphTexturedTriangleListCall> calls = recorder.Transaction.TexturedTriangleListCalls;
+        Assert.NotEmpty(calls);
+        Assert.All(calls, call => Assert.NotEqual(SamplerType.LinearWrap, call.SamplerType));
+        Assert.All(calls, call => Assert.True(ReferenceEquals(call.Texture, atlas)));
+
+        //  Frame 1's cell (16,0)-(32,16): every UV stays inside its own half of the atlas, never the frame-0 half.
+        Vector2 uvTopLeft = new(16f / 32f, 0f);
+        Vector2 uvBottomRight = new(32f / 32f, 16f / 16f);
+        foreach (GraphTexturedTriangleListCall call in calls)
+        {
+            foreach (Vector2 uv in call.TextureCoordinates)
+            {
+                Assert.InRange(uv.X, uvTopLeft.X - 1e-4f, uvBottomRight.X + 1e-4f);
+                Assert.InRange(uv.Y, uvTopLeft.Y - 1e-4f, uvBottomRight.Y + 1e-4f);
+            }
+        }
+    }
+
+    /// <summary>Regression guard (ACCEPTANCE 3b): without a <see cref="MGTextureFillBrush.FrameGrid"/>, the rounded path's recorded draw
+    /// calls are identical to what it already recorded before this slice, for the same inputs.</summary>
+    [Fact]
+    public void TextureFillBrush_NoFrameGrid_RoundedShape_RecordsTheSameCallsAsWithoutTheFeature()
+    {
+        Recorder a = Recorder.Create();
+        Recorder b = Recorder.Create();
+        MGBoxShape shape = RoundedShape(80, 40, 0, 12);
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        GraphTestImageResource image = a.Image(64, 64);
+        MGTextureData source = new(image, new Rectangle(0, 0, 32, 32));
+
+        new MGTextureFillBrush(source, Stretch.Fill).Draw(a.Args(), null!, shape, geometry);
+        //  Explicitly constructed the same way, FrameGrid left null: must behave byte-for-byte the same.
+        new MGTextureFillBrush(source, Stretch.Fill) { FrameGrid = null }.Draw(b.Args(), null!, shape, geometry);
+
+        GraphTexturedTriangleListCall callA = Assert.Single(a.Transaction.TexturedTriangleListCalls);
+        GraphTexturedTriangleListCall callB = Assert.Single(b.Transaction.TexturedTriangleListCalls);
+        Assert.Equal(callA.Vertices, callB.Vertices);
+        Assert.Equal(callA.TextureCoordinates, callB.TextureCoordinates);
+        Assert.Equal(callA.Indices, callB.Indices);
+    }
+
     #endregion
 
     #region MGTexturedBorderBrush

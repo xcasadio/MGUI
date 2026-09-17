@@ -6,7 +6,7 @@ namespace MGUI.Tests.Architecture;
 
 public class BackendProjectSplitTests
 {
-    private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    private static readonly string RepoRoot = TestRepository.Root;
 
     [Fact]
     public void MonoGameSplitProjects_ArePresentInTheSolution()

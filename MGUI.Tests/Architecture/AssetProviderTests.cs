@@ -59,7 +59,7 @@ public class AssetProviderTests
     [Fact]
     public void MGDesktop_DefaultResourceBootstrap_UsesAssetProvider()
     {
-        string desktopSource = System.IO.File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
+        string desktopSource = System.IO.File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGDesktop.cs"));
 
         Assert.Contains("Resources.AssetProvider.LoadImage", desktopSource);
         Assert.Contains("Resources.AssetProvider.TryLoadImage", desktopSource);
