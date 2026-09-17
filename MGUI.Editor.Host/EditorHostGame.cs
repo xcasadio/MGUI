@@ -47,7 +47,7 @@ public class EditorHostGame : Game, IObservableUpdate
 
         XamlEditorSession session = new();
         XamlEditorView view = new(_editorWindow, session);
-        _editorWindow.SetContent(view.Root);
+        _editorWindow.SetContent(view.CreateDockHost());
         _desktop.Windows.Add(_editorWindow);
 
         Window.ClientSizeChanged += (_, _) =>

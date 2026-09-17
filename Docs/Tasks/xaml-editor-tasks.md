@@ -11,6 +11,7 @@ Architecture cible : [editor-architecture.md](../editor-architecture.md). Decisi
 - 15 septembre 2026 : demande de l'auteur (editeur XAML, rendu a chaud, selection, grille qui edite le noeud XAML ; projet a part, integrable dans CasaEngine ; `EditorRichTextBox` a faire evoluer) et discovery en lecture seule sur cinq surfaces a HEAD `05de9ac`.
 - 17 septembre 2026 : reponses de l'auteur aux quatre questions groupees ; redaction du plan, de l'ADR-0010 (Proposed) et de la doc d'architecture ; relecture du plan contre le code par quatre relecteurs en contexte frais, chaque constat bloquant recontrole par un second agent (22 constats retenus sur 24, tous integres ci-dessous) ; deux sondes jetables hors depot sur la technique de positions du loader ; relecture de cloture en contexte frais (treize points sur quatorze confirmes, sept nouveaux constats dont trois bloquants, tous integres : remontee par la chaine `Parent`, positions propres aux descendants d'un template clone, etendue complete des noeuds). Aucun code n'est ecrit dans le depot avant l'approbation du plan.
 - 17 septembre 2026 (suite) : plan approuve par l'auteur (« commence a faire les taches ») ; documents du plan committes a part (`a9a36f4`). Reponses de l'auteur a quatre questions posees avant X0 : decisions 6 a 8 ci-dessous.
+- 17 septembre 2026 (fin de journee) : X0 et X1 validees par l'auteur ; X1 committee sur `develop` puis verifiee, correctif de transmission des positions au writer sur la branche `xaml-editor` (decision 9) ; demande de l'auteur d'utiliser le docking manager : tache X1b proposee, relue trois fois, approuvee (decision 10), et textes de X0 a X8 retouches en consequence.
 
 ## Decisions de l'auteur
 
@@ -20,9 +21,10 @@ Architecture cible : [editor-architecture.md](../editor-architecture.md). Decisi
 4. Bindings dans la preview : point d'injection `DesignDataContext`, vide par defaut.
 5. Deja tranche le 15 septembre : le composant texte est `MGRichTextBox` (sample `EditorRichTextBox`) a faire evoluer ; pas de manipulation a la souris en V1, seulement de la selection.
 6. Rythme de livraison : l'agent s'arrete apres chaque tache et dit a l'auteur quoi tester ; la tache suivante ne commence qu'apres l'accord de l'auteur. La tache est committee avec le statut 🧪 des que le verifier confirme et que la suite est verte ; elle passe a ✅ apres l'accord de l'auteur, dans le commit de la tache suivante ; un defaut trouve par l'auteur donne un commit `fix` separe.
-7. Forme de `XamlEditorView` : classe compositrice (pas un `MGElement`), `XamlEditorView(MGWindow window, XamlEditorSession session)`, qui construit l'arbre contre la fenetre hote et expose `Root` (la grille a trois colonnes) et les quatre volets. Un hote fait `window.SetContent(view.Root)` ; un hote a docking rend `view.Root` depuis `DockableDefinition.ContentFactory`.
+7. Forme de `XamlEditorView` : classe compositrice (pas un `MGElement`), `XamlEditorView(MGWindow window, XamlEditorSession session)`, qui construit les volets contre la fenetre hote. Revisee par la decision 10 : la grille `Root` de X0 est remplacee par des dockables.
 8. Fenetre de l'editeur dans `MGUI.Editor.Host` : une `MGWindow` plein cadre, sans barre de titre, qui couvre la zone cliente et suit le redimensionnement de la fenetre du jeu (taille initiale 1600 x 900, comme `Game1`). En X7, le fichier et l'etat modifie vont dans le titre de la fenetre du jeu (`Game.Window.Title`).
 9. Branches (17 septembre) : les noms `MGUI.Editor` et `MGUI.Editor.Host` sont gardes. X1 est committee sur `develop` avant sa verification pour servir de point de depart commun ; la suite du chantier se fait sur la branche `xaml-editor`, creee depuis ce commit, et l'autre session de l'auteur cree sa propre branche depuis le meme commit. Le merge dans `develop` se fait a la demande de l'auteur.
+10. Coquille en docking (17 septembre, tache X1b approuvee par « tout est ok ») : les volets de l'editeur sont cinq dockables (« XAML », « Preview », « Document », « Properties », « Diagnostics ») heberges par un `MGDockHost`. `XamlEditorView` expose `Dockables` et `CreateDockHost()` ; un hote fait `window.SetContent(view.CreateDockHost())` ; un hote a docking (CasaEngine) enregistre `Dockables` dans son propre `MGDockHost`, sans docking imbrique. En V1 : volets sans `Name`, non fermables, auto-hide permis, flottants sauf « Preview » ; sauvegarde et reinitialisation du layout hors V1.
 
 ## Etat des lieux (HEAD `05de9ac`, verifie dans le code)
 
@@ -84,7 +86,7 @@ Solution et tests :
 
 ## Perimetre V1 et hors perimetre
 
-Dans le perimetre : les neuf taches X0 a X8 ci-dessous.
+Dans le perimetre : les dix taches ci-dessous, X0 a X8 plus X1b (coquille en docking, ajoutee le 17 septembre).
 
 Hors perimetre (documente, non implemente) :
 
@@ -120,7 +122,7 @@ Hors perimetre (documente, non implemente) :
 
 ## Taches
 
-### 🧪 X0. Projets et coquille de l'editeur
+### ✅ X0. Projets et coquille de l'editeur
 
 Statut (17 septembre 2026) : livre et verifie (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2348/2348, dont 11 nouveaux tests). Reste la validation manuelle de l'auteur ci-dessous. Remarques mineures du verifier, non corrigees : le build du Host affiche l'avertissement « No Content References Found » (paquet `MonoGame.Content.Builder.Task` garde comme dans `MGUI.MiniGame`, sans `.mgcb`) ; la taille initiale de la fenetre de l'editeur est lue dans `Window.ClientBounds` juste apres `ApplyChanges()` (a observer au premier lancement : la coquille doit remplir la fenetre des la premiere image).
 
@@ -132,7 +134,7 @@ Perimetre :
 - `MGUI.Editor.Host/` : executable `WinExe`. Le `csproj` reprend de `MGUI.MiniGame.csproj` le type `WinExe`, le framework cible et le paquet `MonoGame.Framework.DesktopGL`, avec une copie de `app.manifest` et de `Icon.ico` dans `MGUI.Editor.Host/` ; il ne reprend ni `MonoGame.Content.Builder.Task` ni la cible `RestoreDotnetTools` (pas de manifeste d'outils dans ce dossier, pas de contenu a construire) ; references de projet `MGUI.Editor`, `MGUI.Core`, `MGUI.MonoGame.LegacyRenderer`, `MGUI.Shared`. La classe `Game` reprend le motif de `MGUI.Samples/Game1.cs` : `MonoGameBackendBootstrap.Create(new GameRenderHost<T>(this))` (saisie de texte cablee automatiquement), `IObservableUpdate`, `Desktop.LoadDefaultResources()`. Le contenu necessaire arrive par la reference de projet `MGUI.Core` ; aucun `.mgcb` propre au Host.
 - `MGUI.sln` (via `dotnet sln add`), `MGUI.Tests/MGUI.Tests.csproj` (reference `MGUI.Editor`), dossier `MGUI.Tests/Editor/`.
 - `MGUI.Editor/XamlEditorSession.cs` : etat d'une session (texte, `SourceName`, `DesignDataContext`, evenements), sans acces fichier a ce stade.
-- `MGUI.Editor/XamlEditorView.cs` : vue construite en code (pas de XAML embarque) : grille a trois colonnes avec `MGGridSplitter` ; volet texte (`MGRichTextBox`) ; volet preview = un `MGOverlayPanel` qui contient le presentateur de la preview (X4 y ajoutera la couche d'adorners au-dessus) ; colonne de droite avec l'arbre (`MGTreeView`) au-dessus de la grille (`MGPropertyGrid`). Elements nommes `TextPane`, `PreviewPane`, `TreePane`, `PropertyPane`.
+- `MGUI.Editor/XamlEditorView.cs` : vue construite en code (pas de XAML embarque) : grille a trois colonnes avec `MGGridSplitter` ; volet texte (`MGRichTextBox`) ; volet preview = un `MGOverlayPanel` qui contient le presentateur de la preview (X4 y ajoutera la couche d'adorners au-dessus) ; colonne de droite avec l'arbre (`MGTreeView`) au-dessus de la grille (`MGPropertyGrid`). Elements nommes `TextPane`, `PreviewPane`, `TreePane`, `PropertyPane`. Remplace par X1b : la grille, ses separateurs et les noms des volets ont disparu ; les volets sont des dockables sans `Name`.
 
 Hors perimetre : tout comportement des volets.
 
@@ -142,13 +144,13 @@ Criteres d'acceptation :
 - test : la vue se construit sur un desktop headless et expose les quatre volets nommes ;
 - suite complete verte.
 
-Validation manuelle (auteur) : `MGUI.Editor.Host` demarre et affiche la coquille. La tache reste 🧪 tant que ce lancement n'est pas confirme ; X1 attend cet accord (decision 6).
+Validation manuelle (auteur) : `MGUI.Editor.Host` demarre et affiche la coquille. Confirmee par l'auteur le 17 septembre (« tout est ok »).
 
 Rollback : suppression des deux dossiers, des entrees de la solution et de la reference dans `MGUI.Tests`.
 
 Commit recommande : `feat(editor): add the MGUI.Editor library, its host and the view shell`
 
-### 🧪 X1. Positions source du loader et modele de document
+### ✅ X1. Positions source du loader et modele de document
 
 Statut (17 septembre 2026) : implementee par un executeur ; committee sur `develop` AVANT la verification en contexte frais, a la demande de l'auteur, pour donner un point de depart commun aux deux sessions (decision 9). La verification, la revue et les corrections eventuelles se font ensuite sur la branche `xaml-editor`. Verification en contexte frais faite sur `5e06b3b` : CONFIRMED, suite complete 2393/2393 (45 nouveaux tests) ; graphe de DTO identique a celui de `XamlServices.Parse` sur 57 des 66 fichiers XAML de `MGUI.Samples` (7 demandent un type de l'assembly des samples, 2 sont des documents de theme), positions posees partout, chaine d'exceptions identique a l'ancien chemin sur six documents casses, API de la boucle presentes dans Portable.Xaml 0.26. Correctif du meme jour sur `xaml-editor` : la transmission des positions au writer XAML, retiree par le premier commit, est retablie (verifier : CONFIRMED, suite 2398/2398, cinq nouveaux tests `XamlLoaderLineInfoTests`, aucun test existant modifie) ; les marqueurs de tranche ont ete retires des commentaires de code.
 
@@ -190,9 +192,11 @@ Rollback : retour a `XamlServices.Parse` ; les ajouts sont additifs.
 
 Commit recommande : `feat(xaml): stamp loader source positions and add the editor document model`
 
-### ⏳ X1b. Coquille en docking (PROPOSEE le 17 septembre 2026, en attente de l'approbation de l'auteur)
+### 🧪 X1b. Coquille en docking
 
-Origine : demande de l'auteur du 17 septembre, apres X1 (« je voulais utiliser le docking manager »). Aucun code de cette tache n'est ecrit avant son approbation. Elle revise la decision 7 (forme de `XamlEditorView`) et remplace la coquille de X0 ; elle passe avant X2, dont l'ancrage de la preview depend de l'hebergement du volet.
+Statut (17 septembre 2026) : livree et verifiee (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2404/2404 ; sonde independante du verifier : changements d'onglet, flottement et re-dock de chaque volet flottant, auto-hide, redimensionnements, sans exception ni contenu de repli d'erreur). Reste la validation manuelle de l'auteur ci-dessous. Deux comportements du docking de `MGUI.Core`, mesures et consignes dans l'ADR-0010, a connaitre pour la suite : un volet qui redevient actif recoit trois `OnParentChanged` (attache, detache, re-attache) : les gestionnaires de X2 et de X5 doivent etre idempotents et lire le `Parent` final ; des cycles flottement / re-dock repetes regroupent peu a peu tous les volets dans un seul groupe d'onglets (on les replace par glisser-deposer).
+
+Origine : demande de l'auteur du 17 septembre, apres X1 (« je voulais utiliser le docking manager »). Proposee, relue trois fois en contexte frais, puis approuvee par l'auteur le 17 septembre (« tout est ok », qui valide aussi ses tests manuels de X0 et de X1). Elle revise la decision 7 (forme de `XamlEditorView`) et remplace la coquille de X0 ; elle passe avant X2, dont l'ancrage de la preview depend de l'hebergement du volet.
 
 Faits verifies dans le code (HEAD `d2118c4`) :
 
@@ -233,7 +237,7 @@ Criteres d'acceptation (tests headless `MGUI.Tests/Editor/XamlEditorViewTests.cs
 - robustesse des cycles : un changement d'onglet, puis un cycle `DetachToFloating` et re-dock, laissent le contenu de l'hote intact : aucune exception, aucun `MGTextBlock` sous l'hote dont le texte commence par « Error building docking layout » (`MGDockHost.CreateErrorPlaceholder`), et chacun des cinq volets est soit atteint depuis l'hote ou depuis la fenetre flottante, soit detache parce qu'il est l'onglet inactif de son groupe ;
 - plus aucun `MGGridSplitter` dans la vue ; suite complete verte.
 
-Retouches des taches suivantes, appliquees dans le meme commit que X1b si elle est approuvee :
+Retouches des taches suivantes, appliquees dans le meme commit que X1b (faites : decisions 7 et 10, X0, X2, X3, X5, X7, X8, ADR-0010, `Docs/editor-architecture.md`) :
 
 - decision 7 (texte de `view.Root` et de `SetContent(view.Root)`), perimetre de X0 (description de la grille, « elements nommes ») et ce point ouvert : reecrits ou marques « remplace par X1b » ; le perimetre V1 passe a dix taches, et la formule de cloture de X8 (« delivered as nine slices X0 to X8 ») devient « ten slices » ; la decision de livraison X0 de l'ADR-0010 sur les colonnes de separateurs est marquee « remplacee par X1b » ;
 - X0 : sa validation manuelle est absorbee par celle de X1b (la coquille de X0 est remplacee) ;
@@ -254,7 +258,7 @@ Commit recommande : `feat(editor): host the editor panes in the docking manager`
 
 But : rendre le texte de la session dans le volet preview, a chaud, sans jamais casser l'editeur.
 
-Prerequis : X1.
+Prerequis : X1b.
 
 Perimetre : `MGUI.Editor/Preview/XamlPreviewHost.cs`, branchement dans `XamlEditorView`.
 
@@ -262,7 +266,8 @@ Perimetre : `MGUI.Editor/Preview/XamlPreviewHost.cs`, branchement dans `XamlEdit
 - `RequestRefresh()` marque le document sale ; le re-parse a lieu sur l'update de la fenetre de l'editeur apres `DebounceDelay` (250 ms par defaut) mesure avec le temps de l'update ; aucun thread, aucun timer systeme.
 - Chargement par `UIToolingService.LoadPreview(..., XamlLoaderMode.Strict, sanitizeXamlString: false, replaceLinebreakLiterals: true)` avec `XamlDocumentSource.FromString(texte, session.SourceName)`.
 - Sur `XamlLoaderException` : la racine precedente reste affichee, le diagnostic est publie. Un texte vide vide la preview sans diagnostic.
-- Racine `Window` : affichee dans le volet et ancree a son coin haut-gauche ; `Left` et `Top` du XAML ne placent pas la preview. Une `MGWindow` se mettant en page a sa propre position, l'hote repositionne la fenetre de preview sur le coin du volet apres chaque `PreviewUpdated` et a chaque changement des bounds du volet (deplacement de la fenetre de l'editeur, glissement d'un `MGGridSplitter`, redimensionnement), puis demande une mise en page. La preview garde `Width` et `Height` du XAML : elle n'est ni redimensionnee ni mise a l'echelle, et ce qui depasse est rogne par le clip du volet.
+- Racine `Window` : affichee dans le volet et ancree a son coin haut-gauche ; `Left` et `Top` du XAML ne placent pas la preview. Une `MGWindow` se mettant en page a sa propre position, l'hote repositionne la fenetre de preview sur le coin du volet apres chaque `PreviewUpdated` et a chaque changement des bounds du volet (deplacement de la fenetre de l'editeur, deplacement d'un separateur de docking, regroupement en onglet, redimensionnement), puis demande une mise en page. La preview garde `Width` et `Height` du XAML : elle n'est ni redimensionnee ni mise a l'echelle, et ce qui depasse est rogne par le clip du volet.
+- Volet cache (X1b) : quand `PreviewPane` est detache (`Parent == null` : onglet inactif, tiroir auto-hide ferme), la racine `Window` de la preview est masquee et le re-parse continue ; elle est re-affichee et re-ancree quand `OnParentChanged` annonce un nouveau parent non nul. Le dockable « Preview » ne flottant pas en V1, la racine `Window` ne change jamais de fenetre parente.
 - `IsInteractive` (faux par defaut) : a faux, le sous-arbre de la preview ne recoit aucune entree (`IsHitTestVisible = false` sur la racine) ; a vrai, il se comporte normalement.
 
 Criteres d'acceptation (tests headless, `MGUI.Tests/Editor/XamlPreviewHostTests.cs`) :
@@ -272,6 +277,7 @@ Criteres d'acceptation (tests headless, `MGUI.Tests/Editor/XamlPreviewHostTests.
 - `DesignDataContext` atteint `DataContextOverride` de la racine ;
 - une racine `Window` declaree avec `Left="440" Top="20"` a son coin haut-gauche sur celui du volet des le premier rendu, et l'ancrage est refait sans nouvelle frappe apres un deplacement de la fenetre de l'editeur et apres un changement de largeur du volet ;
 - une racine plus grande que le volet (`Width="500" Height="800"`) reste ancree et n'est pas redimensionnee ;
+- volet cache : « Preview » mis en onglet inactif, la racine `Window` est masquee et un re-parse a quand meme lieu apres une modification du texte ; l'onglet redevenu actif, elle est visible et ancree sur le coin du volet sans nouvelle frappe ;
 - `IsInteractive` a faux : un clic n'atteint pas un bouton de la preview ; a vrai : il l'atteint sur une racine non `Window` ;
 - les elements de la preview portent le `SourceName` de la session ; suite complete verte.
 
@@ -298,7 +304,7 @@ Perimetre `MGUI.Core` :
 Perimetre `MGUI.Editor` :
 
 - `MGUI.Editor/Text/XamlEditorTextPane.cs` : compose `MGRichTextBox`, le highlighter XAML et les marqueurs d'erreur : un decorateur de highlighter ajoute, par-dessus la coloration, un span souligne a la position de chaque diagnostic (jeton a cette position, sinon fin de ligne). Conversion : `new MGTextPosition(LineNumber - 1, LinePosition - 1 - correction)` puis `MGTextBuffer.TryGetIndex` ; `correction` vaut quatre colonnes par litteral `\n` present avant la colonne sur la meme ligne. Positions mesurees (`XamlLoaderLineInfoTests`, ADR-0010) : pour un type ou un attribut inconnu, la position vient de la validation `XDocument` ; pour une erreur levee par le writer (valeur non convertible, setter qui leve), elle designe le premier caractere du NOM de l'attribut fautif, sur la ligne ou cet attribut est ecrit (pas celle de la balise quand elle tient sur plusieurs lignes) : le jeton souligne est alors le nom de l'attribut.
-- La liste des diagnostics (code, message, ligne, colonne) est affichee sous le volet texte ; un clic sur une entree place le caret.
+- La liste des diagnostics (code, message, ligne, colonne) est le contenu du dockable « Diagnostics » (`XamlEditorView.DiagnosticsPane`, X1b) ; un clic sur une entree place le caret. Ce que fait ce clic quand le dockable « XAML » est un onglet inactif ou un tiroir ferme est a regler dans cette tache (l'activer d'abord, ou ne placer que le caret), et a consigner dans l'ADR-0010.
 
 Criteres d'acceptation :
 
@@ -361,6 +367,7 @@ Perimetre : `MGUI.Editor/Properties/XamlNodePropertySource.cs` (implemente `ICus
 - Forme des descriptors : chaque `PropertyDescriptor` expose `PropertyType = typeof(string)`, donc l'editeur `String`, quel que soit le type reel du DTO ; un descriptor qui annoncerait `int?`, `Thickness?` ou un enum serait ecarte en silence par la grille. Le type reel est conserve par la source et ne sert qu'a la validation (X6). Chaque descriptor porte `Category` (reprise de `[Category]` du DTO, sinon `Misc`), `DisplayName` et `IsReadOnly`, que la grille lit sur le descriptor.
 - Valeur d'une ligne : la chaine de l'attribut telle qu'ecrite dans le XAML ; attribut absent = `string.Empty`, jamais `null`. Une propriete de type element declaree comme chaine (`Content="OK"`) est une ligne editable ; declaree en element enfant, elle est en lecture seule.
 - Cycle de vie : une instance de source par selection, mutee d'un re-parse a l'autre (la grille se rafraichit sans se reconstruire) ; une nouvelle instance a chaque changement de selection (la grille se reconstruit).
+- Volet cache (X1b) : `RefreshVisibleValues` ne fait rien sur un volet detache. La grille se rafraichit quand `OnParentChanged` de `PropertyPane` annonce un nouveau parent non nul, ce qui couvre l'onglet re-active, la fenetre flottante et le tiroir auto-hide (les evenements du `DockableRegistry` ne couvrent ni le flottant ni le tiroir).
 - Categorie en lecture seule « Resolved (runtime) » : les cinq entrees de `CaptureElementDebugView(...).ValueOrigins` du representant de la selection (`Background`, `TextForeground` ou `Foreground`, `BorderBrush`, `BorderThickness`, `Padding`), chacune avec sa valeur effective et sa source ; une entree non resolue est affichee comme telle. Les autres chemins (dont `Margin`) ne sont pas couverts en V1. Categorie absente sans representant.
 - A ce stade toutes les lignes sont en lecture seule : l'ecriture arrive en X6.
 
@@ -369,6 +376,7 @@ Criteres d'acceptation (tests `MGUI.Tests/Editor/XamlNodePropertySourceTests.cs`
 - descriptors d'un noeud `Button` : `Width`, `Margin`, `HorizontalAlignment`, `Name`, `Content` presents, tous de type chaine, avec la bonne categorie, et tous visibles comme lignes de la grille ; `Children` et `AttachedProperties` absents ;
 - valeurs : attribut declare, attribut absent (chaine vide), contenu en chaine et contenu en element enfant (lecture seule) ;
 - changer de selection remplace les lignes ; un re-parse rafraichit les valeurs sans reconstruire la grille quand le noeud selectionne ne change pas (le test avance les frames jusqu'a ce que la ligne visee ait des bounds avant d'asserter) ;
+- volet cache : un re-parse qui change une valeur pendant que « Properties » est un onglet inactif est visible dans la grille des que l'onglet redevient actif ;
 - la categorie « Resolved (runtime) » montre, pour un `Padding` pose par un style implicite, la valeur effective et une source de style implicite ; suite complete verte.
 
 Rollback : suppression du fichier et du branchement.
@@ -408,7 +416,8 @@ Prerequis : X6.
 Perimetre :
 
 - `XamlEditorSession` : `LoadFile(path)`, `Save()`, `IsDirty`, `SourceName` = chemin du fichier. L'acces fichier vit dans `MGUI.Editor`, jamais dans `MGUI.Core`. Le texte de la session est toujours en LF (le volet normalise) ; la forme du fichier est un etat de la session : fin de ligne d'origine et presence d'un BOM sont detectees a `LoadFile` et restituees par `Save()`.
-- `MGUI.Editor.Host` : ouvre le fichier passe en premier argument, sinon un document de demonstration embarque ; `Ctrl+S` enregistre ; le titre de la fenetre du jeu (`Game.Window.Title`, decision 8) montre le fichier et l'etat modifie ; bascule « Interactive » dans la barre de l'editeur.
+- `MGUI.Editor.Host` : ouvre le fichier passe en premier argument, sinon un document de demonstration embarque ; `Ctrl+S` enregistre ; le titre de la fenetre du jeu (`Game.Window.Title`, decision 8) montre le fichier et l'etat modifie.
+- Bascule « Interactive » : dans un bandeau en tete du dockable « Preview » (il n'y a pas de barre d'editeur depuis X1b) ; le `ContentFactory` de ce dockable rend alors un conteneur (bandeau + `PreviewPane`) au lieu de `PreviewPane`.
 - Documentation : `Docs/editor-architecture.md` verifiee contre le code (et sa note d'etat cible retiree) ; `Docs/scenario-validation-index.md` (nouvelle ligne `SCN-EDITOR-XAML-001`, point d'entree `MGUI.Editor.Host/Program.cs`, et rattachement a `editor-architecture.md` et a l'ADR-0010 dans la liste par theme) ; `Docs/monogame-host-integration-guide.md` (mention du troisieme hote) ; `README.md` (courte mention de l'editeur) ; decisions prises en cours de route ajoutees a l'ADR-0010.
 
 Criteres d'acceptation :
@@ -417,7 +426,7 @@ Criteres d'acceptation :
 - les builds de la validation minimale et la suite complete sont verts ;
 - la doc ne decrit que ce qui existe dans le code.
 
-Validation manuelle (auteur), scenario `SCN-EDITOR-XAML-001` : ouvrir `MGUI.Samples/Controls/CheckBox.xaml` ; verifier que la preview (500 x 800) est ancree en haut a gauche du volet, rognee, et qu'elle suit le volet quand on deplace le separateur ; taper dans le texte (rendu a chaud) ; introduire une erreur (marqueur, dernier rendu conserve) ; selectionner par clic, par l'arbre et par le caret ; modifier `Width` et `Margin` dans la grille ; annuler ; enregistrer et controler le diff du fichier. La tache reste 🧪 jusqu'a cette validation.
+Validation manuelle (auteur), scenario `SCN-EDITOR-XAML-001` : ouvrir `MGUI.Samples/Controls/CheckBox.xaml` ; verifier que la preview (500 x 800) est ancree en haut a gauche du volet, rognee, et qu'elle suit le volet quand on deplace le separateur ; deplacer un volet, le mettre en onglet, detacher « Properties » en fenetre flottante et le re-docker ; taper dans le texte (rendu a chaud) ; introduire une erreur (marqueur, dernier rendu conserve) ; selectionner par clic, par l'arbre et par le caret ; modifier `Width` et `Margin` dans la grille ; annuler ; enregistrer et controler le diff du fichier. La tache reste 🧪 jusqu'a cette validation.
 
 Rollback : ajouts additifs.
 
@@ -436,7 +445,7 @@ Perimetre :
 - tests : `ToolingHooksTests.Designer_UsesSharedToolingPreviewHook` devient `PreviewHost_UsesSharedToolingPreviewHook`, lit `MGUI.Editor/Preview/XamlPreviewHost.cs` et garde son assertion `UIToolingService.LoadPreview` ; `XamlDocumentSourceTests.Designer_UsesDocumentSourceAbstraction` devient `PreviewHost_UsesDocumentSourceAbstraction`, lit le meme fichier et ne garde que l'assertion `XamlDocumentSource.FromString` (les deux autres clauses sont propres au designer : lecture de fichier et litteral `LoadPreview(SelfOrParentWindow, Source`) ; l'entree `MGXAMLDesigner.cs` de `ResolvedPilotWriteSitesTests` est retiree ;
 - `README.md` : retirer `MGXAMLDesigner` de la liste des controles (ligne 21) et le paragraphe du designer avec son image (lignes 490-491) ; supprimer `assets/samples/Sample_XAML_Designer_Window.gif`, que seul ce paragraphe reference ;
 - `Docs/scenario-validation-index.md` : le point d'entree de `SCN-MARKUP-001` devient `MGUI.Editor.Host/Program.cs` ;
-- cloture : ADR-0010 passee a `Accepted` (formule de l'ADR-0009 : « delivered as nine slices X0 to X8 ») et ligne de `Docs/decisions/README.md` mise a jour.
+- cloture : ADR-0010 passee a `Accepted` (formule de l'ADR-0009 : « delivered as ten slices, X0 to X8 and X1b ») et ligne de `Docs/decisions/README.md` mise a jour.
 
 Criteres d'acceptation :
 
@@ -453,8 +462,8 @@ Commit recommande : `refactor(core): remove MGXAMLDesigner, superseded by MGUI.E
 
 - Aucun a la redaction. Deux hypotheses gardent une clause dans leur tache : ordre de creation des instances en X1 (verifie par sonde sur onze cas, clause d'arret conservee) ; racine `Window` en mode interactif en X2 (limite admise, non bloquante).
 - X1, RESOLU le 17 septembre (accord de l'auteur : « continue ») : la transmission des positions au writer XAML, que le premier commit de X1 avait retiree, est retablie par un correctif sur `xaml-editor` sans modifier aucun test existant (verifier : CONFIRMED, suite 2398/2398). Une erreur levee par le writer (valeur non convertible, setter qui leve, `Thickness` mal formee) porte maintenant une ligne et une colonne ; regle mesuree dans l'ADR-0010 et reprise en X3.
-- Hors chantier, a documenter seulement : `XamlLoaderDiagnostics.Classify` choisit le code d'un diagnostic en cherchant des mots anglais dans le message de l'exception ; sur un Windows en francais, `Width="abc"` est classe `ParseFailure` et non `InvalidValueConversion`. Defaut preexistant, sans effet sur les positions ; X3 affiche le code tel quel.
-- Structure de l'editeur (demande de l'auteur du 17 septembre, apres X1) : l'auteur veut que les volets soient heberges par le docking manager (`MGDockHost`) et non par une grille fixe a separateurs. Proposition ecrite : tache X1b ci-dessus, a approuver par l'auteur avant tout code. Relue trois fois en contexte frais le 17 septembre (sept constats bloquants et une vingtaine de remarques, tous integres ; la deuxieme relecture a fait retirer les noms des volets et le layout par defaut public ; la troisieme a confirme tous les faits et n'a plus trouve qu'un critere mal formule, corrige depuis sans nouvelle relecture). Points que son approbation tranche : dockables par volet (et non l'editeur entier comme un seul dockable) ; volets sans `Name` ; volets non fermables en V1 ; « Preview » non flottant en V1 ; diagnostics en cinquieme dockable ; sauvegarde du layout hors V1 ; validation manuelle de X0 absorbee par celle de X1b.
+- Hors chantier, a documenter seulement : `XamlLoaderDiagnostics.Classify` choisit le code d'un diagnostic en cherchant des mots anglais dans le message de l'exception ; `Width="abc"` est classe `ParseFailure` et non `InvalidValueConversion` (dans toutes les langues, mesure faite). Defaut preexistant, sans effet sur les positions ; X3 affiche le code tel quel. Un correctif separe existe sur la branche `fix/xaml-diagnostics-culture` (`4b51ca6`, depuis `develop`, verifie, ni merge ni pousse) : apres le merge des deux branches, lever cette limite ici et dans l'ADR-0010.
+- Structure de l'editeur, RESOLU le 17 septembre : l'auteur voulait que les volets soient heberges par le docking manager ; la tache X1b, relue trois fois en contexte frais (sept constats bloquants et une vingtaine de remarques, tous integres ; la troisieme relecture a confirme tous les faits), a ete approuvee par l'auteur : decision 10.
 
 ## Suites connues (hors V1)
 
@@ -462,4 +471,5 @@ Commit recommande : `refactor(core): remove MGXAMLDesigner, superseded by MGUI.E
 - Editeurs types de la grille : [propertygrid-tasks.md](propertygrid-tasks.md) (tache 1, enums, en premier) ; valeurs effectives des autres chemins pilotes dans la categorie « Resolved (runtime) ».
 - Evenement de deplacement de caret dans `MGUI.Core`, pour remplacer le sondage.
 - Redimensionnement ou defilement d'une racine `Window` plus grande que le volet.
-- Integration CasaEngine : heberger `XamlEditorView` dans le docking de l'editeur CasaEngine, fournir `DesignDataContext`.
+- Integration CasaEngine : enregistrer `XamlEditorView.Dockables` dans le `MGDockHost` de l'editeur CasaEngine, fournir `DesignDataContext`.
+- Docking de l'editeur : sauvegarde et reinitialisation du layout (`DockLayoutSerializer`), volets fermables avec un menu « View » (tout panneau devra alors passer par `RegisterPanel`), flottement du volet « Preview » (deplacer la racine `Window` de preview entre fenetres imbriquees), plusieurs documents ouverts.
