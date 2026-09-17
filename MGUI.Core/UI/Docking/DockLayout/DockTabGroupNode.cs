@@ -256,6 +256,12 @@ public class DockTabGroupNode : DockNode
     public bool IsEmpty => Panels.Count == 0;
 
     /// <summary>
+    /// An empty tab group is hidden from the visual tree, unless it is the root group
+    /// (a root group with no panels stays visible, as today, showing "Empty Tab Group").
+    /// </summary>
+    internal override bool IsHiddenInLayout => IsEmpty && Parent != null;
+
+    /// <summary>
     /// Gets the index of the specified panel in the collection.
     /// </summary>
     /// <param name="panel">The panel to find.</param>

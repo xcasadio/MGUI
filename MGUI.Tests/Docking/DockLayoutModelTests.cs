@@ -487,6 +487,236 @@ public class DockLayoutModelTests
         Assert.Empty(model.GetAutoHidePanels(AutoHideSide.Right));
     }
 
+    // ── Panel placements (Task T1) ────────────────────────────────────────
+
+    [Fact]
+    public void SetPlacement_ThenTryGetPlacement_ReturnsIt()
+    {
+        var model = new DockLayoutModel();
+        var placement = new DockPanelPlacement("group-1", 2);
+
+        model.SetPlacement("panel-1", placement);
+
+        Assert.True(model.TryGetPlacement("panel-1", out var found));
+        Assert.Same(placement, found);
+    }
+
+    [Fact]
+    public void TryGetPlacement_ReturnsFalse_WhenNotSet()
+    {
+        var model = new DockLayoutModel();
+        Assert.False(model.TryGetPlacement("missing", out var placement));
+        Assert.Null(placement);
+    }
+
+    [Fact]
+    public void SetPlacement_Overwrites_PreviousPlacement()
+    {
+        var model = new DockLayoutModel();
+        model.SetPlacement("p", new DockPanelPlacement("g1", 0));
+        model.SetPlacement("p", new DockPanelPlacement("g2", 5));
+
+        Assert.True(model.TryGetPlacement("p", out var found));
+        Assert.Equal("g2", found.GroupId);
+        Assert.Equal(5, found.TabIndex);
+    }
+
+    [Fact]
+    public void SetPlacement_NullOrEmptyId_Throws()
+    {
+        var model = new DockLayoutModel();
+        var placement = new DockPanelPlacement("g", 0);
+
+        Assert.Throws<ArgumentException>(() => model.SetPlacement(null!, placement));
+        Assert.Throws<ArgumentException>(() => model.SetPlacement(string.Empty, placement));
+    }
+
+    [Fact]
+    public void SetPlacement_NullPlacement_Throws()
+    {
+        var model = new DockLayoutModel();
+        Assert.Throws<ArgumentNullException>(() => model.SetPlacement("p", null!));
+    }
+
+    [Fact]
+    public void RemovePlacement_ReturnsTrue_WhenFound()
+    {
+        var model = new DockLayoutModel();
+        model.SetPlacement("p", new DockPanelPlacement("g", 0));
+
+        Assert.True(model.RemovePlacement("p"));
+        Assert.False(model.TryGetPlacement("p", out _));
+    }
+
+    [Fact]
+    public void RemovePlacement_ReturnsFalse_WhenNotFound()
+    {
+        var model = new DockLayoutModel();
+        Assert.False(model.RemovePlacement("missing"));
+    }
+
+    [Fact]
+    public void IsPlaceholderReferenced_True_WhenGroupIsReferenced()
+    {
+        var model = new DockLayoutModel();
+        var g = new DockTabGroupNode();
+        model.SetPlacement("p", new DockPanelPlacement(g.Id, 0));
+
+        Assert.True(model.IsPlaceholderReferenced(g));
+    }
+
+    [Fact]
+    public void IsPlaceholderReferenced_False_WhenGroupIsNotReferenced()
+    {
+        var model = new DockLayoutModel();
+        var g = new DockTabGroupNode();
+
+        Assert.False(model.IsPlaceholderReferenced(g));
+    }
+
+    [Fact]
+    public void IsPlaceholderReferenced_False_ForNullGroup()
+    {
+        var model = new DockLayoutModel();
+        Assert.False(model.IsPlaceholderReferenced(null!));
+    }
+
+    // ── Floating store (Task T1) ────────────────────────────────────────
+
+    [Fact]
+    public void DockFloatingGroup_NullGroup_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => new DockFloatingGroup(null!, 0, 0, 100, 100));
+    }
+
+    [Fact]
+    public void AddFloatingGroup_AddsToFloatingGroups()
+    {
+        var model = new DockLayoutModel();
+        var fg = new DockFloatingGroup(Group(Panel()), 10, 20, 300, 400);
+
+        model.AddFloatingGroup(fg);
+
+        Assert.Single(model.FloatingGroups, fg);
+    }
+
+    [Fact]
+    public void AddFloatingGroup_RaisesLayoutChanged()
+    {
+        var model = new DockLayoutModel();
+        var fg = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+
+        int count = 0;
+        model.LayoutChanged += (_, _) => count++;
+
+        model.AddFloatingGroup(fg);
+
+        Assert.True(count > 0);
+    }
+
+    [Fact]
+    public void AddFloatingGroup_NullGroup_Throws()
+    {
+        var model = new DockLayoutModel();
+        Assert.Throws<ArgumentNullException>(() => model.AddFloatingGroup(null!));
+    }
+
+    [Fact]
+    public void AddFloatingGroup_Duplicate_Throws()
+    {
+        var model = new DockLayoutModel();
+        var fg = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+        model.AddFloatingGroup(fg);
+
+        Assert.Throws<InvalidOperationException>(() => model.AddFloatingGroup(fg));
+    }
+
+    [Fact]
+    public void RemoveFloatingGroup_ReturnsTrue_WhenRemoved()
+    {
+        var model = new DockLayoutModel();
+        var fg = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+        model.AddFloatingGroup(fg);
+
+        Assert.True(model.RemoveFloatingGroup(fg));
+        Assert.Empty(model.FloatingGroups);
+    }
+
+    [Fact]
+    public void RemoveFloatingGroup_ReturnsFalse_AndDoesNotRaiseLayoutChanged_WhenNotFound()
+    {
+        var model = new DockLayoutModel();
+        var fg = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+
+        int count = 0;
+        model.LayoutChanged += (_, _) => count++;
+
+        Assert.False(model.RemoveFloatingGroup(fg));
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public void RemoveFloatingGroup_RaisesLayoutChanged_WhenRemoved()
+    {
+        var model = new DockLayoutModel();
+        var fg = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+        model.AddFloatingGroup(fg);
+
+        int count = 0;
+        model.LayoutChanged += (_, _) => count++;
+
+        model.RemoveFloatingGroup(fg);
+
+        Assert.True(count > 0);
+    }
+
+    [Fact]
+    public void FindFloatingGroupOf_ReturnsGroup_HoldingPanel()
+    {
+        var model = new DockLayoutModel();
+        var p = Panel();
+        var fg = new DockFloatingGroup(Group(p), 0, 0, 10, 10);
+        model.AddFloatingGroup(fg);
+
+        var found = model.FindFloatingGroupOf(p.Id);
+
+        Assert.Same(fg, found);
+    }
+
+    [Fact]
+    public void FindFloatingGroupOf_ReturnsNull_WhenPanelNotFloating()
+    {
+        var model = new DockLayoutModel();
+        Assert.Null(model.FindFloatingGroupOf("missing"));
+    }
+
+    [Fact]
+    public void FloatingGroups_PreservesAddOrder()
+    {
+        var model = new DockLayoutModel();
+        var fg1 = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+        var fg2 = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+
+        model.AddFloatingGroup(fg1);
+        model.AddFloatingGroup(fg2);
+
+        Assert.Equal(new[] { fg1, fg2 }, model.FloatingGroups);
+    }
+
+    [Fact]
+    public void Clear_EmptiesFloatingStore_AndPlacements()
+    {
+        var model = new DockLayoutModel(Group(new DockPanelNode { Title = "Root" }));
+        var fg = new DockFloatingGroup(Group(Panel()), 0, 0, 10, 10);
+        model.AddFloatingGroup(fg);
+        model.SetPlacement("p", new DockPanelPlacement("g", 0));
+
+        model.Clear();
+
+        Assert.Empty(model.FloatingGroups);
+        Assert.False(model.TryGetPlacement("p", out _));
+    }
+
     [Fact]
     public void Clear_AutoHidePanelPropertyChanges_DoNotFireLayoutChanged_After_Clear()
     {

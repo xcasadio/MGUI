@@ -40,4 +40,5 @@ Facts verified at `develop` `4b51ca6` (the docking code is identical on `xaml-ed
 
 ## Decisions taken during delivery
 
-- None yet.
+- T1, 2026-09-17: `DockLayoutModel.SubscribeToNodeTree` is idempotent (it removes the handler before adding it). A panel removed from the tree by `DockOperation.RemovePanel` was never unsubscribed, so adding it to a floating group subscribed it a second time and every later structural change on it raised `LayoutChanged` twice, one more time per float cycle. Unsubscribing panels when they leave the tree was left out: it would change the `LayoutChanged` notifications raised by the existing operations, which this slice must not alter.
+- T1, 2026-09-17: `AddFloatingGroup` and `RemoveFloatingGroup` raise `LayoutChanged` in the middle of the placeholder operations; host callers suspend their subscription around those calls and rebuild once afterwards, as `UnpinPanel` / `RepinPanel` already do.

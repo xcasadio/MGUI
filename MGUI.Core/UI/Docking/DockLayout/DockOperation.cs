@@ -432,10 +432,12 @@ public static class DockOperation
 
     /// <summary>
     /// Cleans up an empty tab group by removing it from the tree and collapsing splits if necessary.
+    /// A group still referenced by a remembered placement is kept in the tree as a hidden
+    /// placeholder instead (see <see cref="DockLayoutModel.IsPlaceholderReferenced"/>).
     /// </summary>
     private static void CleanupEmptyTabGroup(DockLayoutModel model, DockTabGroupNode emptyGroup)
     {
-        if (emptyGroup == null || !emptyGroup.IsEmpty)
+        if (emptyGroup == null || !emptyGroup.IsEmpty || model.IsPlaceholderReferenced(emptyGroup))
         {
             return;
         }
@@ -557,8 +559,9 @@ public static class DockOperation
         {
             if (tabGroup.IsEmpty)
             {
-                // This tab group is empty
-                return true; // Signal parent to remove it
+                // An empty group still referenced by a remembered placement is kept as a
+                // hidden placeholder: it is not cleanable.
+                return !model.IsPlaceholderReferenced(tabGroup); // Signal parent to remove it
             }
             return false; // Tab group has content, keep it
         }
@@ -674,4 +677,301 @@ public static class DockOperation
 
         return false;
     }
+
+    #region Placeholder groups (floating, auto-hide and close with a remembered place)
+
+    /// <summary>
+    /// Whether <paramref name="group"/> is currently part of <paramref name="model"/>'s layout tree
+    /// (as opposed to a floating group's own, separate tab group).
+    /// </summary>
+    private static bool IsInModelTree(DockLayoutModel model, DockTabGroupNode group)
+    {
+        return group != null && model.FindNodeById(group.Id) == group;
+    }
+
+    /// <summary>
+    /// Detaches <paramref name="panel"/> into a brand-new floating group with the given window
+    /// bounds. When the panel currently sits in a tab group that belongs to the model's layout
+    /// tree, its place is remembered (<see cref="DockLayoutModel.SetPlacement"/>) before removal,
+    /// so the source group survives, empty and hidden, as a placeholder until the panel returns.
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panel">The panel to float.</param>
+    /// <param name="left">Left position of the floating window, in pixels.</param>
+    /// <param name="top">Top position of the floating window, in pixels.</param>
+    /// <param name="width">Width of the floating window, in pixels.</param>
+    /// <param name="height">Height of the floating window, in pixels.</param>
+    /// <returns>The newly created floating group.</returns>
+    internal static DockFloatingGroup FloatPanel(DockLayoutModel model, DockPanelNode panel,
+        int left, int top, int width, int height)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
+        if (panel.Parent is DockTabGroupNode currentGroup)
+        {
+            if (!IsInModelTree(model, currentGroup))
+            {
+                throw new InvalidOperationException("Panel already belongs to a floating group.");
+            }
+
+            model.SetPlacement(panel.Id, new DockPanelPlacement(currentGroup.Id, currentGroup.IndexOf(panel)));
+            RemovePanel(model, panel);
+        }
+
+        var newGroup = new DockTabGroupNode();
+        newGroup.AddPanel(panel, -1);
+
+        var floatingGroup = new DockFloatingGroup(newGroup, left, top, width, height);
+        model.AddFloatingGroup(floatingGroup);
+        return floatingGroup;
+    }
+
+    /// <summary>
+    /// Removes <paramref name="panel"/> from the floating group holding it. Removes the floating
+    /// group itself when it becomes empty. The panel's remembered placement, if any, is untouched.
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panel">The panel to detach.</param>
+    /// <returns>True when the panel was found in a floating group and detached.</returns>
+    internal static bool DetachFromFloatingGroup(DockLayoutModel model, DockPanelNode panel)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
+        var floatingGroup = model.FindFloatingGroupOf(panel.Id);
+        if (floatingGroup == null)
+        {
+            return false;
+        }
+
+        floatingGroup.Group.RemovePanel(panel);
+
+        if (floatingGroup.Group.IsEmpty)
+        {
+            model.RemoveFloatingGroup(floatingGroup);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Sends <paramref name="panel"/> to the auto-hide store on <paramref name="side"/>. The panel
+    /// must currently sit in a tab group belonging to the model's layout tree; its place is
+    /// remembered before removal, so the source group survives, empty and hidden, as a
+    /// placeholder until the panel returns.
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panel">The panel to auto-hide.</param>
+    /// <param name="side">The edge the panel's auto-hide tab appears on.</param>
+    internal static void AutoHidePanel(DockLayoutModel model, DockPanelNode panel, AutoHideSide side)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
+        if (panel.Parent is not DockTabGroupNode currentGroup || !IsInModelTree(model, currentGroup))
+        {
+            throw new InvalidOperationException("Panel must be docked in the layout tree to be auto-hidden.");
+        }
+
+        model.SetPlacement(panel.Id, new DockPanelPlacement(currentGroup.Id, currentGroup.IndexOf(panel)));
+        RemovePanel(model, panel);
+        model.AddToAutoHide(panel, side);
+    }
+
+    /// <summary>
+    /// Resolves the tab group <paramref name="panelId"/>'s remembered placement points to, when
+    /// that group is currently part of the model's layout tree.
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panelId">Id of the panel whose placement should be resolved.</param>
+    /// <returns>The placement's tab group, or null when there is no placement or its group is gone.</returns>
+    internal static DockTabGroupNode ResolvePlacementGroup(DockLayoutModel model, string panelId)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (!model.TryGetPlacement(panelId, out var placement))
+        {
+            return null;
+        }
+
+        return model.FindNodeById(placement.GroupId) as DockTabGroupNode;
+    }
+
+    /// <summary>
+    /// Returns <paramref name="panel"/> to the tab group its remembered placement points to, at
+    /// its original tab index (clamped, per <see cref="DockTabGroupNode.AddPanel"/>, to the end
+    /// of the group when out of bounds), and makes it the active tab. Forgets the placement on
+    /// success. <paramref name="panel"/> must currently have no parent (detach it first).
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panel">The panel to restore.</param>
+    /// <returns>True when the panel was restored; false, leaving the placement untouched, when the group is gone.</returns>
+    internal static bool RestoreToPlacement(DockLayoutModel model, DockPanelNode panel)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
+        if (panel.Parent != null)
+        {
+            throw new InvalidOperationException("Panel must be detached before it can be restored to its placement.");
+        }
+
+        var group = ResolvePlacementGroup(model, panel.Id);
+        if (group == null)
+        {
+            return false;
+        }
+
+        model.TryGetPlacement(panel.Id, out var placement);
+        DockAsTab(model, panel, group, placement.TabIndex);
+        model.RemovePlacement(panel.Id);
+        return true;
+    }
+
+    /// <summary>
+    /// Closes <paramref name="panel"/>, removing it from wherever it currently is (the layout
+    /// tree, a floating group, or the auto-hide store). When <paramref name="rememberPlacement"/>
+    /// is true and the panel was docked in the tree, its place is remembered so <c>ShowDockable</c>
+    /// can reopen it there later; otherwise any remembered placement is forgotten and now-unreferenced
+    /// placeholder groups are collected.
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panel">The panel to close.</param>
+    /// <param name="rememberPlacement">Whether the panel's place should be kept for a later reopen.</param>
+    internal static void ClosePanel(DockLayoutModel model, DockPanelNode panel, bool rememberPlacement)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (panel == null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
+        if (panel.Parent is DockTabGroupNode currentGroup && IsInModelTree(model, currentGroup))
+        {
+            if (rememberPlacement)
+            {
+                model.SetPlacement(panel.Id, new DockPanelPlacement(currentGroup.Id, currentGroup.IndexOf(panel)));
+            }
+            else
+            {
+                model.RemovePlacement(panel.Id);
+            }
+
+            RemovePanel(model, panel);
+        }
+        else
+        {
+            var floatingGroup = model.FindFloatingGroupOf(panel.Id);
+            if (floatingGroup != null)
+            {
+                DetachFromFloatingGroup(model, panel);
+            }
+            else
+            {
+                model.RemoveFromAutoHide(panel);
+            }
+        }
+
+        if (!rememberPlacement)
+        {
+            ForgetPlacement(model, panel.Id);
+        }
+    }
+
+    /// <summary>
+    /// Forgets <paramref name="panelId"/>'s remembered placement, then collects any tab group left
+    /// unreferenced by it (<see cref="CollectUnreferencedPlaceholders"/>).
+    /// </summary>
+    /// <param name="model">The layout model to operate on.</param>
+    /// <param name="panelId">Id of the panel whose placement should be forgotten.</param>
+    internal static void ForgetPlacement(DockLayoutModel model, string panelId)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        model.RemovePlacement(panelId);
+        CollectUnreferencedPlaceholders(model);
+    }
+
+    /// <summary>
+    /// Removes every empty, non-root tab group in the layout tree that no remembered placement
+    /// references any more, collapsing splits as it goes, exactly like today's cleanup.
+    /// </summary>
+    /// <param name="model">The layout model to clean.</param>
+    internal static void CollectUnreferencedPlaceholders(DockLayoutModel model)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        DockTabGroupNode target;
+        while ((target = FindUnreferencedEmptyGroup(model, model.RootNode)) != null)
+        {
+            CleanupEmptyTabGroup(model, target);
+        }
+    }
+
+    /// <summary>
+    /// Finds the first empty, non-root, unreferenced tab group in the given subtree, if any.
+    /// </summary>
+    private static DockTabGroupNode FindUnreferencedEmptyGroup(DockLayoutModel model, DockNode node)
+    {
+        if (node is DockTabGroupNode group)
+        {
+            if (group.IsEmpty && group.Parent != null && !model.IsPlaceholderReferenced(group))
+            {
+                return group;
+            }
+
+            return null;
+        }
+
+        if (node is DockSplitNode split)
+        {
+            return FindUnreferencedEmptyGroup(model, split.FirstChild) ?? FindUnreferencedEmptyGroup(model, split.SecondChild);
+        }
+
+        return null;
+    }
+
+    #endregion Placeholder groups (floating, auto-hide and close with a remembered place)
 }

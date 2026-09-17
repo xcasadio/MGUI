@@ -128,6 +128,163 @@ public class DockLayoutModel : INotifyPropertyChanged
 
     #endregion Auto-Hide Store
 
+    #region Panel Placements
+
+    /// <summary>
+    /// Remembered places of panels that left the layout tree (floated, auto-hidden or closed),
+    /// indexed by panel id. Shared by all three cases; see <see cref="DockPanelPlacement"/>.
+    /// </summary>
+    private readonly Dictionary<string, DockPanelPlacement> _placements = new Dictionary<string, DockPanelPlacement>();
+
+    /// <summary>
+    /// Read-only view of the remembered placements, indexed by panel id.
+    /// </summary>
+    internal IReadOnlyDictionary<string, DockPanelPlacement> Placements => _placements;
+
+    /// <summary>
+    /// Attempts to retrieve the remembered placement of <paramref name="panelId"/>.
+    /// </summary>
+    /// <param name="panelId">Id of the panel to look up.</param>
+    /// <param name="placement">The remembered placement, or null when none is stored.</param>
+    /// <returns>True when a placement was found.</returns>
+    internal bool TryGetPlacement(string panelId, out DockPanelPlacement placement)
+    {
+        if (string.IsNullOrEmpty(panelId))
+        {
+            placement = null;
+            return false;
+        }
+
+        return _placements.TryGetValue(panelId, out placement);
+    }
+
+    /// <summary>
+    /// Remembers <paramref name="placement"/> as the place <paramref name="panelId"/> left.
+    /// Overwrites any previously remembered placement for that panel.
+    /// </summary>
+    /// <param name="panelId">Id of the panel the placement belongs to.</param>
+    /// <param name="placement">The placement to remember.</param>
+    internal void SetPlacement(string panelId, DockPanelPlacement placement)
+    {
+        if (string.IsNullOrEmpty(panelId))
+        {
+            throw new ArgumentException("Panel ID cannot be null or empty.", nameof(panelId));
+        }
+
+        if (placement == null)
+        {
+            throw new ArgumentNullException(nameof(placement));
+        }
+
+        _placements[panelId] = placement;
+    }
+
+    /// <summary>
+    /// Forgets the remembered placement of <paramref name="panelId"/>, if any.
+    /// </summary>
+    /// <param name="panelId">Id of the panel whose placement should be forgotten.</param>
+    /// <returns>True when a placement was found and removed.</returns>
+    internal bool RemovePlacement(string panelId)
+    {
+        if (string.IsNullOrEmpty(panelId))
+        {
+            return false;
+        }
+
+        return _placements.Remove(panelId);
+    }
+
+    /// <summary>
+    /// Whether any remembered placement still references <paramref name="group"/>. A referenced
+    /// tab group is kept in the tree as a hidden placeholder even while empty.
+    /// </summary>
+    /// <param name="group">The tab group to check.</param>
+    internal bool IsPlaceholderReferenced(DockTabGroupNode group)
+    {
+        if (group == null)
+        {
+            return false;
+        }
+
+        return _placements.Values.Any(p => p.GroupId == group.Id);
+    }
+
+    #endregion Panel Placements
+
+    #region Floating Store
+
+    /// <summary>
+    /// Tab groups currently shown in floating windows.
+    /// </summary>
+    private readonly List<DockFloatingGroup> _floatingGroups = new List<DockFloatingGroup>();
+
+    /// <summary>
+    /// Read-only view of the floating groups currently in the model.
+    /// </summary>
+    public IReadOnlyList<DockFloatingGroup> FloatingGroups => _floatingGroups.AsReadOnly();
+
+    /// <summary>
+    /// Adds <paramref name="floatingGroup"/> to the floating store and subscribes to its node
+    /// tree so its structural changes raise <see cref="LayoutChanged"/>, as for the auto-hide store.
+    /// </summary>
+    /// <param name="floatingGroup">The floating group to add.</param>
+    public void AddFloatingGroup(DockFloatingGroup floatingGroup)
+    {
+        if (floatingGroup == null)
+        {
+            throw new ArgumentNullException(nameof(floatingGroup));
+        }
+
+        if (_floatingGroups.Contains(floatingGroup))
+        {
+            throw new InvalidOperationException("This floating group has already been added to the model.");
+        }
+
+        _floatingGroups.Add(floatingGroup);
+        SubscribeToNodeTree(floatingGroup.Group);
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Removes <paramref name="floatingGroup"/> from the floating store and unsubscribes from its
+    /// node tree. Returns false, without raising <see cref="LayoutChanged"/>, when it was not found.
+    /// </summary>
+    /// <param name="floatingGroup">The floating group to remove.</param>
+    /// <returns>True when the floating group was found and removed.</returns>
+    public bool RemoveFloatingGroup(DockFloatingGroup floatingGroup)
+    {
+        if (floatingGroup == null)
+        {
+            return false;
+        }
+
+        if (!_floatingGroups.Remove(floatingGroup))
+        {
+            return false;
+        }
+
+        UnsubscribeFromNodeTree(floatingGroup.Group);
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    /// <summary>
+    /// Finds the floating group currently holding the panel with id <paramref name="panelId"/>.
+    /// </summary>
+    /// <param name="panelId">Id of the panel to look for.</param>
+    /// <returns>The floating group holding the panel, or null when it is not floating.</returns>
+    public DockFloatingGroup FindFloatingGroupOf(string panelId)
+    {
+        if (string.IsNullOrEmpty(panelId))
+        {
+            return null;
+        }
+
+        return _floatingGroups.FirstOrDefault(fg => fg.Group.Panels.Any(p => p.Id == panelId));
+    }
+
+    #endregion Floating Store
+
     /// <summary>
     /// Creates a new empty DockLayoutModel.
     /// </summary>
@@ -297,7 +454,10 @@ public class DockLayoutModel : INotifyPropertyChanged
 
     /// <summary>
     /// Subscribes to PropertyChanged events for all nodes in the subtree.
-    /// Used to propagate layout changes.
+    /// Used to propagate layout changes. Idempotent: a node that is already subscribed
+    /// (e.g. a panel that was removed from the tree via <see cref="DockOperation.RemovePanel"/>
+    /// without an explicit unsubscribe, then re-added to a floating group) is not subscribed
+    /// twice, so a single structural change on it still raises <see cref="LayoutChanged"/> once.
     /// </summary>
     private void SubscribeToNodeTree(DockNode node)
     {
@@ -306,6 +466,7 @@ public class DockLayoutModel : INotifyPropertyChanged
             return;
         }
 
+        node.PropertyChanged -= OnNodePropertyChanged;
         node.PropertyChanged += OnNodePropertyChanged;
 
         foreach (var child in node.GetChildren())
@@ -381,6 +542,15 @@ public class DockLayoutModel : INotifyPropertyChanged
 
             list.Clear();
         }
+
+        // Unsubscribe from floating groups (they're NOT in the layout tree either).
+        foreach (var floatingGroup in _floatingGroups)
+        {
+            UnsubscribeFromNodeTree(floatingGroup.Group);
+        }
+
+        _floatingGroups.Clear();
+        _placements.Clear();
 
         RootNode = null;
     }

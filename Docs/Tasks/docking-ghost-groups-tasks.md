@@ -170,7 +170,9 @@ Rollback : revert du commit.
 
 Commit recommande : `docs(docking): add the placeholder group plan and ADR-0012`
 
-### ⏳ T1. Modele : places memorisees, groupes fantomes et store flottant
+### ✅ T1. Modele : places memorisees, groupes fantomes et store flottant
+
+Statut (17 septembre 2026) : livre. Execution par un agent `executor`, puis revue du diff sous trois angles (contrat, tests, besoins de T2 a T5), chaque constat P0 a P2 soumis a trois sceptiques : deux P2 confirmes et corriges au tour de correction (double abonnement de `OnNodePropertyChanged` quand un panneau deja dans l'arbre part en fenetre flottante, corrige en rendant `SubscribeToNodeTree` idempotent, test `FloatPanel_DoesNotDoubleSubscribe_PanelAlreadyInModelTree` ; test D3 incapable de distinguer l'index memorise d'un ajout en fin, renforce), deux constats refutes a l'unanimite, trois P3/P4 non bloquants (voir T2). Mutations : M1 (reference ignoree au nettoyage) → 14 tests rouges ; M2 (index ignore) → `MultiTabGroup_OutOfOrderReturn_FollowsIndexRule` et `RestoreToPlacement_ClampsOutOfBoundsIndex_D3` rouges ; M3 (tailles minimales sans `IsHiddenInLayout`) → 7 tests rouges ; toutes retirees. Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj` 0 erreur ; suite complete 2481 reussis, 0 echec (reference 2420). Note pour T2 : `AddFloatingGroup` / `RemoveFloatingGroup` levent `LayoutChanged` pendant `FloatPanel`, `DetachFromFloatingGroup` et `ClosePanel` ; l'hote encadre ces appels en suspendant son abonnement, comme `UnpinPanel` / `RepinPanel` (`MGDockHost.cs:1620-1630`), puis reconstruit une fois (P12). Observe une fois par l'executor : `KeyFrameClipTests.DeserializedClip_AllocatesNothingPerTick` (compte d'allocations, hors docking) rouge puis vert au relancement.
 
 But : donner au modele tout ce que la restauration exige, sans changer le comportement de l'hote (aucune place n'est encore ecrite par l'hote).
 
