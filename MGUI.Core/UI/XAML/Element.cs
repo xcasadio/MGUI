@@ -73,7 +73,7 @@ public abstract class Element : XAMLBindableBase
     /// composite DTO that exposes it (a <c>BorderThickness</c> declared on <c>PART_CloseButton</c> is transferred by the button's nested Border DTO).</summary>
     internal string TemplateElementName { get; private set; }
 
-    /// <summary>X1: the XAML node this DTO was created from, stamped by <see cref="XAMLParser.ParseDefinition{TDefinition}(XamlDocumentSource, MGResources, XamlLoaderMode, bool, bool)"/>
+    /// <summary>The XAML node this DTO was created from, stamped by <see cref="XAMLParser.ParseDefinition{TDefinition}(XamlDocumentSource, MGResources, XamlLoaderMode, bool, bool)"/>
     /// after the reader/writer loop completes. Null for a DTO produced by <see cref="XAMLParser.ParseObjectDefinition{TDefinition}(XamlDocumentSource, XamlLoaderMode, bool, bool)"/>
     /// (control template parts, theme content) and for a DTO created by a <see cref="TypeConverter"/> (for example <see cref="ElementStringConverter"/>
     /// turning a <c>Content="text"</c> attribute into a <see cref="TextBlock"/>), since neither path goes through that loop.<para/>
@@ -449,7 +449,7 @@ public abstract class Element : XAMLBindableBase
         {
             var Desktop = Element.GetDesktop();
 
-            //  X1: relay the XAML source position (if any) to the created MGElement so that tooling (UIToolingService.TryGetXamlSourcePosition)
+            //  Relay the XAML source position (if any) to the created MGElement so that tooling (UIToolingService.TryGetXamlSourcePosition)
             //  can relate it back to the document node it was declared from. Every element kind goes through ApplyBaseSettings, root Window included.
             if (SourcePosition.HasValue)
             {

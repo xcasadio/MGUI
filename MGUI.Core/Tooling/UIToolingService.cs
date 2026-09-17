@@ -50,11 +50,11 @@ public static class UIToolingService
         return result.ToString();
     }
 
-    /// <summary>X1: the <see cref="MGElement.Metadata"/> key under which <see cref="Element.ApplyBaseSettings(MGElement, MGElement, bool)"/>
+    /// <summary>The <see cref="MGElement.Metadata"/> key under which <see cref="Element.ApplyBaseSettings(MGElement, MGElement, bool)"/>
     /// stores an <see cref="Element.SourcePosition"/> that was set. Read back by <see cref="TryGetXamlSourcePosition(MGElement, out XamlSourcePosition)"/>.</summary>
     public const string XamlSourcePositionMetadataKey = "MGUI.Xaml.SourcePosition";
 
-    /// <summary>X1: the XAML source position of the document node <paramref name="element"/> was created from, if any. Returns
+    /// <summary>The XAML source position of the document node <paramref name="element"/> was created from, if any. Returns
     /// <see langword="false"/> for an element created outside the loader's reader/writer loop -- a control template part, a theme
     /// element, or a value produced by a <see cref="TypeConverter"/> (for example <c>Content="text"</c>).</summary>
     /// <exception cref="ArgumentNullException"><paramref name="element"/> is null.</exception>
@@ -75,7 +75,7 @@ public static class UIToolingService
         return false;
     }
 
-    /// <summary>X1: public wrapper over the loader's internal element name resolution (aliases included), restricted to names that resolve
+    /// <summary>Public wrapper over the loader's internal element name resolution (aliases included), restricted to names that resolve
     /// to a DTO type deriving from <see cref="Element"/>. This is the definition of "counts for the ordinal" shared by
     /// <see cref="XamlSourcePosition.Ordinal"/> and the XAML editor's own document model: a name that resolves to a non-<see cref="Element"/>
     /// type (<see cref="Style"/>, <see cref="Setter"/>, a brush, <see cref="ContentTemplate"/>) returns <see langword="false"/>.</summary>

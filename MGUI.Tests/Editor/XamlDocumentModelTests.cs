@@ -3,7 +3,7 @@ using MGUI.Editor.Document;
 
 namespace MGUI.Tests.Editor;
 
-/// <summary>X1: <see cref="XamlDocumentModel"/> never throws, and its nodes' ranges and ordinals match the raw text and the loader.</summary>
+/// <summary><see cref="XamlDocumentModel"/> never throws, and its nodes' ranges and ordinals match the raw text and the loader.</summary>
 public class XamlDocumentModelTests
 {
     private const string Ns = "clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core";

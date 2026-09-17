@@ -2,7 +2,7 @@ using MGUI.Editor.Document;
 
 namespace MGUI.Tests.Editor;
 
-/// <summary>X1: <see cref="XamlAttributeEdit"/> produces minimal edits that re-parse to the expected value, and never touch the rest of
+/// <summary><see cref="XamlAttributeEdit"/> produces minimal edits that re-parse to the expected value, and never touch the rest of
 /// the text outside the edited range.</summary>
 public class XamlAttributeEditTests
 {
