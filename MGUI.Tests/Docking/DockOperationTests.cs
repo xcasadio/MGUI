@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Docking;
 using MGUI.Core.UI.Docking.DockLayout;
@@ -859,6 +860,18 @@ public class DockOperationTests
 
     // ── ForgetPlacement / CleanupEmptyNodes collapse exactly like today ──
 
+    /// <summary>
+    /// Format 2.0 (T5) serializes the floating store alongside the tree, so two models that
+    /// legitimately differ in floating state (e1's panel is still floating; e2's was fully
+    /// removed) never produce identical full documents any more. These tests are only about the
+    /// tree collapsing identically, so they compare the "rootNode" section alone.
+    /// </summary>
+    private static string RootNodeJson(DockLayoutModel model)
+    {
+        using var document = JsonDocument.Parse(DockLayoutSerializer.ToJson(model));
+        return document.RootElement.GetProperty("rootNode").GetRawText();
+    }
+
     [Fact]
     public void ForgetPlacement_Collapses_ExactlyLikeDirectRemovePanel()
     {
@@ -869,7 +882,7 @@ public class DockOperationTests
         var e2 = EditorLayout();
         DockOperation.RemovePanel(e2.Model, e2.Text);
 
-        Assert.Equal(DockLayoutSerializer.ToJson(e2.Model), DockLayoutSerializer.ToJson(e1.Model));
+        Assert.Equal(RootNodeJson(e2.Model), RootNodeJson(e1.Model));
     }
 
     [Fact]
@@ -883,7 +896,7 @@ public class DockOperationTests
         var e2 = EditorLayout();
         DockOperation.RemovePanel(e2.Model, e2.Text);
 
-        Assert.Equal(DockLayoutSerializer.ToJson(e2.Model), DockLayoutSerializer.ToJson(e1.Model));
+        Assert.Equal(RootNodeJson(e2.Model), RootNodeJson(e1.Model));
     }
 
     [Fact]

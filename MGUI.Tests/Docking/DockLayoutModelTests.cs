@@ -734,4 +734,276 @@ public class DockLayoutModelTests
         p.Title = "Changed after clear"; // should not trigger LayoutChanged
         Assert.Equal(0, count);
     }
+
+    // ── Format 2.0 round trips (Task T5) ────────────────────────────────────
+
+    [Fact]
+    public void Json_RoundTrip_Version_Is_2_0()
+    {
+        var model = new DockLayoutModel(Group(Panel()));
+        string json = DockLayoutSerializer.ToJson(model);
+
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        Assert.Equal("2.0", document.RootElement.GetProperty("version").GetString());
+    }
+
+    [Fact]
+    public void Json_RoundTrip_PlaceholderGroupReferencedByPlacement_IsKept()
+    {
+        var stays = new DockPanelNode { Title = "Stays" };
+        var floated = new DockPanelNode { Title = "Floated" };
+        var g = Group(stays);
+        var model = new DockLayoutModel(g);
+
+        // Simulate "Floated" having left g's sibling group, leaving it empty but referenced.
+        var ghostGroup = new DockTabGroupNode();
+        var split = new DockSplitNode { Orientation = Orientation.Horizontal, SplitRatio = 0.5f, FirstChild = g, SecondChild = ghostGroup };
+        model.RootNode = split;
+        model.SetPlacement(floated.Id, new DockPanelPlacement(ghostGroup.Id, 0));
+        model.AddFloatingGroup(new DockFloatingGroup(Group(floated), 0, 0, 100, 100));
+
+        string json = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        Assert.True(restored.TryGetPlacement(floated.Id, out var placement));
+        var restoredGhost = restored.RootNode.FindNodeById(placement.GroupId) as DockTabGroupNode;
+        Assert.NotNull(restoredGhost);
+        Assert.True(restoredGhost.IsEmpty);
+        Assert.True(restored.IsPlaceholderReferenced(restoredGhost));
+    }
+
+    [Fact]
+    public void Json_RoundTrip_FloatingStore_PreservesGroupPanelsActiveTabAndBounds()
+    {
+        var p1 = new DockPanelNode { Title = "F1" };
+        var p2 = new DockPanelNode { Title = "F2" };
+        var fgGroup = Group(p1, p2);
+        fgGroup.SetActivePanel(p2.Id);
+        var model = new DockLayoutModel(Group(Panel()));
+        model.AddFloatingGroup(new DockFloatingGroup(fgGroup, 12, 34, 320, 240));
+
+        string json = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        var restoredFg = Assert.Single(restored.FloatingGroups);
+        Assert.Equal(12, restoredFg.Left);
+        Assert.Equal(34, restoredFg.Top);
+        Assert.Equal(320, restoredFg.Width);
+        Assert.Equal(240, restoredFg.Height);
+        Assert.Equal(new[] { "F1", "F2" }, restoredFg.Group.Panels.Select(p => p.Title));
+        Assert.Equal(restoredFg.Group.Panels[1].Id, restoredFg.Group.ActivePanelId);
+    }
+
+    [Fact]
+    public void Json_RoundTrip_AutoHideSections_PreservesSideAndOrder()
+    {
+        var left1 = new DockPanelNode { Title = "L1" };
+        var left2 = new DockPanelNode { Title = "L2" };
+        var right1 = new DockPanelNode { Title = "R1" };
+        var model = new DockLayoutModel(Group(Panel()));
+        model.AddToAutoHide(left1, AutoHideSide.Left);
+        model.AddToAutoHide(left2, AutoHideSide.Left);
+        model.AddToAutoHide(right1, AutoHideSide.Right);
+
+        string json = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        Assert.Equal(new[] { "L1", "L2" }, restored.GetAutoHidePanels(AutoHideSide.Left).Select(p => p.Title));
+        Assert.Equal(new[] { "R1" }, restored.GetAutoHidePanels(AutoHideSide.Right).Select(p => p.Title));
+        Assert.Empty(restored.GetAutoHidePanels(AutoHideSide.Top));
+        Assert.Empty(restored.GetAutoHidePanels(AutoHideSide.Bottom));
+        Assert.All(restored.GetAllAutoHidePanels(), p => Assert.False(p.IsPinned));
+    }
+
+    [Fact]
+    public void Json_RoundTrip_Placements_IncludingOneWhosePanelExistsNowhere()
+    {
+        var docked = new DockPanelNode { Title = "Docked" };
+        var group = Group(docked);
+        var model = new DockLayoutModel(group);
+        model.SetPlacement("closed-panel-id", new DockPanelPlacement(group.Id, 3));
+
+        string json = DockLayoutSerializer.ToJson(model);
+        var restored = DockLayoutSerializer.FromJson(json);
+
+        Assert.True(restored.TryGetPlacement("closed-panel-id", out var placement));
+        Assert.Equal(group.Id, placement.GroupId);
+        Assert.Equal(3, placement.TabIndex);
+        Assert.Null(restored.FindPanelById("closed-panel-id"));
+    }
+
+    [Fact]
+    public void FromJson_VersionOther_Than_2_0_Throws()
+    {
+        string json = "{\"version\":\"1.0\",\"rootNode\":{\"type\":\"TabGroup\",\"id\":\"g1\",\"panels\":[]}}";
+        Assert.Throws<InvalidOperationException>(() => DockLayoutSerializer.FromJson(json));
+    }
+
+    [Fact]
+    public void TryFromJson_VersionOther_Than_2_0_ReturnsFalse_WithDiagnostic()
+    {
+        string json = "{\"version\":\"1.0\",\"rootNode\":{\"type\":\"TabGroup\",\"id\":\"g1\",\"panels\":[]}}";
+        bool success = DockLayoutSerializer.TryFromJson(json, null, out var model, out var diagnostics);
+
+        Assert.False(success);
+        Assert.Null(model);
+        Assert.NotEmpty(diagnostics);
+    }
+
+    [Fact]
+    public void FromJson_MalformedJson_Throws()
+    {
+        Assert.Throws<InvalidOperationException>(() => DockLayoutSerializer.FromJson("{ not valid json"));
+    }
+
+    [Fact]
+    public void TryFromJson_MalformedJson_ReturnsFalse_WithDiagnostic()
+    {
+        bool success = DockLayoutSerializer.TryFromJson("{ not valid json", null, out var model, out var diagnostics);
+
+        Assert.False(success);
+        Assert.Null(model);
+        Assert.NotEmpty(diagnostics);
+    }
+
+    [Fact]
+    public void TryFromJson_DuplicatePanelId_AcrossTreeAndFloating_ReturnsFalse()
+    {
+        string json = """
+        {
+          "version": "2.0",
+          "rootNode": { "type": "TabGroup", "id": "g1", "panels": [ { "id": "dup", "title": "A" } ] },
+          "floatingGroups": [
+            { "group": { "type": "TabGroup", "id": "fg1", "panels": [ { "id": "dup", "title": "A2" } ] }, "left": 0, "top": 0, "width": 100, "height": 100 }
+          ],
+          "autoHide": [],
+          "placements": []
+        }
+        """;
+
+        bool success = DockLayoutSerializer.TryFromJson(json, null, out var model, out var diagnostics);
+
+        Assert.False(success);
+        Assert.Null(model);
+        Assert.NotEmpty(diagnostics);
+    }
+
+    [Fact]
+    public void TryFromJson_PlacementForADockedPanel_ReturnsFalse()
+    {
+        string json = """
+        {
+          "version": "2.0",
+          "rootNode": { "type": "TabGroup", "id": "g1", "panels": [ { "id": "docked", "title": "A" } ] },
+          "floatingGroups": [],
+          "autoHide": [],
+          "placements": [ { "panelId": "docked", "groupId": "g1", "tabIndex": 0 } ]
+        }
+        """;
+
+        bool success = DockLayoutSerializer.TryFromJson(json, null, out var model, out var diagnostics);
+
+        Assert.False(success);
+        Assert.Null(model);
+        Assert.NotEmpty(diagnostics);
+    }
+
+    [Fact]
+    public void FromJson_PanelFactoryReturnsNull_SkipsPanel_AndDropsItsPlacement()
+    {
+        string json = """
+        {
+          "version": "2.0",
+          "rootNode": { "type": "TabGroup", "id": "g1", "panels": [ { "id": "known", "title": "A" }, { "id": "unknown", "title": "B" } ] },
+          "floatingGroups": [],
+          "autoHide": [],
+          "placements": [ { "panelId": "unknown", "groupId": "g2", "tabIndex": 0 } ]
+        }
+        """;
+
+        var restored = DockLayoutSerializer.FromJson(json, panelId => panelId == "known" ? (() => null) : null);
+
+        Assert.NotNull(restored.FindPanelById("known"));
+        Assert.Null(restored.FindPanelById("unknown"));
+        Assert.False(restored.TryGetPlacement("unknown", out _));
+    }
+
+    [Fact]
+    public void TryFromJson_TabGroupWithMissingId_ReturnsFalse_WithDiagnostic_DoesNotThrow()
+    {
+        string json = """
+        {
+          "version": "2.0",
+          "rootNode": { "type": "TabGroup", "panels": [] },
+          "floatingGroups": [],
+          "autoHide": [],
+          "placements": []
+        }
+        """;
+
+        bool success = DockLayoutSerializer.TryFromJson(json, null, out var model, out var diagnostics);
+
+        Assert.False(success);
+        Assert.Null(model);
+        Assert.NotEmpty(diagnostics);
+    }
+
+    [Fact]
+    public void TryFromJson_PanelWithMissingId_ReturnsFalse_WithDiagnostic_DoesNotThrow()
+    {
+        string json = """
+        {
+          "version": "2.0",
+          "rootNode": { "type": "TabGroup", "id": "g1", "panels": [ { "title": "No id" } ] },
+          "floatingGroups": [],
+          "autoHide": [],
+          "placements": []
+        }
+        """;
+
+        bool success = DockLayoutSerializer.TryFromJson(json, null, out var model, out var diagnostics);
+
+        Assert.False(success);
+        Assert.Null(model);
+        Assert.NotEmpty(diagnostics);
+    }
+
+    [Fact]
+    public void FromJson_NodeWithMissingId_ThrowsInvalidOperationException_NotArgumentException()
+    {
+        string json = """
+        {
+          "version": "2.0",
+          "rootNode": { "type": "TabGroup", "panels": [] },
+          "floatingGroups": [],
+          "autoHide": [],
+          "placements": []
+        }
+        """;
+
+        // Must fail through the documented diagnostic path (InvalidOperationException), never
+        // through DockNode's constructor guard leaking out as an ArgumentException.
+        Assert.Throws<InvalidOperationException>(() => DockLayoutSerializer.FromJson(json));
+    }
+
+    [Fact]
+    public void FromJson_FloatingGroupWhosePanelIsUnknownToTheFactory_IsDropped()
+    {
+        string json = """
+        {
+          "version": "2.0",
+          "rootNode": { "type": "TabGroup", "id": "g1", "panels": [ { "id": "known", "title": "A" } ] },
+          "floatingGroups": [
+            { "group": { "type": "TabGroup", "id": "fg1", "panels": [ { "id": "unknown", "title": "B" } ] }, "left": 0, "top": 0, "width": 100, "height": 100 }
+          ],
+          "autoHide": [],
+          "placements": []
+        }
+        """;
+
+        var restored = DockLayoutSerializer.FromJson(json, panelId => panelId == "known" ? (() => null) : null);
+
+        Assert.Empty(restored.FloatingGroups);
+        Assert.NotNull(restored.FindPanelById("known"));
+    }
 }

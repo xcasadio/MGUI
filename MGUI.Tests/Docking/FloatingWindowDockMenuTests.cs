@@ -358,27 +358,32 @@ public class FloatingWindowDockMenuTests
         Assert.DoesNotContain(harness.PanelB, harness.GroupAX.Panels);
     }
 
-    // ── (f): saved layout format is unaffected by the in-memory float memory ─
+    // ── (f): saved layout format (2.0) persists the floating group and its placement ─
 
     [Fact]
-    public void LayoutSerialization_IsUnaffectedByFloatMemory_WhileAPanelIsFloating()
+    public void LayoutSerialization_PersistsTheFloatingGroupAndItsPlacement_WhileAPanelIsFloating()
     {
         Harness harness = CreateHarness();
         FloatPanel(harness, harness.PanelA);
 
         string json = DockLayoutSerializer.ToJson(harness.Host.LayoutModel);
 
-        // The remembered float-source mapping must never leak into the saved format.
-        Assert.DoesNotContain("floatedFrom", json, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("sourceGroup", json, StringComparison.OrdinalIgnoreCase);
-
         DockLayoutModel reloaded = DockLayoutSerializer.FromJson(json);
-        var reloadedIds = reloaded.GetAllPanels().Select(p => p.Id).ToList();
 
-        // A is floating (not in the docked layout being serialized); X, B, Y, C remain docked.
-        Assert.DoesNotContain(harness.PanelA.Id, reloadedIds);
-        Assert.Contains(harness.PanelB.Id, reloadedIds);
-        Assert.Contains(harness.PanelC.Id, reloadedIds);
+        // A is floating (not docked): its floating group is persisted, and so is its remembered
+        // placement (GroupAX, at its original tab index) so a later "Dock" can send it back.
+        var reloadedFloatingGroup = reloaded.FindFloatingGroupOf(harness.PanelA.Id);
+        Assert.NotNull(reloadedFloatingGroup);
+        Assert.Contains(harness.PanelA.Id, reloadedFloatingGroup.Group.Panels.Select(p => p.Id));
+        Assert.True(reloaded.TryGetPlacement(harness.PanelA.Id, out var placement));
+        Assert.Equal(harness.GroupAX.Id, placement.GroupId);
+
+        // The docked panels (X, B, C) are still there, in the tree.
+        var reloadedDockedIds = reloaded.GetAllPanels().Select(p => p.Id).ToList();
+        Assert.DoesNotContain(harness.PanelA.Id, reloadedDockedIds);
+        Assert.Contains(harness.PanelX.Id, reloadedDockedIds);
+        Assert.Contains(harness.PanelB.Id, reloadedDockedIds);
+        Assert.Contains(harness.PanelC.Id, reloadedDockedIds);
     }
 
     private static void AdvanceFrame(GraphTestRuntime runtime, MGDesktop desktop, int totalElapsedMs, Point position, MouseButton? pressedButton = null)

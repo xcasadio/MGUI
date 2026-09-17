@@ -1134,6 +1134,73 @@ public class MGDockHost : MGSingleContentHost
         return _panelRegistry.Values;
     }
 
+    /// <summary>
+    /// Applies <paramref name="model"/>, freshly loaded from a saved layout, to this host (P10).
+    /// Used by both <see cref="MGDockHostExtensions.LoadLayoutFromJson"/> and
+    /// <see cref="MGDockHostExtensions.TryLoadLayoutFromJson"/>. Unlike a plain assignment to
+    /// <see cref="LayoutModel"/> (which deliberately leaves <see cref="_panelRegistry"/> alone, so
+    /// the "assign <see cref="LayoutModel"/> then call <see cref="RegisterPanel"/> for every panel"
+    /// pattern keeps working), a load replaces the registry outright: the loaded model's docked and
+    /// auto-hidden panels become the new registry, each raising exactly one <see cref="PanelAdded"/>,
+    /// so <see cref="FindPanel"/> and <see cref="ShowDockable"/> see them immediately.
+    /// </summary>
+    /// <param name="model">The freshly deserialized model to apply.</param>
+    internal void ApplyLoadedLayoutModel(DockLayoutModel model)
+    {
+        if (model == null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        // Bring every floating window's bounds back inside the desktop before the windows are
+        // created by the LayoutModel setter below, so each title bar stays reachable (P9).
+        ClampFloatingGroupBoundsToScreen(model);
+
+        // Closes the previous model's floating windows (no panel close reported) and opens this
+        // model's ones; does not touch _panelRegistry (P10).
+        LayoutModel = model;
+
+        // A load, unlike a plain LayoutModel replacement, must leave the registry reflecting the
+        // loaded model: otherwise FindPanel/ShowDockable would not see the loaded panels, and
+        // ShowDockable could create a duplicate of one already sitting in the model.
+        _panelRegistry.Clear();
+        foreach (var panel in model.GetAllPanels().Concat(model.GetAllAutoHidePanels()))
+        {
+            _panelRegistry[panel.Id] = panel;
+            PanelAdded?.Invoke(this, panel);
+        }
+
+        RefreshAutoHideStrips();
+        HideAutoHideDrawer();
+        SyncRegistryVisibility();
+    }
+
+    /// <summary>
+    /// Clamps every <see cref="DockFloatingGroup"/> in <paramref name="model"/> so its top-left
+    /// corner (where the title bar sits) stays inside this host's desktop's
+    /// <see cref="MGDesktop.ValidScreenBounds"/> (P9), the same bounds
+    /// <see cref="MGFloatingDockWindow.MaximizeWindow"/> reads.
+    /// </summary>
+    private void ClampFloatingGroupBoundsToScreen(DockLayoutModel model)
+    {
+        var screen = GetDesktop()?.ValidScreenBounds;
+        if (screen == null)
+        {
+            return;
+        }
+
+        const int MinVisible = 40;
+        var bounds = screen.Value;
+        var maxLeft = Math.Max(bounds.X, bounds.Right - MinVisible);
+        var maxTop = Math.Max(bounds.Y, bounds.Bottom - MinVisible);
+
+        foreach (var floatingGroup in model.FloatingGroups)
+        {
+            floatingGroup.Left = Math.Clamp(floatingGroup.Left, bounds.X, maxLeft);
+            floatingGroup.Top = Math.Clamp(floatingGroup.Top, bounds.Y, maxTop);
+        }
+    }
+
     // ─── 14.3 Ctrl+Tab panel switcher ───────────────────────────────────────
 
     /// <summary>

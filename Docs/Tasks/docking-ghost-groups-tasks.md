@@ -291,7 +291,9 @@ Rollback : revert du commit.
 
 Commit recommande : `feat(docking): reopen closed dockables at their previous place`
 
-### ⏳ T5. Format 2.0, chargement sans exception et remplacement du modele
+### ✅ T5. Format 2.0, chargement sans exception et remplacement du modele
+
+Statut (17 septembre 2026) : livre. Meme pipeline. Un constat P1 confirme et corrige : un document bien versionne dont un noeud n'avait pas d'`id` faisait lever `ArgumentException` au lieu de rendre false avec un diagnostic, ce qui violait le contrat D7 ; les trois deserialisations valident maintenant l'`id` et produisent un diagnostic. Deux P2 de couverture corriges (groupe flottant vide supprime au chargement, fenetre agrandie sauvegardee avec ses bornes d'avant agrandissement). Un P2 rejete avec preuve : un document sans `rootNode` est exactement ce que `ToJson` produit pour une disposition vide, le refuser casserait un aller-retour legitime ; consequence, un fichier tronque a cet endroit precis se charge comme une disposition vide (point ouvert de l'ADR-0012). Deux P3/P4 differes : l'`id` du groupe racine vide non reference n'est pas conserve, et le refus des ids en double n'est teste que pour la paire arbre/flottant. Mutations : M1 (places non ecrites) → A5 rouge ; M2 (version non controlee) → cinq tests rouges apres avoir renforce les fixtures ; M3 (registre non reconstruit) → `FindPanel` nul apres chargement ; M4 (pas de recadrage) → test de recadrage rouge ; M5 (modele partiel applique en cas d'echec) → les trois tests A6 « hote intact » rouges ; toutes retirees. `DockOperationTests` : deux tests existants comparent desormais la seule section `rootNode`, car le format 2.0 serialise aussi l'etat flottant, different entre les deux modeles qu'ils comparent ; leur intention (repli identique de l'arbre) est inchangee. Validation : build tests et `MGUI.Samples --no-incremental` 0 erreur ; suite complete 2552 reussis, 0 echec (2523 avant T5), verte deux fois.
 
 But : sauvegarder et recharger toute la disposition (D1, D6), et garantir qu'un echec de chargement n'interrompt pas l'application hote (D7, D8).
 
