@@ -1,6 +1,14 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Reflection;
 using System.Xml;
 using System.Xml.Linq;
+
+#if UseWPF
+using System.Xaml;
+#else
+using Portable.Xaml;
+#endif
 
 namespace MGUI.Core.UI.XAML;
 
@@ -255,51 +263,172 @@ internal static class XamlLoaderDiagnostics
 
     private static XamlLoaderDiagnosticCode Classify(Exception exception)
     {
+        //  The XAML library words its exceptions in the language of CultureInfo.CurrentUICulture (System.Xaml ships satellite resources),
+        //  so the text of a parser exception is never read: the code must not depend on the language of the machine. Only the messages
+        //  MGUI writes, and those of the base class library, which .NET does not localise, are matched. They name the specific reason of
+        //  a failure and are matched first, so that reason wins over the library's generic wrapper: a setter that rejects its value with
+        //  "Cannot convert ..." is a conversion failure, whatever "set property ... threw" text surrounds it.
         foreach (var current in EnumerateExceptionChain(exception))
         {
-            var message = current?.Message ?? string.Empty;
-            if (message.IndexOf("Unsupported", StringComparison.OrdinalIgnoreCase) >= 0
-                && message.IndexOf("document root", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (!IsParserException(current) && TryClassifyByMessage(current.Message ?? string.Empty, out var code))
             {
-                return XamlLoaderDiagnosticCode.UnsupportedDocumentRoot;
+                return code;
             }
+        }
 
-            if (message.IndexOf("template part", StringComparison.OrdinalIgnoreCase) >= 0
-                && message.IndexOf("no element", StringComparison.OrdinalIgnoreCase) >= 0)
+        foreach (var current in EnumerateExceptionChain(exception))
+        {
+            if (TryClassifyParserException(current, out var code))
             {
-                return XamlLoaderDiagnosticCode.MissingTemplatePart;
-            }
-
-            if (message.IndexOf("cycle", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return XamlLoaderDiagnosticCode.ThemeInheritanceCycle;
-            }
-
-            if (message.IndexOf("resource", StringComparison.OrdinalIgnoreCase) >= 0
-                || message.IndexOf("No theme named", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return XamlLoaderDiagnosticCode.MissingResource;
-            }
-
-            if (message.IndexOf("convert", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return XamlLoaderDiagnosticCode.InvalidValueConversion;
-            }
-
-            if (message.IndexOf("member", StringComparison.OrdinalIgnoreCase) >= 0
-                || message.IndexOf("property", StringComparison.OrdinalIgnoreCase) >= 0
-                || message.IndexOf("setter", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return XamlLoaderDiagnosticCode.InvalidSetter;
-            }
-
-            if (message.IndexOf("type", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return XamlLoaderDiagnosticCode.UnknownType;
+                return code;
             }
         }
 
         return XamlLoaderDiagnosticCode.ParseFailure;
+    }
+
+    private static bool IsParserException(Exception exception) => exception is XamlException or XmlException;
+
+    private static bool TryClassifyByMessage(string message, out XamlLoaderDiagnosticCode code)
+    {
+        if (message.IndexOf("Unsupported", StringComparison.OrdinalIgnoreCase) >= 0
+            && message.IndexOf("document root", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            code = XamlLoaderDiagnosticCode.UnsupportedDocumentRoot;
+            return true;
+        }
+
+        if (message.IndexOf("template part", StringComparison.OrdinalIgnoreCase) >= 0
+            && message.IndexOf("no element", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            code = XamlLoaderDiagnosticCode.MissingTemplatePart;
+            return true;
+        }
+
+        if (message.IndexOf("cycle", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            code = XamlLoaderDiagnosticCode.ThemeInheritanceCycle;
+            return true;
+        }
+
+        if (message.IndexOf("resource", StringComparison.OrdinalIgnoreCase) >= 0
+            || message.IndexOf("No theme named", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            code = XamlLoaderDiagnosticCode.MissingResource;
+            return true;
+        }
+
+        if (message.IndexOf("convert", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            code = XamlLoaderDiagnosticCode.InvalidValueConversion;
+            return true;
+        }
+
+        if (message.IndexOf("member", StringComparison.OrdinalIgnoreCase) >= 0
+            || message.IndexOf("property", StringComparison.OrdinalIgnoreCase) >= 0
+            || message.IndexOf("setter", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            code = XamlLoaderDiagnosticCode.InvalidSetter;
+            return true;
+        }
+
+        if (message.IndexOf("type", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            code = XamlLoaderDiagnosticCode.UnknownType;
+            return true;
+        }
+
+        code = default;
+        return false;
+    }
+
+    private static bool TryClassifyParserException(Exception exception, out XamlLoaderDiagnosticCode code)
+    {
+        switch (exception)
+        {
+            case XmlException:
+            case XamlParseException:
+                code = XamlLoaderDiagnosticCode.ParseFailure;
+                return true;
+
+            case XamlDuplicateMemberException:
+                code = XamlLoaderDiagnosticCode.InvalidSetter;
+                return true;
+
+            //  A mere wrapper around another parser exception: the wrapped one is classified on its own, further down the chain.
+            case XamlObjectWriterException when IsParserException(exception.InnerException):
+                break;
+
+            case XamlObjectWriterException when exception.InnerException != null:
+                code = ClassifyMemberValueFailure(exception.InnerException);
+                return true;
+
+            case XamlObjectWriterException:
+                return TryClassifyWriterCall(exception, out code);
+        }
+
+        code = default;
+        return false;
+    }
+
+    /// <summary>A value the library could not convert and a setter that threw surface as the same exception type around an arbitrary inner
+    /// exception. What tells them apart is what the library was calling, read from the stack trace of <paramref name="cause"/> through
+    /// public contracts only: text is converted by a <see cref="TypeConverter"/>, a member is assigned through its set accessor. The
+    /// outermost such frame wins, so a setter that runs a converter of its own is still a setter failure.</summary>
+    private static XamlLoaderDiagnosticCode ClassifyMemberValueFailure(Exception cause)
+    {
+        foreach (var current in EnumerateExceptionChain(cause))
+        {
+            var frames = new StackTrace(current, false).GetFrames() ?? Array.Empty<StackFrame>();
+            for (var i = frames.Length - 1; i >= 0; i--)
+            {
+                var method = frames[i].GetMethod();
+                if (method == null)
+                {
+                    continue;
+                }
+
+                if (typeof(TypeConverter).IsAssignableFrom(method.DeclaringType))
+                {
+                    return XamlLoaderDiagnosticCode.InvalidValueConversion;
+                }
+
+                if (method.IsSpecialName && method.Name.StartsWith("set_", StringComparison.Ordinal))
+                {
+                    return XamlLoaderDiagnosticCode.InvalidSetter;
+                }
+            }
+        }
+
+        return XamlLoaderDiagnosticCode.InvalidSetter;
+    }
+
+    /// <summary>Without an inner exception, an unknown type and an unknown member are the same exception type: the public
+    /// <see cref="XamlObjectWriter"/> method the library was running tells them apart.</summary>
+    private static bool TryClassifyWriterCall(Exception exception, out XamlLoaderDiagnosticCode code)
+    {
+        foreach (var frame in new StackTrace(exception, false).GetFrames() ?? Array.Empty<StackFrame>())
+        {
+            var method = frame.GetMethod();
+            if (method == null || !typeof(XamlObjectWriter).IsAssignableFrom(method.DeclaringType))
+            {
+                continue;
+            }
+
+            switch (method.Name)
+            {
+                case nameof(XamlObjectWriter.WriteStartObject):
+                    code = XamlLoaderDiagnosticCode.UnknownType;
+                    return true;
+
+                case nameof(XamlObjectWriter.WriteStartMember):
+                    code = XamlLoaderDiagnosticCode.InvalidSetter;
+                    return true;
+            }
+        }
+
+        code = default;
+        return false;
     }
 
     private static string GetDiagnosticMessage(Exception exception)

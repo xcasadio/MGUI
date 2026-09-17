@@ -52,6 +52,13 @@ public abstract class DockNode : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Whether this node is structurally hidden from the visual tree: a placeholder group kept
+    /// around only because a remembered placement still references it, or a split whose children
+    /// are all hidden or absent. The base implementation is never hidden.
+    /// </summary>
+    internal virtual bool IsHiddenInLayout => false;
+
+    /// <summary>
     /// Gets all immediate children of this node.
     /// </summary>
     /// <returns>Collection of child nodes. Returns empty collection if no children.</returns>
