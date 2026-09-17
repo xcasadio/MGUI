@@ -10,6 +10,7 @@ Architecture cible : [editor-architecture.md](../editor-architecture.md). Decisi
 
 - 15 septembre 2026 : demande de l'auteur (editeur XAML, rendu a chaud, selection, grille qui edite le noeud XAML ; projet a part, integrable dans CasaEngine ; `EditorRichTextBox` a faire evoluer) et discovery en lecture seule sur cinq surfaces a HEAD `05de9ac`.
 - 17 septembre 2026 : reponses de l'auteur aux quatre questions groupees ; redaction du plan, de l'ADR-0010 (Proposed) et de la doc d'architecture ; relecture du plan contre le code par quatre relecteurs en contexte frais, chaque constat bloquant recontrole par un second agent (22 constats retenus sur 24, tous integres ci-dessous) ; deux sondes jetables hors depot sur la technique de positions du loader ; relecture de cloture en contexte frais (treize points sur quatorze confirmes, sept nouveaux constats dont trois bloquants, tous integres : remontee par la chaine `Parent`, positions propres aux descendants d'un template clone, etendue complete des noeuds). Aucun code n'est ecrit dans le depot avant l'approbation du plan.
+- 17 septembre 2026 (suite) : plan approuve par l'auteur (« commence a faire les taches ») ; documents du plan committes a part (`a9a36f4`). Reponses de l'auteur a quatre questions posees avant X0 : decisions 6 a 8 ci-dessous.
 
 ## Decisions de l'auteur
 
@@ -18,6 +19,9 @@ Architecture cible : [editor-architecture.md](../editor-architecture.md). Decisi
 3. Volet texte en V1 : coloration XAML + marqueurs d'erreur + synchronisation caret / selection. La completion XAML est reportee.
 4. Bindings dans la preview : point d'injection `DesignDataContext`, vide par defaut.
 5. Deja tranche le 15 septembre : le composant texte est `MGRichTextBox` (sample `EditorRichTextBox`) a faire evoluer ; pas de manipulation a la souris en V1, seulement de la selection.
+6. Rythme de livraison : l'agent s'arrete apres chaque tache et dit a l'auteur quoi tester ; la tache suivante ne commence qu'apres l'accord de l'auteur. La tache est committee avec le statut 🧪 des que le verifier confirme et que la suite est verte ; elle passe a ✅ apres l'accord de l'auteur, dans le commit de la tache suivante ; un defaut trouve par l'auteur donne un commit `fix` separe.
+7. Forme de `XamlEditorView` : classe compositrice (pas un `MGElement`), `XamlEditorView(MGWindow window, XamlEditorSession session)`, qui construit l'arbre contre la fenetre hote et expose `Root` (la grille a trois colonnes) et les quatre volets. Un hote fait `window.SetContent(view.Root)` ; un hote a docking rend `view.Root` depuis `DockableDefinition.ContentFactory`.
+8. Fenetre de l'editeur dans `MGUI.Editor.Host` : une `MGWindow` plein cadre, sans barre de titre, qui couvre la zone cliente et suit le redimensionnement de la fenetre du jeu (taille initiale 1600 x 900, comme `Game1`). En X7, le fichier et l'etat modifie vont dans le titre de la fenetre du jeu (`Game.Window.Title`).
 
 ## Etat des lieux (HEAD `05de9ac`, verifie dans le code)
 
@@ -93,7 +97,8 @@ Hors perimetre (documente, non implemente) :
 
 ## Consignes de travail pour l'agent IA
 
-- Executer les taches dans l'ordre, une seule a la fois : 🚧 avant de commencer, ✅ a la fin (🧪 si une validation manuelle manque), statut mis a jour dans le meme commit que la tache. Un commit par tache, sur `develop`, indexe fichier par fichier ; jamais de push.
+- Executer les taches dans l'ordre, une seule a la fois : 🚧 avant de commencer, 🧪 au commit de la tache, ✅ apres l'accord de l'auteur (decision 6), statut mis a jour dans le meme commit que la tache. Un commit par tache, sur `develop`, indexe fichier par fichier ; jamais de push.
+- Apres chaque tache : arret, et liste de ce que l'auteur doit tester. La tache suivante ne commence qu'apres son accord.
 - Pipeline par tache : brief ecrit par la session principale (BRIEF, PERIMETRE, CLAIM, ACCEPTANCE), execution par un agent `sonnet`, verification par un agent `opus` en contexte frais, au plus deux tours de correction, puis revue et commit par la session principale.
 - Ne jamais lancer `MGUI.Editor.Host` ni `MGUI.Samples` depuis un agent : le lancement est une validation manuelle de l'auteur.
 - Editions avec l'outil d'edition uniquement : jamais de reecriture de fichier par PowerShell, perl ou sed ; aucun caractere U+FFFD dans le diff avant commit.
@@ -114,7 +119,9 @@ Hors perimetre (documente, non implemente) :
 
 ## Taches
 
-### ⏳ X0. Projets et coquille de l'editeur
+### 🧪 X0. Projets et coquille de l'editeur
+
+Statut (17 septembre 2026) : livre et verifie (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2348/2348, dont 11 nouveaux tests). Reste la validation manuelle de l'auteur ci-dessous. Remarques mineures du verifier, non corrigees : le build du Host affiche l'avertissement « No Content References Found » (paquet `MonoGame.Content.Builder.Task` garde comme dans `MGUI.MiniGame`, sans `.mgcb`) ; la taille initiale de la fenetre de l'editeur est lue dans `Window.ClientBounds` juste apres `ApplyChanges()` (a observer au premier lancement : la coquille doit remplir la fenetre des la premiere image).
 
 But : creer les deux projets, les brancher dans la solution et les tests, et poser la coquille de la vue (volets vides).
 
@@ -134,7 +141,7 @@ Criteres d'acceptation :
 - test : la vue se construit sur un desktop headless et expose les quatre volets nommes ;
 - suite complete verte.
 
-Validation manuelle (auteur) : `MGUI.Editor.Host` demarre et affiche la coquille. La tache reste 🧪 tant que ce lancement n'est pas confirme ; X1 peut commencer sans l'attendre.
+Validation manuelle (auteur) : `MGUI.Editor.Host` demarre et affiche la coquille. La tache reste 🧪 tant que ce lancement n'est pas confirme ; X1 attend cet accord (decision 6).
 
 Rollback : suppression des deux dossiers, des entrees de la solution et de la reference dans `MGUI.Tests`.
 
@@ -338,7 +345,7 @@ Prerequis : X6.
 Perimetre :
 
 - `XamlEditorSession` : `LoadFile(path)`, `Save()`, `IsDirty`, `SourceName` = chemin du fichier. L'acces fichier vit dans `MGUI.Editor`, jamais dans `MGUI.Core`. Le texte de la session est toujours en LF (le volet normalise) ; la forme du fichier est un etat de la session : fin de ligne d'origine et presence d'un BOM sont detectees a `LoadFile` et restituees par `Save()`.
-- `MGUI.Editor.Host` : ouvre le fichier passe en premier argument, sinon un document de demonstration embarque ; `Ctrl+S` enregistre ; le titre de la fenetre montre le fichier et l'etat modifie ; bascule « Interactive » dans la barre de l'editeur.
+- `MGUI.Editor.Host` : ouvre le fichier passe en premier argument, sinon un document de demonstration embarque ; `Ctrl+S` enregistre ; le titre de la fenetre du jeu (`Game.Window.Title`, decision 8) montre le fichier et l'etat modifie ; bascule « Interactive » dans la barre de l'editeur.
 - Documentation : `Docs/editor-architecture.md` verifiee contre le code (et sa note d'etat cible retiree) ; `Docs/scenario-validation-index.md` (nouvelle ligne `SCN-EDITOR-XAML-001`, point d'entree `MGUI.Editor.Host/Program.cs`, et rattachement a `editor-architecture.md` et a l'ADR-0010 dans la liste par theme) ; `Docs/monogame-host-integration-guide.md` (mention du troisieme hote) ; `README.md` (courte mention de l'editeur) ; decisions prises en cours de route ajoutees a l'ADR-0010.
 
 Criteres d'acceptation :
