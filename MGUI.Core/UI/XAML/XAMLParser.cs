@@ -311,7 +311,7 @@ public class XAMLParser
             var XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
             XamlLoaderDiagnostics.ValidateKnownElementNames(XAMLString, Source, $"{typeof(TDefinition).Name} definition", Mode);
 
-            var Parsed = (TDefinition)XamlServices.Parse(XAMLString);
+            var Parsed = (TDefinition)ParseWithSourcePositions(Source, XAMLString);
 
             if (Resources != null)
             {
@@ -320,6 +320,84 @@ public class XAMLParser
 
             return Parsed;
         });
+    }
+
+    /// <summary>X1: equivalent of <c>XamlServices.Parse(XAMLString)</c>, built from the reader/writer pair directly so that the
+    /// position of every <see cref="Element"/>-derived object element can be captured and stamped on the DTO it produced.<para/>
+    /// While reading, two lists are filled in parallel: the (line, column) of every <c>StartObject</c> node whose <see cref="System.Xaml.XamlType.UnderlyingType"/>
+    /// derives from <see cref="Element"/>, and every <see cref="Element"/> instance seen by <c>BeforePropertiesHandler</c> (not
+    /// <c>AfterBeginInitHandler</c>, which Portable.Xaml never raises for these DTOs since they are not <see cref="System.ComponentModel.ISupportInitialize"/>).
+    /// Positions are stamped only once the loop is over, by <see cref="StampSourcePositions"/>, so a count mismatch stamps nothing at all.<para/>
+    /// Line info is captured on the reader (<c>ProvideLineInfo = true</c>) but deliberately <b>not</b> forwarded to the writer via
+    /// <see cref="System.Xaml.IXamlLineInfoConsumer"/>, unlike <c>XamlServices.Transform</c>: forwarding it changed the message of a
+    /// <see cref="System.Xaml.XamlObjectWriterException"/> (a duplicate-member or unknown-member failure gains a
+    /// "line X position Y" prefix XamlServices.Parse never produced), which broke existing loader-diagnostic tests that assert on an
+    /// exact substring of the exception message. X1 decision (see ADR-0010): keep <c>ProvideLineInfo</c> for position capture only, so
+    /// every existing test keeps seeing byte-identical exception messages.<para/>
+    /// Disposal note: the reader and the writer are disposed only after a <em>successful</em> loop. Disposing a <see cref="System.Xaml.XamlObjectWriter"/>
+    /// that failed mid-write throws its own "CurrentObject missing before EndObject" <see cref="System.Xaml.XamlObjectWriterException"/>,
+    /// which -- thrown from a <c>finally</c> block while the real failure is already unwinding -- replaces that real failure instead of
+    /// letting it propagate. <c>XamlServices.Parse</c> never observes this because it never disposes its writer either. Only the
+    /// <see cref="StringReader"/>, whose <see cref="StringReader.Dispose()"/> never throws, is unconditionally disposed.</summary>
+    private static object ParseWithSourcePositions(XamlDocumentSource Source, string XAMLString)
+    {
+        List<(int LineNumber, int LinePosition)> Positions = new();
+        List<Element> Instances = new();
+
+        using var StringReader = new StringReader(XAMLString);
+        var Reader = new XamlXmlReader(StringReader, new XamlXmlReaderSettings { ProvideLineInfo = true });
+        var WriterSettings = new XamlObjectWriterSettings
+        {
+            BeforePropertiesHandler = (sender, args) =>
+            {
+                if (args.Instance is Element instance)
+                {
+                    Instances.Add(instance);
+                }
+            }
+        };
+        var Writer = new XamlObjectWriter(Reader.SchemaContext, WriterSettings);
+
+        while (Reader.Read())
+        {
+            if (Reader.NodeType == XamlNodeType.StartObject)
+            {
+                var UnderlyingType = Reader.Type?.UnderlyingType;
+                if (UnderlyingType != null && typeof(Element).IsAssignableFrom(UnderlyingType))
+                {
+                    Positions.Add((Reader.LineNumber, Reader.LinePosition));
+                }
+            }
+
+            Writer.WriteNode(Reader);
+        }
+
+        var Result = Writer.Result;
+        StampSourcePositions(Source?.DisplayName, Positions, Instances);
+        (Writer as IDisposable)?.Dispose();
+        (Reader as IDisposable)?.Dispose();
+        return Result;
+    }
+
+    /// <summary>X1: pairs the k-th captured <c>StartObject</c> position with the k-th <see cref="Element"/> instance
+    /// <c>BeforePropertiesHandler</c> saw, in the order both were recorded during the reader/writer loop, and stamps
+    /// <see cref="Element.SourcePosition"/> on each. When <paramref name="positions"/> and <paramref name="instances"/> do not have the
+    /// same length, nothing is stamped at all and this returns <see langword="false"/>: a missing position is acceptable, a wrong one is
+    /// not. Exposed as <see langword="internal"/>, rather than folded into the loop above, so the guard can be exercised directly with
+    /// deliberately mismatched lists (no known XAML document actually produces a divergence).</summary>
+    internal static bool StampSourcePositions(string sourceName, IReadOnlyList<(int LineNumber, int LinePosition)> positions, IReadOnlyList<Element> instances)
+    {
+        if (positions == null || instances == null || positions.Count != instances.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < positions.Count; i++)
+        {
+            instances[i].SourcePosition = new XamlSourcePosition(sourceName, i, positions[i].LineNumber, positions[i].LinePosition);
+        }
+
+        return true;
     }
 
     public static TDefinition ParseObjectDefinition<TDefinition>(XamlDocumentSource Source,

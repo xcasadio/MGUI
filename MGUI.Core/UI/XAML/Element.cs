@@ -73,6 +73,15 @@ public abstract class Element : XAMLBindableBase
     /// composite DTO that exposes it (a <c>BorderThickness</c> declared on <c>PART_CloseButton</c> is transferred by the button's nested Border DTO).</summary>
     internal string TemplateElementName { get; private set; }
 
+    /// <summary>X1: the XAML node this DTO was created from, stamped by <see cref="XAMLParser.ParseDefinition{TDefinition}(XamlDocumentSource, MGResources, XamlLoaderMode, bool, bool)"/>
+    /// after the reader/writer loop completes. Null for a DTO produced by <see cref="XAMLParser.ParseObjectDefinition{TDefinition}(XamlDocumentSource, XamlLoaderMode, bool, bool)"/>
+    /// (control template parts, theme content) and for a DTO created by a <see cref="TypeConverter"/> (for example <see cref="ElementStringConverter"/>
+    /// turning a <c>Content="text"</c> attribute into a <see cref="TextBlock"/>), since neither path goes through that loop.<para/>
+    /// The setter is <see langword="internal"/> so that a XAML document can never set this property itself: an attribute literally named
+    /// <c>SourcePosition</c> has no public setter to bind to and is rejected by the loader like any other unknown member.</summary>
+    [Browsable(false)]
+    public XamlSourcePosition? SourcePosition { get; internal set; }
+
     /// <summary>Backlog task 15: stamps <paramref name="templateName"/> as the <see cref="TemplateProvenance"/> of this DTO and of every DTO it holds:
     /// its children (<see cref="GetChildren"/>) and the elements its public properties hold outside of them, directly (the nested <see cref="Border"/>
     /// facade of the composite DTOs, whose own <see cref="ApplyDerivedSettings"/> transfers <c>BorderBrush</c> and <c>BorderThickness</c>, the header of an
@@ -439,6 +448,13 @@ public abstract class Element : XAMLBindableBase
         using (Element.BeginInitializing())
         {
             var Desktop = Element.GetDesktop();
+
+            //  X1: relay the XAML source position (if any) to the created MGElement so that tooling (UIToolingService.TryGetXamlSourcePosition)
+            //  can relate it back to the document node it was declared from. Every element kind goes through ApplyBaseSettings, root Window included.
+            if (SourcePosition.HasValue)
+            {
+                Element.Metadata[MGUI.Core.Tooling.UIToolingService.XamlSourcePositionMetadataKey] = SourcePosition.Value;
+            }
 
             //  Backlog task 10: the element keeps the styles resolved for its definition, so that MGElement.RefreshStyles can resolve them again
             if (StyleScope != null)

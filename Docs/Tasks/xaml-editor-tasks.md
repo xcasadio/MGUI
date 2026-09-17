@@ -22,6 +22,7 @@ Architecture cible : [editor-architecture.md](../editor-architecture.md). Decisi
 6. Rythme de livraison : l'agent s'arrete apres chaque tache et dit a l'auteur quoi tester ; la tache suivante ne commence qu'apres l'accord de l'auteur. La tache est committee avec le statut 🧪 des que le verifier confirme et que la suite est verte ; elle passe a ✅ apres l'accord de l'auteur, dans le commit de la tache suivante ; un defaut trouve par l'auteur donne un commit `fix` separe.
 7. Forme de `XamlEditorView` : classe compositrice (pas un `MGElement`), `XamlEditorView(MGWindow window, XamlEditorSession session)`, qui construit l'arbre contre la fenetre hote et expose `Root` (la grille a trois colonnes) et les quatre volets. Un hote fait `window.SetContent(view.Root)` ; un hote a docking rend `view.Root` depuis `DockableDefinition.ContentFactory`.
 8. Fenetre de l'editeur dans `MGUI.Editor.Host` : une `MGWindow` plein cadre, sans barre de titre, qui couvre la zone cliente et suit le redimensionnement de la fenetre du jeu (taille initiale 1600 x 900, comme `Game1`). En X7, le fichier et l'etat modifie vont dans le titre de la fenetre du jeu (`Game.Window.Title`).
+9. Branches (17 septembre) : les noms `MGUI.Editor` et `MGUI.Editor.Host` sont gardes. X1 est committee sur `develop` avant sa verification pour servir de point de depart commun ; la suite du chantier se fait sur la branche `xaml-editor`, creee depuis ce commit, et l'autre session de l'auteur cree sa propre branche depuis le meme commit. Le merge dans `develop` se fait a la demande de l'auteur.
 
 ## Etat des lieux (HEAD `05de9ac`, verifie dans le code)
 
@@ -97,7 +98,7 @@ Hors perimetre (documente, non implemente) :
 
 ## Consignes de travail pour l'agent IA
 
-- Executer les taches dans l'ordre, une seule a la fois : 🚧 avant de commencer, 🧪 au commit de la tache, ✅ apres l'accord de l'auteur (decision 6), statut mis a jour dans le meme commit que la tache. Un commit par tache, sur `develop`, indexe fichier par fichier ; jamais de push.
+- Executer les taches dans l'ordre, une seule a la fois : 🚧 avant de commencer, 🧪 au commit de la tache, ✅ apres l'accord de l'auteur (decision 6), statut mis a jour dans le meme commit que la tache. Un commit par tache, sur la branche `xaml-editor` (decision 9 ; X0 et X1 sont sur `develop`), indexe fichier par fichier ; jamais de push.
 - Apres chaque tache : arret, et liste de ce que l'auteur doit tester. La tache suivante ne commence qu'apres son accord.
 - Pipeline par tache : brief ecrit par la session principale (BRIEF, PERIMETRE, CLAIM, ACCEPTANCE), execution par un agent `sonnet`, verification par un agent `opus` en contexte frais, au plus deux tours de correction, puis revue et commit par la session principale.
 - Ne jamais lancer `MGUI.Editor.Host` ni `MGUI.Samples` depuis un agent : le lancement est une validation manuelle de l'auteur.
@@ -147,7 +148,9 @@ Rollback : suppression des deux dossiers, des entrees de la solution et de la re
 
 Commit recommande : `feat(editor): add the MGUI.Editor library, its host and the view shell`
 
-### ⏳ X1. Positions source du loader et modele de document
+### 🧪 X1. Positions source du loader et modele de document
+
+Statut (17 septembre 2026) : implementee par un executeur ; committee sur `develop` AVANT la verification en contexte frais, a la demande de l'auteur, pour donner un point de depart commun aux deux sessions (decision 9). La verification, la revue et les corrections eventuelles se font ensuite sur la branche `xaml-editor`. Ecart au plan a trancher par l'auteur (voir « Points ouverts ») : les positions ne sont pas transmises au writer XAML.
 
 But : relier chaque element cree par le loader a son noeud XAML, et disposer d'un modele du document qui sait ou se trouvent les balises et les attributs dans le texte.
 
@@ -389,6 +392,7 @@ Commit recommande : `refactor(core): remove MGXAMLDesigner, superseded by MGUI.E
 ## Points ouverts
 
 - Aucun a la redaction. Deux hypotheses gardent une clause dans leur tache : ordre de creation des instances en X1 (verifie par sonde sur onze cas, clause d'arret conservee) ; racine `Window` en mode interactif en X2 (limite admise, non bloquante).
+- X1, a trancher par l'auteur : le plan demande de transmettre les positions au writer XAML (`IXamlLineInfoConsumer`) ET qu'aucun test existant du loader ne change de resultat. Les deux ne tiennent pas ensemble : avec la transmission, le message d'une `XamlObjectWriterException` gagne un prefixe de ligne et de colonne, ce qui casse deux tests qui comparent une sous-chaine exacte (`XamlAnimationTests.UnknownTransitionProperty_IsALoaderDiagnostic` et `UnknownEasing_AndBadDuration_AreLoaderDiagnostics`). L'executeur a retire la transmission (ADR-0010, decisions de livraison X1) : une erreur levee par le writer (setter invalide, conversion) n'a donc toujours ni ligne ni colonne. Consequence a evaluer avant X3, dont un critere demande un marqueur d'erreur place sur un « setter invalide ». La consequence annoncee dans l'ADR-0010 (« diagnostics for conversion and setter failures become more precise ») n'est pas tenue a ce stade.
 
 ## Suites connues (hors V1)
 

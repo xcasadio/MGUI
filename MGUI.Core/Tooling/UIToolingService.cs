@@ -50,6 +50,48 @@ public static class UIToolingService
         return result.ToString();
     }
 
+    /// <summary>X1: the <see cref="MGElement.Metadata"/> key under which <see cref="Element.ApplyBaseSettings(MGElement, MGElement, bool)"/>
+    /// stores an <see cref="Element.SourcePosition"/> that was set. Read back by <see cref="TryGetXamlSourcePosition(MGElement, out XamlSourcePosition)"/>.</summary>
+    public const string XamlSourcePositionMetadataKey = "MGUI.Xaml.SourcePosition";
+
+    /// <summary>X1: the XAML source position of the document node <paramref name="element"/> was created from, if any. Returns
+    /// <see langword="false"/> for an element created outside the loader's reader/writer loop -- a control template part, a theme
+    /// element, or a value produced by a <see cref="TypeConverter"/> (for example <c>Content="text"</c>).</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="element"/> is null.</exception>
+    public static bool TryGetXamlSourcePosition(MGElement element, out XamlSourcePosition position)
+    {
+        if (element == null)
+        {
+            throw new ArgumentNullException(nameof(element));
+        }
+
+        if (element.Metadata.TryGetValue(XamlSourcePositionMetadataKey, out var stored) && stored is XamlSourcePosition typed)
+        {
+            position = typed;
+            return true;
+        }
+
+        position = default;
+        return false;
+    }
+
+    /// <summary>X1: public wrapper over the loader's internal element name resolution (aliases included), restricted to names that resolve
+    /// to a DTO type deriving from <see cref="Element"/>. This is the definition of "counts for the ordinal" shared by
+    /// <see cref="XamlSourcePosition.Ordinal"/> and the XAML editor's own document model: a name that resolves to a non-<see cref="Element"/>
+    /// type (<see cref="Style"/>, <see cref="Setter"/>, a brush, <see cref="ContentTemplate"/>) returns <see langword="false"/>.</summary>
+    public static bool TryResolveXamlElementType(string localName, out Type dtoType)
+    {
+        var resolved = XAMLParser.ResolveElementType(localName);
+        if (resolved != null && typeof(Element).IsAssignableFrom(resolved))
+        {
+            dtoType = resolved;
+            return true;
+        }
+
+        dtoType = null;
+        return false;
+    }
+
     /// <summary>Captures a desktop-level diagnostic snapshot including input state, active focus/overlay/menu state, and window trees.</summary>
     public static UIDesktopDiagnosticSnapshot CaptureDesktopSnapshot(MGDesktop desktop)
     {
