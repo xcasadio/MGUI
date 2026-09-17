@@ -30,12 +30,13 @@ public class FloatingWindowDockMenuTests
         public MGWindow MainWindow;
         public MGDockHost Host;
 
-        /// <summary>Alone in its own group - floating it removes the group from the model.</summary>
+        /// <summary>Alone in its own group - floating it leaves GroupC as a hidden placeholder (D2).</summary>
         public DockPanelNode PanelC;
         public DockTabGroupNode GroupC;
 
         /// <summary>Shares <see cref="GroupAX"/> with a second panel so the group survives floating.</summary>
         public DockPanelNode PanelA;
+        public DockPanelNode PanelX;
         public DockTabGroupNode GroupAX;
 
         /// <summary>Shares <see cref="GroupBY"/> with a second panel so the group survives floating.</summary>
@@ -115,6 +116,7 @@ public class FloatingWindowDockMenuTests
             PanelC = panelC,
             GroupC = groupC,
             PanelA = panelA,
+            PanelX = panelX,
             GroupAX = groupAX,
             PanelB = panelB,
             GroupBY = groupBY,
@@ -209,22 +211,30 @@ public class FloatingWindowDockMenuTests
         Assert.Empty(harness.MainWindow.NestedWindows);
         Assert.Contains(harness.PanelA, harness.GroupAX.Panels);
         Assert.Equal(harness.PanelA.Id, harness.GroupAX.ActivePanelId);
+        Assert.Equal(0, harness.GroupAX.IndexOf(harness.PanelA)); // D3: back at its original tab index
 
         // Not sent to the first visible group (GroupBY) - proves the remembered group won, not a fallback.
         Assert.DoesNotContain(harness.PanelA, harness.GroupBY.Panels);
         Assert.Same(harness.GroupBY, harness.Host.GetAllVisibleTabGroups().First().GroupNode);
     }
 
-    // ── (d): source group gone -> falls back to the first visible group ─────
+    // ── (d): source group still exists -> the placeholder group returns identically ─────
 
     [Fact]
-    public void Dock_WhenSourceGroupNoLongerExists_FallsBackToFirstVisibleGroup()
+    public void Dock_WhenSourceGroupStillExists_RestoresTheExactPlaceholderGroup_AndJsonMatchesOriginal()
     {
         Harness harness = CreateHarness();
+        string originalJson = DockLayoutSerializer.ToJson(harness.Host.LayoutModel);
 
-        // GroupC contains only C: floating it removes GroupC from the model entirely.
+        // GroupC contains only C: floating it leaves GroupC in the tree, hidden, as a placeholder (D2)
+        // - it is not removed, only its visual disappears.
         MGFloatingDockWindow floatingWindow = FloatPanel(harness, harness.PanelC);
-        Assert.DoesNotContain(harness.Host.LayoutModel.GetAllTabGroups(), g => g == harness.GroupC);
+        Assert.Contains(harness.Host.LayoutModel.GetAllTabGroups(), g => g == harness.GroupC);
+        Assert.True(harness.GroupC.IsHiddenInLayout);
+        Assert.DoesNotContain(harness.Host.GetAllVisibleTabGroups(), g => g.GroupNode == harness.GroupC);
+
+        var parentSplit = Assert.IsType<DockSplitNode>(harness.GroupC.Parent);
+        var ratioBeforeDock = parentSplit.SplitRatio;
 
         MGDockTabItem tab = GetTabItem(floatingWindow, harness.PanelC);
         OpenContextMenu(harness, tab);
@@ -235,10 +245,88 @@ public class FloatingWindowDockMenuTests
         dockButton.Action.Invoke(dockButton);
 
         Assert.Empty(harness.Host.FloatingWindows);
+        Assert.Empty(harness.MainWindow.NestedWindows);
 
-        MGDockTabGroup firstVisible = harness.Host.GetAllVisibleTabGroups().First();
-        Assert.Same(harness.GroupBY, firstVisible.GroupNode); // GroupBY is first: FirstChild-before-SecondChild
-        Assert.Contains(harness.PanelC, harness.GroupBY.Panels);
+        // Same node, same parent split, same ratio.
+        Assert.Same(parentSplit, harness.GroupC.Parent);
+        Assert.Equal(ratioBeforeDock, parentSplit.SplitRatio);
+        Assert.Contains(harness.PanelC, harness.GroupC.Panels);
+        Assert.False(harness.GroupC.IsHiddenInLayout);
+
+        Assert.Equal(originalJson, DockLayoutSerializer.ToJson(harness.Host.LayoutModel));
+    }
+
+    // ── source group gone (root replaced) -> falls back to the first visible group ─────
+
+    [Fact]
+    public void Dock_WhenApplicationReplacedTheRoot_FallsBackToFirstVisibleGroup()
+    {
+        Harness harness = CreateHarness();
+
+        MGFloatingDockWindow floatingWindow = FloatPanel(harness, harness.PanelC);
+
+        // The application swaps in a brand-new tree (new ids) - GroupC's placement now points
+        // to a group that no longer exists anywhere in the model.
+        DockPanelNode panelZ = new() { Title = "Z", ContentFactory = () => new MGBorder(harness.MainWindow) };
+        DockTabGroupNode newGroup = new();
+        newGroup.AddPanel(panelZ, -1);
+        harness.Host.LayoutModel.RootNode = newGroup;
+        AdvanceFrame(harness.Runtime, harness.Desktop, 160, Point.Zero);
+        AdvanceFrame(harness.Runtime, harness.Desktop, 176, Point.Zero);
+
+        MGDockTabItem tab = GetTabItem(floatingWindow, harness.PanelC);
+        OpenContextMenu(harness, tab);
+        MGContextMenuButton dockButton = FindMenuButton(harness.Desktop.ActiveContextMenu, "Dock");
+        Assert.NotNull(dockButton);
+
+        dockButton.Action.Invoke(dockButton);
+
+        Assert.Empty(harness.Host.FloatingWindows);
+
+        MGDockTabGroup firstVisible = Assert.Single(harness.Host.GetAllVisibleTabGroups());
+        Assert.Same(newGroup, firstVisible.GroupNode);
+        Assert.Contains(harness.PanelC, newGroup.Panels);
+    }
+
+    // ── multi-tab group: order/active tab after both panels return (P11) ─────
+
+    [Fact]
+    public void Dock_MultiTabGroup_BothPanelsFloatedThenDockedInOrder_FollowsP11()
+    {
+        Harness harness = CreateHarness();
+
+        MGFloatingDockWindow floatA = FloatPanel(harness, harness.PanelA, new Point(700, 500));
+        MGFloatingDockWindow floatX = FloatPanel(harness, harness.PanelX, new Point(200, 150));
+
+        // GroupAX is now empty - a hidden placeholder referenced by both A's and X's placements.
+        Assert.True(harness.GroupAX.IsEmpty);
+        Assert.True(harness.GroupAX.IsHiddenInLayout);
+        var parentSplit = Assert.IsType<DockSplitNode>(harness.GroupAX.Parent);
+        var ratioBeforeDock = parentSplit.SplitRatio;
+
+        // Dock A first.
+        MGDockTabItem tabA = GetTabItem(floatA, harness.PanelA);
+        OpenContextMenu(harness, tabA);
+        MGContextMenuButton dockA = FindMenuButton(harness.Desktop.ActiveContextMenu, "Dock");
+        Assert.NotNull(dockA);
+        dockA.Action.Invoke(dockA);
+
+        // Then X.
+        MGDockTabItem tabX = GetTabItem(floatX, harness.PanelX);
+        OpenContextMenu(harness, tabX);
+        MGContextMenuButton dockX = FindMenuButton(harness.Desktop.ActiveContextMenu, "Dock");
+        Assert.NotNull(dockX);
+        dockX.Action.Invoke(dockX);
+
+        Assert.Empty(harness.Host.FloatingWindows);
+
+        // Same node, same parent split, same ratio.
+        Assert.Same(parentSplit, harness.GroupAX.Parent);
+        Assert.Equal(ratioBeforeDock, parentSplit.SplitRatio);
+
+        // P11: X was docked last (at its remembered index 0, ahead of A), so tabs are [X, A], active X.
+        Assert.Equal(new[] { harness.PanelX, harness.PanelA }, harness.GroupAX.Panels);
+        Assert.Equal(harness.PanelX.Id, harness.GroupAX.ActivePanelId);
     }
 
     // ── (e): two panels floated separately each return to their own group ───

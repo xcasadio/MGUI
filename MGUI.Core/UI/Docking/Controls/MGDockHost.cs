@@ -48,6 +48,11 @@ public class MGDockHost : MGSingleContentHost
                 // Re-sync node subscriptions (OnTabGroupPropertyChanged etc.)
                 SyncNodeSubscriptions();
 
+                // Close the old model's floating windows (no panel close reported) and open the
+                // new model's ones (P10); _panelRegistry is deliberately left untouched here, see
+                // SyncFloatingWindows and the "LayoutModel then RegisterPanel" pattern (P10).
+                SyncFloatingWindows();
+
                 NotifyPropertyChanged(nameof(LayoutModel));
                 RebuildVisualTree();
             }
@@ -58,14 +63,6 @@ public class MGDockHost : MGSingleContentHost
     /// Registry of all panels by their ID for quick lookup.
     /// </summary>
     private readonly Dictionary<string, DockPanelNode> _panelRegistry = new Dictionary<string, DockPanelNode>();
-
-    /// <summary>
-    /// In-memory (never serialized) map of panel ID to the ID of the <see cref="DockTabGroupNode"/>
-    /// it was floated from, so the tab context menu's "Dock" command (see <see cref="RedockPanel"/>)
-    /// can send the panel back to where it came from. Recorded by <see cref="DetachToFloating"/>
-    /// (the only path that floats a panel) and consumed/cleared by <see cref="RedockPanel"/>.
-    /// </summary>
-    private readonly Dictionary<string, string> _floatedFromGroupId = new Dictionary<string, string>();
 
     private DockableRegistry _dockableRegistry;
     /// <summary>
@@ -964,61 +961,80 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
-        var panel      = drag.DraggedPanel;
-        var targetNode = target.TargetNode;
+        var panel        = drag.DraggedPanel;
+        var targetNode   = target.TargetNode;
+        var fromFloating = drag.SourceFloatingWindow != null;
 
-        // ── If panel comes from a floating window, detach it first ──────────────
-        if (drag.SourceFloatingWindow != null)
+        void PerformDropOperation()
         {
-            DetachFromFloatingWindow(drag.SourceFloatingWindow, panel);
-        }
+            // ── If panel comes from a floating window, detach it first ──────────────
+            if (fromFloating)
+            {
+                DetachFromFloatingWindow(drag.SourceFloatingWindow, panel);
+            }
 
-        switch (target.Zone)
-        {
-            case DockZone.Center:
-                // Dock as tab
-                if (targetNode is DockTabGroupNode targetGroup)
-                {
-                    // Check if this is a reorder operation (same group, source in host)
-                    if (drag.SourceGroup == targetGroup && drag.SourceFloatingWindow == null)
+            switch (target.Zone)
+            {
+                case DockZone.Center:
+                    // Dock as tab
+                    if (targetNode is DockTabGroupNode targetGroup)
                     {
-                        // Reorder within the same group
-                        DockOperation.ReorderTab(LayoutModel, panel, targetGroup, target.TabIndex);
+                        // Check if this is a reorder operation (same group, source in host)
+                        if (drag.SourceGroup == targetGroup && !fromFloating)
+                        {
+                            // Reorder within the same group
+                            DockOperation.ReorderTab(LayoutModel, panel, targetGroup, target.TabIndex);
+                        }
+                        else
+                        {
+                            // Move to different group (or from floating → host)
+                            var insertIndex = target.TabIndex >= 0 ? target.TabIndex : -1;
+                            DockOperation.DockAsTab(LayoutModel, panel, targetGroup, insertIndex);
+                        }
+                    }
+                    break;
+
+                case DockZone.Left:
+                case DockZone.Right:
+                case DockZone.Top:
+                case DockZone.Bottom:
+                    // Split dock: remove from source and create split
+                    if (target.IsHostEdge)
+                    {
+                        // Host-edge drop: insert a new root-level split
+                        DockOperation.SplitDockAtRoot(LayoutModel, panel, target.Zone,
+                            DockDropCalculator.HostEdgePreviewRatio);
                     }
                     else
                     {
-                        // Move to different group (or from floating → host)
-                        var insertIndex = target.TabIndex >= 0 ? target.TabIndex : -1;
-                        DockOperation.DockAsTab(LayoutModel, panel, targetGroup, insertIndex);
+                        DockOperation.SplitDock(LayoutModel, panel, targetNode, target.Zone);
                     }
-                }
-                break;
+                    break;
 
-            case DockZone.Left:
-            case DockZone.Right:
-            case DockZone.Top:
-            case DockZone.Bottom:
-                // Split dock: remove from source and create split
-                if (target.IsHostEdge)
-                {
-                    // Host-edge drop: insert a new root-level split
-                    DockOperation.SplitDockAtRoot(LayoutModel, panel, target.Zone,
-                        DockDropCalculator.HostEdgePreviewRatio);
-                }
-                else
-                {
-                    DockOperation.SplitDock(LayoutModel, panel, targetNode, target.Zone);
-                }
-                break;
+                case DockZone.None:
+                default:
+                    // Invalid zone, do nothing
+                    break;
+            }
 
-            case DockZone.None:
-            default:
-                // Invalid zone, do nothing
-                break;
+            if (fromFloating)
+            {
+                // An explicit drop replaces whatever place the panel remembered (P3).
+                DockOperation.ForgetPlacement(LayoutModel, panel.Id);
+            }
         }
 
-        // Rebuild visual tree to reflect changes
-        RebuildVisualTree();
+        if (fromFloating)
+        {
+            // One explicit rebuild for this operation (P12): also syncs floating windows so a
+            // floating group left empty by the detach above closes its window.
+            MutateModelSuspended(PerformDropOperation);
+        }
+        else
+        {
+            PerformDropOperation();
+            RebuildVisualTree();
+        }
     }
 
     /// <summary>
@@ -1271,8 +1287,9 @@ public class MGDockHost : MGSingleContentHost
 
         var panel = definition.CreatePanelNode();
 
-        // Find a suitable tab group to add the panel into
-        var allGroups = GetAllTabGroups().ToList();
+        // Find a suitable, non-hidden tab group to add the panel into (P6: a hidden placeholder
+        // group is skipped, exactly like a missing one).
+        var allGroups = GetAllTabGroups().Where(g => !g.IsHiddenInLayout).ToList();
         var targetGroup = allGroups.FirstOrDefault();
 
         if (targetGroup != null)
@@ -1316,36 +1333,28 @@ public class MGDockHost : MGSingleContentHost
             throw new ArgumentNullException(nameof(panel));
         }
 
-        // Remember which tab group this panel is floating out of (in memory only — never part of
-        // the saved layout) so a later "Dock" from the context menu can send it back. Must read
-        // panel.Parent BEFORE RemovePanel below, which clears it.
-        if (panel.Parent is DockTabGroupNode sourceGroup)
-        {
-            _floatedFromGroupId[panel.Id] = sourceGroup.Id;
-        }
-        else
-        {
-            _floatedFromGroupId.Remove(panel.Id);
-        }
-
-        // Remove from the host panel registry first (before model cleanup)
-        _panelRegistry.Remove(panel.Id);
-
-        // Remove from the docked layout model (triggers RebuildVisualTree via LayoutChanged)
-        DockOperation.RemovePanel(LayoutModel, panel);
-
         const int defaultFloatWidth  = 320;
         const int defaultFloatHeight = 260;
         var left = dropPosition.X - defaultFloatWidth  / 2;
         var top  = dropPosition.Y - defaultFloatHeight / 2;
 
-        var floatWin = new MGFloatingDockWindow(this, panel, left, top, defaultFloatWidth, defaultFloatHeight);
-        AttachFloatingWindow(floatWin);
+        DockFloatingGroup floatingGroup = null;
+        MutateModelSuspended(() =>
+        {
+            // Remove from the host panel registry first (before model cleanup)
+            _panelRegistry.Remove(panel.Id);
+
+            // Moves the panel into a new floating group in the model, remembering its place (P2)
+            // so the source group survives, hidden, until the panel returns (D2/D3). The commit
+            // point (CommitModelChange, via MutateModelSuspended) reflects the new floating group
+            // as an actual window (SyncFloatingWindows).
+            floatingGroup = DockOperation.FloatPanel(LayoutModel, panel, left, top, defaultFloatWidth, defaultFloatHeight);
+        });
 
         // Re-sync: the floating panel should still appear "visible" to the DockableRegistry
         SyncRegistryVisibility();
 
-        return floatWin;
+        return _floatingWindows.FirstOrDefault(w => w.FloatingGroup == floatingGroup);
     }
 
     /// <summary>
@@ -1362,7 +1371,9 @@ public class MGDockHost : MGSingleContentHost
 
     /// <summary>
     /// A floating window closed itself (<see cref="MGWindow.TryCloseWindow"/> already removed it from the parent window's nested windows): the
-    /// host stops tracking it and reports every panel it still held as closed, as closing those panels one by one would.
+    /// host stops tracking it and closes every panel it still held, as closing those panels one by one would — a model-backed window inside one
+    /// suspended mutation (one <see cref="PanelRemoved"/> per panel, place forgotten at this stage — T4 keeps it), a standalone window the same
+    /// way it always has.
     /// </summary>
     private void OnFloatingWindowClosed(object sender, EventArgs e)
     {
@@ -1372,20 +1383,42 @@ public class MGDockHost : MGSingleContentHost
         }
 
         floatWin.WindowClosed -= OnFloatingWindowClosed;
-        foreach (var panel in floatWin.GroupNode.Panels.ToList())
+
+        if (floatWin.FloatingGroup != null)
         {
-            NotifyFloatingPanelClosed(panel);
+            var panels = floatWin.GroupNode.Panels.ToList();
+            MutateModelSuspended(() =>
+            {
+                foreach (var panel in panels)
+                {
+                    DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false);
+                }
+            });
+
+            foreach (var panel in panels)
+            {
+                PanelRemoved?.Invoke(this, panel);
+                _dockableRegistry?.NotifyClosed(panel.Id);
+            }
+        }
+        else
+        {
+            foreach (var panel in floatWin.GroupNode.Panels.ToList())
+            {
+                NotifyFloatingPanelClosed(panel);
+            }
         }
 
         SyncRegistryVisibility();
     }
 
     /// <summary>
-    /// Creates a floating window for <paramref name="panel"/> at the given position without
-    /// removing the panel from the layout model first (used when the panel is already outside
-    /// the layout, e.g. the source is a floating window moving to a new floating position — 
-    /// reserved for future use).  Normal detach from the docked layout should use
-    /// <see cref="DetachToFloating"/>.
+    /// Creates a model-backed floating window for <paramref name="panel"/> at the given position.
+    /// When the panel currently sits in a tab group of the docked layout, its place is remembered
+    /// (D2/D3) exactly as <see cref="DetachToFloating"/> does; a panel with no parent (already
+    /// outside the layout) records no placement. Like <see cref="DetachToFloating"/>, an
+    /// already-registered (docked) panel is removed from the host's panel registry first, so it is
+    /// not left dangling there once it moves into the model's floating store.
     /// </summary>
     public MGFloatingDockWindow CreateFloatingWindow(DockPanelNode panel, int left, int top, int width = 320, int height = 260)
     {
@@ -1394,21 +1427,56 @@ public class MGDockHost : MGSingleContentHost
             throw new ArgumentNullException(nameof(panel));
         }
 
-        var floatWin = new MGFloatingDockWindow(this, panel, left, top, width, height);
-        AttachFloatingWindow(floatWin);
+        DockFloatingGroup floatingGroup = null;
+        MutateModelSuspended(() =>
+        {
+            _panelRegistry.Remove(panel.Id);
+            floatingGroup = DockOperation.FloatPanel(LayoutModel, panel, left, top, width, height);
+        });
+
         SyncRegistryVisibility();
-        return floatWin;
+        return _floatingWindows.FirstOrDefault(w => w.FloatingGroup == floatingGroup);
     }
 
     /// <summary>
-    /// Closes a floating window: removes it from the floating list and from the parent
-    /// window's nested windows list. Its panels are not reported as closed: callers either
-    /// already reported them (a panel closed from the window) or move them back into the layout.
+    /// Closes a floating window. For a window whose <see cref="MGFloatingDockWindow.FloatingGroup"/>
+    /// is still live in <see cref="LayoutModel"/>'s floating store — this API called directly rather
+    /// than through <see cref="MGWindow.TryCloseWindow"/> (<see cref="OnFloatingWindowClosed"/>) —
+    /// every panel it still holds is closed in the model first (rememberPlacement: false, as
+    /// <see cref="OnFloatingWindowClosed"/> does), and reported through <see cref="PanelRemoved"/>;
+    /// otherwise <see cref="LayoutModel"/>.<see cref="DockLayoutModel.FloatingGroups"/> would keep the
+    /// orphaned <see cref="DockFloatingGroup"/> and <see cref="SyncFloatingWindows"/> would resurrect
+    /// it as a new window on the next model commit (P1). Removing those panels re-enters this method
+    /// through <see cref="CommitModelChange"/> / <see cref="SyncFloatingWindows"/> once the group has
+    /// left the model, and that re-entrant call takes the plain bookkeeping path below (removing the
+    /// window from the floating list and from the parent window's nested windows) — so a window whose
+    /// group is already gone, or that was never model-backed, is only ever bookkept, never double-closed.
     /// </summary>
     public void CloseFloatingWindow(MGFloatingDockWindow window)
     {
         if (window == null)
         {
+            return;
+        }
+
+        if (window.FloatingGroup != null && (LayoutModel?.FloatingGroups.Contains(window.FloatingGroup) ?? false))
+        {
+            var panels = window.GroupNode.Panels.ToList();
+            MutateModelSuspended(() =>
+            {
+                foreach (var panel in panels)
+                {
+                    DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false);
+                }
+            });
+
+            foreach (var panel in panels)
+            {
+                PanelRemoved?.Invoke(this, panel);
+                _dockableRegistry?.NotifyClosed(panel.Id);
+            }
+
+            SyncRegistryVisibility();
             return;
         }
 
@@ -1419,8 +1487,9 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Called by <see cref="MGFloatingDockWindow"/> when the user closes a panel inside it
-    /// via the close button.  Notifies the dockable registry that the panel was closed.
+    /// Called by <see cref="MGFloatingDockWindow"/> when the user closes a panel inside a standalone
+    /// (non model-backed) floating window via the close button. Notifies the dockable registry that
+    /// the panel was closed. A model-backed window's panel close goes through <see cref="CloseFloatingPanel"/> instead.
     /// </summary>
     internal void NotifyFloatingPanelClosed(DockPanelNode panel)
     {
@@ -1429,30 +1498,63 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
-        _floatedFromGroupId.Remove(panel.Id);
         PanelRemoved?.Invoke(this, panel);
         _dockableRegistry?.NotifyClosed(panel.Id);
         SyncRegistryVisibility();
     }
 
     /// <summary>
-    /// Detaches <paramref name="panel"/> from a floating window's tab group and re-registers it in
-    /// this host's panel registry, closing the floating window if it becomes empty as a result.
+    /// Closes <paramref name="panel"/> from a model-backed floating window's tab close button or
+    /// context menu (<see cref="MGFloatingDockWindow.OnPanelCloseRequested"/>). Goes through
+    /// <see cref="DockOperation.ClosePanel"/> with <c>rememberPlacement: false</c>: the place is
+    /// forgotten at this stage of the plan (T4 keeps it so <c>ShowDockable</c> can reopen the panel).
+    /// The floating window itself is synced away by <see cref="SyncFloatingWindows"/> (part of the
+    /// commit point) once its <see cref="DockFloatingGroup"/> is removed from the model.
+    /// </summary>
+    /// <param name="panel">The panel to close.</param>
+    internal void CloseFloatingPanel(DockPanelNode panel)
+    {
+        if (panel == null)
+        {
+            return;
+        }
+
+        MutateModelSuspended(() => DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false));
+
+        PanelRemoved?.Invoke(this, panel);
+        _dockableRegistry?.NotifyClosed(panel.Id);
+        SyncRegistryVisibility();
+    }
+
+    /// <summary>
+    /// Detaches <paramref name="panel"/> from the floating window <paramref name="floatingSource"/> holding
+    /// it — the model's floating store for a model-backed window (<see cref="MGFloatingDockWindow.FloatingGroup"/>
+    /// non-null), or the window's own standalone group otherwise — and re-registers it in this host's panel
+    /// registry. A standalone window that becomes empty as a result is closed immediately; a model-backed window
+    /// is closed later by <see cref="SyncFloatingWindows"/>, once its <see cref="DockFloatingGroup"/> is removed
+    /// from the model (which <see cref="DockOperation.DetachFromFloatingGroup"/> does when it empties).
     /// Shared by <see cref="ExecuteDrop"/> (dragging a floated tab back into the host) and
     /// <see cref="RedockPanel"/> (the tab context menu's "Dock" command).
     /// </summary>
     private void DetachFromFloatingWindow(MGFloatingDockWindow floatingSource, DockPanelNode panel)
     {
-        // Remove the panel from the floating window's model group.
-        // This must happen BEFORE any DockOperation call so that DockOperation's
-        // "remove from current parent" logic does not try to clean up a group that
-        // is outside the host's LayoutModel.
-        floatingSource.GroupNode.RemovePanelById(panel.Id);
-
-        // Close the floating window if it is now empty
-        if (floatingSource.GroupNode.IsEmpty)
+        if (floatingSource.FloatingGroup != null)
         {
-            CloseFloatingWindow(floatingSource);
+            DockOperation.DetachFromFloatingGroup(LayoutModel, panel);
+        }
+        else
+        {
+            // Remove the panel from the floating window's model group.
+            // This must happen BEFORE any DockOperation call so that DockOperation's
+            // "remove from current parent" logic does not try to clean up a group that
+            // is outside the host's LayoutModel.
+            floatingSource.GroupNode.RemovePanelById(panel.Id);
+
+            // Close the floating window if it is now empty
+            if (floatingSource.GroupNode.IsEmpty)
+            {
+                CloseFloatingWindow(floatingSource);
+            }
         }
 
         // Register the panel back in the host (it was never in _panelRegistry
@@ -1467,10 +1569,11 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>
     /// Re-docks <paramref name="panel"/> from the floating window <paramref name="source"/> back into
     /// the docked layout, in response to the tab context menu's "Dock" command (see
-    /// <see cref="MGDockTabItem.DockRequested"/>). The panel returns to the tab group it was floated
-    /// from (see <see cref="DetachToFloating"/>) if that group still exists in <see cref="LayoutModel"/>,
-    /// otherwise it is docked into the first visible tab group. Leaves the panel floating (no-op) if
-    /// the host has no visible tab group at all to dock into.
+    /// <see cref="MGDockTabItem.DockRequested"/>). The panel returns to the exact tab group and index
+    /// its remembered placement (P2, D3) points to when that group still exists in <see cref="LayoutModel"/>
+    /// (<see cref="DockOperation.RestoreToPlacement"/>); otherwise it is docked into the first visible
+    /// tab group, and the placement — now pointing nowhere useful — is forgotten (P5). Leaves the panel
+    /// floating (no-op) if the host has no visible tab group at all to dock into.
     /// </summary>
     /// <param name="panel">The panel to re-dock.</param>
     /// <param name="source">The floating window currently hosting the panel.</param>
@@ -1481,28 +1584,32 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
-        // Resolve the target group BEFORE touching the floating window: if there is nowhere to
+        // Resolve the destination BEFORE touching the floating window: if there is nowhere to
         // dock the panel, leave it floating untouched rather than detaching it into limbo.
-        DockTabGroupNode targetGroup = null;
-        if (_floatedFromGroupId.TryGetValue(panel.Id, out var sourceGroupId) && sourceGroupId != null)
-        {
-            targetGroup = LayoutModel.FindNodeById(sourceGroupId) as DockTabGroupNode;
-        }
+        var placementGroup = DockOperation.ResolvePlacementGroup(LayoutModel, panel.Id);
+        var fallback = placementGroup == null ? GetAllVisibleTabGroups().FirstOrDefault()?.GroupNode : null;
 
-        targetGroup ??= GetAllVisibleTabGroups().FirstOrDefault()?.GroupNode;
-
-        if (targetGroup == null)
+        if (placementGroup == null && fallback == null)
         {
             return;
         }
 
-        _floatedFromGroupId.Remove(panel.Id);
+        MutateModelSuspended(() =>
+        {
+            DetachFromFloatingWindow(source, panel);
 
-        DetachFromFloatingWindow(source, panel);
+            if (placementGroup != null)
+            {
+                DockOperation.RestoreToPlacement(LayoutModel, panel);
+            }
+            else
+            {
+                DockOperation.DockAsTab(LayoutModel, panel, fallback, -1);
+                DockOperation.ForgetPlacement(LayoutModel, panel.Id);
+            }
+        });
 
-        DockOperation.DockAsTab(LayoutModel, panel, targetGroup, -1);
-
-        RebuildVisualTree();
+        SyncRegistryVisibility();
     }
 
     #endregion Floating Windows — management
@@ -1838,11 +1945,12 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Returns the tab group designated as the Document Area, or null if none is set.
+    /// Returns the tab group designated as the Document Area, or null if none is set or it is
+    /// currently a hidden placeholder (P6: a hidden document area counts as absent).
     /// </summary>
     public DockTabGroupNode GetDocumentArea()
     {
-        return GetAllTabGroups().FirstOrDefault(g => g.IsDocumentArea);
+        return GetAllTabGroups().FirstOrDefault(g => g.IsDocumentArea && !g.IsHiddenInLayout);
     }
 
     /// <summary>
@@ -2014,9 +2122,10 @@ public class MGDockHost : MGSingleContentHost
             var maximizedId = CurrentMaximizedGroupId;
             if (maximizedId != null)
             {
-                // Find the tab group node with the matching ID
+                // Find the tab group node with the matching ID. A hidden placeholder group (P6)
+                // is treated exactly like a missing one: it cannot be the maximized group.
                 var maximizedGroup = LayoutModel.GetAllTabGroups()
-                    .FirstOrDefault(g => g.Id == maximizedId);
+                    .FirstOrDefault(g => g.Id == maximizedId && !g.IsHiddenInLayout);
 
                 if (maximizedGroup != null)
                 {
@@ -2026,11 +2135,20 @@ public class MGDockHost : MGSingleContentHost
                     return;
                 }
 
-                // Maximized group no longer exists — pop and fall through to normal rebuild
+                // Maximized group no longer exists (or is now hidden) — pop and fall through to normal rebuild
                 _maximizeStack.Pop();
             }
 
-            // ── Normal mode ────────────────────────────────────────────────
+            // ── Normal mode ──────────────────────────────────────────────
+            // An entirely collapsed tree (every group hidden, P1) shows the empty placeholder;
+            // host-edge drop zones stay available regardless (they don't depend on any group).
+            if (LayoutModel.RootNode.IsHiddenInLayout)
+            {
+                SetContent(CreateEmptyPlaceholder());
+                SyncRegistryVisibility();
+                return;
+            }
+
             var visualRoot = BuildVisualTree(LayoutModel.RootNode);
             SetContent(visualRoot);
             SyncRegistryVisibility();
@@ -2080,7 +2198,7 @@ public class MGDockHost : MGSingleContentHost
         switch (node)
         {
             case DockSplitNode splitNode:
-                return BuildSplitContainer(splitNode);
+                return BuildSplitNodeVisual(splitNode);
 
             case DockTabGroupNode tabGroupNode:
                 return BuildTabGroup(tabGroupNode);
@@ -2095,6 +2213,31 @@ public class MGDockHost : MGSingleContentHost
             default:
                 return CreateErrorPlaceholder($"Unknown node type: {node.GetType().Name}");
         }
+    }
+
+    /// <summary>
+    /// Builds the visual for a split node, skipping a hidden child (P1). When exactly one child is
+    /// hidden (or null), only the visible child's visual is built, without creating an
+    /// <see cref="MGDockSplitContainer"/> or a separator. A split with both children hidden is
+    /// itself <see cref="DockNode.IsHiddenInLayout"/>, so its parent never recurses into it here
+    /// (see <see cref="RebuildVisualTree"/> for the case where the whole tree collapses to that).
+    /// </summary>
+    private MGElement BuildSplitNodeVisual(DockSplitNode splitNode)
+    {
+        var firstHidden = splitNode.FirstChild == null || splitNode.FirstChild.IsHiddenInLayout;
+        var secondHidden = splitNode.SecondChild == null || splitNode.SecondChild.IsHiddenInLayout;
+
+        if (firstHidden && !secondHidden)
+        {
+            return BuildVisualTree(splitNode.SecondChild);
+        }
+
+        if (secondHidden && !firstHidden)
+        {
+            return BuildVisualTree(splitNode.FirstChild);
+        }
+
+        return BuildSplitContainer(splitNode);
     }
 
     /// <summary>
@@ -2254,13 +2397,81 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Handles layout model changes by rebuilding the visual tree and re-syncing node subscriptions.
+    /// Handles layout model changes by re-syncing node subscriptions, floating windows and the
+    /// visual tree (see <see cref="CommitModelChange"/>).
     /// </summary>
-    private void OnLayoutModelChanged(object sender, EventArgs e)
+    private void OnLayoutModelChanged(object sender, EventArgs e) => CommitModelChange();
+
+    /// <summary>
+    /// The single point (P12) through which every host operation that touches the layout model
+    /// (directly or via <see cref="DockOperation"/>) settles its side effects: node subscriptions,
+    /// floating windows and the visual tree. Called once per operation, either directly (see
+    /// <see cref="MutateModelSuspended"/>) or through <see cref="DockLayoutModel.LayoutChanged"/>
+    /// (<see cref="OnLayoutModelChanged"/>) for a mutation that was not run through
+    /// <see cref="MutateModelSuspended"/>.
+    /// </summary>
+    private void CommitModelChange()
     {
         SyncNodeSubscriptions();
+        SyncFloatingWindows();
         RebuildVisualTree();
         DockLayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Runs <paramref name="mutate"/> against <see cref="LayoutModel"/> with this host's
+    /// <see cref="DockLayoutModel.LayoutChanged"/> subscription suspended, then performs exactly one
+    /// <see cref="CommitModelChange"/> (P12) — mirroring <see cref="UnpinPanel"/> / <see cref="RepinPanel"/>.
+    /// Needed because adding or removing a panel does not reliably raise <see cref="DockLayoutModel.LayoutChanged"/>
+    /// (only nodes already subscribed at root-assignment time do, and <c>ActivePanelId</c> is filtered out), and a
+    /// hidden placeholder group has no visual to refresh itself when it empties or refills.
+    /// </summary>
+    /// <param name="mutate">The model mutation to run.</param>
+    private void MutateModelSuspended(Action mutate)
+    {
+        _layoutModel.LayoutChanged -= OnLayoutModelChanged;
+        try
+        {
+            mutate();
+        }
+        finally
+        {
+            _layoutModel.LayoutChanged += OnLayoutModelChanged;
+        }
+
+        CommitModelChange();
+    }
+
+    /// <summary>
+    /// Creates a floating window for each <see cref="DockLayoutModel.FloatingGroups"/> entry of
+    /// <see cref="LayoutModel"/> that does not have one yet (via the internal, model-backed
+    /// <see cref="MGFloatingDockWindow"/> constructor), and closes (<see cref="CloseFloatingWindow"/>,
+    /// no panel close reported) every tracked window whose <see cref="MGFloatingDockWindow.FloatingGroup"/>
+    /// is non-null and is no longer in the model's floating store. A window with a null
+    /// <see cref="MGFloatingDockWindow.FloatingGroup"/> (created through the public constructor,
+    /// outside any model) is left alone.
+    /// </summary>
+    private void SyncFloatingWindows()
+    {
+        var currentGroups = LayoutModel?.FloatingGroups ?? (IReadOnlyList<DockFloatingGroup>)Array.Empty<DockFloatingGroup>();
+
+        foreach (var window in _floatingWindows.ToList())
+        {
+            if (window.FloatingGroup != null && !currentGroups.Contains(window.FloatingGroup))
+            {
+                CloseFloatingWindow(window);
+            }
+        }
+
+        foreach (var floatingGroup in currentGroups)
+        {
+            if (_floatingWindows.Any(w => w.FloatingGroup == floatingGroup))
+            {
+                continue;
+            }
+
+            AttachFloatingWindow(new MGFloatingDockWindow(this, floatingGroup));
+        }
     }
 
     /// <summary>Last root node whose tab-group active-panel changes we subscribed to.</summary>
@@ -2660,9 +2871,10 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private DockTabGroupNode FindFirstLeafTabGroup(DockNode node)
     {
+        // A hidden placeholder group (P6) is never resolved to — treated as if absent.
         if (node is DockTabGroupNode tg)
         {
-            return tg;
+            return tg.IsHiddenInLayout ? null : tg;
         }
 
         if (node is DockSplitNode split)

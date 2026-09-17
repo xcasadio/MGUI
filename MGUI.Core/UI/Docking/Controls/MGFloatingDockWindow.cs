@@ -1,4 +1,5 @@
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Shared.Helpers;
 
 namespace MGUI.Core.UI.Docking.Controls;
 
@@ -17,6 +18,17 @@ public class MGFloatingDockWindow : MGWindow
     /// <summary>The tab group node model backing this floating window.</summary>
     public DockTabGroupNode GroupNode { get; }
 
+    /// <summary>
+    /// The <see cref="DockLayoutModel"/>'s floating-store entry this window reflects, or null when
+    /// this window was created through the public constructor, outside any model (see
+    /// <see cref="MGDockHost.FloatingWindows"/> / <see cref="MGDockHost.CreateFloatingWindow"/> callers
+    /// that bypass the model, and <see cref="FloatingDockWindowActivationTests"/>).
+    /// A non-null value is kept in sync by <c>MGDockHost.SyncFloatingWindows</c> and by this window's
+    /// own position/size change handlers (see <see cref="OnFloatingWindowPositionChanged"/>,
+    /// <see cref="OnFloatingWindowSizeChanged"/>).
+    /// </summary>
+    internal DockFloatingGroup FloatingGroup { get; }
+
     private MGDockTabGroup _tabGroup;
     /// <summary>The visual tab group control shown inside this window.</summary>
     public MGDockTabGroup TabGroup => _tabGroup;
@@ -25,12 +37,12 @@ public class MGFloatingDockWindow : MGWindow
     private (int Left, int Top, int Width, int Height)? _preMaximizeBounds;
 
     // ──────────────────────────────────────────────────────────────────────
-    // Constructor
+    // Constructors
     // ──────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a new floating dock window for <paramref name="initialPanel"/>.
-    /// The caller is responsible for calling
+    /// Creates a new floating dock window for <paramref name="initialPanel"/>, outside any
+    /// <see cref="DockLayoutModel"/>'s floating store. The caller is responsible for calling
     /// <see cref="MGWindow.AddNestedWindow"/> on the parent window afterwards.
     /// </summary>
     /// <param name="ownerHost">The docking host that owns this window.</param>
@@ -54,14 +66,43 @@ public class MGFloatingDockWindow : MGWindow
             throw new ArgumentNullException(nameof(initialPanel));
         }
 
+        FloatingGroup = null;
+
+        GroupNode = new DockTabGroupNode();
+        GroupNode.AddPanel(initialPanel, -1);
+
+        InitializeCommon();
+    }
+
+    /// <summary>
+    /// Creates a new floating dock window that reflects <paramref name="floatingGroup"/>, an entry
+    /// of <see cref="DockLayoutModel.FloatingGroups"/>. The caller (<c>MGDockHost.SyncFloatingWindows</c>)
+    /// is responsible for calling <see cref="MGWindow.AddNestedWindow"/> on the parent window afterwards.
+    /// </summary>
+    /// <param name="ownerHost">The docking host that owns this window.</param>
+    /// <param name="floatingGroup">The model's floating group to reflect.</param>
+    internal MGFloatingDockWindow(MGDockHost ownerHost, DockFloatingGroup floatingGroup)
+        : base(ownerHost?.ParentWindow, floatingGroup?.Left ?? 0, floatingGroup?.Top ?? 0,
+              floatingGroup?.Width ?? 320, floatingGroup?.Height ?? 260)
+    {
+        OwnerHost = ownerHost ?? throw new ArgumentNullException(nameof(ownerHost));
+        FloatingGroup = floatingGroup ?? throw new ArgumentNullException(nameof(floatingGroup));
+
+        GroupNode = floatingGroup.Group;
+
+        InitializeCommon();
+    }
+
+    /// <summary>
+    /// Shared body of both constructors: window chrome, the tab group visual and its event wiring.
+    /// IMPORTANT: <see cref="GroupNode"/> must already be set before this runs.
+    /// </summary>
+    private void InitializeCommon()
+    {
         // Window chrome
         IsDraggable      = true;
         IsUserResizable  = true;
         IsTitleBarVisible = true;
-
-        // Create the model group and add the initial panel
-        GroupNode = new DockTabGroupNode();
-        GroupNode.AddPanel(initialPanel, -1);
 
         // Build the tab group visual.
         // IMPORTANT: OwnerDockHost / OwnerFloatingWindow must be set BEFORE GroupNode so that
@@ -71,7 +112,7 @@ public class MGFloatingDockWindow : MGWindow
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment   = VerticalAlignment.Stretch,
-            OwnerDockHost       = ownerHost,
+            OwnerDockHost       = OwnerHost,
             OwnerFloatingWindow = this
         };
         _tabGroup.GroupNode = GroupNode;   // triggers RebuildTabHeaders with owner refs already set
@@ -93,6 +134,11 @@ public class MGFloatingDockWindow : MGWindow
                 UpdateTitle();
             }
         };
+
+        // Keep a model-backed floating group's bounds (P9) up to date, except while maximized:
+        // the pre-maximize bounds stay in the model, and restoring writes them back.
+        OnWindowPositionChanged += OnFloatingWindowPositionChanged;
+        OnWindowSizeChanged     += OnFloatingWindowSizeChanged;
 
         // Z-order: bring to front when the user clicks anywhere on this window.
         // Migrated to the generic MGWindow.ActivatesOnClick mechanism (default true) so the modal guard
@@ -206,6 +252,15 @@ public class MGFloatingDockWindow : MGWindow
             return;
         }
 
+        if (FloatingGroup != null)
+        {
+            // Model-backed: go through the model so the place is (not yet, T4) remembered
+            // consistently with every other close path, and the window is synced by
+            // MGDockHost.SyncFloatingWindows once the model's floating group is gone.
+            OwnerHost.CloseFloatingPanel(panel);
+            return;
+        }
+
         GroupNode.RemovePanelById(panel.Id);
         OwnerHost.NotifyFloatingPanelClosed(panel);
 
@@ -232,6 +287,26 @@ public class MGFloatingDockWindow : MGWindow
         }
 
         OwnerHost.RedockPanel(panel, this);
+    }
+
+    /// <summary>Writes this window's new position back to <see cref="FloatingGroup"/> (P9), unless it is currently maximized.</summary>
+    private void OnFloatingWindowPositionChanged(object sender, EventArgs<(int Left, int Top)> e)
+    {
+        if (FloatingGroup != null && !_tabGroup.IsMaximized)
+        {
+            FloatingGroup.Left = e.NewValue.Left;
+            FloatingGroup.Top  = e.NewValue.Top;
+        }
+    }
+
+    /// <summary>Writes this window's new size back to <see cref="FloatingGroup"/> (P9), unless it is currently maximized.</summary>
+    private void OnFloatingWindowSizeChanged(object sender, EventArgs<(int Width, int Height)> e)
+    {
+        if (FloatingGroup != null && !_tabGroup.IsMaximized)
+        {
+            FloatingGroup.Width  = e.NewValue.Width;
+            FloatingGroup.Height = e.NewValue.Height;
+        }
     }
 
     private void UpdateTitle()

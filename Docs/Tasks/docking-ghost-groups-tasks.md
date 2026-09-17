@@ -201,7 +201,9 @@ Rollback : revert du commit (aucun appelant hors modele).
 
 Commit recommande : `feat(docking): keep emptied tab groups as placeholders while a panel remembers them`
 
-### ⏳ T2. Hote : parties cachees et flottement pilote par le modele
+### ✅ T2. Hote : parties cachees et flottement pilote par le modele
+
+Statut (17 septembre 2026) : livre. Meme pipeline qu'en T1 (executor, trois relecteurs, trois sceptiques par constat P0 a P2, un tour de correction). Deux constats confirmes et corriges : `CloseFloatingWindow` appelee directement laissait le `DockFloatingGroup` dans le modele, si bien que la fenetre reapparaissait au commit suivant (P1) ; `CreateFloatingWindow` laissait une entree perimee dans `_panelRegistry` (P2). Un constat refute a l'unanimite (reentrance de la suspension). Un P3 differe : la branche « second enfant cache » de `BuildSplitNodeVisual` n'a pas d'assertion visuelle dediee (la branche symetrique est couverte par A7). Mutations : M1 (affichage sans saut des parties cachees) → A7 rouge ; M2 (retour toujours au premier groupe visible) → A2 rouge ; M3 (pas de reconstruction apres « Dock ») → A8 rouge ; M4 (commit sans `SyncFloatingWindows`) → 13 tests rouges ; toutes retirees. Validation : build 0 erreur ; suite complete 2498 reussis, 0 echec (2481 avant T2). `HighlightBorderBrushEngineTests.ZeroAllocation_AfterWarmup_Over200Ticks` (hors docking) a echoue une fois chez l'executor, vert au relancement complet de la session principale.
 
 But : l'hote affiche l'arbre en sautant les parties cachees et reflete le store flottant ; « Dock » rend un panneau exactement a sa place.
 
