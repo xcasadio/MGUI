@@ -1,29 +1,79 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Docking;
+using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Shared.Rendering;
+using MGUI.Tests.Graph;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+using Xunit;
 
 namespace MGUI.Tests.Docking;
 
 /// <summary>
-/// Task 17.5 — Unit tests for auto-hide / repin behaviour.
-///
-/// Full MGDockHost.UnpinPanel / RepinPanel (which call RebuildVisualTree) require an
-/// MGWindow and are integration-test concerns.  These tests verify:
-///   - The DockLayoutModel auto-hide store operations that underpin those methods.
-///   - The DockPanelNode snapshot fields (AutoHideReturnGroup, AutoHideReturnZone,
-///     AutoHideReturnSplitRatio) that the host reads back when repinning.
-///   - Manual simulation of the unpin → repin round-trip using only model-layer APIs,
-///     confirming that the restore logic returns the panel to the correct group.
+/// Task T3 of <c>Docs/Tasks/docking-ghost-groups-tasks.md</c>: <see cref="MGDockHost.UnpinPanel"/>
+/// and <see cref="MGDockHost.RepinPanel"/> go through the same remembered places as floating
+/// (D4) — a panel that auto-hides leaves its emptied group as a hidden placeholder, and comes
+/// back to that exact group, at its tab index, whatever the order several panels return in.
+/// Exercised against the real <see cref="MGDockHost"/> (headless, <see cref="GraphTestRuntime"/>),
+/// never by simulating the host's logic.
 /// </summary>
 public class DockAutoHideRepinTests
 {
-    // ── Helpers ──────────────────────────────────────────────────────────
-    private static DockPanelNode Panel(string title = "P")
-        => new DockPanelNode { Title = title };
+    private sealed class Harness
+    {
+        public GraphTestRuntime Runtime;
+        public MGDesktop Desktop;
+        public MGWindow MainWindow;
+        public MGDockHost Host;
+
+        private int _elapsedMs;
+
+        public void Frame()
+        {
+            Runtime.ApplyFrame(new UpdateBaseArgs(
+                TimeSpan.FromMilliseconds(_elapsedMs),
+                TimeSpan.FromMilliseconds(16),
+                new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released),
+                new KeyboardState()));
+            Desktop.Update();
+            _elapsedMs += 16;
+        }
+    }
+
+    /// <summary>Builds a headless host whose layout tree comes from <paramref name="buildRoot"/>, which
+    /// receives the host's own <see cref="MGWindow"/> so panels can wire a real <c>ContentFactory</c>
+    /// from the start (needed before the first visual build).</summary>
+    private static Harness CreateHarness(Func<MGWindow, DockNode> buildRoot)
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow mainWindow = new(desktop, 0, 0, 800, 600) { WindowStyle = WindowStyle.None };
+
+        MGDockHost host = new(mainWindow)
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            LayoutModel = new DockLayoutModel(buildRoot(mainWindow)),
+        };
+        mainWindow.SetContent(host);
+        desktop.Windows.Add(mainWindow);
+
+        Harness harness = new() { Runtime = runtime, Desktop = desktop, MainWindow = mainWindow, Host = host };
+        harness.Frame();
+        harness.Frame();
+        return harness;
+    }
+
+    private static DockPanelNode Panel(MGWindow window, string title = "P")
+        => new() { Title = title, ContentFactory = () => new MGBorder(window) };
 
     private static DockTabGroupNode Group(params DockPanelNode[] panels)
     {
-        var g = new DockTabGroupNode();
+        DockTabGroupNode g = new();
         foreach (var p in panels)
         {
             g.AddPanel(p, -1);
@@ -32,294 +82,330 @@ public class DockAutoHideRepinTests
         return g;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // UnpinPanel model-layer simulation
-    // (mirrors what MGDockHost.UnpinPanel does, without needing a window)
-    // ─────────────────────────────────────────────────────────────────────
+    private static bool AnySideAutoHidden(MGDockHost host)
+        => host.LayoutModel.HasAutoHidePanels(AutoHideSide.Left)
+            || host.LayoutModel.HasAutoHidePanels(AutoHideSide.Right)
+            || host.LayoutModel.HasAutoHidePanels(AutoHideSide.Top)
+            || host.LayoutModel.HasAutoHidePanels(AutoHideSide.Bottom);
 
-    private static void SimulateUnpin(DockLayoutModel model, DockPanelNode panel, AutoHideSide side)
+    // ── returns to the same group, at its tab index ──────────────────────
+
+    [Fact]
+    public void UnpinThenRepin_ReturnsPanelToItsOriginalGroup_AndPins()
     {
-        // Snapshot return group (as MGDockHost.UnpinPanel does)
-        panel.AutoHideReturnGroup = panel.Parent as DockTabGroupNode;
-
-        // Snapshot split position
-        if (panel.AutoHideReturnGroup?.Parent is DockSplitNode splitParent)
+        DockPanelNode p = null;
+        DockPanelNode other = null;
+        DockTabGroupNode g = null;
+        Harness h = CreateHarness(window =>
         {
-            bool isFirst = splitParent.FirstChild == panel.AutoHideReturnGroup;
-            panel.AutoHideReturnZone = splitParent.Orientation == Orientation.Horizontal
-                ? (isFirst ? DockZone.Left  : DockZone.Right)
-                : (isFirst ? DockZone.Top   : DockZone.Bottom);
-            panel.AutoHideReturnSplitRatio = isFirst ? splitParent.SplitRatio : 1f - splitParent.SplitRatio;
-        }
-        else
-        {
-            panel.AutoHideReturnZone       = DockZone.None;
-            panel.AutoHideReturnSplitRatio = null;
-        }
-
-        DockOperation.RemovePanel(model, panel);
-        model.AddToAutoHide(panel, side);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // RepinPanel model-layer simulation
-    // ─────────────────────────────────────────────────────────────────────
-
-    private static void SimulateRepin(DockLayoutModel model, DockPanelNode panel)
-    {
-        model.RemoveFromAutoHide(panel);
-
-        var returnGroup = panel.AutoHideReturnGroup;
-        panel.AutoHideReturnGroup = null;
-
-        if (returnGroup != null && model.GetAllTabGroups().Contains(returnGroup))
-        {
-            DockOperation.DockAsTab(model, panel, returnGroup);
-        }
-        else
-        {
-            DockZone fallbackZone = panel.AutoHideReturnZone != DockZone.None
-                ? panel.AutoHideReturnZone
-                : panel.AutoHideSide switch
-                {
-                    AutoHideSide.Left   => DockZone.Left,
-                    AutoHideSide.Right  => DockZone.Right,
-                    AutoHideSide.Top    => DockZone.Top,
-                    AutoHideSide.Bottom => DockZone.Bottom,
-                    _                   => DockZone.Right
-                };
-            float fallbackRatio = panel.AutoHideReturnSplitRatio ?? 0.25f;
-
-            panel.AutoHideReturnZone       = DockZone.None;
-            panel.AutoHideReturnSplitRatio = null;
-
-            if (model.RootNode == null)
+            p = Panel(window, "P");
+            other = Panel(window, "Other");
+            g = Group(p, other);
+            DockTabGroupNode gOther = Group(Panel(window, "Elsewhere"));
+            return new DockSplitNode
             {
-                var newGroup = new DockTabGroupNode();
-                newGroup.AddPanel(panel, -1);
-                model.RootNode = newGroup;
-            }
-            else
-            {
-                DockOperation.SplitDockAtRoot(model, panel, fallbackZone, fallbackRatio);
-            }
-        }
-    }
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                FirstChild = g,
+                SecondChild = gOther,
+            };
+        });
+        DockSplitNode split = Assert.IsType<DockSplitNode>(h.Host.LayoutModel.RootNode);
 
-    // ── AddToAutoHide / RemoveFromAutoHide store tests ────────────────────
+        h.Host.UnpinPanel(p);
+        h.Frame();
 
-    [Fact]
-    public void AutoHideStore_Multipleпанели_CorrectSides()
-    {
-        var model = new DockLayoutModel();
-        var pLeft  = Panel("L");
-        var pRight = Panel("R");
-        var pTop   = Panel("T");
-
-        model.AddToAutoHide(pLeft,  AutoHideSide.Left);
-        model.AddToAutoHide(pRight, AutoHideSide.Right);
-        model.AddToAutoHide(pTop,   AutoHideSide.Top);
-
-        Assert.Contains(pLeft,  model.GetAutoHidePanels(AutoHideSide.Left));
-        Assert.Contains(pRight, model.GetAutoHidePanels(AutoHideSide.Right));
-        Assert.Contains(pTop,   model.GetAutoHidePanels(AutoHideSide.Top));
-        Assert.Empty(model.GetAutoHidePanels(AutoHideSide.Bottom));
-    }
-
-    [Fact]
-    public void GetAllAutoHidePanels_ReturnsAllSides()
-    {
-        var model = new DockLayoutModel();
-        var panels = new[]
-        {
-            Panel("L"), Panel("R"), Panel("T"), Panel("B")
-        };
-
-        model.AddToAutoHide(panels[0], AutoHideSide.Left);
-        model.AddToAutoHide(panels[1], AutoHideSide.Right);
-        model.AddToAutoHide(panels[2], AutoHideSide.Top);
-        model.AddToAutoHide(panels[3], AutoHideSide.Bottom);
-
-        Assert.Equal(4, model.GetAllAutoHidePanels().Count());
-    }
-
-    // ── AutoHideReturnGroup snapshot ──────────────────────────────────────
-
-    [Fact]
-    public void SimulateUnpin_SnapshotsReturnGroup()
-    {
-        var p = Panel();
-        var g = Group(p);
-        var model = new DockLayoutModel(g);
-
-        SimulateUnpin(model, p, AutoHideSide.Left);
-
-        Assert.Same(g, p.AutoHideReturnGroup);
-    }
-
-    [Fact]
-    public void SimulateUnpin_SetsIsPinnedFalse()
-    {
-        var p = Panel();
-        var g = Group(p);
-        var model = new DockLayoutModel(g);
-
-        SimulateUnpin(model, p, AutoHideSide.Left);
-
+        Assert.True(h.Host.LayoutModel.HasAutoHidePanels(p.AutoHideSide));
         Assert.False(p.IsPinned);
-    }
+        Assert.Same(g, split.FirstChild); // placeholder kept in place
 
-    [Fact]
-    public void SimulateUnpin_RemovesPanelFromLayout()
-    {
-        var p = Panel();
-        var g = Group(p);
-        var model = new DockLayoutModel(g);
+        h.Host.RepinPanel(p);
+        h.Frame();
 
-        SimulateUnpin(model, p, AutoHideSide.Left);
-
-        Assert.True(model.HasAutoHidePanels(AutoHideSide.Left));
-        // panel is no longer in the visible layout tree
-        Assert.DoesNotContain(p, model.GetAllTabGroups().SelectMany(grp => grp.Panels));
-    }
-
-    // ── AutoHideReturnZone snapshot (horizontal split) ────────────────────
-
-    [Fact]
-    public void SimulateUnpin_SnapshotsReturnZone_ForHorizontalSplit_FirstChild()
-    {
-        // panel is in g1 which is the LEFT child of a horizontal split
-        var p  = Panel();
-        var g1 = Group(p, Panel("other")); // keep g1 alive after unpin
-        var g2 = Group(Panel("R"));
-        var split = new DockSplitNode
-        {
-            Orientation = Orientation.Horizontal,
-            SplitRatio  = 0.35f,
-            FirstChild  = g1,
-            SecondChild = g2
-        };
-        var model = new DockLayoutModel(split);
-
-        SimulateUnpin(model, p, AutoHideSide.Left);
-
-        Assert.Equal(DockZone.Left, p.AutoHideReturnZone);
-        Assert.NotNull(p.AutoHideReturnSplitRatio);
-        Assert.InRange(p.AutoHideReturnSplitRatio!.Value, 0.34f, 0.36f);
-    }
-
-    [Fact]
-    public void SimulateUnpin_SnapshotsReturnZone_ForHorizontalSplit_SecondChild()
-    {
-        var p  = Panel();
-        var g1 = Group(Panel("L"));
-        var g2 = Group(p, Panel("other")); // p in second child
-        var split = new DockSplitNode
-        {
-            Orientation = Orientation.Horizontal,
-            SplitRatio  = 0.4f,
-            FirstChild  = g1,
-            SecondChild = g2
-        };
-        var model = new DockLayoutModel(split);
-
-        SimulateUnpin(model, p, AutoHideSide.Right);
-
-        Assert.Equal(DockZone.Right, p.AutoHideReturnZone);
-        // Second child gets 1 - splitRatio = 0.6
-        Assert.NotNull(p.AutoHideReturnSplitRatio);
-        Assert.InRange(p.AutoHideReturnSplitRatio!.Value, 0.59f, 0.61f);
-    }
-
-    [Fact]
-    public void SimulateUnpin_RootPanel_ReturnZoneIsNone()
-    {
-        // Panel is in a root group (no parent split) → no return zone
-        var p = Panel();
-        var g = Group(p, Panel("other"));
-        var model = new DockLayoutModel(g);
-
-        SimulateUnpin(model, p, AutoHideSide.Top);
-
-        Assert.Equal(DockZone.None, p.AutoHideReturnZone);
-        Assert.Null(p.AutoHideReturnSplitRatio);
-    }
-
-    // ── RepinPanel: restore to original group ─────────────────────────────
-
-    [Fact]
-    public void SimulateRepin_RestoresToOriginalGroup_WhenStillExists()
-    {
-        var p = Panel();
-        var g = Group(p, Panel("other")); // keep g alive after unpin
-        var model = new DockLayoutModel(g);
-
-        SimulateUnpin(model, p, AutoHideSide.Left);
-        SimulateRepin(model, p);
-
-        // Panel should be back in g
         Assert.Contains(p, g.Panels);
         Assert.True(p.IsPinned);
+        Assert.False(AnySideAutoHidden(h.Host));
     }
 
     [Fact]
-    public void SimulateRepin_ClearsAutoHideReturnGroup()
+    public void UnpinPanel_CalledTwice_IsIdempotent_DoesNotThrow()
     {
-        var p = Panel();
-        var g = Group(p, Panel("other"));
-        var model = new DockLayoutModel(g);
-
-        SimulateUnpin(model, p, AutoHideSide.Left);
-        SimulateRepin(model, p);
-
-        Assert.Null(p.AutoHideReturnGroup);
-    }
-
-    [Fact]
-    public void SimulateRepin_FallbackSplit_WhenOriginalGroupGone()
-    {
-        // p is the ONLY panel in g; when unpinned g is destroyed
-        var p = Panel();
-        var g = Group(p);
-        var gOther = Group(Panel("Other"));
-        var split = new DockSplitNode
+        DockPanelNode p = null;
+        Harness h = CreateHarness(window =>
         {
-            Orientation = Orientation.Horizontal,
-            SplitRatio  = 0.5f,
-            FirstChild  = g,
-            SecondChild = gOther
-        };
-        var model = new DockLayoutModel(split);
+            p = Panel(window, "P");
+            return Group(p, Panel(window, "Other"));
+        });
 
-        SimulateUnpin(model, p, AutoHideSide.Left);
-        // At this point g is gone (was emptied), model.RootNode = gOther
-        Assert.DoesNotContain(g, model.GetAllTabGroups());
+        h.Host.UnpinPanel(p);
+        h.Frame();
+        Assert.False(p.IsPinned);
 
-        SimulateRepin(model, p);
+        // A second call, e.g. from a duplicate dispatch of the same pin-toggle click, must be a
+        // no-op rather than throw: DockOperation.AutoHidePanel requires the panel to still sit
+        // in a tab group in the layout tree, which is no longer true here.
+        var exception = Record.Exception(() => h.Host.UnpinPanel(p));
+        h.Frame();
 
-        // Panel must be back in the layout (in some group)
-        var allPanels = model.GetAllTabGroups().SelectMany(grp => grp.Panels).ToList();
-        Assert.Contains(p, allPanels);
-        Assert.True(p.IsPinned);
+        Assert.Null(exception);
+        Assert.False(p.IsPinned);
+        Assert.True(h.Host.LayoutModel.HasAutoHidePanels(p.AutoHideSide));
+        Assert.Single(h.Host.LayoutModel.GetAutoHidePanels(p.AutoHideSide));
     }
 
     [Fact]
-    public void SimulateRepin_EmptyLayout_RepinsIntoExistingEmptyRoot()
+    public void RepinPanel_CalledTwice_IsIdempotent_DoesNotThrow()
     {
-        // Layout had only one panel; unpin empties it
-        var p = Panel();
-        var g = Group(p);
-        var model = new DockLayoutModel(g);
+        DockPanelNode p = null;
+        DockTabGroupNode g = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            g = Group(p, Panel(window, "Other"));
+            return g;
+        });
 
-        SimulateUnpin(model, p, AutoHideSide.Bottom);
-        // Root group is preserved as an empty placeholder (not null)
-        var emptyRoot = Assert.IsType<DockTabGroupNode>(model.RootNode);
+        h.Host.UnpinPanel(p);
+        h.Frame();
+
+        h.Host.RepinPanel(p);
+        h.Frame();
+        Assert.True(p.IsPinned);
+
+        // A second call, e.g. from a duplicate dispatch of the same pin-toggle click, must be a
+        // no-op rather than throw: DockOperation.RestoreToPlacement requires the panel to have
+        // no parent, which is no longer true here.
+        var exception = Record.Exception(() => h.Host.RepinPanel(p));
+        h.Frame();
+
+        Assert.Null(exception);
+        Assert.True(p.IsPinned);
+        Assert.Contains(p, g.Panels);
+        Assert.Equal(1, g.Panels.Count(x => x.Id == p.Id));
+    }
+
+    [Fact]
+    public void UnpinThenRepin_WhenGroupEmptiedInBetween_ReturnsToTheExactPlaceholderGroup()
+    {
+        // p is the ONLY panel in g; unpinning it leaves g as a hidden placeholder.
+        DockPanelNode p = null;
+        DockTabGroupNode g = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            g = Group(p);
+            DockTabGroupNode gOther = Group(Panel(window, "Other"));
+            return new DockSplitNode
+            {
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                FirstChild = g,
+                SecondChild = gOther,
+            };
+        });
+        DockSplitNode split = Assert.IsType<DockSplitNode>(h.Host.LayoutModel.RootNode);
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+
+        Assert.True(g.IsHiddenInLayout);
+        Assert.Same(g, split.FirstChild); // g survives as a placeholder, still the same node
+        Assert.Empty(h.Host.GetAllVisibleTabGroups().Where(v => v.GroupNode == g));
+
+        h.Host.RepinPanel(p);
+        h.Frame();
+
+        Assert.False(g.IsHiddenInLayout);
+        Assert.Contains(p, g.Panels);
+        Assert.Same(g, split.FirstChild); // same node, same split
+    }
+
+    [Fact]
+    public void MultiTabGroup_OutOfOrderReturn_FollowsIndexRule()
+    {
+        // [A, B, C] active C, in a split — mirrors DockOperationTests' D3 group.
+        DockPanelNode a = null;
+        DockPanelNode b = null;
+        DockPanelNode c = null;
+        DockTabGroupNode g = null;
+        Harness h = CreateHarness(window =>
+        {
+            a = Panel(window, "A");
+            b = Panel(window, "B");
+            c = Panel(window, "C");
+            g = Group(a, b, c);
+            g.SetActivePanel(c.Id);
+            DockTabGroupNode gOther = Group(Panel(window, "Other"));
+            return new DockSplitNode
+            {
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                FirstChild = g,
+                SecondChild = gOther,
+            };
+        });
+
+        // Depart C, B, A (indices 2, 1, 0); return C, B, A.
+        h.Host.UnpinPanel(c);
+        h.Frame();
+        h.Host.UnpinPanel(b);
+        h.Frame();
+        h.Host.UnpinPanel(a);
+        h.Frame();
+
+        h.Host.RepinPanel(c);
+        h.Frame();
+        h.Host.RepinPanel(b);
+        h.Frame();
+        h.Host.RepinPanel(a);
+        h.Frame();
+
+        Assert.Equal(new[] { a, c, b }, g.Panels);
+        Assert.Equal(a.Id, g.ActivePanelId);
+    }
+
+    // ── empty layout still accepts a re-pin ──────────────────────────────
+
+    [Fact]
+    public void UnpinThenRepin_EmptyLayout_RepinsIntoTheSurvivingEmptyRoot()
+    {
+        DockPanelNode p = null;
+        DockTabGroupNode g = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            g = Group(p);
+            return g;
+        });
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+
+        var emptyRoot = Assert.IsType<DockTabGroupNode>(h.Host.LayoutModel.RootNode);
         Assert.True(emptyRoot.IsEmpty);
+        Assert.Same(g, emptyRoot);
 
-        SimulateRepin(model, p);
+        h.Host.RepinPanel(p);
+        h.Frame();
 
-        Assert.NotNull(model.RootNode);
-        var allPanels = model.GetAllTabGroups().SelectMany(grp => grp.Panels).ToList();
-        Assert.Contains(p, allPanels);
+        Assert.Contains(p, h.Host.LayoutModel.GetAllTabGroups().SelectMany(gr => gr.Panels));
+    }
+
+    // ── fallback: the place is gone because the application replaced the root ────
+
+    [Fact]
+    public void Repin_WhenPlacementGroupGone_FallsBackToRootEdgeMatchingAutoHideSide()
+    {
+        DockPanelNode p = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            return Group(p);
+        });
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+        AutoHideSide side = p.AutoHideSide;
+
+        // The application replaces the root entirely while p is auto-hidden.
+        DockTabGroupNode freshRoot = Group(Panel(h.MainWindow, "Fresh"));
+        h.Host.LayoutModel.RootNode = freshRoot;
+        h.Frame();
+
+        h.Host.RepinPanel(p);
+        h.Frame();
+
+        Assert.True(p.IsPinned);
+        Assert.False(h.Host.LayoutModel.TryGetPlacement(p.Id, out _));
+        DockSplitNode newRootSplit = Assert.IsType<DockSplitNode>(h.Host.LayoutModel.RootNode);
+        DockNode edgeChild = side switch
+        {
+            AutoHideSide.Left or AutoHideSide.Top => newRootSplit.FirstChild,
+            _ => newRootSplit.SecondChild,
+        };
+        DockTabGroupNode edgeGroup = Assert.IsType<DockTabGroupNode>(edgeChild);
+        Assert.Contains(p, edgeGroup.Panels);
+    }
+
+    // ── closing an auto-hidden panel ──────────────────────────────────────
+
+    [Fact]
+    public void CloseAutoHidePanel_RemovesFromStore_RaisesPanelRemovedOnce_AndNotifiesRegistry()
+    {
+        DockPanelNode p = null;
+        DockTabGroupNode g = null;
+        DockTabGroupNode gOther = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            g = Group(p);
+            gOther = Group(Panel(window, "Other"));
+            return new DockSplitNode
+            {
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                FirstChild = g,
+                SecondChild = gOther,
+            };
+        });
+        List<DockPanelNode> removed = new();
+        h.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+
+        // Drive the drawer's open state through the public toggle API, then close as the
+        // drawer's close button would (its own wiring is out of scope here).
+        h.Host.ShowAutoHideDrawer(p);
+        h.Frame();
+        h.Host.CloseAutoHidePanel(p);
+        h.Frame();
+
+        Assert.Equal(new[] { p }, removed);
+        Assert.False(AnySideAutoHidden(h.Host));
+
+        // The unreferenced placeholder collapses exactly as a plain close would: g is gone, its
+        // sibling takes over the split's area.
+        Assert.DoesNotContain(g, h.Host.LayoutModel.GetAllTabGroups());
+        Assert.Same(gOther, h.Host.LayoutModel.RootNode);
+    }
+
+    [Fact]
+    public void CloseAutoHidePanel_WhenClosingTheLastPlaceholder_RootBecomesTheSurvivingEmptyGroup_AndIsShown()
+    {
+        // Both panels auto-hidden (root split fully hidden -> host shows its empty placeholder);
+        // closing one collapses its solo group and its now-lone sibling becomes the new root,
+        // exempt from the hidden rule (a root group is always shown, even empty) - the display
+        // must reflect that surviving root, not keep showing the generic "all hidden" content.
+        DockPanelNode p = null;
+        DockPanelNode q = null;
+        DockTabGroupNode g = null;
+        DockTabGroupNode gOther = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            q = Panel(window, "Q");
+            g = Group(p);
+            gOther = Group(q);
+            return new DockSplitNode
+            {
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                FirstChild = g,
+                SecondChild = gOther,
+            };
+        });
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+        h.Host.UnpinPanel(q);
+        h.Frame();
+
+        h.Host.CloseAutoHidePanel(p);
+        h.Frame();
+
+        Assert.Same(gOther, h.Host.LayoutModel.RootNode);
+        Assert.False(gOther.IsHiddenInLayout); // root exemption (P1)
+        Assert.Contains(h.Host.GetAllVisibleTabGroups(), v => v.GroupNode == gOther);
     }
 }

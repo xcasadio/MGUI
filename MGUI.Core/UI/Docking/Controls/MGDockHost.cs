@@ -1692,104 +1692,66 @@ public class MGDockHost : MGSingleContentHost
 
     /// <summary>
     /// Removes <paramref name="panel"/> from the docked layout and places it in the auto-hide
-    /// strip on the appropriate edge (inferred from its current position).
+    /// strip on the appropriate edge (inferred from its current position). Its place (source
+    /// group and tab index) is remembered (D2/D3/D4) exactly as <see cref="DetachToFloating"/>
+    /// remembers a floated panel's place, so the source group survives, hidden, as a placeholder
+    /// until <see cref="RepinPanel"/> brings the panel back to it.
     /// </summary>
     public void UnpinPanel(DockPanelNode panel)
     {
-        if (panel == null || !panel.CanAutoHide)
+        // Idempotent no-op when the panel cannot auto-hide or is already auto-hidden (not
+        // pinned): DockOperation.AutoHidePanel requires the panel to currently sit in a tab
+        // group in the layout tree and throws otherwise, so a repeated call must stop here.
+        if (panel == null || !panel.CanAutoHide || !panel.IsPinned)
         {
             return;
         }
 
+        // Read the current visuals BEFORE mutating the model: AutoHidePanel removes the panel
+        // from the layout tree, which would leave nothing for InferAutoHideSide to measure.
         var side = InferAutoHideSide(panel);
 
-        // Snapshot the parent group NOW while panel.Parent is still set.
-        // DockOperation.RemovePanel clears it, so we must do this before that call.
-        panel.AutoHideReturnGroup = panel.Parent as DockTabGroupNode;
-
-        // Also snapshot the exact split position so we can restore it faithfully when
-        // the original group no longer exists after the panel (alone in its group) is removed.
-        if (panel.AutoHideReturnGroup?.Parent is DockSplitNode splitParent)
+        MutateModelSuspended(() =>
         {
-            var isFirst = splitParent.FirstChild == panel.AutoHideReturnGroup;
-            panel.AutoHideReturnZone = splitParent.Orientation == MGUI.Core.UI.Orientation.Horizontal
-                ? (isFirst ? DockZone.Left  : DockZone.Right)
-                : (isFirst ? DockZone.Top   : DockZone.Bottom);
-            // Fraction of the split this child occupied: SplitRatio = firstChild share.
-            panel.AutoHideReturnSplitRatio = isFirst ? splitParent.SplitRatio : 1f - splitParent.SplitRatio;
-        }
-        else
-        {
-            panel.AutoHideReturnZone        = DockZone.None;
-            panel.AutoHideReturnSplitRatio  = null;
-        }
-
-        // Suspend model-change events so we get exactly one visual-tree rebuild at the end
-        _layoutModel.LayoutChanged -= OnLayoutModelChanged;
-        try
-        {
-            DockOperation.RemovePanel(LayoutModel, panel);
-            LayoutModel.AddToAutoHide(panel, side);
-        }
-        finally
-        {
-            _layoutModel.LayoutChanged += OnLayoutModelChanged;
-        }
-
-        RefreshAutoHideStrips();
-        RebuildVisualTree();
-        DockLayoutChanged?.Invoke(this, EventArgs.Empty);
+            DockOperation.AutoHidePanel(LayoutModel, panel, side);
+            RefreshAutoHideStrips();
+        });
     }
 
     /// <summary>
-    /// Moves <paramref name="panel"/> from the auto-hide store back into the docked layout,
-    /// placing it in the first available tab group (or creating a new one).
+    /// Moves <paramref name="panel"/> from the auto-hide store back into the docked layout, at
+    /// its remembered place (D3/D4): the same tab group, at its original tab index, whatever the
+    /// order in which several auto-hidden panels return. When that place is gone (the application
+    /// replaced the root while the panel was hidden), it falls back to splitting the root on the
+    /// panel's <see cref="DockPanelNode.AutoHideSide"/> (P5), or — when the layout is entirely
+    /// empty — becomes the new root itself.
     /// </summary>
     public void RepinPanel(DockPanelNode panel)
     {
-        if (panel == null)
+        // Idempotent no-op when the panel is not currently auto-hidden (already pinned):
+        // DockOperation.RestoreToPlacement requires the panel to have no parent and throws
+        // otherwise, so a repeated call must stop here.
+        if (panel == null || panel.IsPinned)
         {
             return;
         }
 
         HideAutoHideDrawer();
 
-        _layoutModel.LayoutChanged -= OnLayoutModelChanged;
-        try
+        MutateModelSuspended(() =>
         {
             LayoutModel.RemoveFromAutoHide(panel);
 
-            // The panel recorded its own original group when it was unpinned.
-            var returnGroup = panel.AutoHideReturnGroup;
-            panel.AutoHideReturnGroup = null;   // clear — no longer needed
-
-            var restoredToOriginal = false;
-            if (returnGroup != null && GetAllTabGroups().Contains(returnGroup))
+            if (!DockOperation.RestoreToPlacement(LayoutModel, panel))
             {
-                // Original group still exists — slip back in as a tab.
-                DockOperation.DockAsTab(LayoutModel, panel, returnGroup);
-                restoredToOriginal = true;
-            }
-
-            if (!restoredToOriginal)
-            {
-                // Fall back: recreate the split using the snapshotted zone and ratio.
-                // Map AutoHideReturnZone first; if it wasn't set, infer from AutoHideSide.
-                var fallbackZone = panel.AutoHideReturnZone != DockZone.None
-                    ? panel.AutoHideReturnZone
-                    : panel.AutoHideSide switch
-                    {
-                        AutoHideSide.Left   => DockZone.Left,
-                        AutoHideSide.Right  => DockZone.Right,
-                        AutoHideSide.Top    => DockZone.Top,
-                        AutoHideSide.Bottom => DockZone.Bottom,
-                        _                   => DockZone.Right
-                    };
-                var fallbackRatio = panel.AutoHideReturnSplitRatio ?? DockDropCalculator.HostEdgePreviewRatio;
-
-                // Clear saved position metadata
-                panel.AutoHideReturnZone       = DockZone.None;
-                panel.AutoHideReturnSplitRatio = null;
+                var fallbackZone = panel.AutoHideSide switch
+                {
+                    AutoHideSide.Left   => DockZone.Left,
+                    AutoHideSide.Right  => DockZone.Right,
+                    AutoHideSide.Top    => DockZone.Top,
+                    AutoHideSide.Bottom => DockZone.Bottom,
+                    _                   => DockZone.Right
+                };
 
                 if (LayoutModel.RootNode == null)
                 {
@@ -1799,18 +1761,16 @@ public class MGDockHost : MGSingleContentHost
                 }
                 else
                 {
-                    DockOperation.SplitDockAtRoot(LayoutModel, panel, fallbackZone, fallbackRatio);
+                    DockOperation.SplitDockAtRoot(LayoutModel, panel, fallbackZone, DockDropCalculator.HostEdgePreviewRatio);
                 }
-            }
-        }
-        finally
-        {
-            _layoutModel.LayoutChanged += OnLayoutModelChanged;
-        }
 
-        RefreshAutoHideStrips();
-        RebuildVisualTree();
-        DockLayoutChanged?.Invoke(this, EventArgs.Empty);
+                // The place is gone (the application replaced the root); forgetting it also
+                // collects any placeholder it was the last reference to.
+                DockOperation.ForgetPlacement(LayoutModel, panel.Id);
+            }
+
+            RefreshAutoHideStrips();
+        });
     }
 
     /// <summary>
@@ -1916,10 +1876,13 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
-    /// Permanently closes an auto-hidden panel: removes it from the auto-hide store,
-    /// the panel registry, and notifies the dockable registry.
+    /// Permanently closes an auto-hidden panel: removes it from the auto-hide store, forgets its
+    /// remembered place (so an unreferenced placeholder can collapse, exactly as a plain close
+    /// would), the panel registry, and notifies the dockable registry. Internal (rather than
+    /// private) so tests can drive the drawer's close path without the drawer's own button
+    /// wiring, which is out of scope here.
     /// </summary>
-    private void CloseAutoHidePanel(DockPanelNode panel)
+    internal void CloseAutoHidePanel(DockPanelNode panel)
     {
         if (panel == null)
         {
@@ -1927,12 +1890,24 @@ public class MGDockHost : MGSingleContentHost
         }
 
         HideAutoHideDrawer();
-        panel.AutoHideReturnGroup = null;  // not going back to layout
-        LayoutModel?.RemoveFromAutoHide(panel);
-        _panelRegistry.Remove(panel.Id);
-        PanelRemoved?.Invoke(this, panel);
-        _dockableRegistry?.NotifyClosed(panel.Id);
-        RefreshAutoHideStrips();
+
+        MutateModelSuspended(() =>
+        {
+            // Remove from the panel registry before the model mutation and the DockLayoutChanged
+            // it triggers (via CommitModelChange), otherwise the registry is stale for any caller
+            // that inspects it synchronously from a DockLayoutChanged handler — mirroring
+            // PanelCloseRequested and DetachToFloating, which remove the registry entry before
+            // mutating the model.
+            _panelRegistry.Remove(panel.Id);
+
+            DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: false);
+
+            PanelRemoved?.Invoke(this, panel);
+            _dockableRegistry?.NotifyClosed(panel.Id);
+
+            RefreshAutoHideStrips();
+        });
+
         SyncRegistryVisibility();
     }
 

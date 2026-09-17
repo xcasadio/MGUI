@@ -279,6 +279,150 @@ public class DockPlaceholderGroupHostTests
         }
     }
 
+    // ── T3 helpers: Unpin / Repin through the real host, one frame settle each ──────
+
+    private static void Unpin(Harness h, DockPanelNode panel)
+    {
+        h.Host.UnpinPanel(panel);
+        h.Frame();
+        h.Frame();
+    }
+
+    private static void Repin(Harness h, DockPanelNode panel)
+    {
+        h.Host.RepinPanel(panel);
+        h.Frame();
+        h.Frame();
+    }
+
+    // ── A3: all five panes unpinned, then re-pinned in forward, reverse and a crossed order ──
+
+    [Fact]
+    public void A3_AllFivePanes_RepinnedInForwardOrder_RestoresOriginalJson()
+        => RunA3(new[] { "XAML", "Preview", "Document", "Properties", "Diagnostics" });
+
+    [Fact]
+    public void A3_AllFivePanes_RepinnedInReverseOrder_RestoresOriginalJson()
+        => RunA3(new[] { "Diagnostics", "Properties", "Document", "Preview", "XAML" });
+
+    [Fact]
+    public void A3_AllFivePanes_RepinnedInACrossedOrder_RestoresOriginalJson()
+        => RunA3(new[] { "Properties", "XAML", "Diagnostics", "Preview", "Document" });
+
+    private static void RunA3(string[] repinOrder)
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        var byTitle = new Dictionary<string, DockPanelNode>
+        {
+            ["XAML"] = harness.Xaml,
+            ["Preview"] = harness.Preview,
+            ["Document"] = harness.Document,
+            ["Properties"] = harness.Properties,
+            ["Diagnostics"] = harness.Diagnostics,
+        };
+
+        var panelTitles = new[] { "XAML", "Preview", "Document", "Properties", "Diagnostics" };
+        foreach (var title in panelTitles)
+        {
+            Unpin(harness, byTitle[title]);
+        }
+
+        foreach (var title in repinOrder)
+        {
+            Repin(harness, byTitle[title]);
+        }
+
+        Assert.Equal(originalJson, Json(harness));
+        Assert.Empty(harness.Host.LayoutModel.GetAllAutoHidePanels());
+    }
+
+    // ── mixed: one pane floated, one pane unpinned, returned in a crossed order ──────
+
+    [Fact]
+    public void Mixed_OneFloatedOnePinnedAway_ReturnedDockThenPin_RestoresOriginalJson()
+        => RunMixed(dockFirst: true);
+
+    [Fact]
+    public void Mixed_OneFloatedOnePinnedAway_ReturnedPinThenDock_RestoresOriginalJson()
+        => RunMixed(dockFirst: false);
+
+    private static void RunMixed(bool dockFirst)
+    {
+        Harness harness = CreateHarness();
+        string originalJson = Json(harness);
+
+        MGFloatingDockWindow floatingWindow = Float(harness, harness.Document, new Point(1200, 650));
+        Unpin(harness, harness.Properties);
+
+        if (dockFirst)
+        {
+            Dock(harness, harness.Document, floatingWindow);
+            Repin(harness, harness.Properties);
+        }
+        else
+        {
+            Repin(harness, harness.Properties);
+            Dock(harness, harness.Document, floatingWindow);
+        }
+
+        Assert.Equal(originalJson, Json(harness));
+        Assert.Empty(harness.Host.LayoutModel.GetAllAutoHidePanels());
+        Assert.Empty(harness.Host.FloatingWindows);
+    }
+
+    // ── A8 for the auto-hide paths (P12) ──────────────────────────────────
+
+    [Fact]
+    public void A8_UnpinPanel()
+    {
+        Harness harness = CreateHarness();
+
+        harness.Host.UnpinPanel(harness.Document);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.True(harness.DocumentGroup.IsHiddenInLayout);
+        AssertPanelNotInAnyHostVisual(harness, harness.Document);
+        AssertA8(harness);
+    }
+
+    [Fact]
+    public void A8_RepinPanel()
+    {
+        Harness harness = CreateHarness();
+        Unpin(harness, harness.Document);
+
+        harness.Host.RepinPanel(harness.Document);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.False(harness.DocumentGroup.IsHiddenInLayout);
+        AssertPanelInGroupVisual(harness, harness.Document, harness.DocumentGroup);
+        AssertA8(harness);
+    }
+
+    [Fact]
+    public void A8_CloseAutoHidePanel_FromTheDrawerPath()
+    {
+        Harness harness = CreateHarness();
+        Unpin(harness, harness.Document);
+        List<DockPanelNode> removed = new();
+        harness.Host.PanelRemoved += (_, panel) => removed.Add(panel);
+
+        harness.Host.ShowAutoHideDrawer(harness.Document);
+        harness.Frame();
+        harness.Host.CloseAutoHidePanel(harness.Document);
+        harness.Frame();
+        harness.Frame();
+
+        Assert.Equal(new[] { harness.Document }, removed);
+        Assert.Empty(harness.Host.LayoutModel.GetAllAutoHidePanels());
+        AssertPanelNotInAnyHostVisual(harness, harness.Document);
+        AssertA8(harness);
+    }
+
     // ── A7: while a placeholder exists, no visual for it, sibling fills the area ────
 
     [Fact]

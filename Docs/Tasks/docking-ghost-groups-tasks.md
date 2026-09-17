@@ -232,7 +232,9 @@ Rollback : revert du commit (T1 reste sans effet sans appelant).
 
 Commit recommande : `feat(docking): restore floated panels to their exact place through placeholder groups`
 
-### ⏳ T3. Masquage automatique par les places memorisees
+### ✅ T3. Masquage automatique par les places memorisees
+
+Statut (17 septembre 2026) : livre. Meme pipeline (executor, trois relecteurs, trois sceptiques par constat, un tour de correction). Trois constats P2 confirmes et corriges : `UnpinPanel` et `RepinPanel` levaient une exception au second appel au lieu de ne rien faire (garde sur `IsPinned` retablie, deux tests d'idempotence) ; un test mixte ne verifiait pas l'absence de fenetre flottante residuelle ; `CloseAutoHidePanel` signalait le retrait du panneau apres `DockLayoutChanged`, contrairement aux autres chemins de fermeture (effets deplaces avant le commit). Differes (P3/P4, a reprendre en T4) : les tests A3 ne verifient pas que la table des places est vide, la branche « racine nulle » du repli de `RepinPanel` n'a pas de test, et le test de fermeture depuis le tiroir ne branche pas de `DockableRegistry`. Mutations : M1 (repli systematique au lieu de la place memorisee) → A3 et les tests mixtes rouges ; M2 (aucune place memorisee au masquage) → idem ; M3 (fermeture sans commit) → `CloseAutoHidePanel_WhenClosingTheLastPlaceholder_...` rouge ; toutes retirees. Validation : build 0 erreur ; suite complete 2503 reussis, 0 echec (2498 avant T3), verte trois fois de suite apres un echec instable isole d'un test d'allocation (hors docking), lui-meme vert trois fois en execution ciblee.
 
 But : « Auto-Hide » puis « Pin » rend un panneau exactement a sa place (D4).
 
