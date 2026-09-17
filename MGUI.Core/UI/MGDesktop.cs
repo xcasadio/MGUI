@@ -760,16 +760,13 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
                 if (ActiveToolTip != null)
                 {
-                    //  A tooltip becoming active ends whatever OTHER tooltip's exit was still sitting in the slot at once (no residual
-                    //  run); if it is the SAME tooltip returning while it sat there, this just releases the slot -- PlayEnterExitEntryForWindow
-                    //  below cancels its own exit and replays the entry, exactly like AddNestedWindow reopening a window mid-exit (Y7).
-                    if (State.ExitingToolTip != null)
+                    //  Y9 fix: the slot is released here ONLY when its occupant is the instance that is becoming active again --
+                    //  PlayEnterExitEntryForWindow below cancels that instance's own exit and replays the entry, exactly like
+                    //  AddNestedWindow reopening a window mid-exit (Y7). Any OTHER occupant (a tooltip replaced DIRECTLY by a
+                    //  different one) is left alone: it keeps playing its own exit at its frozen position, since HandleOutgoingToolTip
+                    //  already ended a previous stale occupant, if any, before parking THIS Outgoing a few lines above.
+                    if (State.ExitingToolTip == ActiveToolTip)
                     {
-                        if (State.ExitingToolTip != ActiveToolTip)
-                        {
-                            State.ExitingToolTip.CancelPlayingEnterExitExitForWindow();
-                        }
-
                         State.ExitingToolTip = null;
                     }
 

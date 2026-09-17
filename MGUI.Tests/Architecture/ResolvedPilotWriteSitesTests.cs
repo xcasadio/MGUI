@@ -81,7 +81,7 @@ public class ResolvedPilotWriteSitesTests
     private static readonly (string File, int Line, string Reason)[] AllowedLines =
     {
         (@"MGUI.Core\UI\MGContextMenu.cs", 559, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y8 inserted the exiting-submenu handling above it)"),
-        (@"MGUI.Core\UI\MGDesktop.cs", 977, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling)"),
+        (@"MGUI.Core\UI\MGDesktop.cs", 974, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling, Y9 shrank the ActiveToolTip setter's slot-release block)"),
         (@"MGUI.Core\UI\MGWindow.cs", 231, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
         (@"MGUI.Core\UI\MGWindow.cs", 249, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
         (@"MGUI.Core\UI\MGChatBox.cs", 138, "commented-out code"),

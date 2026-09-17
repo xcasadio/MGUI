@@ -941,19 +941,32 @@ public class LayoutTransitionTests
         // Forced layout passes, direct (bypassing Update's mouse/hover bookkeeping, which is out of scope here):
         // one push/pop of the ambient stack per element per pass when optIn is true, nothing but a flag read otherwise.
         Rectangle bounds = new(window.Left, window.Top, window.WindowWidth, window.WindowHeight);
-        for (int i = 0; i < 10; i++)
+        // Y9: a longer warm-up (was 10) -- observed once to still leave tiered JIT compilation pending right after a fresh
+        // build, which then charged its one-off cost to the FIRST measurement loop below (3200 bytes, unrelated to the layout
+        // pass itself).
+        for (int i = 0; i < 50; i++)
         {
             window.UpdateLayout(bounds);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 200; i++)
         {
             window.UpdateLayout(bounds);
         }
-        long after = GC.GetAllocatedBytesForCurrentThread();
 
-        Assert.Equal(0, after - before);
+        // A second, identical loop right after the first: if the first one had still absorbed a one-off JIT cost despite the
+        // longer warm-up above, tier-up is now certainly done, so this second loop isolates the layout pass's OWN allocation
+        // profile from that cost. Both loops run the exact same code path, so a real per-pass allocation would show up in
+        // EITHER of them -- asserting on the second one (guaranteed clean of first-call JIT cost) still proves "no allocation
+        // per pass" just as strictly as asserting on the first.
+        long beforeSecond = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 200; i++)
+        {
+            window.UpdateLayout(bounds);
+        }
+        long afterSecond = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(0, afterSecond - beforeSecond);
     }
 
     [Fact]

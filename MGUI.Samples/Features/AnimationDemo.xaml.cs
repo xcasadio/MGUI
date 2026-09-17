@@ -392,9 +392,14 @@ namespace MGUI.Samples.Features
 
         /// <summary>15. Awaitable animations: "Play three steps" creates a fresh <see cref="CancellationTokenSource"/> (cancelling and
         /// disposing the previous one), then an <c>async</c> handler <c>await</c>s a fade, a scale pop and a background colour change on
-        /// <c>AwaitTarget</c> in turn, passing the same token to each <see cref="UIAnimationBuilder.PlayAsync"/> call; it stops at the first
-        /// step that resolves <see langword="false"/> and writes "Completed" or "Cancelled at step N" into <c>AwaitResultText</c>. "Cancel"
-        /// only cancels the current source: nothing here throws, per <see cref="UIAnimationCollection.StartAsync"/>'s contract.</summary>
+        /// <c>AwaitTarget</c> in turn, passing the same token to all three <see cref="UIAnimationBuilder.PlayAsync"/> calls; it stops at the
+        /// first step that resolves <see langword="false"/> and writes "Completed" or "Cancelled at step N" into <c>AwaitResultText</c>.
+        /// "Cancel" only cancels the current source: nothing here throws, per <see cref="UIAnimationCollection.StartAsync"/>'s contract. Each
+        /// run only ever writes its OWN status: a second click starts a new <see cref="CancellationTokenSource"/> and cancels the previous
+        /// one, but that previous run's own continuation is still going to resolve (with <see langword="false"/>) and would otherwise write
+        /// its stale "Cancelled at step N" over the new run's freshly-written status; every write below is therefore guarded by
+        /// <c>IsCurrentRun</c>, comparing THIS continuation's own <see cref="CancellationTokenSource"/> instance against <c>_awaitCancellation</c>
+        /// (only the run a click most recently started holds that reference).</summary>
         private void WireAwait()
         {
             MGBorder target = Window.GetElementByName<MGBorder>("AwaitTarget");
@@ -408,28 +413,37 @@ namespace MGUI.Samples.Features
                 _awaitCancellation = cancellation;
                 CancellationToken token = cancellation.Token;
 
-                resultText.SetText("Running: step 1 (fade)");
+                bool IsCurrentRun() => ReferenceEquals(_awaitCancellation, cancellation);
+                void SetStatusIfCurrentRun(string text)
+                {
+                    if (IsCurrentRun())
+                    {
+                        resultText.SetText(text);
+                    }
+                }
+
+                SetStatusIfCurrentRun("Running: step 1 (fade)");
                 if (!await target.Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0f, 1f, 0.3).Ease(UIEasing.CubicOut).Named("await-fade").PlayAsync(token))
                 {
-                    resultText.SetText("Cancelled at step 1");
+                    SetStatusIfCurrentRun("Cancelled at step 1");
                     return;
                 }
 
-                resultText.SetText("Running: step 2 (scale pop)");
+                SetStatusIfCurrentRun("Running: step 2 (scale pop)");
                 if (!await target.Animate(UIBuiltInAnimationTargets.Paths.RenderTransformScale, Vector2.One, new Vector2(1.25f), 0.2).Ease("BackOut").AutoReverse().Named("await-scale").PlayAsync(token))
                 {
-                    resultText.SetText("Cancelled at step 2");
+                    SetStatusIfCurrentRun("Cancelled at step 2");
                     return;
                 }
 
-                resultText.SetText("Running: step 3 (background)");
+                SetStatusIfCurrentRun("Running: step 3 (background)");
                 if (!await target.Animate(UIColorAnimationTargets.Paths.Background, Color.OrangeRed, 0.3).Named("await-background").PlayAsync(token))
                 {
-                    resultText.SetText("Cancelled at step 3");
+                    SetStatusIfCurrentRun("Cancelled at step 3");
                     return;
                 }
 
-                resultText.SetText("Completed");
+                SetStatusIfCurrentRun("Completed");
             });
 
             Window.GetElementByName<MGButton>("AwaitCancelButton").AddCommandHandler((btn, e) => _awaitCancellation?.Cancel());
@@ -498,8 +512,11 @@ namespace MGUI.Samples.Features
         /// <c>LayoutTransitionEasing</c> (the "LayoutRow" style, in XAML) -- insert, remove and move (a removal followed by an insertion,
         /// <c>MGStackPanel</c> has no reorder API) glide the remaining/displaced rows to their new place, never the row that was itself just
         /// attached. <c>LayoutSizeTarget</c> additionally opts into <c>LayoutTransitionAnimatesSize</c> (declared in XAML): "Resize" toggles
-        /// its width between two values, stretching its content during the run. A row created here by "Insert at top" gets the same
-        /// <see cref="MGElement.LayoutTransition"/> settings as the ones declared in XAML. Nothing starts at load.</summary>
+        /// its width between two values, stretching its content during the run. <c>StyleNames</c> is a XAML-loader concept (applied once,
+        /// at load, by <c>Element.ProcessStyles</c>): a row created here by "Insert at top" cannot pick up the "LayoutRow" style by name at
+        /// runtime, so <c>CreateRow</c> sets the same values that style's setters declare -- <see cref="MGElement.LayoutTransition"/>,
+        /// <see cref="MGElement.BackgroundBrush"/> and <see cref="MGElement.Padding"/> -- directly, so an inserted row looks exactly like the
+        /// four declared in XAML rather than only matching their layout-transition settings. Nothing starts at load.</summary>
         private void WireLayout()
         {
             MGStackPanel list = Window.GetElementByName<MGStackPanel>("LayoutListPanel");
@@ -507,7 +524,14 @@ namespace MGUI.Samples.Features
 
             MGBorder CreateRow(string text)
             {
-                MGBorder row = new(Window) { LayoutTransition = new UILayoutTransition { Duration = TimeSpan.FromSeconds(0.3), Easing = UIEasing.CubicOut } };
+                MGBorder row = new(Window)
+                {
+                    LayoutTransition = new UILayoutTransition { Duration = TimeSpan.FromSeconds(0.3), Easing = UIEasing.CubicOut },
+                    // Same values as the "LayoutRow" style's own setters (Background, Padding): StyleNames is a XAML-loader concept and
+                    // cannot be applied to a row created here in code, at runtime, by name.
+                    BackgroundBrush = new VisualStateFillBrush(new MGSolidFillBrush(new Color(48, 48, 48))),
+                    Padding = new MonoGame.Extended.Thickness(4, 3),
+                };
                 row.SetContent(new MGTextBlock(Window, text));
                 return row;
             }
@@ -575,9 +599,12 @@ namespace MGUI.Samples.Features
         /// <summary>20. Windows and dropdown (ADR-0011 decision 6, Y7): <c>WindowsOpenButton</c> opens a small nested window, created once
         /// here, whose <see cref="MGElement.EnterExit"/> uses <see cref="UIEnterExitEffect.FadeScale"/> for both the entry (played by
         /// <see cref="MGWindow.AddNestedWindow"/>) and the exit (played by its own close button through <see cref="MGWindow.TryCloseWindow"/>,
-        /// before the window is actually removed). <c>WindowsComboBox</c>'s dropdown gets its own <see cref="MGElement.EnterExit"/> --
-        /// <see cref="UIEnterExitEffect.SlideDown"/> in, <see cref="UIEnterExitEffect.Fade"/> out -- played on open and close. Nothing starts
-        /// at load: the nested window is not shown until "Open window" is clicked.</summary>
+        /// before the window is actually removed). Clicking "Open window" again WHILE the window is still playing that exit
+        /// (<see cref="MGWindow.IsClosing"/>) reopens it there and then, mid-exit, from its current faded/scaled values: <c>AddNestedWindow</c>
+        /// has cancelled a running exit and replayed the entry instead of throwing its usual duplicate-add exception since Y7, precisely so
+        /// this works. <c>WindowsComboBox</c>'s dropdown gets its own <see cref="MGElement.EnterExit"/> -- <see cref="UIEnterExitEffect.SlideDown"/>
+        /// in, <see cref="UIEnterExitEffect.Fade"/> out -- played on open and close. Nothing starts at load: the nested window is not shown
+        /// until "Open window" is clicked.</summary>
         private void WireWindows()
         {
             MGWindow nestedWindow = new(Window, 0, 0, 220, 120)
@@ -595,7 +622,9 @@ namespace MGUI.Samples.Features
             //  (MGControlTemplateCatalog), so the FadeScale exit plays before the window is actually removed.
             Window.GetElementByName<MGButton>("WindowsOpenButton").AddCommandHandler((btn, e) =>
             {
-                if (!Window.NestedWindows.Contains(nestedWindow))
+                //  A window still exiting stays in NestedWindows until its run ends (deferred removal, Y7): only a window that is
+                //  neither listed NOR closing is a genuine duplicate to skip -- one that IS closing gets reopened mid-exit instead.
+                if (!Window.NestedWindows.Contains(nestedWindow) || nestedWindow.IsClosing)
                 {
                     nestedWindow.Left = Window.Left + 40;
                     nestedWindow.Top = Window.Top + 40;

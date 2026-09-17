@@ -574,6 +574,11 @@ public class WindowEnterExitTests
         Exception caught = Record.Exception(() => desktop.Draw(draw));
         Assert.Null(caught);
 
+        // Two pushes recorded while the exit runs (MGWindow.Draw): the outer enter/exit draw transform composed with the ambient
+        // transform, then -- because the window is also scaled -- UnscaledScreenSpaceToScaledScreenSpace composed on top of it.
+        Assert.Equal(2, draw.TransformPushes.Count);
+        Assert.Equal(window.UnscaledScreenSpaceToScaledScreenSpace * draw.TransformPushes[0], draw.TransformPushes[1]);
+
         for (int i = 0; i < 10; i++)
         {
             Frame(runtime, desktop, 5 + i);
@@ -581,6 +586,25 @@ public class WindowEnterExitTests
 
         Assert.False(window.IsClosing);
         Assert.DoesNotContain(window, desktop.Windows);
+    }
+
+    // ---- Zero allocation: matrix pushes ------------------------------------------------------------------------
+
+    [Fact]
+    public void Window_WithNoEnterExitSettings_DrawsWithNoTransformPush()
+    {
+        var (runtime, desktop) = NewDesktop();
+        MGWindow window = new(desktop, 0, 0, 200, 150) { WindowStyle = WindowStyle.None };
+        desktop.Windows.Add(window);
+        for (int i = 0; i < 3; i++)
+        {
+            Frame(runtime, desktop, 1 + i);
+        }
+
+        GraphNoOpDrawTransaction draw = new(runtime, MGUI.Shared.Rendering.DrawSettings.Default);
+        desktop.Draw(draw);
+
+        Assert.Empty(draw.TransformPushes);
     }
 
     // ---- Zero allocation: the root window comparison in a steady state and during a run ---------------------------

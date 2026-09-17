@@ -406,8 +406,8 @@
             <TextBlock>
                 [c=Turquoise][i]PlayAsync[/i][/c] returns a [c=Turquoise][i]Task&lt;bool&gt;[/i][/c]: [c=Turquoise][i]true[/i][/c] once the run
                 completes, [c=Turquoise][i]false[/i][/c] if it is cancelled, never an exception. The three steps below are chained with
-                [c=Turquoise][i]await[/i][/c] in an [c=Turquoise][i]async[/i][/c] handler; "Cancel" cancels a
-                [c=Turquoise][i]CancellationToken[/i][/c] passed to the first [c=Turquoise][i]PlayAsync[/i][/c] call.
+                [c=Turquoise][i]await[/i][/c] in an [c=Turquoise][i]async[/i][/c] handler; "Cancel" cancels the same
+                [c=Turquoise][i]CancellationToken[/i][/c] passed to all three [c=Turquoise][i]PlayAsync[/i][/c] calls.
             </TextBlock>
             <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -545,7 +545,9 @@
                 [c=Turquoise][i]EnterExit[/i][/c] on a window plays on [c=Turquoise]AddNestedWindow[/c] / a modal push / a root window's
                 addition to [c=Turquoise]Desktop.Windows[/c], and on [c=Turquoise]TryCloseWindow[/c] before the window is actually removed.
                 The dropdown below plays its own entry and exit the same way, on open and close. A window does not honour
-                [c=Turquoise]RenderTransform[/c], so a scale or slide effect on a window uses an internal draw transform instead.
+                [c=Turquoise]RenderTransform[/c], so a scale or slide effect on a window uses an internal draw transform instead. Clicking
+                "Open window" again WHILE the window is still fading/scaling out reopens it right there, mid-exit, instead of waiting for it
+                to finish closing first.
             </TextBlock>
             <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
                 <StackPanel Orientation="Horizontal" Spacing="6">
