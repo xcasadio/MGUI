@@ -360,6 +360,12 @@ public sealed class UIAnimationManager
     internal bool IsAnimating(MGElement owner, string path)
         => path != null && _ByTarget.TryGetValue((owner, path), out var animation) && animation.IsActive;
 
+    /// <summary>The animation currently active on <paramref name="owner"/>'s <paramref name="path"/>, or null (unknown path, no animation, or
+    /// one that finished): lets a caller outside the engine (<see cref="MGScrollViewer"/>'s external-write rule, ADR-0011) tell an explicit
+    /// run from a <see cref="UITransition{T}"/>'s own run apart before deciding whether to cancel it, without walking <see cref="_Active"/>.</summary>
+    internal UIAnimation GetActive(MGElement owner, string path)
+        => path != null && _ByTarget.TryGetValue((owner, path), out var animation) && animation.IsActive ? animation : null;
+
     internal IEnumerable<UIAnimation> EnumerateOwnedBy(MGElement owner)
         => _Active.Where(x => ReferenceEquals(x.Owner, owner)).ToArray();
 

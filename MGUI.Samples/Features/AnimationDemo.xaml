@@ -415,6 +415,48 @@
                 </Border>
                 <TextBlock Name="AwaitResultText" Text="Idle" />
             </StackPanel>
+            <Separator/>
+
+            <!-- 16. Smooth scrolling -->
+            <TextBlock StyleNames="Header1" Text="16. Smooth scrolling" />
+            <TextBlock>
+                [c=Turquoise][i]ScrollTo[/i][/c] animates [c=Turquoise][i]VerticalOffset[/i][/c]/[c=Turquoise][i]HorizontalOffset[/i][/c] to a
+                clamped destination. [c=Turquoise][i]ScrollAnimationDuration[/i][/c]/[c=Turquoise][i]ScrollAnimationEasing[/i][/c] (set below
+                on the viewer itself) make the mouse wheel and keyboard navigation smooth too, following the destination rather than the
+                momentary animated position. An external write -- dragging the scrollbar, for instance -- takes over immediately and keeps
+                the value it wrote.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="ScrollDemoTopButton" Content="Top" />
+                    <Button Name="ScrollDemoBottomButton" Content="Bottom" />
+                </StackPanel>
+                <ScrollViewer Name="ScrollDemoViewer" Height="120" VerticalScrollBarVisibility="Auto"
+                              ScrollAnimationDuration="0.25" ScrollAnimationEasing="CubicOut" Background="rgb(48,48,48)">
+                    <StackPanel Orientation="Vertical" Spacing="0">
+                        <TextBlock Text="Row 1" Padding="4,3" />
+                        <TextBlock Text="Row 2" Padding="4,3" />
+                        <TextBlock Text="Row 3" Padding="4,3" />
+                        <TextBlock Text="Row 4" Padding="4,3" />
+                        <TextBlock Text="Row 5" Padding="4,3" />
+                        <TextBlock Text="Row 6" Padding="4,3" />
+                        <TextBlock Text="Row 7" Padding="4,3" />
+                        <TextBlock Text="Row 8" Padding="4,3" />
+                        <TextBlock Text="Row 9" Padding="4,3" />
+                        <TextBlock Text="Row 10" Padding="4,3" />
+                        <TextBlock Text="Row 11" Padding="4,3" />
+                        <TextBlock Text="Row 12" Padding="4,3" />
+                        <TextBlock Text="Row 13" Padding="4,3" />
+                        <TextBlock Text="Row 14" Padding="4,3" />
+                        <TextBlock Text="Row 15" Padding="4,3" />
+                        <TextBlock Text="Row 16" Padding="4,3" />
+                        <TextBlock Text="Row 17" Padding="4,3" />
+                        <TextBlock Text="Row 18" Padding="4,3" />
+                        <TextBlock Text="Row 19" Padding="4,3" />
+                        <TextBlock Text="Row 20" Padding="4,3" />
+                    </StackPanel>
+                </ScrollViewer>
+            </StackPanel>
 
             <Spacer Height="70" />
         </StackPanel>

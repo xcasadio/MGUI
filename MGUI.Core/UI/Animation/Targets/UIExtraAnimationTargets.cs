@@ -24,6 +24,12 @@ public static class UIExtraAnimationTargets
         public const string PreferredHeight = "PreferredHeight";
         public const string BackgroundGradient = "Background.Gradient";
         public const string BackgroundDiagonalGradient = "Background.DiagonalGradient";
+        /// <summary>The vertical scroll offset of an <see cref="MGScrollViewer"/> (ADR-0011, decision C3): a plain, observable target
+        /// restricted to <see cref="MGScrollViewer"/>, written through <see cref="MGScrollViewer.ApplyAnimatedVerticalOffset"/> so a run never
+        /// competes with the viewer's own external-write cancellation rule (<see cref="MGScrollViewer.VerticalOffset"/>).</summary>
+        public const string ScrollViewerVerticalOffset = "ScrollViewer.VerticalOffset";
+        /// <summary>The horizontal scroll offset of an <see cref="MGScrollViewer"/>: see <see cref="ScrollViewerVerticalOffset"/>.</summary>
+        public const string ScrollViewerHorizontalOffset = "ScrollViewer.HorizontalOffset";
     }
 
     internal static void RegisterAll()
@@ -33,6 +39,8 @@ public static class UIExtraAnimationTargets
         UIAnimationTargets.Register(new PreferredHeightTarget());
         UIAnimationTargets.Register(new BackgroundGradientTarget());
         UIAnimationTargets.Register(new BackgroundDiagonalGradientTarget());
+        UIAnimationTargets.Register(new ScrollViewerOffsetTarget(Paths.ScrollViewerVerticalOffset, isVertical: true));
+        UIAnimationTargets.Register(new ScrollViewerOffsetTarget(Paths.ScrollViewerHorizontalOffset, isVertical: false));
     }
 
     private static UIValueResolutionSource AnimationSource(string animationName)
@@ -252,5 +260,49 @@ public static class UIExtraAnimationTargets
                 ?? h.Original ?? new MGDiagonalGradientFillBrush(baseValue.Color1, baseValue.Color2, baseValue.Color1Position);
             UIColorAnimationTargets.RestoreSlot(element, UIPilotProperty.Background, UIValueSlot.Normal, source => element.SetBackgroundSlot(UIValueSlot.Normal, restored, source));
         }
+    }
+
+    /// <summary><c>ScrollViewer.VerticalOffset</c> / <c>ScrollViewer.HorizontalOffset</c> (ADR-0011, decision C3): a plain, observable target
+    /// restricted to <see cref="MGScrollViewer"/> (<see cref="RequiredOwnerType"/>, enforced by <see cref="Require"/>). Writes go through
+    /// <see cref="MGScrollViewer.ApplyAnimatedVerticalOffset"/>/<see cref="MGScrollViewer.ApplyAnimatedHorizontalOffset"/>, which clamp and
+    /// notify exactly like the public setter but never cancel a run; the underlying value is the same offset (not store-backed: nothing to
+    /// shadow), so a <see cref="UITransition{T}"/> attached to the path observes it directly.</summary>
+    private sealed class ScrollViewerOffsetTarget : IUIObservableAnimationTarget<float>
+    {
+        private readonly bool _isVertical;
+
+        public ScrollViewerOffsetTarget(string path, bool isVertical)
+        {
+            Path = path;
+            _isVertical = isVertical;
+        }
+
+        public string Path { get; }
+        public bool IsStoreBacked => false;
+        public Type RequiredOwnerType => typeof(MGScrollViewer);
+        public float GetValue(MGElement element) => _isVertical ? Require(element).VerticalOffset : Require(element).HorizontalOffset;
+        public float GetUnderlyingValue(MGElement element) => GetValue(element);
+
+        public void SetValue(MGElement element, float value, string animationName)
+        {
+            var scrollViewer = Require(element);
+            if (_isVertical)
+            {
+                scrollViewer.ApplyAnimatedVerticalOffset(value);
+            }
+            else
+            {
+                scrollViewer.ApplyAnimatedHorizontalOffset(value);
+            }
+        }
+
+        public void RestoreBaseValue(MGElement element, float baseValue) => SetValue(element, baseValue, null);
+
+        public IDisposable Subscribe(MGElement element, Action<MGElement> changed)
+            => new UIPropertyChangedSubscription(element, _isVertical ? nameof(MGScrollViewer.VerticalOffset) : nameof(MGScrollViewer.HorizontalOffset), () => changed(element));
+
+        private MGScrollViewer Require(MGElement element)
+            => element as MGScrollViewer ?? throw new InvalidOperationException(
+                $"'{Path}' animates the scroll offset of an {nameof(MGScrollViewer)}; {element.GetType().Name} has none.");
     }
 }

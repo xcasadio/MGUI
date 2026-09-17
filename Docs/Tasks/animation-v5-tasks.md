@@ -138,7 +138,7 @@ Commit recommande : `animation: add awaitable PlayAsync and StartAsync`
 
 **Statut** (17 septembre 2026) : livree. `StartAsync`, `UIAnimationBuilder.PlayAsync`, extension `PlayAsync(owner)` ; file `ConcurrentQueue` videe en tete de `UIAnimationManager.Update` ; `UIAnimationCompletion` interne (liberation du jeton par `Unregister`). 21 tests (`AnimationAsyncTests`), section 15 du sample. Suite complete : 2416 tests verts ; sample construit en `--no-incremental`. Verification en contexte frais : confirmee. Constats differes a Y9 (coherence du sample) : P3, dans la section 15, un clic sur Play pendant un run laisse la suite de l'ancien run ecrire « Cancelled at step N » par-dessus le statut du nouveau ; P4, le texte de la section dit que le jeton n'est passe qu'au premier `PlayAsync` alors qu'il l'est aux trois ; P4, le test de continuation ne releve pas explicitement la frame dans la continuation (le comportement inline reste prouve par le reste du test).
 
-### ⏳ Y2. Defilement fluide (C3)
+### ✅ Y2. Defilement fluide (C3)
 
 But : offsets de `MGScrollViewer` animables, `ScrollTo`, et une molette fluide sur option.
 
@@ -161,6 +161,8 @@ Criteres d'acceptation (tests `MGUI.Tests/Animation/ScrollAnimationTests.cs`) :
 - zero cout pour un `MGScrollViewer` qui n'anime rien ; zero allocation par tick.
 
 Commit recommande : `animation: add animatable scroll offsets, ScrollTo and optional smooth wheel scrolling`
+
+**Statut** (17 septembre 2026) : livree. Cibles `ScrollViewer.VerticalOffset` / `HorizontalOffset` (dans `UIExtraAnimationTargets`), `ScrollTo` avec une animation reutilisee par axe, `PendingVerticalOffset` / `PendingHorizontalOffset`, `ScrollAnimationDuration` / `ScrollAnimationEasing` (et attributs XAML), ecriture exterieure qui annule un run explicite sauf le run d'une transition attachee (identifie par reference), re-bornage interne sans annulation, accesseur interne `UIAnimationManager.GetActive`. `AllowedLines` : `MGScrollViewer.cs` passe de 557 a 748. 33 tests (`ScrollAnimationTests`) et 2 cas de plus dans `TargetApplicabilityTests` ; section 16 du sample. Suite complete : 2451 tests verts ; sample construit. Verification en contexte frais : confirmee, sondes independantes a l'appui (ecriture applicative conservee, re-bornage sans annulation, transition sans saut, consommation de la molette identique a HEAD a duree nulle, viewers imbriques). Constats differes (lacunes de tests, comportement prouve par les sondes du verificateur) : P3, le test des viewers imbriques ne pousse pas la destination du viewer interieur jusqu'a sa borne pendant que l'offset bouge encore ; P3, les tests « plusieurs touches » repetent le meme element au lieu de parcourir plusieurs elements ; P4, `PendingVerticalOffset` n'est pas verifie apres la fin normale d'un run.
 
 ### ⏳ Y3. Brush texturee animee par cadres (C4)
 

@@ -85,7 +85,7 @@ public class ResolvedPilotWriteSitesTests
         (@"MGUI.Core\UI\MGWindow.cs", 231, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
         (@"MGUI.Core\UI\MGWindow.cs", 249, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
         (@"MGUI.Core\UI\MGChatBox.cs", 138, "commented-out code"),
-        (@"MGUI.Core\UI\MGScrollViewer.cs", 557, "commented-out code"),
+        (@"MGUI.Core\UI\MGScrollViewer.cs", 748, "commented-out code"),
         (@"MGUI.Core\UI\MGXAMLDesigner.cs", 62, "inside a verbatim string literal (sample XAML shown in the designer UI), not code"),
         (@"MGUI.Core\UI\MGSlider.cs", 675, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\MGResizeGrip.cs", 180, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),

@@ -53,6 +53,7 @@ namespace MGUI.Samples.Features
             WireControls();
             WireDiagnostics();
             WireAwait();
+            WireScrolling();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -426,6 +427,21 @@ namespace MGUI.Samples.Features
             });
 
             Window.GetElementByName<MGButton>("AwaitCancelButton").AddCommandHandler((btn, e) => _awaitCancellation?.Cancel());
+        }
+
+        /// <summary>16. Smooth scrolling: <c>ScrollDemoViewer</c>'s <c>ScrollAnimationDuration</c>/<c>ScrollAnimationEasing</c> (set in XAML)
+        /// make its mouse wheel and any keyboard scroll smooth already, nothing wired here; "Top"/"Bottom" call
+        /// <see cref="MGScrollViewer.ScrollTo"/> directly, with their own duration and easing, which is independent of the viewer's own
+        /// wheel/keyboard settings. Nothing starts at load.</summary>
+        private void WireScrolling()
+        {
+            MGScrollViewer viewer = Window.GetElementByName<MGScrollViewer>("ScrollDemoViewer");
+
+            Window.GetElementByName<MGButton>("ScrollDemoTopButton").AddCommandHandler((btn, e)
+                => viewer.ScrollTo(null, 0f, TimeSpan.FromSeconds(0.4), UIEasing.CubicInOut));
+
+            Window.GetElementByName<MGButton>("ScrollDemoBottomButton").AddCommandHandler((btn, e)
+                => viewer.ScrollTo(null, viewer.MaxVerticalOffset, TimeSpan.FromSeconds(0.4), UIEasing.CubicInOut));
         }
     }
 }
