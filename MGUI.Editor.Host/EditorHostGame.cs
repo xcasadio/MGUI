@@ -55,6 +55,10 @@ public class EditorHostGame : Game, IObservableUpdate
             IsUserResizable = false,
             CanCloseWindow = false,
         };
+        //  WindowStyle.None makes a window's background transparent (chrome-less HUD windows); the editor window must stay opaque, otherwise the
+        //  game's clear colour shows through every docking area that paints no background of its own (tab strips, preview and diagnostics panes).
+        //  A background written after WindowStyle.None replaces its transparent values.
+        _editorWindow.BackgroundBrush = _desktop.Theme.GetBackgroundBrush(MGElementType.Window);
 
         XamlEditorSession session = new();
         XamlEditorView view = new(_editorWindow, session);
