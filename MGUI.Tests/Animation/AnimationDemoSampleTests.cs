@@ -62,6 +62,7 @@ public class AnimationDemoSampleTests
         ["12. Serialisation"] = new[] { "SerializationSaveButton", "SerializationLoadButton", "SerializationTarget", "SerializationJsonText" },
         ["13. Controls"] = new[] { "EngineProgressButton", "TypewriterText", "EngineReplayButton" },
         ["14. Diagnostics"] = new[] { "DiagnosticsPathsButton", "DiagnosticsPathsText", "DiagnosticsMeasureButton", "DiagnosticsTarget", "DiagnosticsAllocationText" },
+        ["15. Awaitable animations"] = new[] { "AwaitPlayButton", "AwaitCancelButton", "AwaitTarget", "AwaitResultText" },
     };
 
     /// <summary>The XAML references a resource style ("Styles and theme" section, <c>StylesButtonA</c>/<c>StylesButtonB</c>'s

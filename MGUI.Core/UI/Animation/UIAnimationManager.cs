@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace MGUI.Core.UI.Animation;
 
 /// <summary>
@@ -14,6 +16,11 @@ public sealed class UIAnimationManager
     private bool _IsTicking;
     private bool _SweepNeeded;
 
+    //  A cancellation token's callback runs on whatever thread cancels it (ADR-0011 decision 2): it never touches the engine directly, it
+    //  only enqueues here (ConcurrentQueue<>, lock-free on the fast paths) and the queue is drained on the update thread, at the very top of
+    //  Update, before the engine does anything else this tick.
+    private readonly ConcurrentQueue<UIAnimationCompletion> _PendingCancellations = new();
+
     /// <summary>The time source shared by every animation of the desktop.</summary>
     public UIAnimationClock Clock { get; } = new();
 
@@ -26,6 +33,8 @@ public sealed class UIAnimationManager
     /// <summary>Advances the clock by one frame and ticks every active animation. Called once per frame by <c>MGDesktop.Update</c>.</summary>
     public void Update(TimeSpan frameElapsed)
     {
+        DrainPendingCancellations();
+
         Clock.Advance(frameElapsed);
         var delta = Clock.DeltaTime;
         if (delta <= TimeSpan.Zero)
@@ -175,6 +184,38 @@ public sealed class UIAnimationManager
 
         _ByTarget[key] = animation;
         animation.RegisteredKey = key;
+    }
+
+    /// <summary>Queues a cancellation request for <paramref name="completion"/> (ADR-0011 decision 2), callable from any thread: drained at
+    /// the very top of the next <see cref="Update"/>, before the clock advances. Never touches the engine on the calling thread.</summary>
+    internal void RequestCancellation(UIAnimationCompletion completion) => _PendingCancellations.Enqueue(completion);
+
+    /// <summary>Cancels the run of every still-unresolved queued completion, like <see cref="UIAnimation.Cancel"/> (its own
+    /// <see cref="UIAnimation.CancelBehavior"/>); a completion already resolved (its run ended some other way first, or a later
+    /// <see cref="UIAnimationCollection.StartAsync"/> replaced it) is ignored, so a stale request never cancels a later run of the same
+    /// instance. Without a pending request this is a single emptiness test on a lock-free queue: no allocation, no lock.</summary>
+    private void DrainPendingCancellations()
+    {
+        if (_PendingCancellations.IsEmpty)
+        {
+            return;
+        }
+
+        while (_PendingCancellations.TryDequeue(out var completion))
+        {
+            if (completion.IsResolved)
+            {
+                continue;
+            }
+
+            completion.Animation.Cancel();
+            if (!completion.IsResolved)
+            {
+                // Defensive: Cancel() is a no-op on an animation that is no longer active, which should already have resolved the
+                // completion through its Completed/Cancelled event; resolve false here so a request is never silently dropped.
+                completion.Resolve(false);
+            }
+        }
     }
 
     internal void NotifyFinished(UIAnimation animation)

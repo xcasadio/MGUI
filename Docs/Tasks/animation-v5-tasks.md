@@ -114,7 +114,7 @@ Commit recommande : `test: resolve the repository root from the test assembly in
 
 **Statut** (17 septembre 2026) : livree. `MGUI.Tests/TestRepository.cs` calcule la racine une seule fois ; les 143 litteraux et les six champs `RepoRoot` passent par lui ; deux tests de garde (`TestRepositoryTests`). Suite complete dans le worktree : 2395 tests verts (2393 + 2). Verification en contexte frais : confirmee. Constat P4 differe : le second test de garde ne peut echouer que si le dossier de sortie a moins de quatre niveaux ; ce sont le premier test (presence de `MGUI.sln` et du projet de test) et l'emplacement de la DLL qui lient la racine au worktree. Note : `MGUI.Tests` utilise WPF, ses usings implicites n'incluent pas `System.IO`.
 
-### ⏳ Y1. Animations attendables : `PlayAsync` (C10)
+### ✅ Y1. Animations attendables : `PlayAsync` (C10)
 
 But : enchainer des animations depuis du code asynchrone, sans exception sur le chemin normal.
 
@@ -135,6 +135,8 @@ Criteres d'acceptation (tests `MGUI.Tests/Animation/AnimationAsyncTests.cs`) :
 - section du sample : une sequence `await` de trois animations avec un bouton d'annulation.
 
 Commit recommande : `animation: add awaitable PlayAsync and StartAsync`
+
+**Statut** (17 septembre 2026) : livree. `StartAsync`, `UIAnimationBuilder.PlayAsync`, extension `PlayAsync(owner)` ; file `ConcurrentQueue` videe en tete de `UIAnimationManager.Update` ; `UIAnimationCompletion` interne (liberation du jeton par `Unregister`). 21 tests (`AnimationAsyncTests`), section 15 du sample. Suite complete : 2416 tests verts ; sample construit en `--no-incremental`. Verification en contexte frais : confirmee. Constats differes a Y9 (coherence du sample) : P3, dans la section 15, un clic sur Play pendant un run laisse la suite de l'ancien run ecrire « Cancelled at step N » par-dessus le statut du nouveau ; P4, le texte de la section dit que le jeton n'est passe qu'au premier `PlayAsync` alors qu'il l'est aux trois ; P4, le test de continuation ne releve pas explicitement la frame dans la continuation (le comportement inline reste prouve par le reste du test).
 
 ### ⏳ Y2. Defilement fluide (C3)
 
@@ -303,7 +305,7 @@ Commit recommande : `animation: add popup enter and exit animations and theme op
 
 But : documentation exacte, sample coherent, decisions closes.
 
-Perimetre : `Docs/animation-architecture.md` (relecture contre le code : etat final, aucune mention de version), `Docs/scenario-validation-index.md` (`SCN-ANIM-001` : une mention par capacite livree, ADR-0011 ajoutee a sa liste d'ADR), ce fichier (taches a ✅ ou 🧪, candidats livres retires du backlog ci-dessous), ADR-0011 passee a `Accepted` dans son fichier et dans la ligne d'index de `Docs/decisions/README.md`, `MGUI.Samples` construit en `--no-incremental`.
+Perimetre : constats differes par les taches precedentes et rattaches a Y9 dans leur statut (sample), `Docs/animation-architecture.md` (relecture contre le code : etat final, aucune mention de version), `Docs/scenario-validation-index.md` (`SCN-ANIM-001` : une mention par capacite livree, ADR-0011 ajoutee a sa liste d'ADR), ce fichier (taches a ✅ ou 🧪, candidats livres retires du backlog ci-dessous), ADR-0011 passee a `Accepted` dans son fichier et dans la ligne d'index de `Docs/decisions/README.md`, `MGUI.Samples` construit en `--no-incremental`.
 
 Validation manuelle (auteur) : scenario `SCN-ANIM-001`, nouvelles sections du sample. Le programme reste 🧪 jusqu'a cette validation.
 

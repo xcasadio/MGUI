@@ -14,6 +14,7 @@ using MGUI.Core.Tooling;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace MGUI.Samples.Features
 {
@@ -29,6 +30,10 @@ namespace MGUI.Samples.Features
         /// <summary>The "Preview and seek" section's preview instance: attached once to <c>PreviewTarget</c>, driven by <c>PreviewSlider</c>
         /// and ended by <c>PreviewDetachButton</c>. Never registered with the live <see cref="UIAnimationManager"/>.</summary>
         private UIStoryboard _previewAnimation;
+
+        /// <summary>The "Awaitable animations" section's current run, cancelled and replaced by every "Play" click, and cancelled alone by
+        /// "Cancel". Null until the first click.</summary>
+        private CancellationTokenSource _awaitCancellation;
 
         public AnimationDemoSample(ContentManager content, MGDesktop desktop)
             : base(content, desktop, "Features", "AnimationDemo.xaml", () => RegisterSharedStyle(desktop))
@@ -47,6 +52,7 @@ namespace MGUI.Samples.Features
             WireSerialization();
             WireControls();
             WireDiagnostics();
+            WireAwait();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -375,6 +381,51 @@ namespace MGUI.Samples.Features
                     }
                 }
             };
+        }
+
+        /// <summary>15. Awaitable animations: "Play three steps" creates a fresh <see cref="CancellationTokenSource"/> (cancelling and
+        /// disposing the previous one), then an <c>async</c> handler <c>await</c>s a fade, a scale pop and a background colour change on
+        /// <c>AwaitTarget</c> in turn, passing the same token to each <see cref="UIAnimationBuilder.PlayAsync"/> call; it stops at the first
+        /// step that resolves <see langword="false"/> and writes "Completed" or "Cancelled at step N" into <c>AwaitResultText</c>. "Cancel"
+        /// only cancels the current source: nothing here throws, per <see cref="UIAnimationCollection.StartAsync"/>'s contract.</summary>
+        private void WireAwait()
+        {
+            MGBorder target = Window.GetElementByName<MGBorder>("AwaitTarget");
+            MGTextBlock resultText = Window.GetElementByName<MGTextBlock>("AwaitResultText");
+
+            Window.GetElementByName<MGButton>("AwaitPlayButton").AddCommandHandler(async (btn, e) =>
+            {
+                _awaitCancellation?.Cancel();
+                _awaitCancellation?.Dispose();
+                CancellationTokenSource cancellation = new();
+                _awaitCancellation = cancellation;
+                CancellationToken token = cancellation.Token;
+
+                resultText.SetText("Running: step 1 (fade)");
+                if (!await target.Animate(UIBuiltInAnimationTargets.Paths.Opacity, 0f, 1f, 0.3).Ease(UIEasing.CubicOut).Named("await-fade").PlayAsync(token))
+                {
+                    resultText.SetText("Cancelled at step 1");
+                    return;
+                }
+
+                resultText.SetText("Running: step 2 (scale pop)");
+                if (!await target.Animate(UIBuiltInAnimationTargets.Paths.RenderTransformScale, Vector2.One, new Vector2(1.25f), 0.2).Ease("BackOut").AutoReverse().Named("await-scale").PlayAsync(token))
+                {
+                    resultText.SetText("Cancelled at step 2");
+                    return;
+                }
+
+                resultText.SetText("Running: step 3 (background)");
+                if (!await target.Animate(UIColorAnimationTargets.Paths.Background, Color.OrangeRed, 0.3).Named("await-background").PlayAsync(token))
+                {
+                    resultText.SetText("Cancelled at step 3");
+                    return;
+                }
+
+                resultText.SetText("Completed");
+            });
+
+            Window.GetElementByName<MGButton>("AwaitCancelButton").AddCommandHandler((btn, e) => _awaitCancellation?.Cancel());
         }
     }
 }

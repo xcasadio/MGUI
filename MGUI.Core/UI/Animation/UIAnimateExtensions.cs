@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using MGUI.Core.UI.Animation.Composition;
 using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Animation.Interpolation;
@@ -112,6 +114,16 @@ public abstract class UIAnimationBuilder
         var animation = Build();
         Element.Animations.Start(animation);
         return animation;
+    }
+
+    /// <summary>Builds and starts the animation on <see cref="Element"/> like <see cref="Play"/>, awaitably: see
+    /// <see cref="UIAnimationCollection.StartAsync"/> for the full contract (result semantics, refusals, the cancellation token, restart
+    /// behaviour, the thread of the continuation). Covers <see cref="UIAnimationBuilder{T}"/> by inheritance and a chain ending with
+    /// <see cref="Wait(TimeSpan)"/>.</summary>
+    public Task<bool> PlayAsync(CancellationToken cancellationToken = default)
+    {
+        var animation = Build();
+        return Element.Animations.StartAsync(animation, cancellationToken);
     }
 
     internal static UIPropertyAnimation<T> CreateStep<T>(string property, T from, bool hasFrom, T to, TimeSpan duration)

@@ -44,4 +44,4 @@ Out of scope: spring interpolation, per-subtree clocks and reduced motion, XAML 
 
 ## Decisions taken during delivery
 
-None yet. Each slice of the plan appends its decisions here.
+- **Y1**: the pending-cancellation queue is a plain `System.Collections.Concurrent.ConcurrentQueue<UIAnimationCompletion>` (lock-free enqueue/dequeue, `IsEmpty` read without a lock on the fast path), not a custom lock-based structure: the backlog left the exact type open and the built-in type already meets the "no lock on the fast path" requirement. The per-call completion releases its `CancellationTokenRegistration` with `Unregister()` rather than `Dispose()`: `Dispose()` blocks until a callback already running elsewhere has returned, which the update thread must never wait on, while `Unregister()` only detaches the callback (and is itself what stops a queued-but-not-yet-drained request from ever reaching an unrelated later run, since the registration for a resolved completion is gone before a stale token can be cancelled).

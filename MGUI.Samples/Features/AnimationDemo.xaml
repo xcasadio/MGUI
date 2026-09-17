@@ -393,6 +393,28 @@
                 </StackPanel>
                 <TextBlock Name="DiagnosticsAllocationText" Text="Allocations per tick: not measured" />
             </StackPanel>
+            <Separator/>
+
+            <!-- 15. Awaitable animations -->
+            <TextBlock StyleNames="Header1" Text="15. Awaitable animations" />
+            <TextBlock>
+                [c=Turquoise][i]PlayAsync[/i][/c] returns a [c=Turquoise][i]Task&lt;bool&gt;[/i][/c]: [c=Turquoise][i]true[/i][/c] once the run
+                completes, [c=Turquoise][i]false[/i][/c] if it is cancelled, never an exception. The three steps below are chained with
+                [c=Turquoise][i]await[/i][/c] in an [c=Turquoise][i]async[/i][/c] handler; "Cancel" cancels a
+                [c=Turquoise][i]CancellationToken[/i][/c] passed to the first [c=Turquoise][i]PlayAsync[/i][/c] call.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="AwaitPlayButton" Content="Play three steps" />
+                    <Button Name="AwaitCancelButton" Content="Cancel" />
+                </StackPanel>
+                <Border Name="AwaitTarget" Width="90" Height="50" Background="#16A085" CornerRadius="8" HorizontalAlignment="Left">
+                    <Border.RenderTransform>
+                        <RenderTransform Origin="0.5,0.5" />
+                    </Border.RenderTransform>
+                </Border>
+                <TextBlock Name="AwaitResultText" Text="Idle" />
+            </StackPanel>
 
             <Spacer Height="70" />
         </StackPanel>
