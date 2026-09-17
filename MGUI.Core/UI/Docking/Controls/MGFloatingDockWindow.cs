@@ -11,6 +11,11 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// </summary>
 public class MGFloatingDockWindow : MGWindow
 {
+    /// <summary>Floating dock windows never play an exit (ADR-0011 decision 6, Y7): on the re-dock path, <see cref="MGDockHost.CloseFloatingWindow"/>
+    /// already re-parents this window's content into the docked layout before removing it, so there is nothing left to animate out, and
+    /// <see cref="MGWindow.TryCloseWindow"/> removes it at once for the same reason.</summary>
+    internal override bool SuppressWindowEnterExit => true;
+
     /// <summary>The <see cref="MGDockHost"/> that created and owns this floating window.</summary>
     public MGDockHost OwnerHost { get; }
 

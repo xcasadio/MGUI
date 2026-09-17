@@ -3167,23 +3167,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             if (isExitingEnterExit)
             {
                 //  Superseded: cancel the exit run without letting its own Completed/Cancelled handler apply its now-stale pending
-                //  value (DetachEnterExitHandlers removes it first) or restore base values (children cancel with KeepCurrent), so the
-                //  entry that follows starts from the current values with no jump.
-                var exitRun = _animationSlot.ActiveEnterExitRun;
-                _animationSlot.ActiveEnterExitRun = null;
-                if (exitRun != null)
-                {
-                    DetachEnterExitHandlers(exitRun);
-                    if (exitRun.IsActive)
-                    {
-                        exitRun.Cancel();
-                    }
-                }
-
-                _animationSlot.IsExitingEnterExit = false;
-                _animationSlot.PendingExitVisibility = null;
-                SetIsExitingEnterExit(false);
-                NotifyPropertyChanged(nameof(PendingVisibility));
+                //  value or restore base values (children cancel with KeepCurrent), so the entry that follows starts from the current
+                //  values with no jump. Shared with the window opening paths (Y7) through CancelActiveEnterExitExit.
+                CancelActiveEnterExitExit();
             }
 
             SetVisibilityCore(Visibility.Visible);
@@ -4137,9 +4123,22 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Starts (or restarts) this element's exit run (ADR-0011 decision 6): called by <see cref="SetVisibility"/> once it has decided
-    /// an exit should actually play. Cancels a run of the OPPOSITE direction left over from an interruption first, with
-    /// <see cref="DetachEnterExitHandlers"/> so its own handler never reacts to that cancellation.</summary>
-    private void PlayEnterExitExit(Visibility requested)
+    /// an exit should actually play, with <paramref name="requested"/> the <see cref="UI.Visibility"/> to apply when it ends. Cancels a run
+    /// of the OPPOSITE direction left over from an interruption first, with <see cref="DetachEnterExitHandlers"/> so its own handler never
+    /// reacts to that cancellation.</summary>
+    private void PlayEnterExitExit(Visibility requested) => StartEnterExitExit(requested, null);
+
+    /// <summary>Starts (or restarts) this element's exit run with a completion callback instead of a <see cref="UI.Visibility"/> write
+    /// (ADR-0011 decision 6, Y7): the window lifecycle's own overload, used by <see cref="MGWindow.TryCloseWindow"/> and
+    /// <see cref="MGWindow.RemoveNestedWindow"/> so a window's removal -- not a property write -- is what the exit's end triggers. The
+    /// caller (<see cref="MGWindow"/>, through <see cref="TryPlayEnterExitExitForWindow"/>) has already checked <see cref="HasExit"/>.</summary>
+    private void PlayEnterExitExit(Action onExitFinished) => StartEnterExitExit(null, onExitFinished);
+
+    /// <summary>The run machinery shared by both exit overloads above (ADR-0011 decision 6, generalized in Y7): exactly one of
+    /// <paramref name="requestedVisibility"/> (Y6, a plain element) or <paramref name="onExitFinishedForWindow"/> (Y7, a window) is set, and
+    /// <see cref="HandleEnterExitRunFinished"/> reads back whichever one <see cref="Animation.UIElementAnimationSlot.PendingExitCompletion"/>
+    /// holds once the run ends.</summary>
+    private void StartEnterExitExit(Visibility? requestedVisibility, Action onExitFinishedForWindow)
     {
         var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
 
@@ -4154,7 +4153,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         slot.IsExitingEnterExit = true;
-        slot.PendingExitVisibility = requested;
+        slot.PendingExitVisibility = requestedVisibility;
+        slot.PendingExitCompletion = onExitFinishedForWindow;
         SetIsExitingEnterExit(true);
         NotifyPropertyChanged(nameof(PendingVisibility));
 
@@ -4170,8 +4170,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             //  Defensive: HasExit already guarantees an explicit animation or a real effect+duration, so this should not happen.
             slot.IsExitingEnterExit = false;
             slot.PendingExitVisibility = null;
+            slot.PendingExitCompletion = null;
             SetIsExitingEnterExit(false);
-            SetVisibilityCore(requested);
+            if (requestedVisibility.HasValue)
+            {
+                SetVisibilityCore(requestedVisibility.Value);
+            }
+            else
+            {
+                onExitFinishedForWindow?.Invoke();
+            }
             return;
         }
 
@@ -4182,8 +4190,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Starts (or restarts) this element's entry run (ADR-0011 decision 6): called by <see cref="SetVisibility"/> once
-    /// <see cref="Visibility"/> is already <see cref="Visibility.Visible"/> and <see cref="Animation.UIEnterExitSettings.HasEnter"/> is true.
-    /// A leftover exit run was already cancelled and detached by <see cref="SetVisibility"/> before this runs.</summary>
+    /// <see cref="Visibility"/> is already <see cref="Visibility.Visible"/> and <see cref="Animation.UIEnterExitSettings.HasEnter"/> is true,
+    /// and by the window opening paths (Y7, through <see cref="PlayEnterExitEntryForWindow"/>). A leftover exit run, if any, was already
+    /// cancelled and detached by the caller (<see cref="SetVisibility"/> or <see cref="CancelActiveEnterExitExit"/>) before this runs.</summary>
     private void PlayEnterExitEnter()
     {
         var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
@@ -4216,6 +4225,93 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         Animations.Start(run);
     }
 
+    /// <summary>Cancels this element's active exit run, if any, without restoring base values or notifying the run's own pending completion
+    /// (ADR-0011 decision 6): the run is superseded, so whoever supersedes it (an entry, or a window reopened mid-exit) continues from the
+    /// current values with no jump. Extracted out of <see cref="SetVisibility"/>'s own interruption branch in Y7 so
+    /// <see cref="PlayEnterExitEntryForWindow"/> can reuse it. Returns false (nothing to do) when no exit is in progress.</summary>
+    private bool CancelActiveEnterExitExit()
+    {
+        var slot = _animationSlot;
+        if (slot == null || !slot.IsExitingEnterExit)
+        {
+            return false;
+        }
+
+        var exitRun = slot.ActiveEnterExitRun;
+        slot.ActiveEnterExitRun = null;
+        if (exitRun != null)
+        {
+            DetachEnterExitHandlers(exitRun);
+            if (exitRun.IsActive)
+            {
+                exitRun.Cancel();
+            }
+        }
+
+        slot.IsExitingEnterExit = false;
+        slot.PendingExitVisibility = null;
+        slot.PendingExitCompletion = null;
+        SetIsExitingEnterExit(false);
+        NotifyPropertyChanged(nameof(PendingVisibility));
+        return true;
+    }
+
+    /// <summary>Windows (Y7): cancels a running exit, if any (superseded, no restore -- see <see cref="CancelActiveEnterExitExit"/>), then
+    /// plays the entry when <see cref="Animation.UIEnterExitSettings.HasEnter"/> is true. Used by every window opening path
+    /// (<see cref="MGWindow.AddNestedWindow"/>, a modal push, the per-frame root window detection) and by
+    /// <see cref="MGWindow.AddNestedWindow"/> reopening a window whose exit is running -- both a fresh open and a reopen are the same call
+    /// here, since cancelling a non-existent exit is a no-op.</summary>
+    internal void PlayEnterExitEntryForWindow()
+    {
+        CancelActiveEnterExitExit();
+        if (EnterExit?.HasEnter == true)
+        {
+            PlayEnterExitEnter();
+        }
+    }
+
+    /// <summary>True while this element (a window, in practice -- see <see cref="MGWindow.IsClosing"/>) is playing an entry or exit run
+    /// started through the window overload, or a Y6 exit driven by <see cref="Visibility"/>: both share the same slot state.</summary>
+    internal bool IsPlayingEnterExitExit => _animationSlot?.IsExitingEnterExit == true;
+
+    /// <summary>Windows (Y7): starts this window's exit when <see cref="Animation.UIEnterExitSettings.HasExit"/> is true, invoking
+    /// <paramref name="onExitFinished"/> when it ends (naturally or cancelled from the outside) instead of writing
+    /// <see cref="Visibility"/> -- the window-removal completion path that generalizes <see cref="HandleEnterExitRunFinished"/> beyond Y6's
+    /// Visibility write (<see cref="MGWindow.TryCloseWindow"/>, <see cref="MGWindow.RemoveNestedWindow"/>). Returns false, and never calls
+    /// <paramref name="onExitFinished"/>, when no exit is configured, so the caller removes the window at once as it always did.</summary>
+    internal bool TryPlayEnterExitExitForWindow(Action onExitFinished)
+    {
+        if (EnterExit?.HasExit != true)
+        {
+            return false;
+        }
+
+        PlayEnterExitExit(onExitFinished);
+        return true;
+    }
+
+    /// <summary>Windows (Y7-R1 fix): chains <paramref name="extra"/> onto whichever exit is already playing on this window (a
+    /// <see cref="Visibility"/>-driven Y6 exit as well as a window-removal one), instead of starting a new one, so
+    /// <see cref="MGWindow.RemoveNestedWindow"/> can still remove a window whose exit was started by a plain Visibility write: without this,
+    /// that exit's completion only applied the pending <see cref="Visibility"/> and never removed the window (P2 regression). A no-op call
+    /// (nothing exiting) never happens in practice since every caller has already checked <see cref="MGWindow.IsClosing"/>, but is harmless if
+    /// it did: <paramref name="extra"/> is simply never invoked.</summary>
+    internal void AppendPendingExitCompletion(Action extra)
+    {
+        if (extra == null)
+        {
+            return;
+        }
+
+        var slot = _animationSlot;
+        if (slot == null || !slot.IsExitingEnterExit)
+        {
+            return;
+        }
+
+        slot.PendingExitCompletion += extra;
+    }
+
     private void DetachEnterExitHandlers(Animation.UIAnimation run)
     {
         run.Completed -= HandleEnterExitRunFinished;
@@ -4223,23 +4319,35 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     /// <summary>Captures <see cref="Animation.UIElementAnimationSlot.BaseOpacity"/>/<c>BaseScale</c>/<c>BaseTranslation</c>/<c>BaseOrigin</c>
-    /// from the element's current values: called once per entry/exit cycle, only when it starts from rest (ADR-0011 decision 6). Allocates
-    /// <see cref="RenderTransform"/> on first access, like any other read of it.</summary>
+    /// from the element's current values: called once per entry/exit cycle, only when it starts from rest (ADR-0011 decision 6). For a window
+    /// (Y7), the scale and translation come from its own internal <see cref="EnterExitWindowScale"/>/<see cref="EnterExitWindowTranslation"/>
+    /// draw transform instead of <see cref="RenderTransform"/> (a window does not honour it, ADR-0006), and <see cref="Animation.UIElementAnimationSlot.BaseOrigin"/>
+    /// is left at its default since a window's pivot is always its own centre, never held/restored. Allocates <see cref="RenderTransform"/> on
+    /// first access for a non-window element, like any other read of it.</summary>
     private void CaptureEnterExitBase(Animation.UIElementAnimationSlot slot)
     {
         slot.BaseOpacity = Opacity;
-        slot.BaseScale = RenderTransform.Scale;
-        slot.BaseTranslation = RenderTransform.Translation;
-        slot.BaseOrigin = RenderTransform.Origin;
+        if (IsWindow)
+        {
+            slot.BaseScale = EnterExitWindowScale;
+            slot.BaseTranslation = EnterExitWindowTranslation;
+        }
+        else
+        {
+            slot.BaseScale = RenderTransform.Scale;
+            slot.BaseTranslation = RenderTransform.Translation;
+            slot.BaseOrigin = RenderTransform.Origin;
+        }
         slot.HasCapturedEnterExitBase = true;
     }
 
     /// <summary>Ends the element's current entry/exit run, called for both <see cref="Animation.UIAnimation.Completed"/> and
     /// <see cref="Animation.UIAnimation.Cancelled"/>: releases the held <see cref="Animation.UIRenderTransform.Origin"/> (if any), forces the
     /// captured base values back on a cancellation (a natural completion already leaves the effect's own end values in place, which is what
-    /// <see cref="Animation.UIAnimationFillBehavior.HoldEnd"/> is for), then -- if this was an exit -- clears the exiting state and applies the
-    /// pending <see cref="Visibility"/> (ADR-0011 decision 6). A stale event from a run this element has already detached (superseded, see
-    /// <see cref="SetVisibility"/>/<see cref="PlayEnterExitEnter"/>/<see cref="PlayEnterExitExit"/>) is ignored.</summary>
+    /// <see cref="Animation.UIAnimationFillBehavior.HoldEnd"/> is for), then -- if this was an exit -- clears the exiting state and invokes
+    /// whichever completion <see cref="Animation.UIElementAnimationSlot.PendingExitCompletion"/> holds: the window removal callback (Y7) when
+    /// set, or the pending <see cref="Visibility"/> write (Y6) otherwise. A stale event from a run this element has already detached
+    /// (superseded, see <see cref="SetVisibility"/>/<see cref="PlayEnterExitEnter"/>/<see cref="StartEnterExitExit"/>) is ignored.</summary>
     private void HandleEnterExitRunFinished(object sender, EventArgs e)
     {
         var slot = _animationSlot;
@@ -4277,9 +4385,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             slot.IsExitingEnterExit = false;
             SetIsExitingEnterExit(false);
-            var pending = slot.PendingExitVisibility ?? Visibility.Collapsed;
-            slot.PendingExitVisibility = null;
-            SetVisibilityCore(pending);
+
+            //  Both can be set together since the Y7-R1 fix (a window-removal completion chained by AppendPendingExitCompletion onto
+            //  a Y6 Visibility-driven exit that was already running, see RemoveNestedWindow): apply the pending Visibility write
+            //  first, exactly as a plain Y6 exit always did, then invoke the completion so the removal still happens.
+            if (slot.PendingExitVisibility.HasValue)
+            {
+                var pending = slot.PendingExitVisibility.Value;
+                slot.PendingExitVisibility = null;
+                SetVisibilityCore(pending);
+            }
+
+            var completion = slot.PendingExitCompletion;
+            slot.PendingExitCompletion = null;
+            completion?.Invoke();
+
             NotifyPropertyChanged(nameof(PendingVisibility));
         }
     }
@@ -4295,7 +4415,8 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     /// <summary>Writes the captured base opacity, scale and translation back (ADR-0011 decision 6: "a sortie annulee de l'exterieur ...
     /// restaure les valeurs de base"), the authoritative restore this element applies on top of whatever each child run's own
-    /// <see cref="Animation.UIAnimationCancelBehavior.KeepCurrent"/> left in place.</summary>
+    /// <see cref="Animation.UIAnimationCancelBehavior.KeepCurrent"/> left in place. A window (Y7) restores its own internal draw transform
+    /// instead of <see cref="RenderTransform"/>.</summary>
     private void ForceRestoreEnterExitBase(Animation.UIElementAnimationSlot slot)
     {
         if (!slot.HasCapturedEnterExitBase)
@@ -4304,8 +4425,44 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
         Opacity = slot.BaseOpacity;
-        RenderTransform.Scale = slot.BaseScale;
-        RenderTransform.Translation = slot.BaseTranslation;
+        if (IsWindow)
+        {
+            SetEnterExitWindowScale(slot.BaseScale);
+            SetEnterExitWindowTranslation(slot.BaseTranslation);
+        }
+        else
+        {
+            RenderTransform.Scale = slot.BaseScale;
+            RenderTransform.Translation = slot.BaseTranslation;
+        }
+    }
+
+    /// <summary>The window's current internal enter/exit scale (Y7): <see cref="Vector2.One"/> (identity) when the window has never run
+    /// one. Never allocates the animation slot.</summary>
+    internal Vector2 EnterExitWindowScale => _animationSlot?.WindowTransformOrNull?.Scale ?? Vector2.One;
+
+    /// <summary>The window's current internal enter/exit translation (Y7): <see cref="Vector2.Zero"/> (identity) when the window has never
+    /// run one. Never allocates the animation slot.</summary>
+    internal Vector2 EnterExitWindowTranslation => _animationSlot?.WindowTransformOrNull?.Translation ?? Vector2.Zero;
+
+    /// <summary>The window's internal enter/exit draw transform (Y7), or null while it has never run one -- read by <see cref="MGWindow.Draw"/>
+    /// to decide whether to push a transform at all. Never allocates the animation slot.</summary>
+    internal Animation.UIWindowTransform EnterExitWindowTransformOrNull => _animationSlot?.WindowTransformOrNull;
+
+    /// <summary>Writes <see cref="EnterExitWindowScale"/> (Y7): the target of the window's internal enter/exit scale run
+    /// (<see cref="Animation.UIWindowEnterExitScaleTarget"/>).</summary>
+    internal void SetEnterExitWindowScale(Vector2 value)
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        slot.EnsureWindowTransform().Scale = value;
+    }
+
+    /// <summary>Writes <see cref="EnterExitWindowTranslation"/> (Y7): the target of the window's internal enter/exit translation run
+    /// (<see cref="Animation.UIWindowEnterExitTranslationTarget"/>).</summary>
+    internal void SetEnterExitWindowTranslation(Vector2 value)
+    {
+        var slot = _animationSlot ??= new Animation.UIElementAnimationSlot(this);
+        slot.EnsureWindowTransform().Translation = value;
     }
     #endregion Enter and Exit
 

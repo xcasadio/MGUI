@@ -539,6 +539,21 @@
                 </Border>
             </StackPanel>
 
+            <!-- 20. Windows and dropdown -->
+            <TextBlock StyleNames="Header1" Text="20. Windows and dropdown" />
+            <TextBlock>
+                [c=Turquoise][i]EnterExit[/i][/c] on a window plays on [c=Turquoise]AddNestedWindow[/c] / a modal push / a root window's
+                addition to [c=Turquoise]Desktop.Windows[/c], and on [c=Turquoise]TryCloseWindow[/c] before the window is actually removed.
+                The dropdown below plays its own entry and exit the same way, on open and close. A window does not honour
+                [c=Turquoise]RenderTransform[/c], so a scale or slide effect on a window uses an internal draw transform instead.
+            </TextBlock>
+            <StackPanel Background="White * 0.1" Padding="4" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Name="WindowsOpenButton" Content="Open window" />
+                    <ComboBox Name="WindowsComboBox" Width="160" />
+                </StackPanel>
+            </StackPanel>
+
             <Spacer Height="70" />
         </StackPanel>
     </ScrollViewer>

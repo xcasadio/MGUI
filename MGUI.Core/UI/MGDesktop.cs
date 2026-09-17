@@ -93,6 +93,31 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     public InputTracker InputTracker => Runtime.Input;
     public string DefaultFontFamily => Runtime.DefaultFontFamily;
     private List<ModalStackEntry> ModalStackEntries { get; } = new();
+
+    //  Root window entry detection (ADR-0011 decision 6, Y7): Desktop.Windows is a plain list with no add/remove notification, so a root
+    //  window's entry is detected here, by comparing it against the previous frame's snapshot -- two lists swapped every frame, never
+    //  allocating in a steady state (Capacity stays put once both have grown to the window count). BringToFront/BringToBack/click
+    //  activation remove and re-add within the same frame, so the window is still present in both snapshots and replays nothing; a window
+    //  removed then re-added in a LATER frame is absent from the previous snapshot and replays its entry.
+    private List<MGWindow> _previousRootWindows = new();
+    private List<MGWindow> _currentRootWindowsScratch = new();
+
+    internal void DetectRootWindowEntries()
+    {
+        _currentRootWindowsScratch.Clear();
+        _currentRootWindowsScratch.AddRange(Windows);
+
+        for (var i = 0; i < _currentRootWindowsScratch.Count; i++)
+        {
+            var window = _currentRootWindowsScratch[i];
+            if (!_previousRootWindows.Contains(window))
+            {
+                window.PlayEnterExitEntryForWindow();
+            }
+        }
+
+        (_previousRootWindows, _currentRootWindowsScratch) = (_currentRootWindowsScratch, _previousRootWindows);
+    }
     public IReadOnlyList<MGWindow> ActiveModalWindows => ModalStackEntries.Select(x => x.Modal).ToList();
     internal event EventHandler EndUpdate;
 
@@ -1411,6 +1436,13 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         using (UIPerformanceProbe.BeginDesktopPhase("Animations"))
         {
             Animations.Update(Runtime.UpdateArgs.FrameElapsed);
+        }
+
+        //  Root window entries (ADR-0011 decision 6, Y7): right after Animations.Update, before layout/focus/windows, so a root window's
+        //  entry starts on the very frame it appears in Desktop.Windows.
+        using (UIPerformanceProbe.BeginDesktopPhase("RootWindowEntries"))
+        {
+            DetectRootWindowEntries();
         }
 
         using (UIPerformanceProbe.BeginDesktopPhase("ResponsiveMetrics"))

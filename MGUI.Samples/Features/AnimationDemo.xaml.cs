@@ -58,6 +58,7 @@ namespace MGUI.Samples.Features
             WireFrames();
             WireLayout();
             WireEnterExit();
+            WireWindows();
         }
 
         /// <summary>Registers the named style the "Styles and theme" section starts from, before the XAML parses (so <c>StyleNames</c> can
@@ -568,6 +569,42 @@ namespace MGUI.Samples.Features
             Window.GetElementByName<MGButton>("EnterExitScaleButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.Scale));
             Window.GetElementByName<MGButton>("EnterExitSlideButton").AddCommandHandler((btn, e) => SelectEffect(UIEnterExitEffect.SlideLeft));
             Window.GetElementByName<MGButton>("EnterExitToggleButton").AddCommandHandler((btn, e) => Toggle());
+        }
+
+        /// <summary>20. Windows and dropdown (ADR-0011 decision 6, Y7): <c>WindowsOpenButton</c> opens a small nested window, created once
+        /// here, whose <see cref="MGElement.EnterExit"/> uses <see cref="UIEnterExitEffect.FadeScale"/> for both the entry (played by
+        /// <see cref="MGWindow.AddNestedWindow"/>) and the exit (played by its own close button through <see cref="MGWindow.TryCloseWindow"/>,
+        /// before the window is actually removed). <c>WindowsComboBox</c>'s dropdown gets its own <see cref="MGElement.EnterExit"/> --
+        /// <see cref="UIEnterExitEffect.SlideDown"/> in, <see cref="UIEnterExitEffect.Fade"/> out -- played on open and close. Nothing starts
+        /// at load: the nested window is not shown until "Open window" is clicked.</summary>
+        private void WireWindows()
+        {
+            MGWindow nestedWindow = new(Window, 0, 0, 220, 120)
+            {
+                TitleText = "Enter/exit window",
+                EnterExit = new UIEnterExitSettings { EnterEffect = UIEnterExitEffect.FadeScale, ExitEffect = UIEnterExitEffect.FadeScale },
+            };
+            MGTextBlock nestedWindowText = new(nestedWindow, "This window fades and scales in and out.")
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            nestedWindow.SetContent(nestedWindowText);
+            //  IsCloseButtonVisible defaults to true: the built-in title bar close button already calls TryCloseWindow()
+            //  (MGControlTemplateCatalog), so the FadeScale exit plays before the window is actually removed.
+            Window.GetElementByName<MGButton>("WindowsOpenButton").AddCommandHandler((btn, e) =>
+            {
+                if (!Window.NestedWindows.Contains(nestedWindow))
+                {
+                    nestedWindow.Left = Window.Left + 40;
+                    nestedWindow.Top = Window.Top + 40;
+                    Window.AddNestedWindow(nestedWindow);
+                }
+            });
+
+            MGComboBox<object> comboBox = Window.GetElementByName<MGComboBox<object>>("WindowsComboBox");
+            comboBox.SetItemsSource(new List<object> { "Alpha", "Beta", "Gamma" });
+            comboBox.Dropdown.EnterExit = new UIEnterExitSettings { EnterEffect = UIEnterExitEffect.SlideDown, ExitEffect = UIEnterExitEffect.Fade };
         }
     }
 }

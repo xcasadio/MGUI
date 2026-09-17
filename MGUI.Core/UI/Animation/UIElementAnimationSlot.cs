@@ -123,5 +123,18 @@ internal sealed class UIElementAnimationSlot
     /// <summary>True while <see cref="Animation.UIRenderTransform.Origin"/> is pinned at (0.5, 0.5) for the duration of a
     /// <see cref="UIEnterExitEffect.Scale"/>/<see cref="UIEnterExitEffect.FadeScale"/> run.</summary>
     public bool EnterExitOriginHeld { get; set; }
+
+    /// <summary>Y7 (ADR-0011 decision 6, window lifecycle): the completion the exit run invokes instead of writing
+    /// <see cref="MGElement.Visibility"/>, used when the exit was started by <see cref="MGElement"/>'s window overload rather than by a
+    /// <see cref="UI.Visibility"/> write. Null for every Y6 (element) exit, so <see cref="PendingExitVisibility"/> is what applies then.</summary>
+    public Action PendingExitCompletion { get; set; }
+
+    private UIWindowTransform _WindowTransform;
+
+    /// <summary>The window's internal enter/exit draw transform (Y7), or null while the window has never run one.</summary>
+    public UIWindowTransform WindowTransformOrNull => _WindowTransform;
+
+    /// <summary>Allocates <see cref="WindowTransformOrNull"/> on first access.</summary>
+    public UIWindowTransform EnsureWindowTransform() => _WindowTransform ??= new UIWindowTransform();
     #endregion
 }

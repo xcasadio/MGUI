@@ -498,6 +498,7 @@ public class MGWindow : MGSingleContentHost
         {
             Desktop.NotifyWindowOpened(addedModal);
             addedModal.NotifyPropertyChanged(nameof(IsModalWindow));
+            addedModal.PlayEnterExitEntryForWindow();
         }
 
         Desktop.SyncModalStack(this, currentModalWindows);
@@ -524,6 +525,10 @@ public class MGWindow : MGSingleContentHost
     /// except in cases where a Topmost window is prioritized (See: <see cref="IsTopmost"/>)<para/>
     /// This list does not include <see cref="ModalWindow"/>, which is always prioritized over all <see cref="NestedWindows"/></summary>
     public IReadOnlyList<MGWindow> NestedWindows => _NestedWindows;
+    /// <summary>Adds <paramref name="NestedWindow"/> to <see cref="NestedWindows"/> and plays its entry when it has one (ADR-0011 decision 6,
+    /// Y7). A window already in the list whose exit is currently playing (see <see cref="MGWindow.IsClosing"/>) is not a duplicate-add error:
+    /// its exit is cancelled (superseded, no restore) and its entry replayed from the current values instead, which is what makes reopening
+    /// the combo box dropdown or the color picker popup during their exit work.</summary>
     public void AddNestedWindow(MGWindow NestedWindow)
     {
         if (NestedWindow == null)
@@ -533,7 +538,13 @@ public class MGWindow : MGSingleContentHost
 
         if (_NestedWindows.Contains(NestedWindow))
         {
-            throw new ArgumentException("Cannot add the same nested window to a parent window multiple times.");
+            if (!NestedWindow.IsClosing)
+            {
+                throw new ArgumentException("Cannot add the same nested window to a parent window multiple times.");
+            }
+
+            NestedWindow.PlayEnterExitEntryForWindow();
+            return;
         }
 
         if (NestedWindow == this)
@@ -543,8 +554,46 @@ public class MGWindow : MGSingleContentHost
 
         _NestedWindows.Add(NestedWindow);
         Desktop.NotifyWindowOpened(NestedWindow);
+        NestedWindow.PlayEnterExitEntryForWindow();
     }
-    public bool RemoveNestedWindow(MGWindow NestedWindow) => _NestedWindows.Remove(NestedWindow);
+
+    /// <summary>Removes <paramref name="NestedWindow"/> from <see cref="NestedWindows"/> at once, or -- when it has an exit
+    /// (<see cref="MGWindow.SuppressWindowEnterExit"/> false and <see cref="Animation.UIEnterExitSettings.HasExit"/> true) -- defers the
+    /// removal to the end of that exit (ADR-0011 decision 6, Y7): <see cref="NestedWindows"/> keeps it until then, with no
+    /// <see cref="MGWindow.WindowClosed"/> and no extra <see cref="MGDesktop.NotifyWindowClosed"/> (same observable effect as an immediate
+    /// removal, just later). When an exit is already playing -- including a plain <see cref="Visibility"/> write (Y6) that is not itself
+    /// removal-driven -- this chains the removal onto that exit's completion instead of starting a new one (P2, Y7-R1 fix), so the window is
+    /// never left stranded in <see cref="NestedWindows"/>. Returns true whenever the window was present and the removal (or its deferral) was
+    /// accepted, exactly like the plain list removal this replaces for a window with no exit.</summary>
+    public bool RemoveNestedWindow(MGWindow NestedWindow)
+    {
+        if (NestedWindow == null || !_NestedWindows.Contains(NestedWindow))
+        {
+            return false;
+        }
+
+        if (NestedWindow.IsClosing)
+        {
+            //  Already playing an exit: accepted, no restart. That exit may have been started by a previous RemoveNestedWindow call,
+            //  its own TryCloseWindow -- both already remove it on completion -- or a plain Visibility write (Y6), which only applies
+            //  the pending Visibility and would otherwise leave the window in NestedWindows forever (P2, Y7-R1 fix). Chaining this
+            //  removal onto whichever completion is already pending covers all three: List.Remove is a harmless no-op if it runs twice.
+            NestedWindow.AppendPendingExitCompletion(() => _NestedWindows.Remove(NestedWindow));
+            return true;
+        }
+
+        if (!NestedWindow.SuppressWindowEnterExit && NestedWindow.TryPlayEnterExitExitForWindow(() => _NestedWindows.Remove(NestedWindow)))
+        {
+            return true;
+        }
+
+        return _NestedWindows.Remove(NestedWindow);
+    }
+
+    /// <summary>True for a window that never plays an exit on removal, whatever <see cref="EnterExit"/> says (ADR-0011 decision 6, Y7):
+    /// overridden by <see cref="Docking.Controls.MGFloatingDockWindow"/>, whose re-dock path already re-parents its content before removing
+    /// the window.</summary>
+    internal virtual bool SuppressWindowEnterExit => false;
 
     /// <summary>Moves the given <paramref name="NestedWindow"/> to the end of <see cref="NestedWindows"/> list.<br/>
     /// It will typically be rendered overtop of all other <see cref="NestedWindows"/>, unless another nested window is Topmost (See: <see cref="IsTopmost"/>).<para/>
@@ -761,14 +810,29 @@ public class MGWindow : MGSingleContentHost
         IsUserResizable = _IsUserResizable;
     }
 
+    /// <summary>True while this window is playing its exit on the way to being closed by <see cref="TryCloseWindow"/> (ADR-0011 decision 6,
+    /// Y7): the window still draws (with its internal enter/exit draw transform, if any), stops handling mouse input and occluding what it
+    /// covers (<see cref="OccludesUnscaledPosition"/>), and remains in whichever list holds it (<see cref="NestedWindows"/>,
+    /// <see cref="ModalWindows"/>, <see cref="MGDesktop.Windows"/>) until the exit ends. False for a window with no <see cref="EnterExit"/>
+    /// exit, which closes exactly as before Y7.</summary>
+    public bool IsClosing => IsPlayingEnterExitExit;
+
+    /// <summary>Closes this window: guards on <see cref="CanCloseWindow"/> and the cancelable <see cref="WindowClosing"/> exactly as before
+    /// Y7. Without an exit (<see cref="EnterExit"/> null, no <see cref="Animation.UIEnterExitSettings.HasExit"/>, or
+    /// <see cref="SuppressWindowEnterExit"/>), the window is removed at once, unchanged from before Y7. With an exit: a second call while
+    /// <see cref="IsClosing"/> is already true does nothing (returns false); otherwise keyboard focus leaves the window at once, its own
+    /// nested windows are removed at once without their own exit (their animations are cancelled later, when this window's own removal
+    /// notifies <see cref="MGDesktop.NotifyWindowClosed"/>, through <see cref="Animation.UIAnimationManager.CancelOwnedByWindow"/>'s ancestor
+    /// rule), the exit plays, and only once it ends is the window actually removed -- <see cref="MGDesktop.NotifyWindowClosed"/> and
+    /// <see cref="WindowClosed"/> following that removal, exactly as they did immediately before Y7.</summary>
     public bool TryCloseWindow()
     {
-        if (!CanCloseWindow)
+        if (!CanCloseWindow || IsClosing)
         {
             return false;
         }
 
-        if ((ParentWindow != null && (ParentWindow.NestedWindows.Contains(this) || ParentWindow.ModalWindows.Contains(this))) 
+        if ((ParentWindow != null && (ParentWindow.NestedWindows.Contains(this) || ParentWindow.ModalWindows.Contains(this)))
             || (ParentWindow == null && Desktop.Windows.Contains(this)))
         {
             if (WindowClosing != null)
@@ -781,26 +845,48 @@ public class MGWindow : MGSingleContentHost
                 }
             }
 
-            var IsClosed = false;
-            if (ParentWindow != null && ParentWindow.ModalWindows.Contains(this))
+            void FinishClosing()
             {
-                IsClosed = ParentWindow.RemoveModalWindow(this);
-            }    
-            if (ParentWindow != null && ParentWindow.NestedWindows.Contains(this))
-            {
-                IsClosed = ParentWindow.RemoveNestedWindow(this);
-            }
-            else if (ParentWindow == null && Desktop.Windows.Contains(this))
-            {
-                IsClosed = Desktop.Windows.Remove(this);
+                var IsClosed = false;
+                if (ParentWindow != null && ParentWindow.ModalWindows.Contains(this))
+                {
+                    IsClosed = ParentWindow.RemoveModalWindow(this);
+                }
+                if (ParentWindow != null && ParentWindow.NestedWindows.Contains(this))
+                {
+                    //  Internal immediate path (not the public RemoveNestedWindow, which would itself defer to an exit): this
+                    //  window's own exit, if any, has already ended by the time FinishClosing runs.
+                    IsClosed = ParentWindow._NestedWindows.Remove(this);
+                }
+                else if (ParentWindow == null && Desktop.Windows.Contains(this))
+                {
+                    IsClosed = Desktop.Windows.Remove(this);
+                }
+
+                if (IsClosed)
+                {
+                    Desktop.NotifyWindowClosed(this);
+                    WindowClosed?.Invoke(this, EventArgs.Empty);
+                }
             }
 
-            if (IsClosed)
+            if (!SuppressWindowEnterExit && EnterExit?.HasExit == true)
             {
-                Desktop.NotifyWindowClosed(this);
-                WindowClosed?.Invoke(this, EventArgs.Empty);
+                //  Focus leaves at once (idempotent: MGDesktop.NotifyWindowClosed's later call to the same navigation method is a
+                //  no-op once focus has already left), and this window's own nested windows are removed at once without their own
+                //  exit -- a direct list removal, not the deferring public RemoveNestedWindow.
+                Desktop.NavigationService.NotifyWindowClosed(this);
+                foreach (var nested in _NestedWindows.ToList())
+                {
+                    _NestedWindows.Remove(nested);
+                }
+
+                TryPlayEnterExitExitForWindow(FinishClosing);
+                return true;
             }
-            return IsClosed;
+
+            FinishClosing();
+            return true;
         }
 
         return false;
@@ -1211,9 +1297,11 @@ public class MGWindow : MGSingleContentHost
         return IsUnscaledPositionOccludedFromAbove(UnscaledScreenPosition);
     }
 
-    /// <summary>True if this window itself covers the position: visible, not click-through, and its bounds contain the position.</summary>
+    /// <summary>True if this window itself covers the position: visible, not click-through, not playing its exit (<see cref="IsClosing"/>,
+    /// ADR-0011 decision 6, Y7 -- an exiting window occludes nothing, so a click on its area reaches the element below and it no longer
+    /// suppresses its parent's hover), and its bounds contain the position.</summary>
     internal bool OccludesUnscaledPosition(Vector2 UnscaledScreenPosition)
-        => Visibility == Visibility.Visible && !AllowsClickThrough && ActualLayoutBounds.ContainsInclusive(UnscaledScreenPosition);
+        => Visibility == Visibility.Visible && !AllowsClickThrough && !IsClosing && ActualLayoutBounds.ContainsInclusive(UnscaledScreenPosition);
 
     /// <summary>Occlusion by windows outside this window's own popup stack: for a nested window, the parent's modal window and the sibling
     /// nested windows drawn above it, then recursively the parent's own occluders; for a root window, the desktop windows drawn above it.
@@ -1524,30 +1612,34 @@ public class MGWindow : MGSingleContentHost
             };
 
             //  Ensure all mouse events that haven't already been handled by a child element of this window are handled, so that the mouse events won't fall-through to underneath this window
+            //  ADR-0011 decision 6 (Y7): an exiting window (IsClosing) never consumes a mouse event over its own bounds, so a click on a
+            //  closing non-modal window's area reaches the element below it -- even while it is still IsModalWindow, since a click INSIDE a
+            //  closing modal is not meaningfully interactive either. Outside-of-bounds handling (below) is untouched: a closing modal must
+            //  keep blocking its parent until it is actually removed (HasModalWindow is unaffected by IsClosing).
             MouseHandler.PressedInside += (sender, e) =>
             {
-                if (!AllowsClickThrough || IsModalWindow)
+                if (!IsClosing && (!AllowsClickThrough || IsModalWindow))
                 {
                     e.SetHandledBy(this, false);
                 }
             };
             MouseHandler.ReleasedInside += (sender, e) =>
             {
-                if (!AllowsClickThrough || IsModalWindow)
+                if (!IsClosing && (!AllowsClickThrough || IsModalWindow))
                 {
                     e.SetHandledBy(this, false);
                 }
             };
             MouseHandler.DragStart += (sender, e) =>
             {
-                if (!AllowsClickThrough || IsModalWindow)
+                if (!IsClosing && (!AllowsClickThrough || IsModalWindow))
                 {
                     e.SetHandledBy(this, false);
                 }
             };
             MouseHandler.Scrolled += (sender, e) =>
             {
-                if (!AllowsClickThrough || IsModalWindow)
+                if (!IsClosing && (!AllowsClickThrough || IsModalWindow))
                 {
                     e.SetHandledBy(this, false);
                 }
@@ -1582,7 +1674,7 @@ public class MGWindow : MGSingleContentHost
             //  handler naturally never fires for an occluded press - no extra IsOccludedAtMousePos check is needed here.
             MouseHandler.LMBPressedInside += (sender, e) =>
             {
-                if (!ActivatesOnClick || Desktop.IsBlockedByModalOrOverlay(this))
+                if (!ActivatesOnClick || Desktop.IsBlockedByModalOrOverlay(this) || IsClosing)
                 {
                     return;
                 }
@@ -1640,8 +1732,10 @@ public class MGWindow : MGSingleContentHost
                         {
                             GetDesktop().QueuedToolTip = previousQueuedToolTip;
                         }
-                        else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough)
+                        else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough && !Nested.IsClosing)
                         {
+                            //  ADR-0011 decision 6 (Y7): a nested window playing its exit no longer suppresses this window's own
+                            //  hover, even though it is still geometrically hovered (Nested.Update above still runs it).
                             isNestedWindowOccludedAtMousePos = true;
                         }
                     }
@@ -2070,7 +2164,30 @@ public class MGWindow : MGSingleContentHost
         }
     }
 
+    /// <summary>Draws this window, composing its internal enter/exit draw transform (Y7, <see cref="EnterExitWindowTransformOrNull"/>) with
+    /// whatever transform it would otherwise use -- <see cref="Matrix.Identity"/>, or <see cref="UnscaledScreenSpaceToScaledScreenSpace"/>
+    /// for a scaled window -- around the ENTIRE draw, including nested windows, the modal window and the modal dim overlay (ADR-0011
+    /// decision 6): a scale/slide entry or exit is visible on the whole popup stack this window displays, not just its own content. Pushes
+    /// no transform at all when the enter/exit transform is the identity, so a window that never runs one costs nothing extra here.</summary>
     public override void Draw(ElementDrawArgs DA)
+    {
+        var enterExitTransform = EnterExitWindowTransformOrNull;
+        if (enterExitTransform != null && !enterExitTransform.IsIdentity)
+        {
+            var pivot = ActualLayoutBounds.Center.ToVector2();
+            var composed = enterExitTransform.ToMatrix(pivot) * DA.DT.CurrentSettings.Transform;
+            using (DA.DT.SetTransformTemporary(composed))
+            {
+                DrawWindowAndPopupStack(DA);
+            }
+        }
+        else
+        {
+            DrawWindowAndPopupStack(DA);
+        }
+    }
+
+    private void DrawWindowAndPopupStack(ElementDrawArgs DA)
     {
         if (!IsWindowScaled && !ParentWindows.Any(x => x.IsWindowScaled))
         {
@@ -2079,7 +2196,9 @@ public class MGWindow : MGSingleContentHost
         else
         {
 #if true
-            using (DA.DT.SetTransformTemporary(UnscaledScreenSpaceToScaledScreenSpace))
+            //  Composed with the ambient transform (which may already carry this window's own enter/exit transform, set above), not a
+            //  plain replace, so the two never fight over which one applies to this window's own content (ADR-0011 decision 6, Y7).
+            using (DA.DT.SetTransformTemporary(UnscaledScreenSpaceToScaledScreenSpace * DA.DT.CurrentSettings.Transform))
             {
                 base.Draw(DA);
             }

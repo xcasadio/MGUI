@@ -36,10 +36,12 @@ internal static class UIEnterExitEffectFactory
 
         UIStoryboard storyboard = new() { Name = $"enter-exit-{effect}" };
 
-        void AddChild<T>(string path, T from, T to)
+        void AddChild<T>(string path, T from, T to, IUIAnimationTarget<T> explicitTarget = null)
         {
-            UIPropertyAnimation<T> child = new(path)
+            UIPropertyAnimation<T> child = new()
             {
+                Property = explicitTarget == null ? path : null,
+                Target = explicitTarget,
                 To = to,
                 Duration = duration,
                 Easing = easing,
@@ -56,6 +58,7 @@ internal static class UIEnterExitEffectFactory
 
         void AddOpacity()
         {
+            //  Opacity is a public path that already works on a window (ADR-0011, Y7 limitation note), so both element and window use it.
             AddChild(UIBuiltInAnimationTargets.Paths.Opacity, isEntry ? 0f : slot.BaseOpacity, isEntry ? slot.BaseOpacity : 0f);
         }
 
@@ -63,19 +66,37 @@ internal static class UIEnterExitEffectFactory
         {
             var scaleFrom = isEntry ? new Vector2(settings.ScaleFrom) : slot.BaseScale;
             var scaleTo = isEntry ? slot.BaseScale : new Vector2(settings.ScaleFrom);
-            AddChild(UIBuiltInAnimationTargets.Paths.RenderTransformScale, scaleFrom, scaleTo);
 
-            //  Origin is never animated: held at the centre for the duration of the run (written once, here) and released by MGElement,
-            //  back to the captured Base value, once the run ends -- completed or cancelled (ADR-0011 decision 6).
-            element.RenderTransform.Origin = new Vector2(0.5f);
-            slot.EnterExitOriginHeld = true;
+            if (element.IsWindow)
+            {
+                //  A window does not honour RenderTransform (ADR-0006): its own internal draw transform (Y7) animates instead, pivoting
+                //  on the window's own centre by construction, so RenderTransform.Origin is never touched for a window.
+                AddChild(UIWindowEnterExitScaleTarget.Instance.Path, scaleFrom, scaleTo, UIWindowEnterExitScaleTarget.Instance);
+            }
+            else
+            {
+                AddChild(UIBuiltInAnimationTargets.Paths.RenderTransformScale, scaleFrom, scaleTo);
+
+                //  Origin is never animated: held at the centre for the duration of the run (written once, here) and released by MGElement,
+                //  back to the captured Base value, once the run ends -- completed or cancelled (ADR-0011 decision 6).
+                element.RenderTransform.Origin = new Vector2(0.5f);
+                slot.EnterExitOriginHeld = true;
+            }
         }
 
         void AddSlide(Vector2 offset)
         {
             var from = isEntry ? slot.BaseTranslation + offset : slot.BaseTranslation;
             var to = isEntry ? slot.BaseTranslation : slot.BaseTranslation + offset;
-            AddChild(UIBuiltInAnimationTargets.Paths.RenderTransformTranslation, from, to);
+
+            if (element.IsWindow)
+            {
+                AddChild(UIWindowEnterExitTranslationTarget.Instance.Path, from, to, UIWindowEnterExitTranslationTarget.Instance);
+            }
+            else
+            {
+                AddChild(UIBuiltInAnimationTargets.Paths.RenderTransformTranslation, from, to);
+            }
         }
 
         switch (effect)
