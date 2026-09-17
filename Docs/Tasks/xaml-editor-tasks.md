@@ -190,6 +190,60 @@ Rollback : retour a `XamlServices.Parse` ; les ajouts sont additifs.
 
 Commit recommande : `feat(xaml): stamp loader source positions and add the editor document model`
 
+### ⏳ X1b. Coquille en docking (PROPOSEE le 17 septembre 2026, en attente de l'approbation de l'auteur)
+
+Origine : demande de l'auteur du 17 septembre, apres X1 (« je voulais utiliser le docking manager »). Aucun code de cette tache n'est ecrit avant son approbation. Elle revise la decision 7 (forme de `XamlEditorView`) et remplace la coquille de X0 ; elle passe avant X2, dont l'ancrage de la preview depend de l'hebergement du volet.
+
+Faits verifies dans le code (HEAD `d2118c4`) :
+
+- `MGDockHost(MGWindow)` (`MGUI.Core/UI/Docking/Controls/MGDockHost.cs`) est un `MGSingleContentHost` : il se pose comme contenu de n'importe quelle `MGWindow`. Son layout est un `DockLayoutModel` dont la racine est un arbre de `DockSplitNode` (`Orientation`, `SplitRatio`, `MinFirstSize`, `MinSecondSize`), de `DockTabGroupNode` (`AddPanel`, `SetActivePanel`) et de `DockPanelNode` (`MGUI.Core/UI/Docking/DockLayout/`). Exemple complet : `MGUI.Samples/Features/DockingDemo.cs:64-172`.
+- `DockableDefinition(dockableId, title)` porte `ContentFactory` (`Func<MGElement>`), `CanClose`, `CanFloat`, `CanAutoHide`, `DockableType`, et `CreatePanelNode()` ; un `DockableRegistry` pose sur `MGDockHost.DockableRegistry` recoit les evenements `OnShown`, `OnHidden`, `OnClosed`, `OnActivated` ; `ShowDockable(id)` rouvre un dockable ferme en l'ajoutant en onglet du premier groupe.
+- Le contenu d'un panneau est cree une fois (`DockPanelNode.GetOrCreateContent`), contre la fenetre hote. Le contenu d'un onglet inactif est detache de l'arbre visuel (`SetParent(null)`, `MGDockTabGroup.cs:629`) : il n'est ni mesure ni dessine. Un panneau flottant (`MGFloatingDockWindow`, `DetachToFloating`) re-parente le meme element : `ParentWindow` reste la fenetre de construction, `DisplayingWindow` devient la fenetre flottante (ADR-0004), l'entree fonctionne, les `LayoutBounds` restent en coordonnees ecran. Les separateurs sont des `MGDockSplitterBar`, pas des `MGGridSplitter`.
+- `DockLayoutSerializer.ToJson` / `FromJson` existent ; limite connue : le groupe d'origine d'une fenetre flottante n'est pas persiste (`Docs/Tasks/docking-bugs-tasks.md`).
+- Tests headless du docking : `MGUI.Tests/Docking/` sur `GraphTestRuntime` (`FloatingWindowRedockTests.cs` : construction de l'hote, flottement, re-dock, lecture des bounds).
+
+But : les volets de l'editeur sont des dockables heberges par un `MGDockHost` : l'utilisateur les redimensionne, les regroupe en onglets, les epingle en auto-hide et les detache en fenetre flottante. Un hote a docking (CasaEngine) enregistre les memes dockables dans son propre `MGDockHost`, sans docking imbrique.
+
+Prerequis : X1.
+
+Perimetre `MGUI.Editor` (`XamlEditorView.cs`) :
+
+- `XamlEditorView(MGWindow window, XamlEditorSession session)` reste une classe compositrice. Elle construit contre `window` cinq volets, sans parent : `TextPane` (`MGRichTextBox`), `PreviewPane` (`MGOverlayPanel` contenant `PreviewPresenter`), `TreePane` (`MGTreeView`), `PropertyPane` (`MGPropertyGrid`) et `DiagnosticsPane` (nouveau : `MGContentPresenter` vide et nomme, que X3 remplira avec la liste des diagnostics). Les quatre noms de X0 sont conserves, plus `DiagnosticsPane`.
+- La grille `Root` et ses deux `MGGridSplitter` disparaissent. A la place :
+  - `Dockables` : cinq `DockableDefinition` creees une fois, d'identifiants constants `xaml-editor.text`, `xaml-editor.preview`, `xaml-editor.tree`, `xaml-editor.properties`, `xaml-editor.diagnostics`, de titres « XAML », « Preview », « Document », « Properties », « Diagnostics », dont le `ContentFactory` rend le volet correspondant ;
+  - `CreateDefaultLayout()` : un `DockLayoutModel` neuf bati avec `CreatePanelNode()` : a gauche un bloc (72 %) dont le haut (78 %) place « XAML » (45 %) a gauche de « Preview », et dont le bas porte « Diagnostics » ; a droite une colonne ou « Document » (45 %) est au-dessus de « Properties ». Un groupe d'onglets par volet ;
+  - `CreateDockHost()` : un `MGDockHost` construit contre `Window`, avec un `DockableRegistry` qui contient les cinq definitions et le layout par defaut. C'est ce qu'utilisent `MGUI.Editor.Host` et les tests ; CasaEngine utilise `Dockables` avec son propre hote.
+- Drapeaux V1 des cinq dockables : `CanClose = false` (pas de menu « View » pour rouvrir un volet en V1), `CanFloat = true`, `CanAutoHide = true`.
+- Aucun comportement de volet : comme en X0.
+
+Perimetre `MGUI.Editor.Host` : `window.SetContent(view.CreateDockHost())` a la place de `view.Root`.
+
+Hors perimetre : sauvegarde et restauration du layout (suites connues) ; menu « View » et volets fermables ; plusieurs documents ouverts ; tout changement dans `MGUI.Core` (si le docking montre un defaut bloquant : ⚠️ et question, pas de contournement).
+
+Criteres d'acceptation (tests headless `MGUI.Tests/Editor/XamlEditorViewTests.cs`, reecrits ; motif de `MGUI.Tests/Docking/FloatingWindowRedockTests.cs`) :
+
+- cinq dockables avec les identifiants, titres et drapeaux ci-dessus ; chaque `ContentFactory` rend l'instance du volet ;
+- layout par defaut, fenetre de 1280 x 720, apres deux frames : les cinq volets ont des bounds non vides ; « XAML » est a gauche de « Preview », lui-meme a gauche de « Document » ; « Document » est au-dessus de « Properties » ; « Diagnostics » est sous « XAML » et « Preview » ; les volets nommes se retrouvent par `GetElementByName` ;
+- onglet inactif : « Properties » regroupe en onglet avec « Document » (operation du modele) n'a plus de bounds dessinables tant que « Document » est actif, et les retrouve quand il redevient actif : c'est le contrat « volet cache » sur lequel X2 et X5 s'appuient ;
+- flottement : « Preview » detache par `DetachToFloating` est affiche dans la fenetre flottante (`DisplayingWindow`), `ParentWindow` reste la fenetre de l'editeur, et le re-dock le remet dans le layout ;
+- plus aucun `MGGridSplitter` dans la vue ; `CreateDefaultLayout()` rend un modele neuf a chaque appel ; suite complete verte.
+
+Retouches des taches suivantes, appliquees dans le meme commit que X1b si elle est approuvee :
+
+- X0 : sa validation manuelle est absorbee par celle de X1b (la coquille de X0 est remplacee) ;
+- X2 : le re-ancrage de la racine `Window` se declenche sur tout changement des bounds du volet (separateur de docking, regroupement, flottement, redimensionnement) ; quand le volet « Preview » n'est pas affiche (onglet inactif, tiroir auto-hide ferme), la racine `Window` de la preview est masquee et le re-parse continue ; criteres ajoutes : ancrage correct dans une fenetre flottante, racine masquee puis re-ancree quand l'onglet redevient actif ;
+- X3 : la liste des diagnostics est le contenu du dockable « Diagnostics » (`DiagnosticsPane`), plus « sous le volet texte » ;
+- X4 : le clic de selection et l'adorner fonctionnent aussi quand « Preview » flotte (le hit test est deja en coordonnees ecran) : un critere ajoute ;
+- X5 et X6 : la grille se rafraichit quand le dockable « Properties » redevient actif (`OnActivated` / `OnShown` du registre), car `RefreshVisibleValues` ne fait rien sur un volet detache ;
+- X7 : la bascule « Interactive » vit dans un bandeau en tete du dockable « Preview » (il n'y a plus de barre d'editeur) ; le scenario `SCN-EDITOR-XAML-001` ajoute : deplacer un volet, le mettre en onglet, le detacher et le re-docker ;
+- `Docs/editor-architecture.md` (« Session et vue », « Limites connues ») et ADR-0010 (decision de livraison X1b qui revise celle de X0 sur la forme de la vue).
+
+Validation manuelle (auteur) : lancer `MGUI.Editor.Host` ; verifier le layout par defaut ; glisser les separateurs ; deposer « Properties » en onglet de « Document » puis le ressortir ; detacher « Preview » en fenetre flottante et le re-docker ; epingler un volet en auto-hide et le rappeler ; taper dans « XAML » ; redimensionner la fenetre du jeu.
+
+Rollback : `git revert` du commit (retour a la grille de X0).
+
+Commit recommande : `feat(editor): host the editor panes in the docking manager`
+
 ### ⏳ X2. Hote de preview a chaud
 
 But : rendre le texte de la session dans le volet preview, a chaud, sans jamais casser l'editeur.
@@ -393,7 +447,7 @@ Commit recommande : `refactor(core): remove MGXAMLDesigner, superseded by MGUI.E
 
 - Aucun a la redaction. Deux hypotheses gardent une clause dans leur tache : ordre de creation des instances en X1 (verifie par sonde sur onze cas, clause d'arret conservee) ; racine `Window` en mode interactif en X2 (limite admise, non bloquante).
 - X1, a trancher par l'auteur : le plan demande de transmettre les positions au writer XAML (`IXamlLineInfoConsumer`). L'executeur a retire cette transmission en l'accusant de casser deux tests (`XamlAnimationTests.UnknownTransitionProperty_IsALoaderDiagnostic` et `UnknownEasing_AndBadDuration_AreLoaderDiagnostics`, ADR-0010, decisions de livraison X1). Le verifier n'a pas pu reproduire ce motif : ces tests font des `Assert.Contains` sur le message de l'exception interne, que la transmission ne change pas (elle n'ajoute le numero de ligne et la position qu'au message de la `XamlObjectWriterException` englobante) ; la casse venait plus probablement de la liberation du writer dans un `finally`, corrigee depuis. Non verifie : la suite complete avec la transmission retablie. Etat actuel mesure en mode strict : type inconnu, attribut inconnu et XML mal forme portent une ligne et une colonne (validation `XDocument` avant le parse) ; une valeur non convertible (`Width="abc"`) ou un setter qui leve n'en portent aucune. Un critere de X3 demande un marqueur d'erreur sur un « setter invalide » : retablir la transmission avant X3, ou retirer ce cas de X3. La consequence annoncee dans l'ADR-0010 (« diagnostics for conversion and setter failures become more precise ») n'est pas tenue a ce stade.
-- Structure de l'editeur (demande de l'auteur du 17 septembre, apres X1) : l'auteur veut que les volets soient heberges par le docking manager (`MGDockHost`) et non par une grille fixe a separateurs. A planifier avant X2, dont l'ancrage de la preview depend de l'hebergement du volet.
+- Structure de l'editeur (demande de l'auteur du 17 septembre, apres X1) : l'auteur veut que les volets soient heberges par le docking manager (`MGDockHost`) et non par une grille fixe a separateurs. Proposition ecrite : tache X1b ci-dessus, a approuver par l'auteur avant tout code. Points que son approbation tranche : dockables par volet (et non l'editeur entier comme un seul dockable) ; volets non fermables en V1 ; diagnostics en cinquieme dockable ; sauvegarde du layout hors V1 ; validation manuelle de X0 absorbee par celle de X1b.
 
 ## Suites connues (hors V1)
 
