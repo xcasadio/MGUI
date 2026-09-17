@@ -220,11 +220,17 @@ public class MGThemeNumericUpDownSettings
 /// <summary>The interaction timings of a theme (ADR-0007, decision 5): the transitions the controls that opt in (<see cref="MGButton"/>,
 /// <see cref="MGToggleButton"/>) attach on themselves, <c>RenderScale</c> over the hover timing and <c>Background.Overlay</c> over the press timing.
 /// Easings are names known to <see cref="Animation.Easing.UIEasing"/>. The focus timing is reserved: no control reads it yet.
-/// A change is <c>RenderOnly</c> (<see cref="Styling.UIThemeValueInvalidation"/>): a duration never touches the layout.</summary>
+/// A change is <c>RenderOnly</c> (<see cref="Styling.UIThemeValueInvalidation"/>): a duration never touches the layout.<para/>
+/// Y8 adds the popup group (<see cref="OpenDuration"/>, <see cref="CloseDuration"/>, <see cref="OpenEasing"/>, <see cref="CloseEasing"/>,
+/// <see cref="PopupEffect"/>): the default entry/exit a window, tooltip, context menu or the combo box dropdown takes when <see cref="Enabled"/>
+/// is true and the popup has no explicit <see cref="Animation.UIEnterExitSettings"/> of its own for that direction (resolved once, at the
+/// moment the run starts, by <see cref="MGElement.EnterExit"/>'s window path -- never through an <c>OnThemeChanged</c> callback). No other
+/// control reads this group.</summary>
 public class MGThemeAnimationSettings
 {
     /// <summary>When false (the default of every built-in theme, so an untouched button keeps costing nothing, ADR-0006), the controls that opt in
-    /// attach no theme transition and remove the ones they attached; a transition the application attached itself is never touched.</summary>
+    /// attach no theme transition and remove the ones they attached; a transition the application attached itself is never touched. Also gates
+    /// the popup group below (Y8): false means no window, tooltip, context menu or dropdown ever gets a default entry/exit from the theme.</summary>
     public bool Enabled { get; set; } = false;
     public TimeSpan HoverDuration { get; set; } = TimeSpan.FromMilliseconds(120);
     public TimeSpan PressDuration { get; set; } = TimeSpan.FromMilliseconds(80);
@@ -232,6 +238,18 @@ public class MGThemeAnimationSettings
     public string HoverEasing { get; set; } = "CubicOut";
     public string PressEasing { get; set; } = "CubicOut";
     public string FocusEasing { get; set; } = "CubicOut";
+
+    /// <summary>Y8: the default entry duration of a popup (window, tooltip, context menu, dropdown) with no explicit <c>EnterDuration</c>
+    /// of its own, when <see cref="Enabled"/> is true.</summary>
+    public TimeSpan OpenDuration { get; set; } = TimeSpan.FromMilliseconds(180);
+    /// <summary>Y8: the default exit duration of a popup, symmetric with <see cref="OpenDuration"/>.</summary>
+    public TimeSpan CloseDuration { get; set; } = TimeSpan.FromMilliseconds(140);
+    /// <summary>Y8: the default entry easing of a popup, a name known to <see cref="Animation.Easing.UIEasing"/>.</summary>
+    public string OpenEasing { get; set; } = "CubicOut";
+    /// <summary>Y8: the default exit easing of a popup, symmetric with <see cref="OpenEasing"/>.</summary>
+    public string CloseEasing { get; set; } = "CubicIn";
+    /// <summary>Y8: the predefined effect a popup with no explicit <c>EnterEffect</c>/<c>ExitEffect</c> plays for both directions.</summary>
+    public Animation.UIEnterExitEffect PopupEffect { get; set; } = Animation.UIEnterExitEffect.FadeScale;
 }
 
 public class MGThemeTreeViewTemplateSettings
@@ -945,6 +963,11 @@ public class MGTheme
         Animation.HoverEasing = Source.Animation.HoverEasing;
         Animation.PressEasing = Source.Animation.PressEasing;
         Animation.FocusEasing = Source.Animation.FocusEasing;
+        Animation.OpenDuration = Source.Animation.OpenDuration;
+        Animation.CloseDuration = Source.Animation.CloseDuration;
+        Animation.OpenEasing = Source.Animation.OpenEasing;
+        Animation.CloseEasing = Source.Animation.CloseEasing;
+        Animation.PopupEffect = Source.Animation.PopupEffect;
 
         FontSettings.ContextMenuFontSize = Source.FontSettings.ContextMenuFontSize;
         FontSettings.SmallFontSize = Source.FontSettings.SmallFontSize;

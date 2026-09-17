@@ -808,11 +808,12 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             return;
         }
 
+        var pendingOffset = ScrollViewer.PendingVerticalOffset;
         var bounds = item.LayoutBounds;
         float itemTop = bounds.Y;
         float itemBottom = bounds.Bottom;
         float contentTop = ScrollViewer.Content?.LayoutBounds.Top ?? 0;
-        var viewportTop = contentTop + ScrollViewer.VerticalOffset;
+        var viewportTop = contentTop + pendingOffset;
         float viewportHeight = ScrollViewer.ContentViewport.Height;
         var viewportBottom = viewportTop + viewportHeight;
         var invalidBounds = bounds.Height <= 0;
@@ -856,9 +857,9 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
             newOffset = ScrollViewer.MaxVerticalOffset;
         }
 
-        if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
+        if (Math.Abs(newOffset - pendingOffset) > 0.5f)
         {
-            ScrollViewer.VerticalOffset = newOffset;
+            ScrollViewer.ScrollTo(null, newOffset, ScrollViewer.ScrollAnimationDuration, ScrollViewer.ScrollAnimationEasing);
         }
     }
 

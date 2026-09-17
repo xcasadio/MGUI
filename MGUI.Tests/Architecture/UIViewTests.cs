@@ -41,7 +41,7 @@ public class UIViewTests
     [Fact]
     public void MGDesktop_ValidScreenBounds_UsesViewSurfaceWhenAvailable()
     {
-        string desktopSource = System.IO.File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
+        string desktopSource = System.IO.File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGDesktop.cs"));
 
         Assert.Contains("View?.Surface.GetBounds() ?? Runtime.Surface.GetBounds()", desktopSource);
         Assert.Contains("Runtime.CreateDrawTransaction", desktopSource);

@@ -310,4 +310,71 @@ public class StyleAndThemeAnimationTests
         Assert.Equal(UIThemeValueInvalidation.RenderOnly, UIThemeValueInvalidation.GetInvalidation("Animation.HoverDuration"));
         Assert.Equal(UIThemeValueInvalidation.RenderOnly, UIThemeValueInvalidation.GetInvalidation("Animation.Enabled"));
     }
+
+    // ---- Y8: the theme's Animation popup group (OpenDuration/CloseDuration/OpenEasing/CloseEasing/PopupEffect) ------
+
+    [Fact]
+    public void AThemeDefinition_DeclaresThePopupGroup_AndValidatesIt()
+    {
+        MGTheme theme = ThemeDefinitionBuilder.Build(new ThemeDefinition
+        {
+            Name = "Popups",
+            Animation = new ThemeAnimationSettingsDefinition
+            {
+                Enabled = true,
+                OpenDuration = "0.2",
+                CloseDuration = "120ms",
+                OpenEasing = "QuadIn",
+                PopupEffect = UIEnterExitEffect.SlideUp,
+            },
+        }, "Arial");
+
+        Assert.True(theme.Animation.Enabled);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), theme.Animation.OpenDuration);
+        Assert.Equal(TimeSpan.FromMilliseconds(120), theme.Animation.CloseDuration);
+        Assert.Equal("QuadIn", theme.Animation.OpenEasing);
+        Assert.Equal("CubicIn", theme.Animation.CloseEasing); // default, untouched
+        Assert.Equal(UIEnterExitEffect.SlideUp, theme.Animation.PopupEffect);
+
+        MGTheme derived = ThemeDefinitionBuilder.Build(new ThemeDefinition { Name = "Derived", Animation = new ThemeAnimationSettingsDefinition { PopupEffect = UIEnterExitEffect.Fade } }, "Arial", theme);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), derived.Animation.OpenDuration); // inherited, untouched
+        Assert.Equal(UIEnterExitEffect.Fade, derived.Animation.PopupEffect);
+
+        MGTheme copy = derived.Copy();
+        Assert.Equal(derived.Animation.OpenDuration, copy.Animation.OpenDuration);
+        Assert.Equal(derived.Animation.CloseDuration, copy.Animation.CloseDuration);
+        Assert.Equal(derived.Animation.OpenEasing, copy.Animation.OpenEasing);
+        Assert.Equal(derived.Animation.CloseEasing, copy.Animation.CloseEasing);
+        Assert.Equal(derived.Animation.PopupEffect, copy.Animation.PopupEffect);
+
+        InvalidOperationException badEasing = Assert.Throws<InvalidOperationException>(() => ThemeDefinitionBuilder.Build(
+            new ThemeDefinition { Name = "Bad", Animation = new ThemeAnimationSettingsDefinition { OpenEasing = "Wobbly" } }, "Arial"));
+        Assert.Contains("Wobbly", badEasing.Message);
+        InvalidOperationException badDuration = Assert.Throws<InvalidOperationException>(() => ThemeDefinitionBuilder.Build(
+            new ThemeDefinition { Name = "Bad", Animation = new ThemeAnimationSettingsDefinition { CloseDuration = "soon" } }, "Arial"));
+        Assert.Contains("soon", badDuration.Message);
+
+        // Built without any Animation definition at all: the popup group keeps every built-in default, Enabled false.
+        MGTheme plain = ThemeDefinitionBuilder.Build(new ThemeDefinition { Name = "Plain" }, "Arial");
+        Assert.False(plain.Animation.Enabled);
+        Assert.Equal(TimeSpan.FromMilliseconds(180), plain.Animation.OpenDuration);
+        Assert.Equal(TimeSpan.FromMilliseconds(140), plain.Animation.CloseDuration);
+        Assert.Equal(UIEnterExitEffect.FadeScale, plain.Animation.PopupEffect);
+
+        Assert.Equal(UIThemeValueInvalidation.RenderOnly, UIThemeValueInvalidation.GetInvalidation("Animation.OpenDuration"));
+        Assert.Equal(UIThemeValueInvalidation.RenderOnly, UIThemeValueInvalidation.GetInvalidation("Animation.CloseDuration"));
+        Assert.Equal(UIThemeValueInvalidation.RenderOnly, UIThemeValueInvalidation.GetInvalidation("Animation.OpenEasing"));
+        Assert.Equal(UIThemeValueInvalidation.RenderOnly, UIThemeValueInvalidation.GetInvalidation("Animation.CloseEasing"));
+        Assert.Equal(UIThemeValueInvalidation.RenderOnly, UIThemeValueInvalidation.GetInvalidation("Animation.PopupEffect"));
+    }
+
+    [Fact]
+    public void EveryBuiltInTheme_KeepsThePopupGroupDisabled()
+    {
+        foreach (MGTheme.BuiltInTheme builtIn in Enum.GetValues<MGTheme.BuiltInTheme>())
+        {
+            MGTheme theme = new(builtIn, "Arial");
+            Assert.False(theme.Animation.Enabled);
+        }
+    }
 }

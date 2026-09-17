@@ -1,4 +1,5 @@
 ﻿using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Animation.Easing;
 using MGUI.Core.UI.Animation.States;
 using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Styling;
@@ -297,6 +298,147 @@ public abstract class Element : XAMLBindableBase
     /// <summary>The transitions attached to the element (ADR-0006): <c>&lt;Button.Transitions&gt;&lt;Transition Property="Opacity" Duration="0.2" Easing="CubicOut" /&gt;&lt;/Button.Transitions&gt;</c>.</summary>
     [Category("Appearance")]
     public List<Transition> Transitions { get; set; } = new();
+
+    private string _layoutTransitionDuration;
+    /// <summary>How long this element's layout transition (ADR-0011 decision 5) glide takes, accepting the same formats as
+    /// <see cref="Transition.Duration"/> (seconds, milliseconds or a <see cref="TimeSpan"/>). A zero or absent value leaves
+    /// <see cref="MGElement.LayoutTransition"/> null, exactly like never setting it; usable in a style <c>Setter</c>.</summary>
+    [Category("Layout")]
+    public string LayoutTransitionDuration
+    {
+        get => _layoutTransitionDuration;
+        set
+        {
+            if (!AnimationXamlParser.TryParseDuration(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to a layout transition duration: use seconds (0.15), milliseconds (150ms) or a TimeSpan (0:0:0.15).");
+            }
+
+            _layoutTransitionDuration = value;
+        }
+    }
+
+    private string _layoutTransitionEasing;
+    /// <summary>The easing function of this element's layout transition (ADR-0011 decision 5), a name known to <see cref="UIEasing"/>. Null
+    /// (the default) means linear; usable in a style <c>Setter</c>.</summary>
+    [Category("Layout")]
+    public string LayoutTransitionEasing
+    {
+        get => _layoutTransitionEasing;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !UIEasing.TryGet(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to an easing function. Known names: {string.Join(", ", UIEasing.Names)}.");
+            }
+
+            _layoutTransitionEasing = value;
+        }
+    }
+
+    /// <summary>Whether this element's layout transition (ADR-0011 decision 5) also animates a size change (Y5:
+    /// <see cref="Animation.UILayoutTransition.AnimateSize"/>). Null or false (the default) leaves size changes alone, exactly like Y4;
+    /// usable in a style <c>Setter</c>. Alone, without a positive <see cref="LayoutTransitionDuration"/>, this has no effect.</summary>
+    [Category("Layout")]
+    public bool? LayoutTransitionAnimatesSize { get; set; }
+
+    /// <summary>The predefined entry effect of this element's <see cref="MGElement.EnterExit"/> (ADR-0011 decision 6, Y6). Null (the default)
+    /// leaves it at <see cref="UIEnterExitEffect.None"/>; usable in a style <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public UIEnterExitEffect? EnterEffect { get; set; }
+
+    /// <summary>The predefined exit effect of this element's <see cref="MGElement.EnterExit"/> (ADR-0011 decision 6, Y6). Null (the default)
+    /// leaves it at <see cref="UIEnterExitEffect.None"/>; usable in a style <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public UIEnterExitEffect? ExitEffect { get; set; }
+
+    private string _enterDuration;
+    /// <summary>Length of the predefined entry effect (ADR-0011 decision 6, Y6), accepting the same formats as
+    /// <see cref="Transition.Duration"/> (seconds, milliseconds or a <see cref="TimeSpan"/>). Null (the default) leaves
+    /// <see cref="UIEnterExitSettings.EnterDuration"/> at its own default (200 milliseconds); usable in a style <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public string EnterDuration
+    {
+        get => _enterDuration;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !AnimationXamlParser.TryParseDuration(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to an enter duration: use seconds (0.15), milliseconds (150ms) or a TimeSpan (0:0:0.15).");
+            }
+
+            _enterDuration = value;
+        }
+    }
+
+    private string _exitDuration;
+    /// <summary>Length of the predefined exit effect (ADR-0011 decision 6, Y6), same formats as <see cref="EnterDuration"/>. Null (the
+    /// default) leaves <see cref="UIEnterExitSettings.ExitDuration"/> at its own default (150 milliseconds); usable in a style
+    /// <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public string ExitDuration
+    {
+        get => _exitDuration;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !AnimationXamlParser.TryParseDuration(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to an exit duration: use seconds (0.15), milliseconds (150ms) or a TimeSpan (0:0:0.15).");
+            }
+
+            _exitDuration = value;
+        }
+    }
+
+    private string _enterEasing;
+    /// <summary>The easing function of the predefined entry effect (ADR-0011 decision 6, Y6), a name known to <see cref="UIEasing"/>. Null
+    /// (the default) leaves <see cref="UIEnterExitSettings.EnterEasing"/> at its own default (<see cref="UIEasing.CubicOut"/>); usable in a
+    /// style <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public string EnterEasing
+    {
+        get => _enterEasing;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !UIEasing.TryGet(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to an easing function. Known names: {string.Join(", ", UIEasing.Names)}.");
+            }
+
+            _enterEasing = value;
+        }
+    }
+
+    private string _exitEasing;
+    /// <summary>The easing function of the predefined exit effect (ADR-0011 decision 6, Y6), same format as <see cref="EnterEasing"/>. Null
+    /// (the default) leaves <see cref="UIEnterExitSettings.ExitEasing"/> at its own default (<see cref="UIEasing.CubicIn"/>); usable in a
+    /// style <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public string ExitEasing
+    {
+        get => _exitEasing;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !UIEasing.TryGet(value, out _))
+            {
+                throw new InvalidOperationException($"Cannot convert '{value}' to an easing function. Known names: {string.Join(", ", UIEasing.Names)}.");
+            }
+
+            _exitEasing = value;
+        }
+    }
+
+    /// <summary>The <c>Scale</c>/<c>FadeScale</c> entry/exit start scale of this element's <see cref="MGElement.EnterExit"/> (ADR-0011
+    /// decision 6, Y6). Null (the default) leaves <see cref="UIEnterExitSettings.ScaleFrom"/> at its own default (0.9); usable in a style
+    /// <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public float? EnterExitScaleFrom { get; set; }
+
+    /// <summary>The fixed pixel distance of every <c>Slide*</c> entry/exit effect of this element's <see cref="MGElement.EnterExit"/>
+    /// (ADR-0011 decision 6, Y6). Null (the default) leaves <see cref="UIEnterExitSettings.SlideDistance"/> at its own default (24); usable in
+    /// a style <c>Setter</c>.</summary>
+    [Category("Appearance")]
+    public float? EnterExitSlideDistance { get; set; }
 
     /// <summary>The named visual states of the element (ADR-0007, decisions 3 and 5): <c>&lt;Button.VisualStates&gt;&lt;VisualStateDefinition Name="Hover"&gt;&lt;Setter Property="RenderTransform.Scale" Value="1.05" /&gt;&lt;/VisualStateDefinition&gt;&lt;/Button.VisualStates&gt;</c>.</summary>
     [Category("Appearance")]
@@ -602,6 +744,56 @@ public abstract class Element : XAMLBindableBase
                 Element.SetDefaultTextForegroundSlot(UIValueSlot.Selected, SelectedTextForeground.Value.ToXNAColor(), ResolveXamlSource(nameof(SelectedTextForeground), UIInvalidationKind.Draw));
             }
 
+            //  Y6 (ADR-0011 decision 6): applied before Visibility below, deterministically -- not required (a Visibility write before the
+            //  element's first draw never starts a run, see MGElement.Visibility), but a settled order is easier to reason about than one
+            //  that happens to not matter here.
+            if (EnterEffect.HasValue || ExitEffect.HasValue || !string.IsNullOrWhiteSpace(EnterDuration) || !string.IsNullOrWhiteSpace(ExitDuration) ||
+                !string.IsNullOrWhiteSpace(EnterEasing) || !string.IsNullOrWhiteSpace(ExitEasing) || EnterExitScaleFrom.HasValue || EnterExitSlideDistance.HasValue)
+            {
+                UIEnterExitSettings EnterExitSettings = new();
+                if (EnterEffect.HasValue)
+                {
+                    EnterExitSettings.EnterEffect = EnterEffect.Value;
+                }
+
+                if (ExitEffect.HasValue)
+                {
+                    EnterExitSettings.ExitEffect = ExitEffect.Value;
+                }
+
+                if (!string.IsNullOrWhiteSpace(EnterDuration) && AnimationXamlParser.TryParseDuration(EnterDuration, out var EnterDurationValue))
+                {
+                    EnterExitSettings.EnterDuration = EnterDurationValue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(ExitDuration) && AnimationXamlParser.TryParseDuration(ExitDuration, out var ExitDurationValue))
+                {
+                    EnterExitSettings.ExitDuration = ExitDurationValue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(EnterEasing) && UIEasing.TryGet(EnterEasing, out var EnterEasingValue))
+                {
+                    EnterExitSettings.EnterEasing = EnterEasingValue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(ExitEasing) && UIEasing.TryGet(ExitEasing, out var ExitEasingValue))
+                {
+                    EnterExitSettings.ExitEasing = ExitEasingValue;
+                }
+
+                if (EnterExitScaleFrom.HasValue)
+                {
+                    EnterExitSettings.ScaleFrom = EnterExitScaleFrom.Value;
+                }
+
+                if (EnterExitSlideDistance.HasValue)
+                {
+                    EnterExitSettings.SlideDistance = EnterExitSlideDistance.Value;
+                }
+
+                Element.EnterExit = EnterExitSettings;
+            }
+
             if (Visibility.HasValue)
             {
                 Element.Visibility = Visibility.Value;
@@ -630,6 +822,23 @@ public abstract class Element : XAMLBindableBase
             if (RenderTransform != null)
             {
                 RenderTransform.ApplyTo(Element.RenderTransform);
+            }
+
+            //  Y5: a zero or absent duration leaves LayoutTransition null, exactly like never setting it (the easing or the size flag alone do nothing).
+            if (AnimationXamlParser.TryParseDuration(LayoutTransitionDuration, out var LayoutTransitionDurationValue) && LayoutTransitionDurationValue > TimeSpan.Zero)
+            {
+                IUIEasingFunction LayoutTransitionEasingValue = null;
+                if (!string.IsNullOrWhiteSpace(LayoutTransitionEasing))
+                {
+                    UIEasing.TryGet(LayoutTransitionEasing, out LayoutTransitionEasingValue);
+                }
+
+                Element.LayoutTransition = new Animation.UILayoutTransition
+                {
+                    Duration = LayoutTransitionDurationValue,
+                    Easing = LayoutTransitionEasingValue,
+                    AnimateSize = LayoutTransitionAnimatesSize ?? false,
+                };
             }
 
             //  Visual states, then transitions, are attached last, once the declared values above are in place: a transition reads the current value

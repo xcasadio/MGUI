@@ -1299,12 +1299,13 @@ public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandle
 
         var itemHeight = VirtualizingPanel?.UniformItemHeight > 0 ? VirtualizingPanel.UniformItemHeight : MeasureNaturalItemHeight();
         float contentTop = (VirtualizingPanel as MGElement)?.LayoutBounds.Top ?? ItemsPanel.LayoutBounds.Top;
-        var newOffset = GetVisibleVerticalOffsetForIndex(ScrollViewer.VerticalOffset, contentTop, ScrollViewer.ContentViewport.Height,
+        var pendingOffset = ScrollViewer.PendingVerticalOffset;
+        var newOffset = GetVisibleVerticalOffsetForIndex(pendingOffset, contentTop, ScrollViewer.ContentViewport.Height,
             ScrollViewer.MaxVerticalOffset, FocusedIndex, itemHeight);
 
-        if (Math.Abs(newOffset - ScrollViewer.VerticalOffset) > 0.5f)
+        if (Math.Abs(newOffset - pendingOffset) > 0.5f)
         {
-            ScrollViewer.VerticalOffset = newOffset;
+            ScrollViewer.ScrollTo(null, newOffset, ScrollViewer.ScrollAnimationDuration, ScrollViewer.ScrollAnimationEasing);
         }
     }
 

@@ -23,7 +23,7 @@ namespace MGUI.Tests.Architecture;
 /// </summary>
 public class ResolvedPilotWriteSitesTests
 {
-    private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    private static readonly string RepoRoot = TestRepository.Root;
     private static readonly string CoreRoot = Path.Combine(RepoRoot, "MGUI.Core");
 
     private static readonly Regex PilotAssignmentPattern =
@@ -80,18 +80,19 @@ public class ResolvedPilotWriteSitesTests
     /// <summary>(relative path, 1-based line, reason) — a specific line is allowed regardless of file.</summary>
     private static readonly (string File, int Line, string Reason)[] AllowedLines =
     {
-        (@"MGUI.Core\UI\MGContextMenu.cs", 519, "local variable `var MinHeight`, not the MGElement.MinHeight pilot"),
-        (@"MGUI.Core\UI\MGDesktop.cs", 814, "local variable `var MinHeight`, not the MGElement.MinHeight pilot"),
+        (@"MGUI.Core\UI\MGContextMenu.cs", 559, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y8 inserted the exiting-submenu handling above it)"),
+        (@"MGUI.Core\UI\MGDesktop.cs", 974, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling, Y9 shrank the ActiveToolTip setter's slot-release block)"),
         (@"MGUI.Core\UI\MGWindow.cs", 231, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
         (@"MGUI.Core\UI\MGWindow.cs", 249, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
         (@"MGUI.Core\UI\MGChatBox.cs", 138, "commented-out code"),
-        (@"MGUI.Core\UI\MGScrollViewer.cs", 557, "commented-out code"),
+        (@"MGUI.Core\UI\MGScrollViewer.cs", 748, "commented-out code"),
         (@"MGUI.Core\UI\MGXAMLDesigner.cs", 62, "inside a verbatim string literal (sample XAML shown in the designer UI), not code"),
         (@"MGUI.Core\UI\MGSlider.cs", 675, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\MGResizeGrip.cs", 180, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\Containers\MGContentHost.cs", 316, "method parameter (`Color? Foreground = null`), not a pilot write"),
         (@"MGUI.Core\UI\Containers\Grids\MGGridSplitter.cs", 263, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\TextEditing\MGRichTextStyle.cs", 5, "record struct parameter (`Color? Foreground = null`), not a pilot write"),
+        (@"MGUI.Core\UI\Brushes\FillBrushes\MGSpriteSheetGrid.cs", 18, "record struct parameter (`Point Margin = default`, ADR-0011 decision C4: the sprite sheet's pixel margin), not the MGElement.Margin pilot"),
     };
 
     /// <summary>

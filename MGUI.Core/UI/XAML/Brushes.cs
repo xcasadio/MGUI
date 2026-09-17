@@ -2,6 +2,7 @@
 using System.Globalization;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
+using Microsoft.Xna.Framework;
 using XNAColor = Microsoft.Xna.Framework.Color;
 using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.DataBinding;
@@ -202,6 +203,26 @@ public class TextureFillBrush : FillBrush
     public string SourceName { get; set; }
     public Stretch Stretch { get; set; } = Stretch.Fill;
     public XAMLColor Color { get; set; } = new XAMLColor();
+    /// <summary>See <see cref="MGTextureFillBrush.Tile"/>. Null (the default) keeps the brush's own default (false).</summary>
+    public bool? Tile { get; set; }
+
+    /// <summary>See <see cref="MGTextureFillBrush.FrameGrid"/>'s <see cref="MGSpriteSheetGrid.Columns"/>. A grid is built only when this and
+    /// <see cref="FrameRows"/> are both set (ADR-0011, decision C4); <see cref="FrameCellSize"/> is then required.</summary>
+    public int? FrameColumns { get; set; }
+    /// <summary>See <see cref="MGSpriteSheetGrid.Rows"/>. See <see cref="FrameColumns"/>.</summary>
+    public int? FrameRows { get; set; }
+    /// <summary>See <see cref="MGSpriteSheetGrid.FrameCount"/>. Only meaningful together with <see cref="FrameColumns"/>/<see cref="FrameRows"/>.</summary>
+    public int? FrameCount { get; set; }
+    /// <summary>See <see cref="MGSpriteSheetGrid.CellSize"/>. Two integers "x,y". Required when <see cref="FrameColumns"/>/<see cref="FrameRows"/>
+    /// are set (decision taken during delivery, ADR-0011: the plan's attribute list omitted the cell size although the grid carries it).</summary>
+    public string FrameCellSize { get; set; }
+    /// <summary>See <see cref="MGSpriteSheetGrid.Spacing"/>. Two integers "x,y". Defaults to "0,0".</summary>
+    public string FrameSpacing { get; set; }
+    /// <summary>See <see cref="MGSpriteSheetGrid.Margin"/>. Two integers "x,y". Defaults to "0,0".</summary>
+    public string FrameMargin { get; set; }
+    /// <summary>See <see cref="MGTextureFillBrush.FrameIndex"/>. Only meaningful together with a grid. Null (the default) keeps the brush's
+    /// own default (0).</summary>
+    public int? FrameIndex { get; set; }
 
     public TextureFillBrush() : this(null, Stretch.Fill, new XAMLColor()) { }
     public TextureFillBrush(string SourceName, Stretch Stretch, XAMLColor Color)
@@ -213,7 +234,60 @@ public class TextureFillBrush : FillBrush
 
     public override string ToString() => $"{nameof(TextureFillBrush)}: {SourceName} ({Stretch})";
 
-    public override IFillBrush ToFillBrush(MGDesktop Desktop, MGElement Element) => new MGTextureFillBrush(Desktop, SourceName, Stretch, Color.ToXNAColor());
+    /// <summary>Parses "x,y" (two comma-separated integers, invariant culture) the same way <see cref="Shapes.ShapeXamlParser.ParsePoint(string)"/>
+    /// parses its float pairs. Returns <paramref name="defaultValue"/> when <paramref name="value"/> is null or blank.</summary>
+    private static Point ParseIntPoint(string value, Point defaultValue, string attributeName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return defaultValue;
+        }
+
+        string[] parts = value.Split(',');
+        if (parts.Length != 2
+            || !int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int x)
+            || !int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int y))
+        {
+            throw new InvalidOperationException($"{nameof(TextureFillBrush)}.{attributeName}='{value}' is not a valid \"x,y\" pair of integers.");
+        }
+
+        return new Point(x, y);
+    }
+
+    public override IFillBrush ToFillBrush(MGDesktop Desktop, MGElement Element)
+    {
+        MGTextureFillBrush brush = new(Desktop, SourceName, Stretch, Color.ToXNAColor(), Tile ?? false);
+
+        bool hasColumns = FrameColumns.HasValue;
+        bool hasRows = FrameRows.HasValue;
+        bool hasAnyGridAttribute = hasColumns || hasRows || FrameCount.HasValue || FrameCellSize != null || FrameSpacing != null || FrameMargin != null;
+
+        if (hasColumns && hasRows)
+        {
+            if (string.IsNullOrWhiteSpace(FrameCellSize))
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(TextureFillBrush)}: {nameof(FrameCellSize)} is required when {nameof(FrameColumns)} and {nameof(FrameRows)} are set.");
+            }
+
+            Point cellSize = ParseIntPoint(FrameCellSize, default, nameof(FrameCellSize));
+            Point spacing = ParseIntPoint(FrameSpacing, default, nameof(FrameSpacing));
+            Point margin = ParseIntPoint(FrameMargin, default, nameof(FrameMargin));
+            brush.FrameGrid = new MGSpriteSheetGrid(FrameColumns.Value, FrameRows.Value, cellSize, spacing, margin, FrameCount);
+        }
+        else if (hasAnyGridAttribute)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(TextureFillBrush)}: {nameof(FrameColumns)} and {nameof(FrameRows)} must both be set to build a {nameof(MGSpriteSheetGrid)}.");
+        }
+
+        if (FrameIndex.HasValue)
+        {
+            brush.FrameIndex = FrameIndex.Value;
+        }
+
+        return brush;
+    }
 }
 
 [ContentProperty(nameof(FillBrush))]
