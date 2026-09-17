@@ -325,7 +325,11 @@ Rollback : revert du commit ; T4 et les precedentes restent coherentes avec le f
 
 Commit recommande : `feat(docking): persist floating, auto-hidden and closed panel places in layout format 2.0`
 
-### ⏳ T6. Documentation et cloture
+### 🧪 T6. Documentation et cloture
+
+Statut (17 septembre 2026) : livre, en attente de la validation manuelle de l'auteur (ci-dessous). ADR-0012 passee en Accepted avec ses decisions prises en cours de route et ses limites connues ; index des ADR mis a jour ; `MGUI.Core/UI/Docking/TODO-DockingManager.md` corrige (5.2, 5.3 et 5.4 : version 2.0, sections du document, refus d'une autre version, fantomes conserves) ; `Docs/Tasks/docking-bugs-tasks.md` : le point ouvert de sa tache 4 renvoie desormais a ce chantier ; l'audit `analysis-dockmanager.md` reste en lecture seule, comme le veut la regle des ADR. Validation finale : build tests et `MGUI.Samples --no-incremental` 0 erreur ; suite complete 2552 reussis, 0 echec (reference T0 : 2420, aucun echec preexistant).
+
+Jalon V2 (17 septembre 2026) : **CONFIRMED** par un verifier en contexte frais sur le diff `5db193b..023467b`. Suites relancees par lui : complete 2552/2552, docking 375/375, entree 258/258, `MGUI.Samples --no-incremental` 0 erreur. Sondes hors depot, 268 assertions sans echec : aller-retour complet d'une disposition melant fantomes, fenetre flottante, panneaux masques et fermes, document identique a l'octet pres ; 15 documents abimes (JSON invalide, version 1.0, type de noeud inconnu, cote auto-hide inconnu, place d'un panneau ancre, ids en double dans les trois combinaisons, `id` vide, groupe flottant sans panneau) tous refuses sans exception, hote et fenetres flottantes intacts, l'API qui leve levant toujours ; fermeture puis reouverture des cinq volets dans un ordre croise, document identique ; groupe a plusieurs onglets conforme a P11 ; invariant d'unicite et controle d'affichage A8 apres chaque operation. Remarque P4 non bloquante, anterieure au chantier : un appelant qui garde une reference vers un noeud remplace par l'hote et la redonne a `DetachToFloating` cree un doublon d'id ; aucun chemin de l'hote ne le fait. Consignee dans l'ADR-0012.
 
 But : laisser une documentation vraie et cloturer le chantier.
 
@@ -357,10 +361,13 @@ Commit recommande : `docs(docking): accept ADR-0012 and document placeholder gro
 
 ## Points ouverts
 
-- Aucun a la redaction.
+- Aucun. Le chantier est livre en six commits sur la branche `docking-ghost-groups` ; reste la validation manuelle de l'auteur (ci-dessous, T6).
 
 ## Suites connues (hors perimetre)
 
 - Session `xaml-editor` : mettre a jour la note X1b de l'ADR-0010 et relancer ses tests apres merge (R3).
 - Place memorisee des panneaux fermes sans definition de registre (P4).
 - Ordre d'onglets exact dans un groupe a plusieurs onglets pour tout ordre de retour (memoriser l'ordre complet du groupe, P11).
+- Distinguer une disposition vide d'un document tronque : aujourd'hui un document 2.0 sans cle `rootNode` se charge comme une disposition vide, parce que c'est ce que `ToJson` ecrit pour un modele sans racine (ADR-0012, decisions prises en cours de route).
+- Refuser un noeud de panneau qui n'appartient pas au modele de l'hote dans `DetachToFloating` (remarque P4 du jalon V2).
+- Couverture : conserver l'`id` d'un groupe racine vide non reference au chargement ; tester le refus des ids en double pour les paires arbre/auto-hide et flottant/auto-hide ; assertion visuelle dediee pour la branche « second enfant cache » de la construction des splits.

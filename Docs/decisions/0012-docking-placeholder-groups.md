@@ -1,6 +1,6 @@
 # ADR-0012: Keep emptied docking tab groups as placeholders and persist panel places in layout format 2.0
 
-- **Status**: Proposed (plan approved by the author on 2026-09-17; to be marked Accepted when the chantier closes, task T6)
+- **Status**: Accepted (plan approved by the author on 2026-09-17; delivered in six tasks on the branch `docking-ghost-groups`, both verification milestones CONFIRMED)
 - **Date**: 2026-09-17
 - **Source**: this chantier: the author's answers of 2026-09-17 and the approved plan `Docs/Tasks/docking-ghost-groups-tasks.md` (decisions D1-D9, proposals P1-P12); triggered by a fresh-context verification of the XAML editor's docking shell on branch `xaml-editor` (`c20c9d2`), recorded as a known limit in `Docs/decisions/0010-xaml-editor-v1.md` (X1b) and hinted at in `Docs/Tasks/docking-bugs-tasks.md:176`
 
@@ -37,6 +37,7 @@ Facts verified at `develop` `4b51ca6` (the docking code is identical on `xaml-ed
 - Callers of `GetAllTabGroups()` may now receive empty placeholder groups.
 - Placeholders of closed dockables stay in the tree while their place is remembered (at most one per registry definition).
 - The `xaml-editor` branch must re-run its docking tests after merging `develop`, and its ADR-0010 X1b note on the collapsing layout becomes outdated.
+- A caller that keeps a reference to a panel node the host has replaced (a dockable closed and reopened through `ShowDockable` gets a fresh node) and hands that stale node back to `DetachToFloating` still creates a second panel with the same id, and the resulting document is refused at load. The host does not check that a node belongs to its model; this predates the chantier and no host path does it.
 
 ## Decisions taken during delivery
 

@@ -96,20 +96,20 @@ Cette liste organise les tâches restantes en phases MVP → V2 → V3.
   - ✅ Méthode `FromJson()` pour désérialisation
   - ✅ Reconstruction récursive de l'arbre de nœuds
   - ✅ Support du panelFactory pour reconnecter le contenu
-  - ✅ Vérification de version avec warning si mismatch
+  - ✅ Vérification de version : depuis le format 2.0 (ADR-0012), toute autre version est refusée — `FromJson` lève, `TryFromJson` rend false avec un diagnostic
   - ✅ Méthodes d'extension `SaveLayoutToJson()` et `LoadLayoutFromJson()` sur MGDockHost
 
 - [x] **5.3** Gérer les panels manquants au restore ✅ (Complété le 2026-02-20)
   - ✅ Ignorer les IDs inconnus (retourner null si panelFactory échoue)
   - ✅ Logger un warning avec ID et titre du panel manquant
-  - ✅ Nettoyer les groupes vides automatiquement
+  - ✅ Nettoyer les groupes vides automatiquement, **sauf** ceux qu'une place mémorisée référence : ils restent dans l'arbre comme fantômes cachés (ADR-0012)
   - ✅ Méthode CleanupInvalidNodes pour post-traitement
   - ✅ Collapse des split nodes avec un seul enfant valide
 
 - [x] **5.4** Versionner le format JSON ✅ (Déjà implémenté)
-  - ✅ Champ "version" présent (v1.0)
-  - ✅ Warning si version mismatch
-  - ⚠️ Migration automatique pas encore implémentée
+  - ✅ Champ "version" présent (v2.0 depuis le 17 septembre 2026) ; le document porte aussi `floatingGroups`, `autoHide` et `placements` (ADR-0012)
+  - ✅ Version différente refusée, sans exception à travers `TryFromJson` / `TryLoadLayoutFromJson`
+  - ⛔ Pas de migration ni de rétrocompatibilité : décision de l'auteur (ADR-0012)
 
 ---
 
