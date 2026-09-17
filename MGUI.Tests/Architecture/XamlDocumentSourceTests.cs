@@ -38,7 +38,7 @@ public class XamlDocumentSourceTests
     [Fact]
     public void Designer_UsesDocumentSourceAbstraction()
     {
-        string designerSource = System.IO.File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGXAMLDesigner.cs");
+        string designerSource = System.IO.File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGXAMLDesigner.cs"));
 
         Assert.Contains("XamlDocumentSource.FromFile", designerSource);
         Assert.Contains("XamlDocumentSource.FromString", designerSource);
@@ -75,7 +75,7 @@ public class XamlDocumentSourceTests
     [Fact]
     public void Canvas_Wrapper_Preserves_Attached_Coordinates_When_Adding_Children()
     {
-        string containersSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\XAML\Containers.cs");
+        string containersSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "XAML", "Containers.cs"));
 
         Assert.Contains("Canvas.TryAddChild(ChildElement, Child.CanvasLeft, Child.CanvasTop, Child.CanvasRight, Child.CanvasBottom);", containersSource);
     }

@@ -5,7 +5,7 @@ namespace MGUI.Tests.Architecture;
 
 public class RenderingBoundaryArchitectureTests
 {
-    private static readonly string RepoRoot = @"d:\development\repo\MGUI";
+    private static readonly string RepoRoot = TestRepository.Root;
     private static readonly string CoreRoot = Path.Combine(RepoRoot, "MGUI.Core");
     private static readonly string AbstractionsProjectPath = Path.Combine(RepoRoot, "MGUI.Rendering.Abstractions", "MGUI.Rendering.Abstractions.csproj");
 

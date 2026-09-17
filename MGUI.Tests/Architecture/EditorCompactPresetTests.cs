@@ -26,10 +26,10 @@ namespace MGUI.Tests.Architecture;
 /// </summary>
 public class EditorCompactPresetTests
 {
-    private const string PresetPath = @"d:\development\repo\MGUI\MGUI.Samples\Features\EditorCompact.Themes.xaml";
-    private const string CatalogPath = @"d:\development\repo\MGUI\MGUI.Core\UI\Styling\MGControlTemplateCatalog.cs";
-    private const string TabGroupPath = @"d:\development\repo\MGUI\MGUI.Core\UI\Docking\Controls\MGDockTabGroup.cs";
-    private const string TabGroupNodePath = @"d:\development\repo\MGUI\MGUI.Core\UI\Docking\DockLayout\DockTabGroupNode.cs";
+    private static readonly string PresetPath = TestRepository.Combine("MGUI.Samples", "Features", "EditorCompact.Themes.xaml");
+    private static readonly string CatalogPath = TestRepository.Combine("MGUI.Core", "UI", "Styling", "MGControlTemplateCatalog.cs");
+    private static readonly string TabGroupPath = TestRepository.Combine("MGUI.Core", "UI", "Docking", "Controls", "MGDockTabGroup.cs");
+    private static readonly string TabGroupNodePath = TestRepository.Combine("MGUI.Core", "UI", "Docking", "DockLayout", "DockTabGroupNode.cs");
 
     [Fact]
     public void The_Preset_Is_A_Declarative_Theme_Based_On_Dark()
@@ -140,7 +140,7 @@ public class EditorCompactPresetTests
     [Fact]
     public void The_Sample_Window_And_Its_Context_Menu_Repaint_When_The_Preset_Is_Applied()
     {
-        const string SamplePath = @"d:\development\repo\MGUI\MGUI.Samples\Features\EditorCompactPreset.xaml";
+        string SamplePath = TestRepository.Combine("MGUI.Samples", "Features", "EditorCompactPreset.xaml");
         Harness harness = Harness.Create();
         MGWindow window = MGUI.Core.UI.XAML.XAMLParser.LoadRootWindow(harness.Desktop, File.ReadAllText(SamplePath), false, true);
         harness.Desktop.Windows.Add(window);

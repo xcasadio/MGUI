@@ -25,7 +25,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Overlay_Source_Clears_Current_And_Queued_Focus_When_Blocking_Content()
     {
-        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+        string overlaySource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGOverlay.cs"));
 
         Assert.Contains("GetDesktop().ClearQueuedFocusedKeyboardHandler();", overlaySource);
         Assert.Contains("GetDesktop().ClearFocusedKeyboardHandler();", overlaySource);
@@ -34,7 +34,7 @@ public class FocusArchitectureTests
     [Fact]
     public void MenuBar_Source_Does_Not_Register_Duplicate_Raw_Keyboard_Navigation_Handler()
     {
-        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+        string menuBarSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGMenuBar.cs"));
 
         Assert.DoesNotContain("KeyboardHandler.Pressed +=", menuBarSource);
     }
@@ -42,8 +42,8 @@ public class FocusArchitectureTests
     [Fact]
     public void ListView_And_TreeView_Sources_Do_Not_Register_Duplicate_Raw_Keyboard_Navigation_Handlers()
     {
-        string listViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGListView.cs");
-        string treeViewSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGTreeView.cs");
+        string listViewSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGListView.cs"));
+        string treeViewSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGTreeView.cs"));
 
         Assert.DoesNotContain("KeyboardHandler.Pressed += OnListViewKeyPressed;", listViewSource);
         Assert.DoesNotContain("KeyboardHandler.Pressed += OnKeyPressed;", treeViewSource);
@@ -52,7 +52,7 @@ public class FocusArchitectureTests
     [Fact]
     public void AddNestedWindow_Source_Remains_Focus_Neutral_For_NonModal_Children()
     {
-        string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
+        string windowSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGWindow.cs"));
 
         int addNestedWindowIndex = windowSource.IndexOf("public void AddNestedWindow(MGWindow NestedWindow)");
         int removeNestedWindowIndex = windowSource.IndexOf("public bool RemoveNestedWindow(MGWindow NestedWindow)");
@@ -72,7 +72,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Desktop_Blocking_Policy_Only_Treats_Overlays_And_Modal_Windows_As_Keyboard_Blockers()
     {
-        string desktopSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
+        string desktopSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGDesktop.cs"));
 
         Assert.Contains("if (OverlayHost?.IsModal == true && OverlayHost.ActiveOverlay != null && OverlayHost.ActiveOverlayPresenter != null", desktopSource);
         Assert.Contains("return element.SelfOrParentWindow?.HasModalWindow == true;", desktopSource);
@@ -81,7 +81,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Window_Update_Source_Prioritizes_Modal_Window_Before_NonModal_Nested_Windows()
     {
-        string windowSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGWindow.cs");
+        string windowSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGWindow.cs"));
 
         int modalUpdateIndex = windowSource.IndexOf("ModalWindow?.Update(UpdateArgs);");
         int nestedUpdateIndex = windowSource.IndexOf("foreach (var Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))");
@@ -94,7 +94,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Desktop_Blocking_Policy_Allows_Elements_Inside_The_Active_Overlay()
     {
-        string desktopSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGDesktop.cs");
+        string desktopSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGDesktop.cs"));
 
         Assert.Contains("&& !OverlayHost.ActiveOverlayPresenter.IsSelfOrAncestorOf(element)", desktopSource);
         Assert.Contains("&& !OverlayHost.ActiveOverlay.IsSelfOrAncestorOf(element)", desktopSource);
@@ -103,7 +103,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Button_Source_Only_Raises_Click_When_The_Press_Started_On_That_Button()
     {
-        string buttonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGButton.cs");
+        string buttonSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGButton.cs"));
 
         Assert.Contains("bool pressedInsideThisButton = PressedArgs != null;", buttonSource);
         Assert.Contains("if (e.IsLMB && pressedInsideThisButton)", buttonSource);
@@ -113,7 +113,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Overlay_Source_Preserves_Queued_Focus_For_Targets_Inside_The_Active_Overlay()
     {
-        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+        string overlaySource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGOverlay.cs"));
 
         Assert.Contains("var Queued = GetDesktop().QueuedFocusedKeyboardHandler;", overlaySource);
         Assert.Contains("if (Queued != null && !IsInsideActiveOverlay(Queued))", overlaySource);
@@ -123,7 +123,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Overlay_Source_Only_Swallows_Pointer_Input_Outside_The_Active_Overlay()
     {
-        string overlaySource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGOverlay.cs");
+        string overlaySource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGOverlay.cs"));
 
         Assert.Contains("private bool IsPointerOutsideActiveOverlay(Point pointerPosition)", overlaySource);
         Assert.Contains("if (IsModal && ActiveOverlay != null && IsPointerOutsideActiveOverlay(pointerPosition))", overlaySource);
@@ -132,7 +132,7 @@ public class FocusArchitectureTests
     [Fact]
     public void ContentPresenter_Source_Still_Parents_And_Invalidates_Cached_Children_When_Suppressing_Content_Events()
     {
-        string contentHostSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Containers\MGContentHost.cs");
+        string contentHostSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "Containers", "MGContentHost.cs"));
 
         Assert.Contains("_Content.SetParent(this);", contentHostSource);
         Assert.Contains("InvalidateVtcCache();", contentHostSource);
@@ -142,7 +142,7 @@ public class FocusArchitectureTests
     [Fact]
     public void ToggleButton_Source_Only_Toggles_When_The_Press_Started_On_That_Toggle()
     {
-        string toggleButtonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGToggleButton.cs");
+        string toggleButtonSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGToggleButton.cs"));
 
         Assert.Contains("MouseHandler.LMBPressedInside += (sender, e) =>", toggleButtonSource);
         Assert.Contains("if (PressedArgs != null)", toggleButtonSource);
@@ -152,7 +152,7 @@ public class FocusArchitectureTests
     [Fact]
     public void CheckBox_Source_Handles_Label_Clicks_Without_Double_Toggling_Button_Clicks()
     {
-        string checkBoxSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGCheckBox.cs");
+        string checkBoxSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGCheckBox.cs"));
 
         Assert.Contains("MouseHandler.LMBPressedInside += (sender, e) =>", checkBoxSource);
         Assert.Contains("MouseHandler.LMBReleasedInside += (sender, e) =>", checkBoxSource);
@@ -164,7 +164,7 @@ public class FocusArchitectureTests
     [Fact]
     public void Element_HitTesting_Allows_Hidden_Elements_That_Explicitly_Handle_Input()
     {
-        string elementSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGElement.cs");
+        string elementSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGElement.cs"));
 
         Assert.Contains("var canReceiveMouseInputWhileHidden = Visibility == Visibility.Hidden && CanHandleInputsWhileHidden;", elementSource);
         Assert.Contains("if (Visibility != Visibility.Visible && !canReceiveMouseInputWhileHidden)", elementSource);
@@ -174,7 +174,7 @@ public class FocusArchitectureTests
     [Fact]
     public void RadioButton_Source_Handles_Clicks_Directly_On_The_Control()
     {
-        string radioButtonSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGRadioButton.cs");
+        string radioButtonSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGRadioButton.cs"));
 
         Assert.Contains("MouseHandler.LMBPressedInside += (sender, e) =>", radioButtonSource);
         Assert.Contains("MouseHandler.LMBReleasedInside += (sender, e) =>", radioButtonSource);
@@ -185,7 +185,7 @@ public class FocusArchitectureTests
     [Fact]
     public void MenuBar_Source_Queues_Its_Own_Focus_Before_Opening_The_Submenu()
     {
-        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+        string menuBarSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGMenuBar.cs"));
 
         int queueFocusIndex = menuBarSource.IndexOf("GetDesktop().QueueFocusedKeyboardHandler(this, KeyboardFocusSource.Programmatic);", StringComparison.Ordinal);
         int openSubmenuIndex = menuBarSource.IndexOf("Item.OpenSubmenu();", StringComparison.Ordinal);
@@ -197,7 +197,7 @@ public class FocusArchitectureTests
     [Fact]
     public void ContextMenuItem_Source_Treats_Focused_State_As_Highlighted()
     {
-        string contextMenuItemSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenuItem.cs");
+        string contextMenuItemSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGContextMenuItem.cs"));
 
         Assert.Contains("ownerState.IsSelected", contextMenuItemSource);
         Assert.Contains("ownerState.IsFocused", contextMenuItemSource);
@@ -208,7 +208,7 @@ public class FocusArchitectureTests
     [Fact]
     public void ContextMenu_Source_Delegates_Top_Level_MenuBar_Navigation_Back_To_The_MenuBar()
     {
-        string contextMenuSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGContextMenu.cs");
+        string contextMenuSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGContextMenu.cs"));
 
         Assert.Contains("internal MGMenuBarItem OpenedFromMenuBarItem { get; set; }", contextMenuSource);
         Assert.Contains("if (OpenedFromMenuBar != null && action is UINavigationAction.MoveLeft or UINavigationAction.MoveRight or UINavigationAction.Home or UINavigationAction.End)", contextMenuSource);
@@ -218,7 +218,7 @@ public class FocusArchitectureTests
     [Fact]
     public void MenuBarItem_Source_Assigns_Its_Submenu_Back_Reference_For_Top_Level_Navigation()
     {
-        string menuBarSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\MGMenuBar.cs");
+        string menuBarSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGMenuBar.cs"));
 
         Assert.Contains("_Submenu.OpenedFromMenuBarItem = this;", menuBarSource);
     }

@@ -96,9 +96,9 @@ public class RenderContextTests
     [Fact]
     public void FirstCoreBrushes_UseContextCapabilitiesInsteadOfDrawTransactionCasts()
     {
-        string solidFillBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\FillBrushes\MGSolidFillBrush.cs");
-        string textureFillBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\FillBrushes\MGTextureFillBrush.cs");
-        string gradientBrushSource = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Brushes\FillBrushes\MGProgressBarGradientBrush.cs");
+        string solidFillBrushSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "Brushes", "FillBrushes", "MGSolidFillBrush.cs"));
+        string textureFillBrushSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "Brushes", "FillBrushes", "MGTextureFillBrush.cs"));
+        string gradientBrushSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "Brushes", "FillBrushes", "MGProgressBarGradientBrush.cs"));
 
         Assert.DoesNotContain("as MGUI.Shared.Rendering.DrawTransaction", solidFillBrushSource);
         Assert.DoesNotContain("as MGUI.Shared.Rendering.DrawTransaction", textureFillBrushSource);
@@ -111,7 +111,7 @@ public class RenderContextTests
     [Fact]
     public void RoundedShapeExtensions_TargetIUIDrawContext()
     {
-        string source = File.ReadAllText(@"d:\development\repo\MGUI\MGUI.Core\UI\Shapes\DrawTransactionBoxShapeExtensions.cs");
+        string source = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "Shapes", "DrawTransactionBoxShapeExtensions.cs"));
 
         Assert.Contains("this IUIDrawContext", source);
         Assert.DoesNotContain("this DrawTransaction", source);

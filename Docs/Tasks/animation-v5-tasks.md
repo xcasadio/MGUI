@@ -89,12 +89,12 @@ Tests, sample et docs :
 ## Validation minimale
 
 1. `dotnet build MGUI.Tests/MGUI.Tests.csproj`
-2. `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~MGUI.Tests.Animation"` pendant la tache, puis la suite complete avant le commit (reference : 2393 tests verts).
+2. `dotnet test MGUI.Tests/MGUI.Tests.csproj --no-build --filter "FullyQualifiedName~MGUI.Tests.Animation"` pendant la tache, puis la suite complete avant le commit (reference : le total du statut de la derniere tache livree).
 3. `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-incremental` quand le sample est touche.
 
 ## Taches
 
-### ⏳ Y0. Tests independants du chemin du checkout
+### ✅ Y0. Tests independants du chemin du checkout
 
 But : que les tests qui lisent les sources testent la branche sur laquelle ils tournent, et non le checkout principal.
 
@@ -111,6 +111,8 @@ Criteres d'acceptation :
 Risque connu : conflits textuels mineurs au merge avec la branche `xaml-editor`, qui modifie deux de ces tests dans sa tache X8.
 
 Commit recommande : `test: resolve the repository root from the test assembly instead of an absolute path`
+
+**Statut** (17 septembre 2026) : livree. `MGUI.Tests/TestRepository.cs` calcule la racine une seule fois ; les 143 litteraux et les six champs `RepoRoot` passent par lui ; deux tests de garde (`TestRepositoryTests`). Suite complete dans le worktree : 2395 tests verts (2393 + 2). Verification en contexte frais : confirmee. Constat P4 differe : le second test de garde ne peut echouer que si le dossier de sortie a moins de quatre niveaux ; ce sont le premier test (presence de `MGUI.sln` et du projet de test) et l'emplacement de la DLL qui lient la racine au worktree. Note : `MGUI.Tests` utilise WPF, ses usings implicites n'incluent pas `System.IO`.
 
 ### ⏳ Y1. Animations attendables : `PlayAsync` (C10)
 

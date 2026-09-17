@@ -5,7 +5,7 @@ namespace MGUI.Tests.Architecture;
 
 public class Phase4RenderingArchitectureTests
 {
-    private static readonly string RepoRoot = @"d:\development\repo\MGUI";
+    private static readonly string RepoRoot = TestRepository.Root;
     private static readonly string SharedRoot = Path.Combine(RepoRoot, "MGUI.Shared");
     private static readonly string CoreRoot = Path.Combine(RepoRoot, "MGUI.Core");
 
