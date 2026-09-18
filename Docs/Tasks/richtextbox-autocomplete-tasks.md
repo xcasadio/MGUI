@@ -16,7 +16,7 @@ Criteres MVP (taches 1 a 6) : Ctrl+Space ouvre le popup ; `<Bu` propose `Button`
 
 ## Consignes de travail pour l'agent IA
 
-- Executer les taches dans l'ordre.
+- Executer les taches dans l'ordre. Exception faite le 18 septembre 2026 : les taches 3 et 7 ont ete livrees hors ordre par le programme editeur XAML (`Docs/Tasks/xaml-editor-tasks.md`, tache X3 ; ADR-0010), qui en avait besoin pour colorer son volet texte. Les taches 1, 2, 4, 5, 6 et 8 a 10 restent a faire, dans l'ordre.
 - Faire exactement 1 commit par tache terminee.
 - Mettre a jour le statut de la tache avant chaque commit.
 - Si une tache est bloquee : statut ⛔ + description du blocage sous le titre, puis s'arreter.
@@ -80,7 +80,9 @@ Criteres d'acceptation :
 
 Commit recommande : `input: wire completion triggers and keyboard navigation`
 
-### ⚪ 3. Tokenizer XAML tolerant
+### ✅ 3. Tokenizer XAML tolerant
+
+Livree le 18 septembre 2026 par la tache X3 du programme editeur XAML : `MGUI.Core/UI/TextEditing/Xaml/` (`XamlTokenKind`, `XamlToken`, `XamlTokenizer`), tests `MGUI.Tests/Text/XamlTokenizerTests.cs`. Reserve connue : le tokenizer classe tout caractere non reconnu en `Text`, donc `XamlTokenKind.Unknown` n'a aucun producteur aujourd'hui, et les kinds `Text`, `OpenBrace`, `CloseBrace`, `Colon` et `Dot` n'ont pas d'assertion propre : a reprendre avec l'analyseur de contexte (tache 4).
 
 But :
 produire des tokens XAML reutilisables par highlighter, analyzer, diagnostics et completion.
@@ -157,7 +159,9 @@ Criteres d'acceptation :
 
 Commit recommande : `feat: add xaml completion provider`
 
-### ⚪ 7. Highlighter XAML
+### ✅ 7. Highlighter XAML
+
+Livree le 18 septembre 2026 par la tache X3 du programme editeur XAML : `XamlSyntaxHighlighter` (meme dossier), tests `MGUI.Tests/Text/XamlSyntaxHighlighterTests.cs`, mode XAML ajoute au sample `EditorRichTextBox`. Choix laisse ouvert ici et tranche la : `MGRichTextSyntaxPalette` est ETENDUE (ajouts `ElementName`, `AttributeName`, `Punctuation`, `MarkupExtension` ; `String` et `Comment` reutilises), pas de palette XAML dediee, car `MGRichTextBox` n'expose qu'une propriete `SyntaxPalette`. Le sample n'a pas de completion en mode XAML : il n'existe pas encore de provider XAML (tache 6).
 
 But :
 colorer le XAML avec le pipeline de spans non destructifs existant.

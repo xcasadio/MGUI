@@ -255,7 +255,7 @@ Rollback : `git revert` du commit (retour a la grille de X0).
 
 Commit recommande : `feat(editor): host the editor panes in the docking manager`
 
-### 🧪 X2. Hote de preview a chaud
+### ✅ X2. Hote de preview a chaud
 
 Statut (18 septembre 2026) : livree et verifiee (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2794/2794 ; sonde independante : ancrage suivi apres un deplacement de la fenetre de l'editeur, un glissement de separateur de docking et un onglet cache puis reactive ; huit documents casses n'ont jamais fait tomber l'editeur). Un constat P3 du verifier a ete corrige par la session principale : la preview forcait `Visible` et ecrasait une visibilite declaree dans le document ; la visibilite declaree est desormais restituee, correctif prouve par mutation. Limite consignee dans l'ADR-0010 : rognage d'une racine trop grande raisonne mais non couvert par un test (la validation manuelle le montre). Correctif du 18 septembre apres le premier essai de l'auteur : le volet texte n'etait relie a rien, donc taper ne rendait rien ; la liaison volet texte / session est ajoutee ci-dessous, prouvee par mutation, et elle couvre aussi le texte deja present a la construction. Reste la validation manuelle de l'auteur.
 
@@ -294,7 +294,9 @@ Rollback : suppression du fichier et du branchement.
 
 Commit recommande : `feat(editor): add the debounced hot preview host`
 
-### ⏳ X3. Volet texte : coloration XAML, marqueurs d'erreur, edition programmee annulable
+### 🧪 X3. Volet texte : coloration XAML, marqueurs d'erreur, edition programmee annulable
+
+Statut (18 septembre 2026) : livree et verifiee (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2827/2827 ; `MGUI.Samples` reconstruit `--no-incremental` et ses ressources XAML sont bien embarquees). Taches 3 et 7 du backlog RichTextBox passees a ✅, hors ordre, avec la mention correspondante dans ses consignes. Retouches de la session principale apres verification : test ajoute pour un diagnostic sans position (via `InternalsVisibleTo` de `MGUI.Editor` vers `MGUI.Tests`), marqueurs de tranche retires des commentaires, nouveaux fichiers remis en CRLF, et liste de completion rafraichie au retour en mode C# dans le sample. Reserve consignee : `XamlTokenKind.Unknown` n'a pas de producteur (tout caractere non reconnu est `Text`), a reprendre avec la tache 4 du backlog. Reste la validation manuelle de l'auteur.
 
 But : faire de `MGRichTextBox` un editeur XAML lisible qui montre les erreurs la ou elles sont.
 

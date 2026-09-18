@@ -3,6 +3,7 @@ using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Editor.Preview;
+using MGUI.Editor.Text;
 
 namespace MGUI.Editor;
 
@@ -46,6 +47,10 @@ public class XamlEditorView
     /// <summary>Renders the session's text into <see cref="PreviewPresenter"/>, hot, on the update tick of <see cref="Window"/>.
     /// Constructed last, once every pane above it exists.</summary>
     public XamlPreviewHost PreviewHost { get; }
+
+    /// <summary>Gives <see cref="TextPane"/> XAML colors and error underlines, and fills <see cref="DiagnosticsPane"/>
+    /// with the current diagnostics list. Constructed last, since it reads <see cref="PreviewHost"/>'s diagnostics.</summary>
+    public XamlEditorTextPane TextEditorPane { get; }
 
     /// <summary>The five dockables of this view, in the order text, preview, tree, properties, diagnostics.
     /// Each <see cref="DockableDefinition.ContentFactory"/> returns the matching pane instance above,
@@ -110,6 +115,7 @@ public class XamlEditorView
         };
 
         PreviewHost = new XamlPreviewHost(this);
+        TextEditorPane = new XamlEditorTextPane(this);
         BindTextPaneToSession();
     }
 

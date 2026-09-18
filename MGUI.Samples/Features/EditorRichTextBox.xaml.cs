@@ -2,6 +2,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.TextEditing;
+using MGUI.Core.UI.TextEditing.Xaml;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using System.Collections.Generic;
@@ -12,12 +13,17 @@ public sealed class EditorRichTextBoxSample : SampleBase
 {
     private const string CompletionDemoPrefix = "public cla";
     private const string CompletionDemoText = "using System;\n\nnamespace Demo\n{\n    public cla\n}";
+    private const string XamlDemoText = "<Window Width=\"200\" Height=\"100\">\n  <!-- A comment -->\n  <Button Name=\"OkButton\" Content=\"OK\" Width=\"80\" />\n</Window>";
 
     private readonly MGOverlayPanel _rootPanel;
     private readonly MGRichTextBox _editor;
     private readonly MGListBox<string> _completionList;
     private readonly MGTextBlock _statusText;
+    private readonly CSharpRichTextSyntaxHighlighter _csharpHighlighter = new();
+    private readonly XamlSyntaxHighlighter _xamlHighlighter = new();
+    private readonly CSharpKeywordCompletionProvider _csharpCompletionProvider = new();
     private string _themeName = "Dark";
+    private bool _isXamlMode;
 
     public EditorRichTextBoxSample(ContentManager content, MGDesktop desktop)
         : base(content, desktop, nameof(Features), "EditorRichTextBox.xaml")
@@ -31,8 +37,8 @@ public sealed class EditorRichTextBoxSample : SampleBase
 
         ApplyEditorTheme(EditorTheme.Dark);
 
-        _editor.SyntaxHighlighter = new CSharpRichTextSyntaxHighlighter();
-        _editor.CompletionProvider = new CSharpKeywordCompletionProvider();
+        _editor.SyntaxHighlighter = _csharpHighlighter;
+        _editor.CompletionProvider = _csharpCompletionProvider;
         SetCompletionDemoText();
 
         Window.GetElementByName<MGButton>("DarkThemeButton").AddCommandHandler((_, __) => ApplyEditorTheme(EditorTheme.Dark));
@@ -42,8 +48,48 @@ public sealed class EditorRichTextBoxSample : SampleBase
         Window.GetElementByName<MGButton>("NextCompletionButton").AddCommandHandler((_, __) => MoveCompletion(1));
         Window.GetElementByName<MGButton>("AcceptCompletionButton").AddCommandHandler((_, __) => AcceptCompletion());
         Window.GetElementByName<MGButton>("ResetTextButton").AddCommandHandler((_, __) => ResetText());
+        Window.GetElementByName<MGButton>("CSharpModeButton").AddCommandHandler((_, __) => SwitchToCSharpMode());
+        Window.GetElementByName<MGButton>("XamlModeButton").AddCommandHandler((_, __) => SwitchToXamlMode());
 
         RefreshCompletions();
+    }
+
+    /// <summary>Switches the editor back to the C# demo: its highlighter, its completion provider and its demo text.
+    /// No-op if already in C# mode.</summary>
+    private void SwitchToCSharpMode()
+    {
+        if (!_isXamlMode)
+        {
+            return;
+        }
+
+        _isXamlMode = false;
+        _editor.CompletionProvider = _csharpCompletionProvider;
+        _editor.SyntaxHighlighter = _csharpHighlighter;
+        SetCompletionDemoText();
+        //  Same state as the start-up one: the completion list is filled, instead of staying empty until the user
+        //  presses "Complete" once.
+        RefreshCompletions();
+    }
+
+    /// <summary>Switches the editor to a XAML demo: the XAML highlighter and a small XAML demo text (backlog task 7
+    /// of Docs/Tasks/richtextbox-autocomplete-tasks.md). There is no XAML completion provider yet (a later task), so
+    /// the completion provider is cleared while in this mode; the completion list simply stays empty.</summary>
+    private void SwitchToXamlMode()
+    {
+        if (_isXamlMode)
+        {
+            return;
+        }
+
+        _isXamlMode = true;
+        _editor.CompletionPopup.Close();
+        _editor.CompletionProvider = null;
+        _editor.SyntaxHighlighter = _xamlHighlighter;
+        _editor.SetText(XamlDemoText);
+        _editor.CaretIndex = XamlDemoText.Length;
+        _editor.RefreshSyntaxHighlighting();
+        SyncCompletionList();
     }
 
     private enum EditorTheme

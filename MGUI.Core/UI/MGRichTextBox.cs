@@ -195,6 +195,7 @@ public class MGRichTextBox : MGTextBox
     {
         MGTextBuffer previewBuffer = new(Text);
         var editResult = previewBuffer.ApplyEdit(range, text);
+        PushUndoState();
         SetText(previewBuffer.Text);
         SelectionState = MGTextSelectionState.EmptyAt(editResult.CaretIndexAfterEdit);
         return editResult;

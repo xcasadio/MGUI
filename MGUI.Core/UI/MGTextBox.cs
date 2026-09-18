@@ -867,6 +867,11 @@ public class MGTextBox : MGElement, ITextEntryHost
 
     private void AddUndoState(RestorableState State) => UndoStack.Push(State);
 
+    /// <summary>Extension point for a subclass that applies text edits programmatically (<see cref="MGRichTextBox.ApplyTextEdit"/>):
+    /// captures the state right before such an edit and pushes it onto the undo stack, the same way a keyboard-driven
+    /// edit does, so <see cref="TryUndo"/> can restore it afterwards.</summary>
+    private protected void PushUndoState() => AddUndoState(CreateRestorableState());
+
     private bool IsExecutingUndoRedo = false;
 
     public bool TryUndo()

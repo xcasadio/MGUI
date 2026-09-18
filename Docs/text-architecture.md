@@ -56,7 +56,11 @@ Contrat provider : `IRichTextSyntaxHighlighter.Highlight(MGRichTextHighlightCont
 
 Invariant de version : `MGRichTextBox.RefreshSyntaxHighlighting()` n'applique le resultat que si `result.Version == TextBuffer.Version` (un resultat construit sur un texte perime est ignore).
 
-`MGRichTextSyntaxPalette` porte les couleurs (`Keyword`, `String`, `Comment`, `Number`, `TypeName` ; instance `Default`). Highlighters integres, volontairement lexicaux (demos, pas des services de langage) : `CSharpRichTextSyntaxHighlighter`, `PlainTextSyntaxHighlighter`.
+`MGRichTextSyntaxPalette` porte les couleurs (`Keyword`, `String`, `Comment`, `Number`, `TypeName`, et pour le XAML `ElementName`, `AttributeName`, `Punctuation`, `MarkupExtension` ; instance `Default`). Highlighters integres, volontairement lexicaux (demos, pas des services de langage) : `CSharpRichTextSyntaxHighlighter`, `PlainTextSyntaxHighlighter`, `XamlSyntaxHighlighter`.
+
+Coloration XAML : `MGUI.Core/UI/TextEditing/Xaml/` porte un tokenizer tolerant (`XamlTokenizer.Tokenize`, jamais d'exception, meme sur `<`, `<Button` ou `<Button Width="`) et `XamlSyntaxHighlighter`, qui rend un span par token, sans recouvrement, chaque span portant une classification stable (`xaml.element-name`, `xaml.attribute-name`, `xaml.punctuation`, `xaml.string`, `xaml.comment`, `xaml.markup-extension`). Un controle n'accepte qu'un highlighter : pour ajouter des marqueurs par-dessus la coloration, on decore le highlighter (l'editeur XAML le fait pour souligner ses diagnostics) plutot que d'en poser un second.
+
+Edition programmee annulable : `MGRichTextBox.ApplyTextEdit` empile un etat d'annulation avant d'appliquer l'edition, via un point d'extension non public de `MGTextBox` (`PushUndoState`). `TryUndo` rend donc le texte et le caret d'avant une edition programmee, acceptation de completion comprise, puisqu'elle passe par le meme chemin.
 
 ```csharp
 public sealed class TodoHighlighter : IRichTextSyntaxHighlighter
@@ -145,7 +149,8 @@ Call sites stables existants (garder l'API explicite) : `MGUI.Core/UI/MGProgress
 - `ShowLineNumbers` et `TabSize` sont declaratifs : aucun rendu de gouttiere de numeros de ligne ni comportement de caret dependant de `TabSize` n'est implemente dans `MGUI.Core` (`MGTextBuffer.GetVisualColumn` existe mais n'est pas branche au controle).
 - Aucun controle popup de completion visuel reutilisable dans `MGUI.Core` : seuls le modele d'etat et le rendu ad hoc du sample existent.
 - `MGRichTextCompletionContext.TriggerCharacter` est transporte mais aucun declenchement automatique n'est cable dans `MGRichTextBox` (ouverture manuelle uniquement) ; pas de re-filtrage pendant la frappe, pas de tri des suggestions (`FilterByPrefix` filtre sans classer).
-- Les providers C# integres sont des demos lexicales, pas des services de langage.
+- Les providers C# integres sont des demos lexicales, pas des services de langage. Le highlighter XAML l'est aussi : il colore des tokens, il ne valide rien.
+- Taper ou effacer un seul caractere sans selection n'empile aucun etat d'annulation dans `MGTextBox` (seules les editions avec selection, le collage, la coupe, la duplication de ligne et les editions programmees en empilent) : `Ctrl+Z` ne defait donc pas une frappe caractere par caractere.
 - La validation de performance du scenario particle-preview cote CasaEngine.Editor est externe a ce depot et n'est pas couverte par ses tests.
 
 ## Reste a faire
