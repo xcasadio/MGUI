@@ -1,6 +1,6 @@
 # ADR-0013: One rule for keyboard focus navigation, and text entry controls as navigation targets
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-09-18
 - **Source**: this chantier: `Docs/Tasks/focus-navigation-text-entry-tasks.md`
 

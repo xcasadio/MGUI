@@ -330,7 +330,15 @@ Acceptation :
 - une text box en lecture seule, ou `AcceptsTab = false`, garde le comportement de la tache 1 ;
 - mutation : retirer la prise en compte de Ctrl rend le premier critere rouge.
 
-### ⚪ Tache 3 — documentation et ADR
+### 🧪 Tache 3 — documentation et ADR
+
+**Livree le 18 septembre 2026.** `Docs/input-architecture.md` : regle unique, depriorisation, nouveau defaut
+`AcceptsTab` et Ctrl+Tab dans les sections focus, plus une nouvelle limite connue (pas de modificateur sur le chemin
+semantique). ADR-0013 passe en `Accepted`, index mis a jour.
+`Docs/input-window-activation-design.md` : corps **non** reecrit, conformement a la regle de lecture seule des
+dossiers de conception ; une note datee est ajoutee a sa section « Statut », en suivant le precedent de cette meme
+section, pour signaler que la decision Q7 et le point 7 de la section 7 decrivent le troisieme cran de resolution tel
+qu'il etait.
 
 Perimetre : `Docs/input-architecture.md`, `Docs/decisions/0013-*.md`, ce fichier.
 
