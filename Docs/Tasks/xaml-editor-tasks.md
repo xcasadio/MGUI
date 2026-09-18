@@ -294,7 +294,7 @@ Rollback : suppression du fichier et du branchement.
 
 Commit recommande : `feat(editor): add the debounced hot preview host`
 
-### 🧪 X3. Volet texte : coloration XAML, marqueurs d'erreur, edition programmee annulable
+### ✅ X3. Volet texte : coloration XAML, marqueurs d'erreur, edition programmee annulable
 
 Statut (18 septembre 2026) : livree et verifiee (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2827/2827 ; `MGUI.Samples` reconstruit `--no-incremental` et ses ressources XAML sont bien embarquees). Taches 3 et 7 du backlog RichTextBox passees a ✅, hors ordre, avec la mention correspondante dans ses consignes. Retouches de la session principale apres verification : test ajoute pour un diagnostic sans position (via `InternalsVisibleTo` de `MGUI.Editor` vers `MGUI.Tests`), marqueurs de tranche retires des commentaires, nouveaux fichiers remis en CRLF, et liste de completion rafraichie au retour en mode C# dans le sample. Reserve consignee : `XamlTokenKind.Unknown` n'a pas de producteur (tout caractere non reconnu est `Text`), a reprendre avec la tache 4 du backlog. Reste la validation manuelle de l'auteur.
 
@@ -324,7 +324,9 @@ Rollback : ajouts additifs ; l'undo d'`ApplyTextEdit` se retire en une ligne.
 
 Commit recommande : `feat(text): add the XAML tokenizer and highlighter, error markers and undoable text edits`
 
-### ⏳ X4. Selection : arbre, clic dans la preview, adorner, synchronisation du caret
+### 🧪 X4. Selection : arbre, clic dans la preview, adorner, synchronisation du caret
+
+Statut (18 septembre 2026) : livree et verifiee (verifier en contexte frais : CONFIRMED au premier tour, avec ses propres sondes hors depot qui comparent le hit test d'outillage au vrai chemin d'entree ; suite complete 2844/2844). Retouches de la session principale apres verification : le test d'echelle construisait son point ecran avec la conversion meme que `HitTest` applique, donc il serait passe sans elle ; il est maintenant arithmetique (echelle autour du coin haut-gauche de la fenetre, `MGWindow.UpdateScaleTransforms`), garde le point hors des bounds non mis a l'echelle et echoue bien quand on retire la conversion (mutation verifiee) ; un troisieme cas de remontee a ete ajoute, le clic sur la barre de titre d'une racine `Window` previsualisee, les deux tests livres couvrant ensemble part de template et bouton interne du meme controle. Divergence assumee et tracee dans l'ADR : une selection venue du caret ne replace pas le caret, sinon elle ecrase la position posee par un clic dans la liste de diagnostics (X3). Reserve consignee : entre une frappe et la fin du debounce de la preview, l'adorner vise encore l'element de l'arbre precedent ; c'est borne a 250 ms et se corrige tout seul au re-parse. Reste la validation manuelle de l'auteur.
 
 But : selectionner un element depuis l'arbre, la preview ou le texte, les trois restant synchronises.
 
