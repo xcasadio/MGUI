@@ -10,8 +10,8 @@ namespace MGUI.Editor;
 /// pane and a diagnostics placeholder, hosted by MGUI's own docking manager through <see cref="CreateDockHost"/>.<para/>
 /// This is a plain composing class, not an <see cref="MGElement"/>: it builds its elements against the given
 /// <see cref="MGWindow"/> but does not set the window's content and does not add the window to a desktop; the host does.<para/>
-/// <see cref="PreviewHost"/> renders the session's text into <see cref="PreviewPresenter"/>, hot; no other pane has any
-/// behaviour yet: no text binding, no selection, no subscribed events beyond that preview.</summary>
+/// <see cref="TextPane"/> holds the session's text, and <see cref="PreviewHost"/> renders that text into
+/// <see cref="PreviewPresenter"/>, hot; no other pane has any behaviour yet.</summary>
 public class XamlEditorView
 {
     /// <summary>The dockable ID of <see cref="TextPane"/>.</summary>
@@ -103,6 +103,61 @@ public class XamlEditorView
         };
 
         PreviewHost = new XamlPreviewHost(this);
+        BindTextPaneToSession();
+    }
+
+    /// <summary>Set while one side of <see cref="BindTextPaneToSession"/> writes the other, so the echo it raises is ignored.</summary>
+    private bool _isSynchronizingText;
+
+    /// <summary>Makes the text pane and the session hold the same text: typing in <see cref="TextPane"/> writes
+    /// <see cref="XamlEditorSession.Text"/> (which is what drives the preview, the document model and the diagnostics),
+    /// and writing the session's text from code -- opening a file, an edit made from the property grid -- puts it back
+    /// in the pane. The session's text is always the pane's text, which <see cref="MGRichTextBox"/> normalises to LF.</summary>
+    private void BindTextPaneToSession()
+    {
+        TextPane.TextChanged += (_, _) =>
+        {
+            if (_isSynchronizingText)
+            {
+                return;
+            }
+
+            _isSynchronizingText = true;
+            try
+            {
+                Session.Text = TextPane.Text;
+            }
+            finally
+            {
+                _isSynchronizingText = false;
+            }
+        };
+
+        Session.TextChanged += (_, _) =>
+        {
+            if (_isSynchronizingText || string.Equals(TextPane.Text, Session.Text, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _isSynchronizingText = true;
+            try
+            {
+                TextPane.SetText(Session.Text);
+            }
+            finally
+            {
+                _isSynchronizingText = false;
+            }
+        };
+
+        //  A session built with text already in it (a document opened before the view exists) must reach the pane and
+        //  the preview without waiting for a first keystroke.
+        if (!string.IsNullOrEmpty(Session.Text))
+        {
+            TextPane.SetText(Session.Text);
+            PreviewHost.RequestRefresh();
+        }
     }
 
     /// <summary>Builds the dock host for this view: a registry seeing the five <see cref="Dockables"/> and the

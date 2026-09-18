@@ -334,4 +334,82 @@ public class XamlPreviewHostTests
         Assert.Null(view.PreviewHost.PreviewRoot);
         Assert.Empty(view.PreviewHost.Diagnostics);
     }
+
+    // -- The text pane is the session's text: typing renders, and writing the session writes the pane back --
+
+    /// <summary>What the user actually does: type in the "XAML" pane and wait. The text must reach the session and the
+    /// preview must render it, with no code touching <see cref="XamlEditorSession.Text"/> directly.</summary>
+    [Fact]
+    public void TypingInTheTextPane_ReachesTheSession_AndRendersThePreview()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view, _) = CreateHostedView(1280, 720);
+        string markup = "<Window xmlns=\"" + Ns + "\" Left=\"440\" Top=\"20\" Width=\"300\" Height=\"200\"><Button Content=\"Salut\" /></Window>";
+
+        view.TextPane.SetText(markup);
+
+        Assert.Equal(markup, view.Session.Text);
+        Assert.Null(view.PreviewHost.PreviewRoot);
+
+        Frame(runtime, desktop, 20);
+        Frame(runtime, desktop, 40); // past the debounce delay
+
+        MGWindow previewRoot = Assert.IsType<MGWindow>(view.PreviewHost.PreviewRoot);
+        Assert.Empty(view.PreviewHost.Diagnostics);
+        Rectangle paneBounds = view.PreviewPane.LayoutBounds;
+        Assert.Equal(new Point(paneBounds.X, paneBounds.Y), previewRoot.TopLeft);
+    }
+
+    /// <summary>The other direction, which slices X6 (grid edits) and X7 (opening a file) need: writing the session's
+    /// text puts it in the pane, and neither side echoes the other into a loop.</summary>
+    [Fact]
+    public void WritingTheSessionText_WritesTheTextPaneBack_WithoutLooping()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view, _) = CreateHostedView(1280, 720);
+
+        int sessionChanges = 0;
+        view.Session.TextChanged += (_, _) => sessionChanges++;
+        int paneChanges = 0;
+        view.TextPane.TextChanged += (_, _) => paneChanges++;
+
+        view.Session.Text = "<TextBlock xmlns=\"" + Ns + "\" Text=\"from the session\" />";
+        Frame(runtime, desktop, 20);
+
+        Assert.Equal(view.Session.Text, view.TextPane.Text);
+        Assert.Equal(1, sessionChanges);
+        Assert.Equal(1, paneChanges);
+
+        view.TextPane.SetText("<TextBlock xmlns=\"" + Ns + "\" Text=\"from the pane\" />");
+        Frame(runtime, desktop, 21);
+
+        Assert.Equal(view.TextPane.Text, view.Session.Text);
+        Assert.Equal(2, sessionChanges);
+        Assert.Equal(2, paneChanges);
+    }
+
+    /// <summary>A session whose text is already set before the view exists renders without a first keystroke.</summary>
+    [Fact]
+    public void SessionTextSetBeforeTheView_ReachesThePaneAndThePreview()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 1280, 720));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 1280, 720)
+        {
+            WindowStyle = WindowStyle.None,
+        };
+
+        XamlEditorSession session = new();
+        session.Text = "<TextBlock xmlns=\"" + Ns + "\" Text=\"opened before the view\" />";
+        XamlEditorView view = new(window, session);
+
+        MGDockHost host = view.CreateDockHost();
+        window.SetContent(host);
+        desktop.Windows.Add(window);
+
+        Assert.Equal(session.Text, view.TextPane.Text);
+
+        Frame(runtime, desktop, 0);
+        Frame(runtime, desktop, 40); // past the debounce delay
+
+        Assert.IsType<MGTextBlock>(view.PreviewHost.PreviewRoot);
+    }
 }
