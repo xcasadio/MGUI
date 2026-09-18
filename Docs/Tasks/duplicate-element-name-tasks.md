@@ -39,17 +39,23 @@ Le document de la reproduction **reste non chargeable**. Ce plan ne le fait pas 
 - P9. **Nouveau membre d'enumeration.** `XamlLoaderDiagnosticCode.DuplicateElementName`, ajoute en fin d'enumeration pour ne deplacer aucune valeur existante.
 - P10. **Un defaut jumeau est a verifier, pas a supposer.** La meme collision devrait se produire pour deux controles qui partagent un `ControlTemplate` XAML dont une part porte un `Name` : `ControlTemplateLoader.BuildStructure` appelle `Definition.Root.ToElement(...)`, donc `ApplyBaseSettings` pose le `Name` sur chaque instanciation, et `MGElement.ApplyControlTemplate` relaie l'exception (`catch { LastControlTemplateError = ...; throw; }`). Non verifie a ce stade. T1 ecrit le test ; s'il est vert sans changement, le cas est simplement documente comme non atteint, et le test reste en garde-fou.
 
-## Etat des lieux (`develop` `e633fea`, verifie dans le code)
+## Etat des lieux (`develop` `e633fea`)
 
-Chaine du defaut, de bout en bout :
+**Corrige le 18 septembre 2026 par l'execution de T1.** La chaine ecrite avant approbation, tiree de la seule lecture du code, etait fausse sur le point 3 et sur le point 4. Ce que les probes executees montrent, et ce que les tests de T1 fixent :
 
-1. `MGWindow` s'abonne a son propre `OnDirectOrNestedContentAdded` (`MGWindow.cs:1560-1562`) ; `Element_Added` fait `ElementsByName.Add(e.Name, e)` (`MGWindow.cs:1973-1976`), `Element_NameChanged` fait de meme (`MGWindow.cs:2038-2041`).
-2. `ContentTemplate.GetContent` copie le DTO en profondeur a chaque item (`Templates.cs:31`, `ObjectUtils.Copy` recopie tous les champs, `SourcePosition` comprise) et `Element.ApplyBaseSettings` repose `Element.Name = Name` sur chaque clone (`Element.cs:607-610`).
-3. Racine `Window` : `Window.CreateElementInstance` fabrique une `MGWindow` imbriquee (`Controls.cs:4150-4162`), puis `SingleContentHost.ApplyDerivedSettings` construit entierement la `ListBox`, items generes compris, avant de faire `SetContent` dessus (`Containers.cs:31-38`). `MGContentHost.InvokeContentAdded` parcourt alors tout le sous-arbre, composants compris (`MGContentHost.cs:46-67`) : le registre voit trois fois `ItemLabel` et `Dictionary.Add` leve.
-4. Racine `ListBox` : rien ne se declare, mais **pas** parce que la racine n'est pas une `Window`. Le presentateur de preview de l'editeur vit dans un groupe d'onglets de docking, et les groupes d'onglets court-circuitent la chaine `MGContentHost` (fait deja note en ADR-0010, note « X1b »). Dans un hote sans docking, la meme racine `ListBox` leverait. Le test `XamlEditorSelectionTests.AListItemTemplateClick_...` (branche `xaml-editor`) passe pour cette raison ; il a ete execute, il est vert.
-5. `ToElement` n'est dans aucun `XamlLoaderDiagnostics.Execute` : `Execute` n'enveloppe que l'analyse (`XAMLParser.cs:309-322`), et `Load<T>` appelle `ToElement` en dehors (`XAMLParser.cs:441-453`). L'`ArgumentException` du dictionnaire sort donc nue de `LoadPreview`. Sur cette branche, le seul consommateur du mode `Strict` qui la recoit est `MGXAMLDesigner.RefreshParsedContent`, qui, faute de `XamlLoaderException`, affiche `ex.Message` nu, sans code, sans source et sans position (`MGXAMLDesigner.cs:278-307`). Le symptome exact rapporte par l'auteur vient de l'autre consommateur, `XamlPreviewHost.Reparse`, dont la branche `catch (System.Exception)` fabrique un `ParseFailure` sans ligne ni colonne : ce fichier n'existe que sur `xaml-editor` (`093b274`), `develop` ne porte de l'editeur que `XamlEditorSession`, `XamlEditorView` et le modele de document. La cause, elle, est la meme et elle est dans `MGUI.Core`.
+1. `MGWindow` s'abonne a son propre `OnDirectOrNestedContentAdded` (`MGWindow.cs:1560-1562`) ; `Element_Added` indexe le nom, `Element_NameChanged` aussi (`MGWindow.cs:1973-1976`, `:2038-2041`). Verifie.
+2. `ContentTemplate.GetContent` copie le DTO en profondeur a chaque item (`Templates.cs:31`) et `Element.ApplyBaseSettings` repose `Element.Name = Name` sur chaque clone (`Element.cs:607-610`). Verifie : trois `MGTextBlock` nommes `ItemLabel` existent bien dans l'arbre, et les trois portent la meme `XamlSourcePosition` (meme `SourceName`, meme `Ordinal`).
+3. **La collision n'a pas lieu pendant le chargement.** `UIToolingService.LoadPreview` rend un arbre complet et sain, meme en mode `Strict` : ni `ParseDefinition` ni `ToElement` ne levent. Elle a lieu **a l'attachement**, quand ce sous-arbre est pose dans un hote de contenu : `MGContentHost.InvokeContentAdded` annonce alors, un par un, tous les elements du sous-arbre attache (`MGContentHost.cs:46-67`).
+4. **Ce qui decide, ce n'est pas la racine, c'est l'enveloppement.** Ce parcours est `TraverseVisualTree(IncludeSelf: false, includeComponents: true, false, false)`, et `IncludeSelf: false` saute aussi *les composants de l'element attache lui-meme* (`MGElement.cs:6123-6124`). Or `MGListBox` tient toute sa structure d'items dans ses composants : `MGTextBlock[ItemLabel] < MGBorder < MGStackPanel < MGScrollViewer < MGBorder < MGListBox[Options]`, et `MGListBox.GetChildren()` rend zero enfant. Donc :
+   - racine `Window`, ou racine `StackPanel`, ou n'importe quel element qui **enveloppe** la `ListBox` : la `ListBox` n'est plus « soi », ses composants sont parcourus, les trois `ItemLabel` sont annonces, la fenetre hote leve. Mesure : les deux cas levent.
+   - racine `ListBox` : le parcours saute les composants de la `ListBox` elle-meme, aucun `ItemLabel` n'est annonce, rien n'est indexe, le document se charge. Mesure : aucune levee, `TryGetElementByName("ItemLabel")` faux.
+   - `XAMLParser.LoadRootWindow` sur la reproduction : aucune levee non plus, parce qu'une fenetre racine n'est jamais attachee *dans* un hote de contenu. C'est pourquoi `XamlSourcePositionTests.ItemTemplate_Clones_KeepTheirOwnTemplateNodeOrdinal_ForEveryGeneratedItem`, qui utilise exactement ce motif avec `Name="ItemLabel"`, est vert depuis toujours.
+   L'explication par le docking (« les groupes d'onglets court-circuitent la chaine ») etait une hypothese empruntee a la note X1b d'ADR-0010 : elle est inutile, le docking n'y est pour rien.
+5. Consequence directe sur T3 : l'exception ne sort pas du loader, donc envelopper `ToElement` dans `XamlLoaderDiagnostics.Execute` **ne la classera pas**. C'est `presenter.SetContent(root)` qui leve, apres le retour de `LoadPreview`. Dans l'editeur, `ReplaceRoot` est appele a l'interieur du `try` de `XamlPreviewHost.Reparse`, ce qui explique exactement le `ParseFailure` sans position que l'auteur a vu. Voir « Points ouverts » O3.
+6. P10 est repondu, et par la negative : deux controles qui partagent un `ControlTemplate` XAML dont la racine porte `Name="SharedPartRoot"` ne collisionnent pas. Les parts instanciees ne portent pas ce nom comme `MGElement.Name` ; elles vivent dans `MGElement.TemplateParts`. Aucun second defaut latent de ce cote.
 
 Machinerie deja en place et reutilisee :
+
 
 - `XamlSourcePosition(SourceName, Ordinal, LineNumber, LinePosition)` est posee par `XAMLParser.StampSourcePositions` dans **les deux** modes, puis recopiee dans `MGElement.Metadata` par `Element.ApplyBaseSettings` (`Element.cs:594-599`) ; `UIToolingService.TryGetXamlSourcePosition` la relit (`UIToolingService.cs:55`, `:68`). Un clone de template garde l'`Ordinal` de son noeud declare : c'est le signal exact qui distingue « une declaration clonee » de « deux declarations ».
 - `XamlLoaderDiagnostics.ValidateKnownElementNames` lit deja le markup en `XDocument` avec `LoadOptions.SetLineInfo` et leve avec ligne et colonne.
@@ -68,20 +74,22 @@ Ecrire `Docs/decisions/0013-duplicate-element-name.md` : le registre de noms d'u
 
 Fin : le fichier existe, il est reference, aucun code touche.
 
-### ⏳ T1. `MGDuplicateElementNameException` et le registre
+### ✅ T1. `MGDuplicateElementNameException` et le registre
 
-`MGUI.Core/UI/MGDuplicateElementNameException.cs` (P1), leve par `MGWindow.Element_Added` et `MGWindow.Element_NameChanged` (P3), message construit selon P2.
+`MGUI.Core/UI/MGDuplicateElementNameException.cs` (P1), leve par `MGWindow.IndexElementName`, appele par `Element_Added` et `Element_NameChanged` (P3), message construit selon P2. `MGElement.Name` documente la regle.
 
-Tests, `MGUI.Tests/Xaml/DuplicateElementNameTests.cs` (nouveau fichier) :
+Tests, `MGUI.Tests/Xaml/DuplicateElementNameTests.cs` (nouveau fichier), six au lieu des quatre prevus : les deux ajoutes fixent l'asymetrie mesuree au point 4 de l'etat des lieux, qui est ce qui fait charger ou echouer le meme markup.
 
-1. la reproduction exacte de l'auteur (racine `Window`, `ListBox`, `ContentTemplate` avec `Name="ItemLabel"`, trois items) chargee par `UIToolingService.LoadPreview` en mode `Compatibility` leve `MGDuplicateElementNameException` ; `Name` vaut `ItemLabel`, `LineNumber` et `LinePosition` designent la declaration du `TextBlock` dans le template, le message contient `ItemLabel`, `TextBlock` et la phrase qui nomme le template ;
-2. deux elements nommes pareil declares a deux endroits differents du meme document : meme type d'exception, message de la seconde forme, positions differentes ;
-3. affectation par code de deux `Name` identiques dans une meme fenetre, sans XAML : meme type d'exception, sans position ;
-4. P10 : deux controles qui partagent un `ControlTemplate` XAML dont la racine porte un `Name`. Resultat constate, pas suppose ; le test fixe ce que le code fait aujourd'hui apres T1.
+1. la reproduction exacte de l'auteur, chargee puis **attachee** dans un presentateur de la fenetre hote (la sequence d'une preview) : `MGDuplicateElementNameException`, `Name` = `ItemLabel`, `LineNumber` et `LinePosition` = la declaration du `TextBlock` dans le template (ligne et colonne recalculees depuis le texte, independamment du parseur teste), message contenant `ItemLabel`, `TextBlock`, « declared once » et « instantiated », et **ne** contenant pas la formule des deux declarations ;
+2. le meme markup dont la racine **est** la `ListBox` : aucune levee, et rien d'indexe ;
+3. le meme markup enveloppe dans un `StackPanel` : leve comme la racine `Window` ;
+4. deux `<Button Name="Same">` declares dans un meme document, charges par `LoadRootWindow` : seconde forme du message, position de la **seconde** declaration, ordinaux differents ;
+5. deux `Name` identiques poses par code dans une meme fenetre, par le chemin du renommage : meme exception, sans position, message sans « declared at line » ;
+6. P10 : deux controles partageant un `ControlTemplate` XAML dont la racine porte un `Name`. Aucune collision ; le test prouve qu'il n'est pas vide (les deux controles portent bien ce template et tiennent chacun leurs parts) et fixe que le nom declare d'une part n'atteint jamais l'index de la fenetre.
 
-Preuve par mutation demandee pour le test 1 : en retirant la distinction d'ordinal de P2, le test qui verifie la phrase du template doit echouer.
+Preuve par mutation faite : en neutralisant la distinction d'ordinal de P2, les tests 1 et 3 echouent, les autres passent.
 
-Build de `MGUI.Tests` + filtre `FullyQualifiedName~DuplicateElementName`.
+Validation : `dotnet test` complet, 2790/2790.
 
 ### ⏳ T2. `DuplicateElementName` a l'analyse, mode `Strict`
 

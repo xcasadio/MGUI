@@ -1968,11 +1968,25 @@ public class MGWindow : MGSingleContentHost
         }
     }
 
+    /// <summary>Indexes <paramref name="Element"/> under <paramref name="Name"/>, or throws an
+    /// <see cref="MGDuplicateElementNameException"/> that explains which of the two mistakes was made. Never reached with a key the
+    /// index already holds, so <see cref="Dictionary{TKey, TValue}.Add"/>'s own "same key has already been added" message, which names
+    /// the key and nothing else, no longer surfaces (ADR-0013).</summary>
+    private void IndexElementName(string Name, MGElement Element)
+    {
+        if (ElementsByName.TryGetValue(Name, out var Existing))
+        {
+            throw new MGDuplicateElementNameException(Name, Existing, Element);
+        }
+
+        ElementsByName.Add(Name, Element);
+    }
+
     private void Element_Added(object sender, MGElement e)
     {
         if (e.Name != null)
         {
-            ElementsByName.Add(e.Name, e);
+            IndexElementName(e.Name, e);
         }
 
         if (e.ToolTip != null)
@@ -2037,7 +2051,7 @@ public class MGWindow : MGSingleContentHost
 
         if (e.NewValue != null)
         {
-            ElementsByName.Add(e.NewValue, sender as MGElement);
+            IndexElementName(e.NewValue, sender as MGElement);
         }
     }
 
