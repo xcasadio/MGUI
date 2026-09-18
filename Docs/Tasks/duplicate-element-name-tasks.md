@@ -107,19 +107,13 @@ Test ajoute a `MGUI.Tests/Architecture/XamlLoaderDiagnosticCultureTests.cs` : le
 
 Validation : `dotnet build MGUI.sln` sans erreur, `dotnet test` complet 2797/2797.
 
-### ⏳ T3. L'echec d'instanciation remonte situe
+### ⚠️ T3. L'echec remonte situe -- BLOQUEE, decision de l'auteur attendue
 
-P7 : `Execute` autour du `ToElement` de `Load<T>` (les deux surcharges) et de `LoadRootWindow` (les deux surcharges) ; branche typee dans `Classify`.
+**La premisse de T3 est refutee par la mesure faite en T1.** P7 disait : « l'echec d'instanciation devient un diagnostic situe », en enveloppant `ToElement` dans `XamlLoaderDiagnostics.Execute`. Or l'echec n'est pas un echec d'instanciation : `UIToolingService.LoadPreview` rend un arbre sain, et c'est `presenter.SetContent(root)` qui leve, apres le retour du loader (point 3 de l'etat des lieux, fixe par le test 1 de T1, qui appelle `LoadPreview` hors du bloc qui capture l'exception).
 
-Tests ajoutes a `MGUI.Tests/Xaml/DuplicateElementNameTests.cs` :
+Consequence : envelopper `ToElement` **ne classera pas** l'exception de la reproduction. T3 tel qu'approuve ne livre pas son critere d'acceptation A2. Dans l'editeur, `ReplaceRoot` est appele a l'interieur du `try` de `XamlPreviewHost.Reparse` : c'est la branche `catch (System.Exception)` qui l'attrape, d'ou le `ParseFailure` sans position rapporte par l'auteur.
 
-1. la reproduction de l'auteur chargee par `UIToolingService.LoadPreview` en mode `Strict` leve `XamlLoaderException` ; `Diagnostic.Code` vaut `DuplicateElementName`, `SourceName` est celui du document, `LineNumber` et `LinePosition` designent la declaration du `TextBlock` dans le template, le message nomme `ItemLabel` ;
-2. la meme reproduction en mode `Compatibility` leve toujours `MGDuplicateElementNameException` nue (T1 inchange) ;
-3. independance de la langue pour le cas 1.
-
-Preuve par mutation : sans la branche typee de `Classify`, le cas 1 retombe sur `ParseFailure`.
-
-Build + filtres `FullyQualifiedName~DuplicateElementName|FullyQualifiedName~XamlLoaderDiagnostic`.
+La question, et les options, sont en « Points ouverts » O3. Rien n'est ecrit pour T3 tant que l'auteur n'a pas tranche.
 
 ### ⏳ T4. Documentation
 
@@ -146,7 +140,13 @@ Aucun test.
   - `Docs/decisions/0010-xaml-editor-v1.md` et la version `xaml-editor` de `Docs/editor-architecture.md`, plus avancees que celles de `develop` : y ajouter la note « limite levee », sur le modele de celle de `4b51ca6` deja presente en ADR-0010 ;
   - `MGUI.Editor/Preview/XamlPreviewHost.cs` : le commentaire de sa branche `catch (System.Exception)` decrit une frontiere que T3 deplace (P8) ; le corriger, sans changer le code ;
   - la validation manuelle A4, qui demande l'editeur complet.
-- O2. Si P10 se revele vrai (deux controles partageant un `ControlTemplate` XAML nomme font planter la fenetre), le correctif de ce cas n'est **pas** dans ce plan : D2 interdit la tolerance, et un `Name` de part de template est un usage legitime que rien n'oblige a unifier avec le registre de fenetre. Le resultat sera documente en T4 et, s'il est bloquant, fera l'objet d'une demande separee.
+- O2. P10 est repondu par la negative (point 6 de l'etat des lieux, test 6 de T1) : deux controles partageant un `ControlTemplate` XAML nomme ne collisionnent pas, les noms declares des parts n'atteignant jamais l'index de la fenetre. Aucun second defaut latent, rien a corriger.
+- O3. **Bloquant, decision de l'auteur.** L'exception est levee a l'attachement, hors du loader : aucun emballage interne au loader ne peut la transformer en diagnostic situe. Trois facons d'obtenir quand meme un `DuplicateElementName` avec sa ligne et sa colonne dans l'editeur :
+  - **A (recommandee).** Ajouter un point d'entree public qui transforme une exception quelconque en `XamlLoaderDiagnostic` classe et situe -- en pratique rendre publique la fabrique que `XamlLoaderDiagnostics.CreateException(source, documentKind, exception)` utilise deja, plus la branche typee `MGDuplicateElementNameException -> DuplicateElementName` dans `Classify`. Un hote qui attrape une exception en posant sa preview obtient alors le meme diagnostic que le loader. Cote `xaml-editor`, l'adoption tient en une ligne dans le `catch (System.Exception)` de `XamlPreviewHost.Reparse`. Cote `develop`, `MGXAMLDesigner.RefreshParsedContent` en profite pareillement. Surface publique ajoutee : une methode.
+  - **B.** Faire porter l'attachement par le loader (une surcharge de `LoadPreview` qui recoit le conteneur cible et pose le contenu a l'interieur d'`Execute`). Plus intrusif : cela deplace la responsabilite de l'attachement, et l'editeur doit changer d'appel.
+  - **C.** Ne garder que P7, et accepter que la reproduction reste un `ParseFailure` dans l'editeur, avec toutefois le message complet de `MGDuplicateElementNameException` (nom, type, « declared once ... line 5, column 18 »). Minimal, mais l'objectif « code dedie et position » n'est atteint qu'a moitie.
+  Dans les trois cas, P7 reste utile pour les vraies defaillances d'instanciation (un convertisseur ou un setter qui leve pendant la construction) : il a ete approuve et peut etre livre avec A, B ou C.
+
 
 ## Risques
 
