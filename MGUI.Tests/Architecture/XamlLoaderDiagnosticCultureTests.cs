@@ -186,4 +186,23 @@ public class XamlLoaderDiagnosticCultureTests
 
         Assert.Equal(XamlLoaderDiagnosticCode.ParseFailure, diagnostic.Code);
     }
+
+    /// <summary>ADR-0013. The duplicate-name rule is MGUI's own and reads no library message, so it must hold identically under
+    /// either UI culture -- position included, since the position comes from the XML reader and not from an exception's text.</summary>
+    [Theory]
+    [MemberData(nameof(Cultures))]
+    public void NameDeclaredTwice_IsDuplicateElementName(string culture)
+    {
+        XamlLoaderDiagnostic diagnostic = LoadStrictExpectingFailure(culture, $"""
+            <StackPanel xmlns="{Ns}" Orientation="Vertical">
+            <Button Name="Same" />
+            <Button Name="Same" />
+            </StackPanel>
+            """);
+
+        Assert.Equal(XamlLoaderDiagnosticCode.DuplicateElementName, diagnostic.Code);
+        Assert.Equal(3, diagnostic.LineNumber);
+        Assert.Equal(2, diagnostic.LinePosition);
+        Assert.Contains("'Same'", diagnostic.Message, StringComparison.Ordinal);
+    }
 }

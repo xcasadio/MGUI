@@ -91,20 +91,21 @@ Preuve par mutation faite : en neutralisant la distinction d'ordinal de P2, les 
 
 Validation : `dotnet test` complet, 2790/2790.
 
-### ⏳ T2. `DuplicateElementName` a l'analyse, mode `Strict`
+### ✅ T2. `DuplicateElementName` a l'analyse, mode `Strict`
 
-`XamlLoaderDiagnosticCode.DuplicateElementName` (P9), `XamlLoaderDiagnostics.ValidateUniqueElementNames` (P4, P5), appel depuis `XAMLParser.ParseDefinition` apres `ValidateKnownElementNames`.
+`XamlLoaderDiagnosticCode.DuplicateElementName` ajoute en fin d'enumeration (P9), `XamlLoaderDiagnostics.ValidateUniqueElementNames` (P4, P5), appelee par `XAMLParser.ParseDefinition` juste apres `ValidateKnownElementNames`, jamais par `ParseObjectDefinition`.
 
 Tests ajoutes a `MGUI.Tests/Architecture/XamlLoaderDiagnosticsTests.cs` :
 
-1. deux `<Button Name="Same"/>` dans un document d'element, mode `Strict` : `XamlLoaderException`, code `DuplicateElementName`, ligne et colonne de la **seconde** declaration, message nommant `Same` et la ligne de la premiere ;
-2. le meme document en mode `Compatibility` : aucun `XamlLoaderException` (l'echec reste celui de T1, a l'instanciation) ;
-3. un `Name` unique declare dans un `ContentTemplate` ne declenche rien a l'analyse ;
-4. `Style Name="X"` et `VisualStateDefinition Name="X"` a cote d'un `Button Name="X"` ne declenchent rien (P5) ;
-5. `MGUI.Core/UI/Templates/BuiltInControlTemplates.xaml` charge par `ControlTemplateLoader.ParseDefinitions` en mode `Strict` reste vert (P4) ;
-6. independance de la langue : entree ajoutee a `MGUI.Tests/Architecture/XamlLoaderDiagnosticCultureTests.cs` sur le meme motif que les cas existants.
+1. deux `<Button Name="Same">` dans un document d'element, mode `Strict` : `XamlLoaderException`, code `DuplicateElementName`, ligne 4 colonne 10 (la **seconde** declaration), message nommant `Same`, `Button` et la ligne de la premiere ;
+2. le meme document en mode `Compatibility` : `ParseElementDefinition` rend le DTO sans rien lever, l'analyse seule ne construisant aucun element ;
+3. un `Name` unique declare dans un `ContentTemplate` ne declenche rien : le document le declare une fois ;
+4. `Style Name="Shared"` a cote d'un `Button Name="Shared"` ne declenche rien (P5) ;
+5. `BuiltInControlTemplates.xaml` lu depuis le depot et charge par `ControlTemplateLoader.ParseDefinitions` en mode `Strict` : vert, et le test verifie d'abord que le fichier contient bien `PART_Border` pour ne pas passer a vide (P4).
 
-Build + filtre `FullyQualifiedName~XamlLoaderDiagnostic`.
+Test ajoute a `MGUI.Tests/Architecture/XamlLoaderDiagnosticCultureTests.cs` : le meme cas sous `en-US` et `fr-FR` rend le meme code et la meme position, la regle ne lisant aucun message de bibliotheque.
+
+Validation : `dotnet build MGUI.sln` sans erreur, `dotnet test` complet 2797/2797.
 
 ### ⏳ T3. L'echec d'instanciation remonte situe
 

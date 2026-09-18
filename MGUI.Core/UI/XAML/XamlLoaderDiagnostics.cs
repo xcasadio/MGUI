@@ -27,7 +27,10 @@ public enum XamlLoaderDiagnosticCode
     InvalidValueConversion,
     MissingTemplatePart,
     MissingResource,
-    ThemeInheritanceCycle
+    ThemeInheritanceCycle,
+    /// <summary>ADR-0013: a name identifies at most one element of a window. Raised in <see cref="XamlLoaderMode.Strict"/> when one
+    /// element or window document declares the same <c>Name</c> on two elements.</summary>
+    DuplicateElementName
 }
 
 public sealed record XamlLoaderDiagnostic(
@@ -103,6 +106,70 @@ internal static class XamlLoaderDiagnostics
                 $"Unknown XAML element '{localName}'.",
                 TryGetLineNumber(element),
                 TryGetLinePosition(element));
+        }
+    }
+
+    /// <summary>ADR-0013: refuses, in <see cref="XamlLoaderMode.Strict"/>, a document that declares one <c>Name</c> on two elements --
+    /// a collision the window's index would raise much later, while attaching the built tree, and from a place that cannot say which
+    /// two declarations are at fault. Reported at the line and column of the <em>second</em> declaration, the one to rename.<para/>
+    /// Only XML elements whose local name resolves to a DTO deriving from <see cref="Element"/> count, so the <c>Name</c> of a
+    /// <see cref="Style"/>, of a <see cref="ControlTemplateDefinition"/>, of a <see cref="TemplatePartDefinition"/> or of a visual state
+    /// is out of scope -- those are keys of their own tables, not element names. Comments and attribute values do not count either,
+    /// which comes free with reading the markup as an <see cref="XDocument"/>.<para/>
+    /// Called by <see cref="XAMLParser.ParseDefinition{TDefinition}(XamlDocumentSource, MGResources, XamlLoaderMode, bool, bool)"/> only,
+    /// never for an object definition: a control template document legitimately repeats its part names from one
+    /// <see cref="ControlTemplateDefinition"/> to the next (<c>BuiltInControlTemplates.xaml</c> repeats twenty-four of them), and those
+    /// names are validated by <see cref="ValidateRequiredTemplateParts"/> instead.<para/>
+    /// A name declared once inside a template is not a duplicate here: the document declares it once. That collision only exists once
+    /// the template has been instantiated more than once, and it is <see cref="MGUI.Core.UI.MGDuplicateElementNameException"/> that
+    /// explains it.</summary>
+    internal static void ValidateUniqueElementNames(string markup, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
+    {
+        if (mode != XamlLoaderMode.Strict)
+        {
+            return;
+        }
+
+        var document = XDocument.Parse(markup, LoadOptions.SetLineInfo);
+        Dictionary<string, (int LineNumber, int LinePosition)> declared = new(StringComparer.Ordinal);
+
+        foreach (var element in document.Descendants())
+        {
+            var localName = element.Name.LocalName;
+            if (localName.Contains('.', StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var elementType = XAMLParser.ResolveElementType(localName);
+            if (elementType == null || !typeof(Element).IsAssignableFrom(elementType))
+            {
+                continue;
+            }
+
+            var nameAttribute = element.Attributes()
+                .FirstOrDefault(x => !x.IsNamespaceDeclaration
+                    && string.IsNullOrEmpty(x.Name.NamespaceName)
+                    && string.Equals(x.Name.LocalName, nameof(Element.Name), StringComparison.Ordinal));
+
+            if (nameAttribute == null || string.IsNullOrWhiteSpace(nameAttribute.Value))
+            {
+                continue;
+            }
+
+            if (declared.TryGetValue(nameAttribute.Value, out var first))
+            {
+                throw CreateException(
+                    source,
+                    documentKind,
+                    XamlLoaderDiagnosticCode.DuplicateElementName,
+                    $"Duplicate element name '{nameAttribute.Value}' on element '{localName}'. The name is already declared at " +
+                    $"line {first.LineNumber}, column {first.LinePosition}: a name may only identify one element of a window.",
+                    TryGetLineNumber(element),
+                    TryGetLinePosition(element));
+            }
+
+            declared[nameAttribute.Value] = (TryGetLineNumber(element) ?? 0, TryGetLinePosition(element) ?? 0);
         }
     }
 
