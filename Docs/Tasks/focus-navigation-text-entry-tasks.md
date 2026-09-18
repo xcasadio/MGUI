@@ -305,6 +305,16 @@ l'assertion « texte inchange » du test Ctrl+Tab n'est pas vacuine.
 
 Cette tache leve l'etat volontairement non livrable decrit dans les consignes : la branche est desormais coherente.
 
+**Correctif de suite apres verification independante (verdict CONFIRMED, deux constats consultatifs).**
+`CtrlLeft_InARichTextBox_DoesNotMoveFocus` ne discriminait rien : sa pile verticale ne donnait aucun candidat a
+`MoveLeft`, donc il passait que l'echappatoire soit limitee a Tab ou non. Rebati en disposition **horizontale** avec un
+bouton dont le centre est strictement a gauche de l'editeur ; la mutation `IsTextEntryNavigationEscape => isControlDown`
+le rend desormais rouge. Le texte du sample `MGUI.Samples/Controls/TextBox.xaml` disait encore « Pressing Tab does
+nothing » pour `AcceptsTab="False"` : corrige, et la ligne `AcceptsTab="True"` mentionne desormais Ctrl+Tab.
+
+A savoir pour la fusion : `xaml-editor` a avance jusqu'a `2eddf5c` depuis le point de fork, donc `git diff
+xaml-editor..HEAD` montre de fausses suppressions. Le vrai lot est `git diff 093b274..HEAD`.
+
 Perimetre : `MGUI.Core/UI/FocusInputPolicy.cs`, `MGUI.Core/UI/Navigation/UIFocusNavigationService.cs`,
 `MGUI.Core/UI/MGTextBox.cs` si necessaire, nouveaux tests.
 

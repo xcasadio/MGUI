@@ -315,17 +315,47 @@ public class FocusNavigationTextEntryTests
     }
 
     /// <summary>The escape is Tab-only. Ctrl+Left keeps its word-wise caret meaning rather than moving focus, which is
-    /// why the rule is expressed as one key and not as "Ctrl suspends text entry preservation".</summary>
+    /// why the rule is expressed as one key and not as "Ctrl suspends text entry preservation".<para/>
+    /// The layout is HORIZONTAL on purpose: a button whose centre is strictly left of the editor's is what gives
+    /// <see cref="UINavigationAction.MoveLeft"/> somewhere to land. In a vertical stack every element shares a left
+    /// edge, directional navigation finds no candidate, and the test would pass whether or not the escape were still
+    /// restricted to Tab.</summary>
     [Fact]
     public void CtrlLeft_InARichTextBox_DoesNotMoveFocus()
     {
-        (GraphTestRuntime runtime, MGDesktop desktop, MGRichTextBox editor, MGButton next) = CreateTabReservingPair();
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 400, 200) { WindowStyle = WindowStyle.None };
+        MGButton leftNeighbour = new(window) { PreferredWidth = 80, PreferredHeight = 40 };
+        MGRichTextBox editor = new(window) { PreferredWidth = 120, PreferredHeight = 40 };
+        MGStackPanel panel = new(window, Orientation.Horizontal)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        panel.TryAddChild(leftNeighbour);
+        panel.TryAddChild(editor);
+        window.SetContent(panel);
+        desktop.Windows.Add(window);
+        desktop.Update();
+        desktop.Update();
+
+        Assert.True(editor.AcceptsTab);
+        //  Without this, MoveLeft would have nowhere to go and the test could not fail.
+        Assert.True(leftNeighbour.ActualLayoutBounds.Center.X < editor.ActualLayoutBounds.Center.X);
+        Assert.True(desktop.IsNavigationTarget(leftNeighbour));
+
+        Point caretPoint = editor.LayoutBounds.Center;
+        AdvanceFrame(runtime, desktop, 16, caretPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 32, caretPoint);
+        AdvanceFrame(runtime, desktop, 48, caretPoint);
+        Assert.Same(editor, desktop.FocusedKeyboardHandler);
 
         KeyFrame(runtime, desktop, 64, Keys.LeftControl, Keys.Left);
         KeyFrame(runtime, desktop, 80);
 
         Assert.Same(editor, desktop.FocusedKeyboardHandler);
-        Assert.NotSame(next, desktop.FocusedKeyboardHandler);
+        Assert.NotSame(leftNeighbour, desktop.FocusedKeyboardHandler);
     }
 
     // ---- The reported bug ----------------------------------------------------------------------------------------

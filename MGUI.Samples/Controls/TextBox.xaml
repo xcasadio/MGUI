@@ -205,9 +205,9 @@
                     <TextBlock Text="This TextBox sets [c=Turquoise][i]AcceptsReturn[/i][/c]=[c=LightBlue][s=Blue]true[/s][/c]" />
                     <TextBox AcceptsReturn="True" Text="Pressing Enter will break to a new line." />
                     <TextBlock Text="This TextBox sets [c=Turquoise][i]AcceptsTab[/i][/c]=[c=LightBlue][s=Blue]false[/s][/c]" />
-                    <TextBox AcceptsTab="False" Text="Pressing Tab does nothing." />
+                    <TextBox AcceptsTab="False" Text="Pressing Tab moves focus to the next control. This is the default." />
                     <TextBlock Text="This TextBox sets [c=Turquoise][i]AcceptsTab[/i][/c]=[c=LightBlue][s=Blue]true[/s][/c]" />
-                    <TextBox AcceptsTab="True" Text="Pressing Tab inserts 4 spaces." />
+                    <TextBox AcceptsTab="True" Text="Pressing Tab inserts 4 spaces. Ctrl+Tab still moves focus out." />
                 </StackPanel>
             </DockPanel>
             <Separator/>
