@@ -1141,7 +1141,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private string _name;
-    /// <summary>Optional - can be null. If not null, the <see cref="SelfOrParentWindow"/> will index all child elements by their <see cref="Name"/>, so <see cref="Name"/>s must be unique.</summary>
+    /// <summary>Optional - can be null. If not null, the <see cref="SelfOrParentWindow"/> will index all child elements by their <see cref="Name"/>, so <see cref="Name"/>s must be unique.<para/>
+    /// A name identifies at most one element of a window (ADR-0013): a second element claiming a name the window already indexes
+    /// throws <see cref="MGDuplicateElementNameException"/>, whether the collision comes from a name declared twice in a document,
+    /// from a template that applies one declared name to every element it generates, or from an assignment made here.</summary>
     public string Name
     {
         get => _name;
@@ -1149,10 +1152,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_name != value)
             {
-                var Previous = Name;
+                var Previous = _name;
                 _name = value;
-                NotifyPropertyChanged(nameof(Name));
-                OnNameChanged?.Invoke(this, new(Previous, Name));
+                try
+                {
+                    NotifyPropertyChanged(nameof(Name));
+                    OnNameChanged?.Invoke(this, new(Previous, Name));
+                }
+                catch
+                {
+                    //  A rename a listener refused -- the window's index rejecting a duplicate, for one -- must not leave this
+                    //  element wearing the name it was denied: it would then answer to a name nothing resolves to, and would take
+                    //  the real holder's index entry with it when removed from the tree.
+                    _name = Previous;
+                    throw;
+                }
             }
         }
     }

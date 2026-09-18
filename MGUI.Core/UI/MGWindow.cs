@@ -1968,11 +1968,36 @@ public class MGWindow : MGSingleContentHost
         }
     }
 
+    /// <summary>Indexes <paramref name="Element"/> under <paramref name="Name"/>, or throws an
+    /// <see cref="MGDuplicateElementNameException"/> that explains which of the two mistakes was made. Never reached with a key the
+    /// index already holds, so <see cref="Dictionary{TKey, TValue}.Add"/>'s own "same key has already been added" message, which names
+    /// the key and nothing else, no longer surfaces (ADR-0013).</summary>
+    private void IndexElementName(string Name, MGElement Element)
+    {
+        if (ElementsByName.TryGetValue(Name, out var Existing))
+        {
+            throw new MGDuplicateElementNameException(Name, Existing, Element);
+        }
+
+        ElementsByName.Add(Name, Element);
+    }
+
+    /// <summary>Drops the entry under <paramref name="Name"/> only when it is <paramref name="Element"/>'s own. Removing by key alone
+    /// would evict a different, still-attached element that legitimately holds that name -- which happens as soon as one element
+    /// carries a name the index never gave it, for instance after a rename this window refused.</summary>
+    private void UnindexElementName(string Name, MGElement Element)
+    {
+        if (ElementsByName.TryGetValue(Name, out var Indexed) && ReferenceEquals(Indexed, Element))
+        {
+            ElementsByName.Remove(Name);
+        }
+    }
+
     private void Element_Added(object sender, MGElement e)
     {
         if (e.Name != null)
         {
-            ElementsByName.Add(e.Name, e);
+            IndexElementName(e.Name, e);
         }
 
         if (e.ToolTip != null)
@@ -2002,7 +2027,7 @@ public class MGWindow : MGSingleContentHost
     {
         if (e.Name != null)
         {
-            ElementsByName.Remove(e.Name);
+            UnindexElementName(e.Name, e);
         }
 
         if (e.ToolTip != null)
@@ -2030,14 +2055,18 @@ public class MGWindow : MGSingleContentHost
 
     private void Element_NameChanged(object sender, EventArgs<string> e)
     {
-        if (e.PreviousValue != null)
-        {
-            ElementsByName.Remove(e.PreviousValue);
-        }
+        var Element = sender as MGElement;
 
+        //  The new name is acquired before the old one is given up, so a rename this index refuses leaves it exactly as it was:
+        //  IndexElementName throws before anything has been removed, and the element keeps its previous name and its entry.
         if (e.NewValue != null)
         {
-            ElementsByName.Add(e.NewValue, sender as MGElement);
+            IndexElementName(e.NewValue, Element);
+        }
+
+        if (e.PreviousValue != null)
+        {
+            UnindexElementName(e.PreviousValue, Element);
         }
     }
 

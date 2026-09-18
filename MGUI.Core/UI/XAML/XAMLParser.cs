@@ -309,7 +309,9 @@ public class XAMLParser
         return XamlLoaderDiagnostics.Execute(Source, Mode, $"{typeof(TDefinition).Name} definition", () =>
         {
             var XAMLString = PrepareMarkup(Source, SanitizeXAMLString, ReplaceLinebreakLiterals);
-            XamlLoaderDiagnostics.ValidateKnownElementNames(XAMLString, Source, $"{typeof(TDefinition).Name} definition", Mode);
+            var ValidationDocument = XamlLoaderDiagnostics.ReadForValidation(XAMLString, Mode);
+            XamlLoaderDiagnostics.ValidateKnownElementNames(ValidationDocument, Source, $"{typeof(TDefinition).Name} definition", Mode);
+            XamlLoaderDiagnostics.ValidateUniqueElementNames(ValidationDocument, Source, $"{typeof(TDefinition).Name} definition", Mode);
 
             var Parsed = (TDefinition)ParseWithSourcePositions(Source, XAMLString);
 

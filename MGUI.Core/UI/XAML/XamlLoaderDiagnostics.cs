@@ -27,7 +27,10 @@ public enum XamlLoaderDiagnosticCode
     InvalidValueConversion,
     MissingTemplatePart,
     MissingResource,
-    ThemeInheritanceCycle
+    ThemeInheritanceCycle,
+    /// <summary>ADR-0013: a name identifies at most one element of a window. Raised in <see cref="XamlLoaderMode.Strict"/> when one
+    /// element or window document declares the same <c>Name</c> on two elements.</summary>
+    DuplicateElementName
 }
 
 public sealed record XamlLoaderDiagnostic(
@@ -37,7 +40,33 @@ public sealed record XamlLoaderDiagnostic(
     string FilePath,
     string Message,
     int? LineNumber = null,
-    int? LinePosition = null);
+    int? LinePosition = null)
+{
+    /// <summary>Describes <paramref name="exception"/> the way the loader describes the failures it raises itself: same
+    /// classification, same message selection, and the same line and column when the exception carries them.<para/>
+    /// This exists because not every failure of a document happens inside the loader. Building a tree and <em>attaching</em> it are
+    /// two steps, and the second one is outside every loader call: a name a template applies to more than one element, for instance,
+    /// is only rejected once the built tree reaches a window's index, by which time <see cref="XAMLParser"/> has long returned
+    /// (ADR-0013). A host that loads a document and then attaches it -- a designer, an editor's preview -- catches that failure
+    /// itself, and this turns it into the same <see cref="XamlLoaderDiagnostic"/> it would have shown had the loader raised it, rather
+    /// than into a bare <see cref="XamlLoaderDiagnosticCode.ParseFailure"/> carrying a runtime message and no position.<para/>
+    /// A <see cref="XamlLoaderException"/> is unwrapped rather than re-described, so its own diagnostic is returned unchanged.</summary>
+    /// <param name="exception">The failure to describe.</param>
+    /// <param name="source">The document being loaded, for <see cref="SourceName"/> and <see cref="FilePath"/>. May be null.</param>
+    /// <param name="documentKind">What was being loaded, for <see cref="DocumentKind"/> -- the caller's own word, such as "Preview".</param>
+    /// <exception cref="ArgumentNullException"><paramref name="exception"/> is null.</exception>
+    public static XamlLoaderDiagnostic FromException(Exception exception, XamlDocumentSource source, string documentKind)
+    {
+        if (exception == null)
+        {
+            throw new ArgumentNullException(nameof(exception));
+        }
+
+        return exception is XamlLoaderException loaderException
+            ? loaderException.Diagnostic
+            : XamlLoaderDiagnostics.CreateException(source, documentKind, exception).Diagnostic;
+    }
+}
 
 public sealed class XamlLoaderException : InvalidOperationException
 {
@@ -73,14 +102,22 @@ internal static class XamlLoaderDiagnostics
         }
     }
 
+    /// <summary>Reads <paramref name="markup"/> for the validations below, or returns null outside
+    /// <see cref="XamlLoaderMode.Strict"/>, where none of them run. Parsed once per load and handed to each validation, rather than
+    /// re-parsed by each: a strict load runs on every refresh of a designer or of an editor's preview.</summary>
+    internal static XDocument ReadForValidation(string markup, XamlLoaderMode mode)
+        => mode == XamlLoaderMode.Strict ? XDocument.Parse(markup, LoadOptions.SetLineInfo) : null;
+
     internal static void ValidateKnownElementNames(string markup, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
+        => ValidateKnownElementNames(ReadForValidation(markup, mode), source, documentKind, mode);
+
+    internal static void ValidateKnownElementNames(XDocument document, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
     {
-        if (mode != XamlLoaderMode.Strict)
+        if (mode != XamlLoaderMode.Strict || document == null)
         {
             return;
         }
 
-        var document = XDocument.Parse(markup, LoadOptions.SetLineInfo);
         foreach (var element in document.Descendants())
         {
             var localName = element.Name.LocalName;
@@ -103,6 +140,69 @@ internal static class XamlLoaderDiagnostics
                 $"Unknown XAML element '{localName}'.",
                 TryGetLineNumber(element),
                 TryGetLinePosition(element));
+        }
+    }
+
+    /// <summary>ADR-0013: refuses, in <see cref="XamlLoaderMode.Strict"/>, a document that declares one <c>Name</c> on two elements --
+    /// a collision the window's index would raise much later, while attaching the built tree, and from a place that cannot say which
+    /// two declarations are at fault. Reported at the line and column of the <em>second</em> declaration, the one to rename.<para/>
+    /// Only XML elements whose local name resolves to a DTO deriving from <see cref="Element"/> count, so the <c>Name</c> of a
+    /// <see cref="Style"/>, of a <see cref="ControlTemplateDefinition"/>, of a <see cref="TemplatePartDefinition"/> or of a visual state
+    /// is out of scope -- those are keys of their own tables, not element names. Comments and attribute values do not count either,
+    /// which comes free with reading the markup as an <see cref="XDocument"/>.<para/>
+    /// Called by <see cref="XAMLParser.ParseDefinition{TDefinition}(XamlDocumentSource, MGResources, XamlLoaderMode, bool, bool)"/> only,
+    /// never for an object definition: a control template document legitimately repeats its part names from one
+    /// <see cref="ControlTemplateDefinition"/> to the next (<c>BuiltInControlTemplates.xaml</c> repeats twenty-four of them), and those
+    /// names are validated by <see cref="ValidateRequiredTemplateParts"/> instead.<para/>
+    /// A name declared once inside a template is not a duplicate here: the document declares it once. That collision only exists once
+    /// the template has been instantiated more than once, and it is <see cref="MGUI.Core.UI.MGDuplicateElementNameException"/> that
+    /// explains it.</summary>
+    internal static void ValidateUniqueElementNames(XDocument document, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
+    {
+        if (mode != XamlLoaderMode.Strict || document == null)
+        {
+            return;
+        }
+
+        Dictionary<string, (int LineNumber, int LinePosition)> declared = new(StringComparer.Ordinal);
+
+        foreach (var element in document.Descendants())
+        {
+            var localName = element.Name.LocalName;
+            if (localName.Contains('.', StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var elementType = XAMLParser.ResolveElementType(localName);
+            if (elementType == null || !typeof(Element).IsAssignableFrom(elementType))
+            {
+                continue;
+            }
+
+            var nameAttribute = element.Attributes()
+                .FirstOrDefault(x => !x.IsNamespaceDeclaration
+                    && string.IsNullOrEmpty(x.Name.NamespaceName)
+                    && string.Equals(x.Name.LocalName, nameof(Element.Name), StringComparison.Ordinal));
+
+            if (nameAttribute == null || string.IsNullOrWhiteSpace(nameAttribute.Value))
+            {
+                continue;
+            }
+
+            if (declared.TryGetValue(nameAttribute.Value, out var first))
+            {
+                throw CreateException(
+                    source,
+                    documentKind,
+                    XamlLoaderDiagnosticCode.DuplicateElementName,
+                    $"Duplicate element name '{nameAttribute.Value}' on element '{localName}'. The name is already declared at " +
+                    $"line {first.LineNumber}, column {first.LinePosition}: a name may only identify one element of a window.",
+                    TryGetLineNumber(element),
+                    TryGetLinePosition(element));
+            }
+
+            declared[nameAttribute.Value] = (TryGetLineNumber(element) ?? 0, TryGetLinePosition(element) ?? 0);
         }
     }
 
@@ -268,6 +368,16 @@ internal static class XamlLoaderDiagnostics
         //  MGUI writes, and those of the base class library, which .NET does not localise, are matched. They name the specific reason of
         //  a failure and are matched first, so that reason wins over the library's generic wrapper: a setter that rejects its value with
         //  "Cannot convert ..." is a conversion failure, whatever "set property ... threw" text surrounds it.
+        //  MGUI's own failures are recognised by type, before any message is read: a duplicate element name says what it is without
+        //  a single word of its message being matched, in any language.
+        foreach (var current in EnumerateExceptionChain(exception))
+        {
+            if (current is MGDuplicateElementNameException)
+            {
+                return XamlLoaderDiagnosticCode.DuplicateElementName;
+            }
+        }
+
         foreach (var current in EnumerateExceptionChain(exception))
         {
             if (!IsParserException(current) && TryClassifyByMessage(current.Message ?? string.Empty, out var code))
