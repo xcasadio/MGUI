@@ -2,6 +2,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Editor.Preview;
 
 namespace MGUI.Editor;
 
@@ -9,7 +10,8 @@ namespace MGUI.Editor;
 /// pane and a diagnostics placeholder, hosted by MGUI's own docking manager through <see cref="CreateDockHost"/>.<para/>
 /// This is a plain composing class, not an <see cref="MGElement"/>: it builds its elements against the given
 /// <see cref="MGWindow"/> but does not set the window's content and does not add the window to a desktop; the host does.<para/>
-/// No pane has any behaviour in this slice: no text binding, no preview, no selection, no subscribed events.</summary>
+/// <see cref="PreviewHost"/> renders the session's text into <see cref="PreviewPresenter"/>, hot; no other pane has any
+/// behaviour yet: no text binding, no selection, no subscribed events beyond that preview.</summary>
 public class XamlEditorView
 {
     /// <summary>The dockable ID of <see cref="TextPane"/>.</summary>
@@ -40,6 +42,10 @@ public class XamlEditorView
     public MGPropertyGrid PropertyPane { get; }
     /// <summary>An empty placeholder for the diagnostics list; filled by a later slice.</summary>
     public MGContentPresenter DiagnosticsPane { get; }
+
+    /// <summary>Renders the session's text into <see cref="PreviewPresenter"/>, hot, on the update tick of <see cref="Window"/>.
+    /// Constructed last, once every pane above it exists.</summary>
+    public XamlPreviewHost PreviewHost { get; }
 
     /// <summary>The five dockables of this view, in the order text, preview, tree, properties, diagnostics.
     /// Each <see cref="DockableDefinition.ContentFactory"/> returns the matching pane instance above,
@@ -95,6 +101,8 @@ public class XamlEditorView
             new(PropertiesDockableId, "Properties") { ContentFactory = () => PropertyPane, CanClose = false, CanFloat = true, CanAutoHide = true },
             new(DiagnosticsDockableId, "Diagnostics") { ContentFactory = () => DiagnosticsPane, CanClose = false, CanFloat = true, CanAutoHide = true },
         };
+
+        PreviewHost = new XamlPreviewHost(this);
     }
 
     /// <summary>Builds the dock host for this view: a registry seeing the five <see cref="Dockables"/> and the

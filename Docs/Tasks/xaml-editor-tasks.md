@@ -193,7 +193,7 @@ Rollback : retour a `XamlServices.Parse` ; les ajouts sont additifs.
 
 Commit recommande : `feat(xaml): stamp loader source positions and add the editor document model`
 
-### 🧪 X1b. Coquille en docking
+### ✅ X1b. Coquille en docking
 
 Statut (17 septembre 2026) : livree et verifiee (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2404/2404 ; sonde independante du verifier : changements d'onglet, flottement et re-dock de chaque volet flottant, auto-hide, redimensionnements, sans exception ni contenu de repli d'erreur). Reste la validation manuelle de l'auteur ci-dessous. Deux comportements du docking de `MGUI.Core`, mesures et consignes dans l'ADR-0010, a connaitre pour la suite : un volet qui redevient actif recoit trois `OnParentChanged` (attache, detache, re-attache) : les gestionnaires de X2 et de X5 doivent etre idempotents et lire le `Parent` final ; des cycles flottement / re-dock repetes regroupaient peu a peu tous les volets dans un seul groupe d'onglets, ce que la fusion de `develop` du 18 septembre (groupes fantomes, ADR-0012) corrige : un volet revient desormais a sa place d'origine. Defaut trouve par l'auteur au premier lancement (theme `Dark`, decision 11) : le bleu d'effacement du jeu apparaissait dans les volets « Preview » et « Diagnostics » et dans les bandes d'onglets. Cause : `WindowStyle.None` rend le fond d'une fenetre transparent par conception (fenetres HUD) et ces zones du docking ne peignent aucun fond. Corrige dans le Host seulement (choix de l'auteur) : la fenetre de l'editeur recoit le fond de fenetre du theme apres `WindowStyle.None` ; sonde hors depot : fond transparent sans la correction, rgb(30,30,30) avec, identique a une fenetre `Dark` standard ; suite 2404/2404.
 
@@ -255,7 +255,9 @@ Rollback : `git revert` du commit (retour a la grille de X0).
 
 Commit recommande : `feat(editor): host the editor panes in the docking manager`
 
-### ⏳ X2. Hote de preview a chaud
+### 🧪 X2. Hote de preview a chaud
+
+Statut (18 septembre 2026) : livree et verifiee (verifier en contexte frais : CONFIRMED au premier tour ; suite complete 2794/2794 ; sonde independante : ancrage suivi apres un deplacement de la fenetre de l'editeur, un glissement de separateur de docking et un onglet cache puis reactive ; huit documents casses n'ont jamais fait tomber l'editeur). Un constat P3 du verifier a ete corrige par la session principale : la preview forcait `Visible` et ecrasait une visibilite declaree dans le document ; la visibilite declaree est desormais restituee, correctif prouve par mutation. Limites consignees dans l'ADR-0010 : pas de rafraichissement initial a la construction (X7 devra appeler `RequestRefresh` a l'ouverture d'un fichier), rognage d'une racine trop grande raisonne mais non couvert par un test (la validation manuelle le montre). Reste la validation manuelle de l'auteur.
 
 But : rendre le texte de la session dans le volet preview, a chaud, sans jamais casser l'editeur.
 
