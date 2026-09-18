@@ -40,7 +40,33 @@ public sealed record XamlLoaderDiagnostic(
     string FilePath,
     string Message,
     int? LineNumber = null,
-    int? LinePosition = null);
+    int? LinePosition = null)
+{
+    /// <summary>Describes <paramref name="exception"/> the way the loader describes the failures it raises itself: same
+    /// classification, same message selection, and the same line and column when the exception carries them.<para/>
+    /// This exists because not every failure of a document happens inside the loader. Building a tree and <em>attaching</em> it are
+    /// two steps, and the second one is outside every loader call: a name a template applies to more than one element, for instance,
+    /// is only rejected once the built tree reaches a window's index, by which time <see cref="XAMLParser"/> has long returned
+    /// (ADR-0013). A host that loads a document and then attaches it -- a designer, an editor's preview -- catches that failure
+    /// itself, and this turns it into the same <see cref="XamlLoaderDiagnostic"/> it would have shown had the loader raised it, rather
+    /// than into a bare <see cref="XamlLoaderDiagnosticCode.ParseFailure"/> carrying a runtime message and no position.<para/>
+    /// A <see cref="XamlLoaderException"/> is unwrapped rather than re-described, so its own diagnostic is returned unchanged.</summary>
+    /// <param name="exception">The failure to describe.</param>
+    /// <param name="source">The document being loaded, for <see cref="SourceName"/> and <see cref="FilePath"/>. May be null.</param>
+    /// <param name="documentKind">What was being loaded, for <see cref="DocumentKind"/> -- the caller's own word, such as "Preview".</param>
+    /// <exception cref="ArgumentNullException"><paramref name="exception"/> is null.</exception>
+    public static XamlLoaderDiagnostic FromException(Exception exception, XamlDocumentSource source, string documentKind)
+    {
+        if (exception == null)
+        {
+            throw new ArgumentNullException(nameof(exception));
+        }
+
+        return exception is XamlLoaderException loaderException
+            ? loaderException.Diagnostic
+            : XamlLoaderDiagnostics.CreateException(source, documentKind, exception).Diagnostic;
+    }
+}
 
 public sealed class XamlLoaderException : InvalidOperationException
 {
@@ -342,6 +368,16 @@ internal static class XamlLoaderDiagnostics
         //  MGUI writes, and those of the base class library, which .NET does not localise, are matched. They name the specific reason of
         //  a failure and are matched first, so that reason wins over the library's generic wrapper: a setter that rejects its value with
         //  "Cannot convert ..." is a conversion failure, whatever "set property ... threw" text surrounds it.
+        //  MGUI's own failures are recognised by type, before any message is read: a duplicate element name says what it is without
+        //  a single word of its message being matched, in any language.
+        foreach (var current in EnumerateExceptionChain(exception))
+        {
+            if (current is MGDuplicateElementNameException)
+            {
+                return XamlLoaderDiagnosticCode.DuplicateElementName;
+            }
+        }
+
         foreach (var current in EnumerateExceptionChain(exception))
         {
             if (!IsParserException(current) && TryClassifyByMessage(current.Message ?? string.Empty, out var code))

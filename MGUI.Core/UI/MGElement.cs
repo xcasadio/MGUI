@@ -1152,10 +1152,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             if (_name != value)
             {
-                var Previous = Name;
+                var Previous = _name;
                 _name = value;
-                NotifyPropertyChanged(nameof(Name));
-                OnNameChanged?.Invoke(this, new(Previous, Name));
+                try
+                {
+                    NotifyPropertyChanged(nameof(Name));
+                    OnNameChanged?.Invoke(this, new(Previous, Name));
+                }
+                catch
+                {
+                    //  A rename a listener refused -- the window's index rejecting a duplicate, for one -- must not leave this
+                    //  element wearing the name it was denied: it would then answer to a name nothing resolves to, and would take
+                    //  the real holder's index entry with it when removed from the tree.
+                    _name = Previous;
+                    throw;
+                }
             }
         }
     }

@@ -356,4 +356,137 @@ public class DuplicateElementNameTests
         Assert.Empty(window.TraverseVisualTree(true, true, true, true).Where(x => x.Name == "SharedPartRoot"));
         Assert.False(window.TryGetElementByName("SharedPartRoot", out _));
     }
+
+    // -- 5. what a host gets when it catches the attachment failure (ADR-0013, option A) --
+
+    /// <summary>The failure of the report is raised outside every loader call, so no wrapping inside the loader can classify it.
+    /// A host that attaches a loaded tree itself catches it and asks for the same description the loader would have produced.</summary>
+    [Fact]
+    public void AHostThatCatchesTheAttachment_GetsTheSameDiagnosticTheLoaderWouldHaveGiven()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+        XamlDocumentSource source = XamlDocumentSource.FromString(WindowRootMarkup, "repro.xaml");
+
+        // The loader itself succeeds: this is the whole point.
+        MGElement root = UIToolingService.LoadPreview(host, source, null, XamlLoaderMode.Strict, false, true);
+
+        Exception thrown = Record.Exception(() => presenter.SetContent(root));
+        Assert.IsType<MGDuplicateElementNameException>(thrown);
+
+        XamlLoaderDiagnostic diagnostic = XamlLoaderDiagnostic.FromException(thrown, source, "Preview");
+
+        Assert.Equal(XamlLoaderDiagnosticCode.DuplicateElementName, diagnostic.Code);
+        Assert.Equal("repro.xaml", diagnostic.SourceName);
+        Assert.Equal("Preview", diagnostic.DocumentKind);
+
+        (int Line, int Column) expected = LocateTagPosition(WindowRootMarkup, "<TextBlock Name=\"ItemLabel\"");
+        Assert.Equal(expected.Line, diagnostic.LineNumber);
+        Assert.Equal(expected.Column, diagnostic.LinePosition);
+        Assert.Contains("ItemLabel", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>A XamlLoaderException is unwrapped, not re-described: its own diagnostic comes back untouched.</summary>
+    [Fact]
+    public void FromException_OnALoaderException_ReturnsItsOwnDiagnosticUnchanged()
+    {
+        XamlDocumentSource source = XamlDocumentSource.FromString(TwoDeclarationsMarkup, "twice.xaml");
+
+        XamlLoaderException thrown = Assert.Throws<XamlLoaderException>(() =>
+            XAMLParser.ParseElementDefinition(source, null, XamlLoaderMode.Strict, false, true));
+
+        Assert.Same(thrown.Diagnostic, XamlLoaderDiagnostic.FromException(thrown, source, "Preview"));
+    }
+
+    // -- 6. a rename the index refuses leaves nothing behind (ADR-0013) ------
+
+    [Fact]
+    public void ARefusedRename_LeavesBothElementsAndTheIndexExactlyAsTheyWere()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 400, 300);
+        desktop.Windows.Add(window);
+
+        MGStackPanel panel = new(window, Orientation.Vertical);
+        window.SetContent(panel);
+
+        MGTextBlock a = new(window, "A") { Name = "X" };
+        MGTextBlock b = new(window, "B") { Name = "Y" };
+        Assert.True(panel.TryAddChild(a));
+        Assert.True(panel.TryAddChild(b));
+
+        Assert.Throws<MGDuplicateElementNameException>(() => a.Name = "Y");
+
+        // A keeps the name it had, and the entry that resolves to it; B is untouched.
+        Assert.Equal("X", a.Name);
+        Assert.True(window.TryGetElementByName("X", out MGElement stillA));
+        Assert.Same(a, stillA);
+        Assert.True(window.TryGetElementByName("Y", out MGElement stillB));
+        Assert.Same(b, stillB);
+
+        // And removing A afterwards does not take B's entry with it.
+        Assert.True(panel.TryRemoveChild(a));
+        Assert.False(window.TryGetElementByName("X", out _));
+        Assert.True(window.TryGetElementByName("Y", out MGElement bAgain));
+        Assert.Same(b, bAgain);
+    }
+
+    [Fact]
+    public void ARenameTheIndexAccepts_FreesTheOldNameAndResolvesTheNewOne()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 400, 300);
+        desktop.Windows.Add(window);
+
+        MGStackPanel panel = new(window, Orientation.Vertical);
+        window.SetContent(panel);
+
+        MGTextBlock a = new(window, "A") { Name = "X" };
+        Assert.True(panel.TryAddChild(a));
+
+        a.Name = "Z";
+
+        Assert.False(window.TryGetElementByName("X", out _));
+        Assert.True(window.TryGetElementByName("Z", out MGElement renamed));
+        Assert.Same(a, renamed);
+
+        // The freed name is available again, and taking it does not disturb the renamed element.
+        MGTextBlock c = new(window, "C") { Name = "X" };
+        Assert.True(panel.TryAddChild(c));
+        Assert.True(window.TryGetElementByName("X", out MGElement taken));
+        Assert.Same(c, taken);
+        Assert.True(window.TryGetElementByName("Z", out _));
+    }
+
+    /// <summary>The other way an element ends up carrying a name the index never gave it: the add that would have indexed it was
+    /// refused, and the element stayed in the tree anyway. Removing it must not take the real holder's entry with it.</summary>
+    [Fact]
+    public void RemovingAnElementWhoseNameTheIndexNeverAccepted_LeavesTheRealHolderIndexed()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 400, 300);
+        desktop.Windows.Add(window);
+
+        MGStackPanel panel = new(window, Orientation.Vertical);
+        window.SetContent(panel);
+
+        MGTextBlock holder = new(window, "holder") { Name = "X" };
+        Assert.True(panel.TryAddChild(holder));
+
+        MGTextBlock intruder = new(window, "intruder") { Name = "X" };
+        Assert.Throws<MGDuplicateElementNameException>(() => panel.TryAddChild(intruder));
+
+        // The refused add left the intruder in the tree, still carrying the name, but never indexed under it.
+        Assert.Contains(intruder, panel.Children);
+        Assert.Equal("X", intruder.Name);
+        Assert.True(window.TryGetElementByName("X", out MGElement indexed));
+        Assert.Same(holder, indexed);
+
+        // Removing it must drop nothing: the entry under "X" is the holder's, not its own.
+        Assert.True(panel.TryRemoveChild(intruder));
+        Assert.True(window.TryGetElementByName("X", out MGElement stillTheHolder));
+        Assert.Same(holder, stillTheHolder);
+    }
 }

@@ -8,7 +8,7 @@ Un document XAML dont la racine est `Window` et qui pose `Name` sur un element d
 - un nom declare deux fois dans le document est detecte des l'analyse, en mode `Strict`, sous un code dedie `DuplicateElementName`, avec la ligne et la colonne de la seconde declaration ;
 - l'echec qui n'apparait qu'a l'instanciation (un template clone une seule declaration) remonte lui aussi sous `DuplicateElementName`, avec la position de la declaration du template, au lieu d'un `ParseFailure` nu.
 
-Decisions : ADR-0013 (ecrite en T0, statut `Proposed`, passee `Accepted` en T5).
+Decisions : ADR-0013 (ecrite en T0, statut `Proposed`, passee `Accepted` avec les decisions 6 et 7 apres la revue).
 
 ## Historique du fichier
 
@@ -107,13 +107,28 @@ Test ajoute a `MGUI.Tests/Architecture/XamlLoaderDiagnosticCultureTests.cs` : le
 
 Validation : `dotnet build MGUI.sln` sans erreur, `dotnet test` complet 2797/2797.
 
-### ⚠️ T3. L'echec remonte situe -- BLOQUEE, decision de l'auteur attendue
+### ✅ T3. Un hote decrit l'echec qu'il attrape lui-meme
 
-**La premisse de T3 est refutee par la mesure faite en T1.** P7 disait : « l'echec d'instanciation devient un diagnostic situe », en enveloppant `ToElement` dans `XamlLoaderDiagnostics.Execute`. Or l'echec n'est pas un echec d'instanciation : `UIToolingService.LoadPreview` rend un arbre sain, et c'est `presenter.SetContent(root)` qui leve, apres le retour du loader (point 3 de l'etat des lieux, fixe par le test 1 de T1, qui appelle `LoadPreview` hors du bloc qui capture l'exception).
+La premisse de T3 telle qu'approuvee etait fausse, et la mesure faite en T1 l'a montre : l'echec n'est pas un echec d'instanciation. `UIToolingService.LoadPreview` rend un arbre sain ; c'est `presenter.SetContent(root)` qui leve, apres le retour du loader. P7 est donc retire : envelopper `ToElement` dans `Execute` ne classe rien ici, et elargirait la surface publique sans contrepartie.
 
-Consequence : envelopper `ToElement` **ne classera pas** l'exception de la reproduction. T3 tel qu'approuve ne livre pas son critere d'acceptation A2. Dans l'editeur, `ReplaceRoot` est appele a l'interieur du `try` de `XamlPreviewHost.Reparse` : c'est la branche `catch (System.Exception)` qui l'attrape, d'ou le `ParseFailure` sans position rapporte par l'auteur.
+Option A retenue par l'auteur : `XamlLoaderDiagnostic.FromException(exception, source, documentKind)` devient publique. Elle classe et situe n'importe quelle exception exactement comme le loader le fait pour les siennes, et rend tel quel le diagnostic d'un `XamlLoaderException`. `Classify` reconnait `MGDuplicateElementNameException` **par son type**, avant toute lecture de message, donc independamment de la langue.
 
-La question, et les options, sont en « Points ouverts » O3. Rien n'est ecrit pour T3 tant que l'auteur n'a pas tranche.
+Tests ajoutes a `MGUI.Tests/Xaml/DuplicateElementNameTests.cs` :
+
+1. la reproduction chargee en mode `Strict` (qui reussit), attachee (qui leve), puis decrite par `FromException` : code `DuplicateElementName`, `SourceName` = `repro.xaml`, `DocumentKind` = `Preview`, ligne et colonne de la declaration du `TextBlock` dans le template, message nommant `ItemLabel` ;
+2. `FromException` sur un `XamlLoaderException` rend son propre diagnostic, la meme instance.
+
+Cote `xaml-editor`, l'adoption tient en une ligne dans le `catch (System.Exception)` de `XamlPreviewHost.Reparse` (O1).
+
+### ✅ T3b. Un renommage refuse ne laisse rien derriere lui (O4)
+
+Trois correctifs, decides par l'auteur apres la revue :
+
+- `MGWindow.Element_NameChanged` acquiert le nouveau nom **avant** d'abandonner l'ancien : un renommage refuse laisse l'index tel qu'il etait ;
+- `MGWindow.UnindexElementName` ne retire une entree que si elle designe bien cet element (`ReferenceEquals`), au lieu de retirer par cle ;
+- `MGElement.Name` restaure sa valeur precedente quand un abonne refuse le changement, pour que l'element ne porte jamais un nom que rien ne resout.
+
+Tests : un renommage refuse laisse les deux elements et l'index intacts, et retirer l'element ensuite n'evince pas l'entree du voisin ; un renommage accepte libere l'ancien nom et le rend reattribuable ; retirer un element dont le nom n'a jamais ete accepte par l'index laisse le detenteur reel indexe. Preuve par mutation des trois garde-fous : neutraliser la restauration fait echouer le premier test, neutraliser le controle d'identite fait echouer le troisieme.
 
 ### ⏳ T4. Documentation
 
@@ -141,13 +156,13 @@ Aucun test.
   - `MGUI.Editor/Preview/XamlPreviewHost.cs` : c'est sa branche `catch (System.Exception)` qui attrape l'exception, parce que `ReplaceRoot` est appele dans son `try` ; selon l'option retenue en O3, une ligne y suffit pour obtenir un diagnostic situe ;
   - la validation manuelle A4, qui demande l'editeur complet.
 - O2. P10 est repondu par la negative (point 6 de l'etat des lieux, test 6 de T1) : deux controles partageant un `ControlTemplate` XAML nomme ne collisionnent pas, les noms declares des parts n'atteignant jamais l'index de la fenetre. Aucun second defaut latent, rien a corriger.
-- O3. **Bloquant, decision de l'auteur.** L'exception est levee a l'attachement, hors du loader : aucun emballage interne au loader ne peut la transformer en diagnostic situe. Trois facons d'obtenir quand meme un `DuplicateElementName` avec sa ligne et sa colonne dans l'editeur :
+- O3. **Tranche par l'auteur le 18 septembre 2026 : option A**, livree en T3. Enonce d'origine : L'exception est levee a l'attachement, hors du loader : aucun emballage interne au loader ne peut la transformer en diagnostic situe. Trois facons d'obtenir quand meme un `DuplicateElementName` avec sa ligne et sa colonne dans l'editeur :
   - **A (recommandee).** Ajouter un point d'entree public qui transforme une exception quelconque en `XamlLoaderDiagnostic` classe et situe -- en pratique rendre publique la fabrique que `XamlLoaderDiagnostics.CreateException(source, documentKind, exception)` utilise deja, plus la branche typee `MGDuplicateElementNameException -> DuplicateElementName` dans `Classify`. Un hote qui attrape une exception en posant sa preview obtient alors le meme diagnostic que le loader. Cote `xaml-editor`, l'adoption tient en une ligne dans le `catch (System.Exception)` de `XamlPreviewHost.Reparse`. Cote `develop`, `MGXAMLDesigner.RefreshParsedContent` en profite pareillement. Surface publique ajoutee : une methode.
   - **B.** Faire porter l'attachement par le loader (une surcharge de `LoadPreview` qui recoit le conteneur cible et pose le contenu a l'interieur d'`Execute`). Plus intrusif : cela deplace la responsabilite de l'attachement, et l'editeur doit changer d'appel.
   - **C.** Ne garder que P7, et accepter que la reproduction reste un `ParseFailure` dans l'editeur, avec toutefois le message complet de `MGDuplicateElementNameException` (nom, type, « declared once ... line 5, column 18 »). Minimal, mais l'objectif « code dedie et position » n'est atteint qu'a moitie.
   Dans les trois cas, P7 reste utile pour les vraies defaillances d'instanciation (un convertisseur ou un setter qui leve pendant la construction) : il a ete approuve et peut etre livre avec A, B ou C.
 
-- O4. **Defaut preexistant, hors perimetre approuve, remonte par la revue.** Un renommage refuse laisse l'index dans un etat faux, et une suppression ulterieure evince l'entree d'un element voisin qui, lui, n'a rien demande. Mecanique : `MGElement.Name` ecrit `_name` **avant** de lever `OnNameChanged` (`MGElement.cs:1148-1161`), et `MGWindow.Element_NameChanged` retire l'ancienne cle **avant** d'essayer de poser la nouvelle (`MGWindow.cs:2045-2056`). Si la nouvelle cle est prise, l'exception part : l'element porte desormais le nom refuse et n'est indexe sous aucun des deux. Plus tard, `Element_Removed` fait `ElementsByName.Remove(e.Name)` sans verifier que l'entree sous cette cle est bien cet element (`MGWindow.cs:2015-2020`) : il efface celle du voisin legitime, qui devient introuvable par `GetElementByName` et casse un `{MGBinding ElementName=...}` qui pointait dessus. Verifie identique sur `develop` avant ce chantier : seul le **type** d'exception levee a change. Mais ce chantier rend justement cette collision documentee, typee et rattrapable, donc le scenario « l'appelant attrape et continue » devient plausible. Correctif tenu en trois lignes (ne retirer une entree que si elle designe bien cet element ; ne retirer l'ancienne cle qu'une fois la nouvelle acquise), mais c'est une modification de comportement du registre, que D2 n'a pas couverte. Decision de l'auteur attendue.
+- O4. **Tranche par l'auteur le 18 septembre 2026 : corrige dans ce chantier**, livre en T3b. Enonce d'origine : Un renommage refuse laisse l'index dans un etat faux, et une suppression ulterieure evince l'entree d'un element voisin qui, lui, n'a rien demande. Mecanique : `MGElement.Name` ecrit `_name` **avant** de lever `OnNameChanged` (`MGElement.cs:1148-1161`), et `MGWindow.Element_NameChanged` retire l'ancienne cle **avant** d'essayer de poser la nouvelle (`MGWindow.cs:2045-2056`). Si la nouvelle cle est prise, l'exception part : l'element porte desormais le nom refuse et n'est indexe sous aucun des deux. Plus tard, `Element_Removed` fait `ElementsByName.Remove(e.Name)` sans verifier que l'entree sous cette cle est bien cet element (`MGWindow.cs:2015-2020`) : il efface celle du voisin legitime, qui devient introuvable par `GetElementByName` et casse un `{MGBinding ElementName=...}` qui pointait dessus. Verifie identique sur `develop` avant ce chantier : seul le **type** d'exception levee a change. Mais ce chantier rend justement cette collision documentee, typee et rattrapable, donc le scenario « l'appelant attrape et continue » devient plausible. Correctif tenu en trois lignes (ne retirer une entree que si elle designe bien cet element ; ne retirer l'ancienne cle qu'une fois la nouvelle acquise), mais c'est une modification de comportement du registre, que D2 n'a pas couverte. Decision de l'auteur attendue.
 
 
 ## Risques
