@@ -324,18 +324,16 @@ public class XAMLParser
         });
     }
 
-    /// <summary>X1: equivalent of <c>XamlServices.Parse(XAMLString)</c>, built from the reader/writer pair directly so that the
+    /// <summary>Equivalent of <c>XamlServices.Parse(XAMLString)</c>, built from the reader/writer pair directly so that the
     /// position of every <see cref="Element"/>-derived object element can be captured and stamped on the DTO it produced.<para/>
     /// While reading, two lists are filled in parallel: the (line, column) of every <c>StartObject</c> node whose <see cref="System.Xaml.XamlType.UnderlyingType"/>
     /// derives from <see cref="Element"/>, and every <see cref="Element"/> instance seen by <c>BeforePropertiesHandler</c> (not
     /// <c>AfterBeginInitHandler</c>, which Portable.Xaml never raises for these DTOs since they are not <see cref="System.ComponentModel.ISupportInitialize"/>).
     /// Positions are stamped only once the loop is over, by <see cref="StampSourcePositions"/>, so a count mismatch stamps nothing at all.<para/>
-    /// Line info is captured on the reader (<c>ProvideLineInfo = true</c>) but deliberately <b>not</b> forwarded to the writer via
-    /// <see cref="System.Xaml.IXamlLineInfoConsumer"/>, unlike <c>XamlServices.Transform</c>: forwarding it changed the message of a
-    /// <see cref="System.Xaml.XamlObjectWriterException"/> (a duplicate-member or unknown-member failure gains a
-    /// "line X position Y" prefix XamlServices.Parse never produced), which broke existing loader-diagnostic tests that assert on an
-    /// exact substring of the exception message. X1 decision (see ADR-0010): keep <c>ProvideLineInfo</c> for position capture only, so
-    /// every existing test keeps seeing byte-identical exception messages.<para/>
+    /// Line info captured on the reader (<c>ProvideLineInfo = true</c>) is also forwarded to the writer via
+    /// <see cref="System.Xaml.IXamlLineInfoConsumer.SetLineInfo"/>, exactly as <c>XamlServices.Transform</c> does, so that a failure the
+    /// writer raises while building an object (a value that cannot be converted, a setter that throws) carries a line and a column on
+    /// its own <see cref="System.Xaml.XamlObjectWriterException"/> instead of leaving it unlocated.<para/>
     /// Disposal note: the reader and the writer are disposed only after a <em>successful</em> loop. Disposing a <see cref="System.Xaml.XamlObjectWriter"/>
     /// that failed mid-write throws its own "CurrentObject missing before EndObject" <see cref="System.Xaml.XamlObjectWriterException"/>,
     /// which -- thrown from a <c>finally</c> block while the real failure is already unwinding -- replaces that real failure instead of
@@ -360,6 +358,10 @@ public class XAMLParser
         };
         var Writer = new XamlObjectWriter(Reader.SchemaContext, WriterSettings);
 
+        IXamlLineInfo LineInfo = Reader as IXamlLineInfo;
+        IXamlLineInfoConsumer Consumer = Writer as IXamlLineInfoConsumer;
+        bool Forward = LineInfo != null && Consumer != null && LineInfo.HasLineInfo && Consumer.ShouldProvideLineInfo;
+
         while (Reader.Read())
         {
             if (Reader.NodeType == XamlNodeType.StartObject)
@@ -369,6 +371,11 @@ public class XAMLParser
                 {
                     Positions.Add((Reader.LineNumber, Reader.LinePosition));
                 }
+            }
+
+            if (Forward && LineInfo.LineNumber != 0)
+            {
+                Consumer.SetLineInfo(LineInfo.LineNumber, LineInfo.LinePosition);
             }
 
             Writer.WriteNode(Reader);
@@ -381,7 +388,7 @@ public class XAMLParser
         return Result;
     }
 
-    /// <summary>X1: pairs the k-th captured <c>StartObject</c> position with the k-th <see cref="Element"/> instance
+    /// <summary>Pairs the k-th captured <c>StartObject</c> position with the k-th <see cref="Element"/> instance
     /// <c>BeforePropertiesHandler</c> saw, in the order both were recorded during the reader/writer loop, and stamps
     /// <see cref="Element.SourcePosition"/> on each. When <paramref name="positions"/> and <paramref name="instances"/> do not have the
     /// same length, nothing is stamped at all and this returns <see langword="false"/>: a missing position is acceptable, a wrong one is

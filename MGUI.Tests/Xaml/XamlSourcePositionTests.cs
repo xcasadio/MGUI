@@ -10,7 +10,7 @@ using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace MGUI.Tests.Xaml;
 
-/// <summary>X1: the loader stamps a <see cref="XamlSourcePosition"/> (ordinal, line, column) on every <see cref="XamlElement"/> DTO it
+/// <summary>The loader stamps a <see cref="XamlSourcePosition"/> (ordinal, line, column) on every <see cref="XamlElement"/> DTO it
 /// creates from an XML object element, and <see cref="UIToolingService.TryGetXamlSourcePosition(MGElement, out XamlSourcePosition)"/>
 /// relays it to the created <see cref="MGElement"/>. Covers the acceptance items of Docs/Tasks/xaml-editor-tasks.md's X1 section.</summary>
 public class XamlSourcePositionTests
@@ -501,7 +501,7 @@ public class XamlSourcePositionTests
         sb.Append($"{t.Name} {{\n");
         foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.GetIndexParameters().Length == 0 && p.CanRead).OrderBy(p => p.Name, StringComparer.Ordinal))
         {
-            //  X1's own SourcePosition is deliberately excluded: XamlServices.Parse (the baseline) never sets it, so comparing it
+            //  The DTO's own SourcePosition is deliberately excluded: XamlServices.Parse (the baseline) never sets it, so comparing it
             //  would always fail and would not be testing anything about the DTO graph itself.
             if (p.Name == nameof(XamlElement.SourcePosition))
             {

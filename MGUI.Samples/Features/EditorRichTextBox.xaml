@@ -27,6 +27,8 @@
                 <Button Name="NextCompletionButton" Content="Next" />
                 <Button Name="AcceptCompletionButton" Content="Accept" />
                 <Button Name="ResetTextButton" Content="Reset" />
+                <Button Name="CSharpModeButton" Content="C#" />
+                <Button Name="XamlModeButton" Content="XAML" />
             </StackPanel>
 
             <RichTextBox Name="EditorTextBox"

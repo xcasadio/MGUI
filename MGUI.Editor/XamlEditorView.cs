@@ -1,114 +1,261 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
-using MGUI.Core.UI.Containers.Grids;
+using MGUI.Core.UI.Docking.Controls;
+using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Editor.Preview;
+using MGUI.Editor.Selection;
+using MGUI.Editor.Text;
 
 namespace MGUI.Editor;
 
-/// <summary>Composes the empty shell of the XAML editor: a three-column grid, separated by two <see cref="MGGridSplitter"/>,
-/// holding a text pane, a preview pane and a right-hand column with a tree pane above a property pane.<para/>
+/// <summary>Composes the empty shell of the XAML editor: a text pane, a preview pane, a document tree pane, a property
+/// pane and a diagnostics placeholder, hosted by MGUI's own docking manager through <see cref="CreateDockHost"/>.<para/>
 /// This is a plain composing class, not an <see cref="MGElement"/>: it builds its elements against the given
 /// <see cref="MGWindow"/> but does not set the window's content and does not add the window to a desktop; the host does.<para/>
-/// No pane has any behaviour in this slice: no text binding, no preview, no selection, no subscribed events.</summary>
+/// <see cref="TextPane"/> holds the session's text, and <see cref="PreviewHost"/> renders that text into
+/// <see cref="PreviewPresenter"/>, hot; no other pane has any behaviour yet.</summary>
 public class XamlEditorView
 {
-    /// <summary>The <see cref="MGElement.Name"/> given to <see cref="TextPane"/>.</summary>
-    public const string TextPaneName = "TextPane";
-    /// <summary>The <see cref="MGElement.Name"/> given to <see cref="PreviewPane"/>.</summary>
-    public const string PreviewPaneName = "PreviewPane";
-    /// <summary>The <see cref="MGElement.Name"/> given to <see cref="TreePane"/>.</summary>
-    public const string TreePaneName = "TreePane";
-    /// <summary>The <see cref="MGElement.Name"/> given to <see cref="PropertyPane"/>.</summary>
-    public const string PropertyPaneName = "PropertyPane";
+    /// <summary>The dockable ID of <see cref="TextPane"/>.</summary>
+    public const string TextDockableId = "xaml-editor.text";
+    /// <summary>The dockable ID of <see cref="PreviewPane"/>.</summary>
+    public const string PreviewDockableId = "xaml-editor.preview";
+    /// <summary>The dockable ID of <see cref="TreePane"/>.</summary>
+    public const string TreeDockableId = "xaml-editor.tree";
+    /// <summary>The dockable ID of <see cref="PropertyPane"/>.</summary>
+    public const string PropertiesDockableId = "xaml-editor.properties";
+    /// <summary>The dockable ID of <see cref="DiagnosticsPane"/>.</summary>
+    public const string DiagnosticsDockableId = "xaml-editor.diagnostics";
 
     /// <summary>The window every element of this view was constructed against.</summary>
     public MGWindow Window { get; }
     /// <summary>The session this view was built for.</summary>
     public XamlEditorSession Session { get; }
 
-    /// <summary>The root grid: one row, three content columns (text, preview, right-hand tree/property column)
-    /// separated by two <see cref="MGGridSplitter"/>.</summary>
-    public MGGrid Root { get; }
-
-    /// <summary>The left column: the text editor for the raw XAML markup.</summary>
+    /// <summary>The text editor for the raw XAML markup.</summary>
     public MGRichTextBox TextPane { get; }
-    /// <summary>The centre column: an overlay panel that will host the rendered preview, and later the adorner layer.</summary>
+    /// <summary>An overlay panel that will host the rendered preview, and later the adorner layer.</summary>
     public MGOverlayPanel PreviewPane { get; }
     /// <summary>The content presenter, inside <see cref="PreviewPane"/>, that will host the previewed content.</summary>
     public MGContentPresenter PreviewPresenter { get; }
-    /// <summary>The right column, top row: the visual tree of the previewed document.</summary>
+    /// <summary>The visual tree of the previewed document.</summary>
     public MGTreeView TreePane { get; }
-    /// <summary>The right column, bottom row: the property grid for the current selection.</summary>
+    /// <summary>The property grid for the current selection.</summary>
     public MGPropertyGrid PropertyPane { get; }
+    /// <summary>An empty placeholder for the diagnostics list; filled by a later slice.</summary>
+    public MGContentPresenter DiagnosticsPane { get; }
 
-    /// <summary>The pixel width of each <see cref="MGGridSplitter"/> column, matching <see cref="MGGridSplitter.Size"/>'s default.</summary>
-    private const int SplitterColumnWidth = 12;
+    /// <summary>Renders the session's text into <see cref="PreviewPresenter"/>, hot, on the update tick of <see cref="Window"/>.
+    /// Constructed last, once every pane above it exists.</summary>
+    public XamlPreviewHost PreviewHost { get; }
+
+    /// <summary>Gives <see cref="TextPane"/> XAML colors and error underlines, and fills <see cref="DiagnosticsPane"/>
+    /// with the current diagnostics list. Constructed last, since it reads <see cref="PreviewHost"/>'s diagnostics.</summary>
+    public XamlEditorTextPane TextEditorPane { get; }
+
+    /// <summary>The single selection shared by the document tree, a click in the non-interactive preview, and the text caret.
+    /// Constructed after <see cref="PreviewHost"/> and <see cref="TextEditorPane"/>, once every pane it wires exists.</summary>
+    public XamlEditorSelection Selection { get; }
+
+    /// <summary>The five dockables of this view, in the order text, preview, tree, properties, diagnostics.
+    /// Each <see cref="DockableDefinition.ContentFactory"/> returns the matching pane instance above,
+    /// always the same instance.</summary>
+    public IReadOnlyList<DockableDefinition> Dockables { get; }
+
+    /// <summary>Set by <see cref="CreateDockHost"/> so a second call on the same view is refused: the panes and
+    /// their content factories are shared, single instances that only one dock host may claim.</summary>
+    private bool _dockHostCreated;
 
     public XamlEditorView(MGWindow window, XamlEditorSession session)
     {
         Window = window ?? throw new ArgumentNullException(nameof(window));
         Session = session ?? throw new ArgumentNullException(nameof(session));
 
-        Root = new MGGrid(window)
-        {
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-        };
-        Root.AddRow(GridLength.CreateWeightedLength(1));
-        Root.AddColumn(GridLength.CreateWeightedLength(1));
-        Root.AddColumn(GridLength.CreatePixelLength(SplitterColumnWidth));
-        Root.AddColumn(GridLength.CreateWeightedLength(1));
-        Root.AddColumn(GridLength.CreatePixelLength(SplitterColumnWidth));
-        Root.AddColumn(GridLength.CreateWeightedLength(1));
-
         TextPane = new MGRichTextBox(window)
         {
-            Name = TextPaneName,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         };
-        Root.TryAddChild(0, 0, TextPane);
 
-        MGGridSplitter leftSplitter = new(window);
-        Root.TryAddChild(0, 1, leftSplitter);
-
-        PreviewPresenter = new MGContentPresenter(window);
+        //  Left/Top, never stretched: a previewed root is shown at its own size. A stretched presenter would allocate
+        //  the whole pane to the root, and an MGWindow root, whose alignment is forced to Stretch, would fill the pane
+        //  instead of keeping the Width and Height its document declares. What overflows the pane is clipped.
+        PreviewPresenter = new MGContentPresenter(window)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
         PreviewPane = new MGOverlayPanel(window)
         {
-            Name = PreviewPaneName,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         };
         PreviewPane.TryAddChild(PreviewPresenter);
-        Root.TryAddChild(0, 2, PreviewPane);
-
-        MGGridSplitter rightSplitter = new(window);
-        Root.TryAddChild(0, 3, rightSplitter);
-
-        MGGrid rightColumn = new(window)
-        {
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-        };
-        rightColumn.AddColumn(GridLength.CreateWeightedLength(1));
-        rightColumn.AddRow(GridLength.CreateWeightedLength(1));
-        rightColumn.AddRow(GridLength.CreateWeightedLength(1));
 
         TreePane = new MGTreeView(window)
         {
-            Name = TreePaneName,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         };
-        rightColumn.TryAddChild(0, 0, TreePane);
 
         PropertyPane = new MGPropertyGrid(window)
         {
-            Name = PropertyPaneName,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         };
-        rightColumn.TryAddChild(1, 0, PropertyPane);
 
-        Root.TryAddChild(0, 4, rightColumn);
+        DiagnosticsPane = new MGContentPresenter(window)
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+
+        Dockables = new List<DockableDefinition>
+        {
+            new(TextDockableId, "XAML") { ContentFactory = () => TextPane, CanClose = false, CanFloat = true, CanAutoHide = true },
+            new(PreviewDockableId, "Preview") { ContentFactory = () => PreviewPane, CanClose = false, CanFloat = false, CanAutoHide = true },
+            new(TreeDockableId, "Document") { ContentFactory = () => TreePane, CanClose = false, CanFloat = true, CanAutoHide = true },
+            new(PropertiesDockableId, "Properties") { ContentFactory = () => PropertyPane, CanClose = false, CanFloat = true, CanAutoHide = true },
+            new(DiagnosticsDockableId, "Diagnostics") { ContentFactory = () => DiagnosticsPane, CanClose = false, CanFloat = true, CanAutoHide = true },
+        };
+
+        PreviewHost = new XamlPreviewHost(this);
+        TextEditorPane = new XamlEditorTextPane(this);
+        Selection = new XamlEditorSelection(this);
+        BindTextPaneToSession();
+    }
+
+    /// <summary>Set while one side of <see cref="BindTextPaneToSession"/> writes the other, so the echo it raises is ignored.</summary>
+    private bool _isSynchronizingText;
+
+    /// <summary>Makes the text pane and the session hold the same text: typing in <see cref="TextPane"/> writes
+    /// <see cref="XamlEditorSession.Text"/> (which is what drives the preview, the document model and the diagnostics),
+    /// and writing the session's text from code -- opening a file, an edit made from the property grid -- puts it back
+    /// in the pane. The session's text is always the pane's text, which <see cref="MGRichTextBox"/> normalises to LF.</summary>
+    private void BindTextPaneToSession()
+    {
+        TextPane.TextChanged += (_, _) =>
+        {
+            if (_isSynchronizingText)
+            {
+                return;
+            }
+
+            _isSynchronizingText = true;
+            try
+            {
+                Session.Text = TextPane.Text;
+            }
+            finally
+            {
+                _isSynchronizingText = false;
+            }
+        };
+
+        Session.TextChanged += (_, _) =>
+        {
+            if (_isSynchronizingText || string.Equals(TextPane.Text, Session.Text, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _isSynchronizingText = true;
+            try
+            {
+                TextPane.SetText(Session.Text);
+            }
+            finally
+            {
+                _isSynchronizingText = false;
+            }
+        };
+
+        //  A session built with text already in it (a document opened before the view exists) must reach the pane and
+        //  the preview without waiting for a first keystroke.
+        if (!string.IsNullOrEmpty(Session.Text))
+        {
+            TextPane.SetText(Session.Text);
+            PreviewHost.RequestRefresh();
+        }
+    }
+
+    /// <summary>Builds the dock host for this view: a registry seeing the five <see cref="Dockables"/> and the
+    /// default layout (XAML | Preview over Diagnostics on the left, Document over Properties on the right).<para/>
+    /// A view can be hosted by one dock host only: calling this a second time throws.</summary>
+    public MGDockHost CreateDockHost()
+    {
+        if (_dockHostCreated)
+        {
+            throw new InvalidOperationException($"{nameof(XamlEditorView)} already created a dock host: a view can be hosted by one dock host only.");
+        }
+        _dockHostCreated = true;
+
+        MGDockHost host = new(Window);
+
+        DockableRegistry registry = new();
+        foreach (DockableDefinition dockable in Dockables)
+        {
+            registry.Register(dockable);
+        }
+        host.DockableRegistry = registry;
+
+        DockPanelNode textPanel = Dockables[0].CreatePanelNode();
+        DockPanelNode previewPanel = Dockables[1].CreatePanelNode();
+        DockPanelNode treePanel = Dockables[2].CreatePanelNode();
+        DockPanelNode propertyPanel = Dockables[3].CreatePanelNode();
+        DockPanelNode diagnosticsPanel = Dockables[4].CreatePanelNode();
+
+        DockTabGroupNode textGroup = new();
+        textGroup.AddPanel(textPanel, -1);
+        DockTabGroupNode previewGroup = new();
+        previewGroup.AddPanel(previewPanel, -1);
+        DockTabGroupNode treeGroup = new();
+        treeGroup.AddPanel(treePanel, -1);
+        DockTabGroupNode propertyGroup = new();
+        propertyGroup.AddPanel(propertyPanel, -1);
+        DockTabGroupNode diagnosticsGroup = new();
+        diagnosticsGroup.AddPanel(diagnosticsPanel, -1);
+
+        DockSplitNode topSplit = new()
+        {
+            Orientation = Orientation.Horizontal,
+            FirstChild = textGroup,
+            SecondChild = previewGroup,
+            SplitRatio = 0.45f,
+        };
+
+        DockSplitNode leftBlock = new()
+        {
+            Orientation = Orientation.Vertical,
+            FirstChild = topSplit,
+            SecondChild = diagnosticsGroup,
+            SplitRatio = 0.78f,
+        };
+
+        DockSplitNode rightColumn = new()
+        {
+            Orientation = Orientation.Vertical,
+            FirstChild = treeGroup,
+            SecondChild = propertyGroup,
+            SplitRatio = 0.45f,
+        };
+
+        DockSplitNode root = new()
+        {
+            Orientation = Orientation.Horizontal,
+            FirstChild = leftBlock,
+            SecondChild = rightColumn,
+            SplitRatio = 0.72f,
+        };
+
+        host.LayoutModel = new DockLayoutModel(root);
+
+        host.RegisterPanel(textPanel);
+        host.RegisterPanel(previewPanel);
+        host.RegisterPanel(treePanel);
+        host.RegisterPanel(propertyPanel);
+        host.RegisterPanel(diagnosticsPanel);
+
+        return host;
     }
 }

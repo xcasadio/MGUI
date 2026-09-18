@@ -144,7 +144,6 @@ public class StableDiagnosticIdTests
         {
             Name = "Focus Probe"
         };
-        focusProbe.IsFocusable = true;
         Assert.True(tree.Scope.TryAddChild(focusProbe));
 
         SetFocusedKeyboardHandler(tree.Desktop, focusProbe);
@@ -159,7 +158,6 @@ public class StableDiagnosticIdTests
         {
             Name = "Overlay Input"
         };
-        overlayInput.IsFocusable = true;
 
         MGOverlay overlay = tree.Desktop.OverlayHost.AddOverlay(overlayInput);
         overlay.Name = "Blocking Overlay";
@@ -340,8 +338,6 @@ public class StableDiagnosticIdTests
         ToolingTree tree = CreateTree();
         MGTextBox firstInput = new(tree.Window) { Name = "Replay First" };
         MGTextBox secondInput = new(tree.Window) { Name = "Replay Second" };
-        firstInput.IsFocusable = true;
-        secondInput.IsFocusable = true;
         Assert.True(tree.Scope.TryAddChild(firstInput));
         Assert.True(tree.Scope.TryAddChild(secondInput));
         tree.Runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(1), TimeSpan.FromMilliseconds(1), default, default));

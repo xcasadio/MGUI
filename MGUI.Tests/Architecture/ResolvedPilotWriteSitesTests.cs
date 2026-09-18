@@ -81,12 +81,12 @@ public class ResolvedPilotWriteSitesTests
     private static readonly (string File, int Line, string Reason)[] AllowedLines =
     {
         (@"MGUI.Core\UI\MGContextMenu.cs", 559, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y8 inserted the exiting-submenu handling above it)"),
-        (@"MGUI.Core\UI\MGDesktop.cs", 974, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling, Y9 shrank the ActiveToolTip setter's slot-release block)"),
+        (@"MGUI.Core\UI\MGDesktop.cs", 966, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling, Y9 shrank the ActiveToolTip setter's slot-release block, then the focus-navigation single rule deleted the duplicated private GetFocusableElements and shrank ResolveAutoFocusTarget to a delegation)"),
         (@"MGUI.Core\UI\MGWindow.cs", 231, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
         (@"MGUI.Core\UI\MGWindow.cs", 249, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
         (@"MGUI.Core\UI\MGChatBox.cs", 138, "commented-out code"),
         (@"MGUI.Core\UI\MGScrollViewer.cs", 748, "commented-out code"),
-        (@"MGUI.Core\UI\MGXAMLDesigner.cs", 62, "inside a verbatim string literal (sample XAML shown in the designer UI), not code"),
+        (@"MGUI.Core\UI\MGXAMLDesigner.cs", 66, "inside a verbatim string literal (sample XAML shown in the designer UI), not code (shifted by the explicit AcceptsTab opt-in added above it when text boxes became navigation targets)"),
         (@"MGUI.Core\UI\MGSlider.cs", 675, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\MGResizeGrip.cs", 180, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\Containers\MGContentHost.cs", 316, "method parameter (`Color? Foreground = null`), not a pilot write"),

@@ -7,6 +7,7 @@ using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Input.Semantic;
 using MGUI.Shared.Rendering;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System.Text;
 
@@ -14,6 +15,93 @@ namespace MGUI.Core.Tooling;
 
 public static class UIToolingService
 {
+    /// <summary>Purely geometric replica of the real input hit test (<see cref="MGElement.GetTopmostHoveredElement"/>), usable
+    /// outside a window's own update tick -- the XAML editor's non-interactive preview is exactly this case, since its root has
+    /// <see cref="MGElement.IsHitTestVisible"/> cleared and never becomes <see cref="MGWindow.HoveredElement"/> on its own.<para/>
+    /// <paramref name="screenPoint"/> is the raw mouse position (<see cref="CoordinateSpace.Screen"/>), converted to
+    /// <see cref="CoordinateSpace.UnscaledScreen"/> exactly once, on <paramref name="root"/> -- never per candidate element, and
+    /// <see cref="MGElement.LayoutBounds"/> is never compared. Candidates come from <paramref name="root"/>'s
+    /// <see cref="MGElement.TraverseVisualTree(bool, bool, bool, bool, MGElement.TreeTraversalMode)"/> with components included and
+    /// tooltips/context menus excluded -- they are popups, not part of what a hosted preview draws (a delivery decision of the XAML
+    /// editor's selection slice). An element is eligible when it is itself <see cref="Visibility.Visible"/> and every ancestor between
+    /// it and <paramref name="root"/>, <paramref name="root"/> included, is also <see cref="Visibility.Visible"/>; an element whose
+    /// <see cref="MGElement.Parent"/> chain does not reach <paramref name="root"/> is never eligible. Containment is
+    /// <c>element.ContainsUnscaledInputPoint(element.ToLocalUnscaledPoint(unscaledPoint))</c>, the same per-element containment the
+    /// real input path uses, which is what makes the window's <see cref="MGWindow.Scale"/>, scrolling, clipping (through
+    /// <see cref="MGElement.ActualLayoutBounds"/>, computed during update, never during draw) and any active
+    /// <see cref="MGElement.RenderTransform"/> count. The result is the eligible containing element of the greatest depth (the number
+    /// of <see cref="MGElement.Parent"/> hops up to <paramref name="root"/>, which itself has depth 0); at equal depth, the element
+    /// seen later in the preorder walk wins.<para/>
+    /// Deliberately ignored, unlike the real input path: <see cref="MGElement.RecentDrawWasClipped"/> (this must not depend on a
+    /// previous <see cref="MGElement.Draw"/> having run), <see cref="MGElement.IsHitTestVisible"/>, <see cref="MGElement.IsEnabled"/>,
+    /// <see cref="MGElement.CanHandleInputsWhileHidden"/> and any modal window. This method knows nothing about XAML source
+    /// positions -- it is purely geometric; resolving a hit element back to a declared document node is the caller's job.</summary>
+    /// <returns>The deepest eligible element under <paramref name="screenPoint"/>, or null when <paramref name="root"/> is null or no
+    /// eligible element contains the point.</returns>
+    public static MGElement HitTest(MGElement root, Point screenPoint)
+    {
+        if (root == null)
+        {
+            return null;
+        }
+
+        Vector2 unscaledPoint = root.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.UnscaledScreen, screenPoint.ToVector2());
+
+        MGElement best = null;
+        int bestDepth = -1;
+
+        foreach (MGElement candidate in root.TraverseVisualTree(IncludeSelf: true, includeComponents: true, includeToolTips: false,
+                     includeContextMenus: false, MGElement.TreeTraversalMode.Preorder))
+        {
+            if (candidate.Visibility != Visibility.Visible)
+            {
+                continue;
+            }
+
+            int depth = 0;
+            bool reachedRoot = candidate == root;
+            bool allAncestorsVisible = true;
+            MGElement ancestor = candidate;
+            while (!reachedRoot)
+            {
+                ancestor = ancestor.Parent;
+                if (ancestor == null)
+                {
+                    break;
+                }
+
+                depth++;
+                if (ancestor.Visibility != Visibility.Visible)
+                {
+                    allAncestorsVisible = false;
+                }
+
+                if (ancestor == root)
+                {
+                    reachedRoot = true;
+                }
+            }
+
+            if (!reachedRoot || !allAncestorsVisible)
+            {
+                continue;
+            }
+
+            if (!candidate.ContainsUnscaledInputPoint(candidate.ToLocalUnscaledPoint(unscaledPoint)))
+            {
+                continue;
+            }
+
+            if (depth >= bestDepth)
+            {
+                bestDepth = depth;
+                best = candidate;
+            }
+        }
+
+        return best;
+    }
+
     /// <summary>Returns the stable desktop root segment used by diagnostic paths.</summary>
     public static string GetStableDiagnosticId(MGDesktop desktop)
     {
@@ -50,11 +138,11 @@ public static class UIToolingService
         return result.ToString();
     }
 
-    /// <summary>X1: the <see cref="MGElement.Metadata"/> key under which <see cref="Element.ApplyBaseSettings(MGElement, MGElement, bool)"/>
+    /// <summary>The <see cref="MGElement.Metadata"/> key under which <see cref="Element.ApplyBaseSettings(MGElement, MGElement, bool)"/>
     /// stores an <see cref="Element.SourcePosition"/> that was set. Read back by <see cref="TryGetXamlSourcePosition(MGElement, out XamlSourcePosition)"/>.</summary>
     public const string XamlSourcePositionMetadataKey = "MGUI.Xaml.SourcePosition";
 
-    /// <summary>X1: the XAML source position of the document node <paramref name="element"/> was created from, if any. Returns
+    /// <summary>The XAML source position of the document node <paramref name="element"/> was created from, if any. Returns
     /// <see langword="false"/> for an element created outside the loader's reader/writer loop -- a control template part, a theme
     /// element, or a value produced by a <see cref="TypeConverter"/> (for example <c>Content="text"</c>).</summary>
     /// <exception cref="ArgumentNullException"><paramref name="element"/> is null.</exception>
@@ -75,7 +163,7 @@ public static class UIToolingService
         return false;
     }
 
-    /// <summary>X1: public wrapper over the loader's internal element name resolution (aliases included), restricted to names that resolve
+    /// <summary>Public wrapper over the loader's internal element name resolution (aliases included), restricted to names that resolve
     /// to a DTO type deriving from <see cref="Element"/>. This is the definition of "counts for the ordinal" shared by
     /// <see cref="XamlSourcePosition.Ordinal"/> and the XAML editor's own document model: a name that resolves to a non-<see cref="Element"/>
     /// type (<see cref="Style"/>, <see cref="Setter"/>, a brush, <see cref="ContentTemplate"/>) returns <see langword="false"/>.</summary>

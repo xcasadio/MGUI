@@ -867,6 +867,11 @@ public class MGTextBox : MGElement, ITextEntryHost
 
     private void AddUndoState(RestorableState State) => UndoStack.Push(State);
 
+    /// <summary>Extension point for a subclass that applies text edits programmatically (<see cref="MGRichTextBox.ApplyTextEdit"/>):
+    /// captures the state right before such an edit and pushes it onto the undo stack, the same way a keyboard-driven
+    /// edit does, so <see cref="TryUndo"/> can restore it afterwards.</summary>
+    private protected void PushUndoState() => AddUndoState(CreateRestorableState());
+
     private bool IsExecutingUndoRedo = false;
 
     public bool TryUndo()
@@ -977,8 +982,12 @@ public class MGTextBox : MGElement, ITextEntryHost
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _AcceptsTab;
-    /// <summary>Note: This feature is not available for <see cref="MGPasswordBox"/>.<para/>
-    /// Default value: true</summary>
+    /// <summary>If true, pressing Tab inserts <see cref="MGTextRun.TabSpacesCount"/> spaces instead of moving keyboard
+    /// focus to the next navigation target.<para/>
+    /// Note: This feature is not available for <see cref="MGPasswordBox"/>.<para/>
+    /// Default value: false. It was true until text boxes became navigation targets, which would have made Tab reach a
+    /// text box without ever leaving it - see Docs/decisions/0014-keyboard-focus-navigation-single-rule.md. Controls
+    /// that legitimately consume Tab (<see cref="MGRichTextBox"/>) keep setting it to true themselves.</summary>
     public virtual bool AcceptsTab
     {
         get => _AcceptsTab;
@@ -1120,7 +1129,14 @@ public class MGTextBox : MGElement, ITextEntryHost
             IsReadonly = false;
             this.CharacterLimit = CharacterLimit;
             AcceptsReturn = true;
-            AcceptsTab = true;
+            AcceptsTab = false;
+
+            //  A text box is a keyboard focus target, so it must say so publicly - CanHandleKeyboardInput alone used to
+            //  make it focusable on click while leaving it out of Tab order and auto-focus resolution entirely.
+            //  This installs MGElement.IsFocusable's own LMBPressedInside -> Focus(Pointer) subscription, which overlaps
+            //  the QueueFocusedKeyboardHandler call in this constructor's own LMBPressedInside handler below. Harmless:
+            //  both queue this same element with the same source, and queueing is a plain field assignment.
+            IsFocusable = true;
 
             // Chrome: the parts, the content alignments and the character count format strings come from the template (TextBox.Default).
             DefaultControlTemplateName = MGControlTemplateCatalog.TextBoxTemplateName;

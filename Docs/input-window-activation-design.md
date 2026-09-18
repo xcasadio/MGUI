@@ -20,6 +20,19 @@ lot est retire a son tour, comme il l'avait ete pour la tache 8 elle-meme :
 ce document n'est plus suivi de travail en attente et reste comme dossier de
 conception (analyse, decisions, decoupage) pour ce theme.
 
+**Depasse sur un point, le 18 septembre 2026 (ADR-0014).** Le corps de ce
+document n'est pas reecrit, mais deux endroits decrivent la resolution
+d'auto-focus telle qu'elle etait : la decision Q7 (section 3.a) et le point 7
+de la section 7 disent que le troisieme cran est « le premier focusable de la
+fenetre ». Ce n'est plus litteralement vrai : c'est desormais le premier
+focusable qui n'est **pas** un `ITextEntryHost`, avec repli sur le premier
+focusable tout court quand tous les candidats en sont. Les deux premiers crans
+(`DefaultFocusElement`, historique de focus de la fenetre) et le principe
+general — aucun nouveau mecanisme de resolution, le focus pose par le clic
+l'emporte, aucune cible valide laisse le focus inchange — sont inchanges. Par
+ailleurs les controles de saisie sont devenus des cibles de navigation
+valides, ce que ce document supposait impossible.
+
 ## 1. Objectif et perimetre
 
 Resorbe trois limites documentees dans `Docs/input-architecture.md` ("Limites

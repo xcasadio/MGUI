@@ -27,3 +27,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0011 | Animation V5: awaitable animations, smooth scrolling, texture frames, layout transitions, enter and exit animations | Accepted | 2026-09-17 |
 | ADR-0012 | Keep emptied docking tab groups as placeholders and persist panel places in layout format 2.0 | Accepted | 2026-09-17 |
 | ADR-0013 | A name identifies one element of a window, and saying so is the loader's job | Accepted | 2026-09-18 |
+| ADR-0014 | One rule for keyboard focus navigation, and text entry controls as navigation targets | Accepted | 2026-09-18 |

@@ -32,6 +32,21 @@ public class MGTextCaret
     /// <summary>The <see cref="Position"/> cycles between showing the cursor for this amount of time, then hiding the cursor for this amount of time. Repeat.</summary>
     public TimeSpan BlinkRate { get; set; } = TimeSpan.FromSeconds(0.5);
 
+    /// <summary>When true, the caret is still drawn while <see cref="TextBox"/> does not own keyboard focus, steadily
+    /// (no blink: a blinking unfocused caret would read as an active one). Default <see langword="false"/>, so every
+    /// existing text box keeps drawing the caret only while focused, exactly as before this property existed.</summary>
+    public bool ShowWhenUnfocused { get; set; }
+
+    private bool HasKeyboardFocus => TextBox.GetDesktop().FocusedKeyboardHandler == TextBox;
+
+    /// <summary>How long the caret has been at its current position, which is what the blink gate counts. Zero without a position.</summary>
+    private double SecondsShown => HasPosition ? DateTime.Now.Subtract(Position.Value.InitialShowTime).TotalSeconds : 0;
+
+    /// <summary>True when the caret is currently being drawn: computed by the same <see cref="ShouldDrawCaret"/> decision
+    /// <see cref="Draw"/> itself uses, so a caller (or a headless test, which cannot inspect pixels) can ask whether the
+    /// caret is visible right now.</summary>
+    public bool IsCurrentlyVisible => ShouldDrawCaret(HasPosition, HasKeyboardFocus, ShowWhenUnfocused, SecondsShown, BlinkRate);
+
     internal MGTextCaret(MGTextBox TextBox, MGTextBlock TextBlockElement)
     {
         this.TextBox = TextBox;
@@ -357,28 +372,51 @@ public class MGTextCaret
     }
     #endregion Navigation
 
+    /// <summary>The pure draw decision, shared by <see cref="Draw"/> and <see cref="IsCurrentlyVisible"/> so the
+    /// focus/blink rule exists in exactly one place:<br/>
+    /// 1. No position: never drawn.<br/>
+    /// 2. With keyboard focus: the blink gate, exactly as before this method existed. A non-positive
+    /// <paramref name="blinkRate"/> cannot divide by zero, so it is treated as "always shown".<br/>
+    /// 3. Without focus and <paramref name="showWhenUnfocused"/> is false: not drawn (today's behaviour).<br/>
+    /// 4. Without focus and <paramref name="showWhenUnfocused"/> is true: drawn, steadily, without blinking.</summary>
+    internal static bool ShouldDrawCaret(bool hasPosition, bool hasKeyboardFocus, bool showWhenUnfocused, double secondsShown, TimeSpan blinkRate)
+    {
+        if (!hasPosition)
+        {
+            return false;
+        }
+
+        if (hasKeyboardFocus)
+        {
+            if (blinkRate.TotalSeconds <= 0)
+            {
+                return true;
+            }
+
+            return (int)(secondsShown / blinkRate.TotalSeconds) % 2 == 0;
+        }
+
+        return showWhenUnfocused;
+    }
+
     internal void Draw(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        if (HasPosition && TextBox.GetDesktop().FocusedKeyboardHandler == TextBox)
+        if (IsCurrentlyVisible)
         {
-            var SecondsShown = DateTime.Now.Subtract(Position.Value.InitialShowTime).TotalSeconds;
-            if ((int)(SecondsShown / BlinkRate.TotalSeconds) % 2 == 0)
+            switch (TextBox.TextEntryMode)
             {
-                switch (TextBox.TextEntryMode)
-                {
-                    case TextEntryMode.Insert:
-                        float CursorPaddingY = 2;
-                        Vector2 CursorPadding = new(0, CursorPaddingY);
-                        var PaddedTop = Position.Value.Bounds.TopLeft().ToVector2() - CursorPadding;
-                        var PaddedBottom = Position.Value.Bounds.BottomLeft().ToVector2() + CursorPadding;
-                        float CursorThickness = 1;
-                        DA.DT.StrokeLineSegment(DA.Offset.ToVector2(), PaddedTop, PaddedBottom, Color * DA.Opacity, CursorThickness);
-                        break;
-                    case TextEntryMode.Overwrite:
-                        DA.DT.FillRectangle(DA.Offset.ToVector2(), Position.Value.Bounds, Color.Orange * 0.35f * DA.Opacity);
-                        break;
-                    default: throw new NotImplementedException($"Unrecognized {nameof(TextEntryMode)}: {TextBox.TextEntryMode}");
-                }
+                case TextEntryMode.Insert:
+                    float CursorPaddingY = 2;
+                    Vector2 CursorPadding = new(0, CursorPaddingY);
+                    var PaddedTop = Position.Value.Bounds.TopLeft().ToVector2() - CursorPadding;
+                    var PaddedBottom = Position.Value.Bounds.BottomLeft().ToVector2() + CursorPadding;
+                    float CursorThickness = 1;
+                    DA.DT.StrokeLineSegment(DA.Offset.ToVector2(), PaddedTop, PaddedBottom, Color * DA.Opacity, CursorThickness);
+                    break;
+                case TextEntryMode.Overwrite:
+                    DA.DT.FillRectangle(DA.Offset.ToVector2(), Position.Value.Bounds, Color.Orange * 0.35f * DA.Opacity);
+                    break;
+                default: throw new NotImplementedException($"Unrecognized {nameof(TextEntryMode)}: {TextBox.TextEntryMode}");
             }
         }
     }
