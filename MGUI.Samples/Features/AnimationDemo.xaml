@@ -512,7 +512,8 @@
                     <Border StyleNames="LayoutRow"><TextBlock Text="Row 3" /></Border>
                     <Border StyleNames="LayoutRow"><TextBlock Text="Row 4" /></Border>
                 </StackPanel>
-                <Button Name="LayoutResizeButton" Content="Resize" HorizontalAlignment="Left" />
+                <Button Name="LayoutResizeButton" Content="Resize" HorizontalAlignment="Left"
+                        LayoutTransitionDuration="0.3" LayoutTransitionEasing="CubicOut" />
                 <Border Name="LayoutSizeTarget" Width="100" Height="40" Background="#16A085" HorizontalAlignment="Left"
                         LayoutTransitionDuration="0.3" LayoutTransitionEasing="CubicOut" LayoutTransitionAnimatesSize="True" />
             </StackPanel>

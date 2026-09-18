@@ -656,7 +656,9 @@ public class MGRatingControl : MGElement
                     Rectangle UnscaledClipTarget = IsVertical
                         ? new(Destination.Left, Destination.Top, Destination.Width, (int)(Vertices.Min(v => v.Y) + (Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y)) * FilledPercent))
                         : new(Destination.Left, Destination.Top, (int)(Vertices.Min(v => v.X) + (Vertices.Max(v => v.X) - Vertices.Min(v => v.X)) * FilledPercent), Destination.Height);
-                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    //  Y10: built from the ambient draw transform (TransformClipBounds), not a coordinate-space conversion that only
+                    //  knew about MGWindow.Scale - see MGScrollViewer.GetContentsClipDefinition for the same fix.
+                    var ClipTarget = TransformClipBounds(DA, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.StrokeAndFillPolygon(Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
@@ -676,7 +678,9 @@ public class MGRatingControl : MGElement
                 else if (IsPartiallyFilled)
                 {
                     var UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
-                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    //  Y10: built from the ambient draw transform (TransformClipBounds), not a coordinate-space conversion that only
+                    //  knew about MGWindow.Scale - see MGScrollViewer.GetContentsClipDefinition for the same fix.
+                    var ClipTarget = TransformClipBounds(DA, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.FillCircle(Center, FillColor, Radius - StrokeThickness);
@@ -693,7 +697,9 @@ public class MGRatingControl : MGElement
                 else if (IsPartiallyFilled)
                 {
                     var UnscaledClipTarget = GetPartialClipRect(Destination, FilledPercent, IsVertical);
-                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    //  Y10: built from the ambient draw transform (TransformClipBounds), not a coordinate-space conversion that only
+                    //  knew about MGWindow.Scale - see MGScrollViewer.GetContentsClipDefinition for the same fix.
+                    var ClipTarget = TransformClipBounds(DA, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.StrokeAndFillRectangle(Offset, Destination, StrokeColor, FillColor, StrokeThickness);
@@ -720,7 +726,9 @@ public class MGRatingControl : MGElement
                     Rectangle UnscaledClipTarget = IsVertical
                         ? new(Destination.Left, Destination.Top, Destination.Width, (int)(TriangleVertices.Min(v => v.Y) + (TriangleVertices.Max(v => v.Y) - TriangleVertices.Min(v => v.Y)) * FilledPercent))
                         : new(Destination.Left, Destination.Top, (int)(TriangleVertices.Min(v => v.X) + (TriangleVertices.Max(v => v.X) - TriangleVertices.Min(v => v.X)) * FilledPercent), Destination.Height);
-                    var ClipTarget = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, UnscaledClipTarget);
+                    //  Y10: built from the ambient draw transform (TransformClipBounds), not a coordinate-space conversion that only
+                    //  knew about MGWindow.Scale - see MGScrollViewer.GetContentsClipDefinition for the same fix.
+                    var ClipTarget = TransformClipBounds(DA, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
                         DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);

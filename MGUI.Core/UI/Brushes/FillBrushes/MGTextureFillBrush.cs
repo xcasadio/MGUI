@@ -306,6 +306,12 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
 
         //  Stretch.Uniform / Stretch.None: only the destination rectangle is painted, like the rectangle path. The clip is consumed in screen space
         //  (see MGRatingControl); Element is null only for unit tests that draw the brush without an element, hence the translated fallback.
+        //  Y10 sweep (Docs/Tasks/animation-v5-tasks.md): this is the same "coordinate-space conversion instead of the ambient transform"
+        //  pattern as MGScrollViewer.GetContentsClipDefinition, and reachable under a RenderTransform or a sliding window in real usage -
+        //  but NOT fixed here. TexturedPaintProjectionTests.TextureFillBrush_PartialDestination_PushesScreenSpaceClipAroundDestination calls
+        //  this Draw() directly with a hand-built ElementDrawArgs (DA.Offset = Point.Zero, DA.DT.CurrentSettings.Transform = Identity) that
+        //  never goes through MGWindow.Draw/MGElement.Draw, so it never carries the window's scale on DA.DT: switching to the ambient-transform
+        //  formula (TransformClipBounds) makes that existing, out-of-perimeter test see an unscaled clip and fail. Reported, not fixed.
         var clipLayout = Rectangle.Intersect(destination, bounds);
         var clipScreen = Element != null
             ? Element.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, clipLayout)
