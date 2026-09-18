@@ -66,6 +66,10 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public DrawSettings CurrentSettings { get; private set; }
     /// <summary>Every matrix handed to <see cref="SetTransformTemporary"/>, in order (render transform tests).</summary>
     public List<Matrix> TransformPushes { get; } = new();
+    /// <summary>Every clip pushed through <see cref="PushClipTemporary"/> / <see cref="PushRectangleClip"/>, in order, with the resolved
+    /// bounds and the definition's <see cref="ClipDefinition.DebugName"/> (Y10: lets a test find a specific element's content clip,
+    /// e.g. "MGScrollViewer.Viewport", without depending on a textured draw call happening to be recorded alongside it).</summary>
+    public List<(string DebugName, Rectangle? Bounds)> ClipPushes { get; } = new();
     public IUIDesktopRuntime Renderer { get; }
     public Rectangle? CurrentClipBounds => _currentClipBounds;
     public List<GraphFillRectangleCall> FillRectangleCalls { get; } = new();
@@ -163,6 +167,7 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         ClipResolveResult resolution = ResolveClip(Definition);
         Rectangle? previous = _currentClipBounds;
         _currentClipBounds = resolution.Effective.Kind == ClipKind.None ? null : resolution.Effective.Shape.Bounds;
+        ClipPushes.Add((Definition?.DebugName, _currentClipBounds));
         return new(resolution, () => _currentClipBounds = previous);
     }
 

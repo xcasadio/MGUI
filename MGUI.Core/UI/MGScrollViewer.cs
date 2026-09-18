@@ -1228,7 +1228,12 @@ public class MGScrollViewer : MGSingleContentHost
 
     internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
-        var screenBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, ContentViewport.GetTranslated(DA.Offset));
+        //  Y10: built from the ambient draw transform (the same way MGElement.Draw computes targetBounds), instead of a coordinate-space
+        //  conversion that only knew about MGWindow.Scale. Without any transform pushed, or under a pure scale (MGWindow.Scale != 1),
+        //  this produces the exact same rectangle: CreateTransformedBoundsF reduces to the old two-corner mapping for a non-rotated matrix,
+        //  and the ambient transform already carries MGWindow.Scale, the same matrix the previous ConvertCoordinateSpace call applied.
+        //  Under a transformed ancestor (a sliding window, a RenderTransform), the clip now follows the content to where it is actually drawn.
+        var screenBounds = TransformClipBounds(DA, ContentViewport);
         return CreateRectangleClipDefinition(screenBounds, $"{ElementType}.Viewport");
     }
 }

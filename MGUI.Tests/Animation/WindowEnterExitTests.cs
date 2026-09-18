@@ -468,7 +468,7 @@ public class WindowEnterExitTests
         Frame(runtime, desktop, 2);
 
         nested.Visibility = Visibility.Collapsed; // Y6 Visibility-driven exit, not a window-removal one
-        Assert.True(nested.IsClosing);
+        Assert.False(nested.IsClosing); // Y12: IsClosing narrows to a removal-bound exit; a plain Visibility write is not one
 
         bool result = parent.RemoveNestedWindow(nested);
         Assert.True(result);
@@ -669,5 +669,198 @@ public class WindowEnterExitTests
         Assert.True(window.TryCloseWindow());
         Assert.False(window.IsClosing); // no EnterExit configured: closes exactly like before Y7
         Assert.DoesNotContain(window, desktop.Windows);
+    }
+
+    // ---- Y12: IsClosing narrowed to a removal-bound exit, TryCloseWindow accepted during a Visibility-driven one -----
+
+    /// <summary>Y12 regression (this is the assertion that fails against the pre-fix code, see the class doc): a plain <see cref="Visibility"/>
+    /// write starts a Y6 exit -- <see cref="MGWindow.IsClosing"/> stays false for that (it is not a close), input/occlusion are already
+    /// suppressed by the broader <see cref="MGElement.IsPlayingEnterExitExit"/> state. <see cref="MGWindow.TryCloseWindow"/> called mid-run then
+    /// closes the window by attaching to that SAME run (asserted here through <see cref="Animation.UIAnimationCollection.ActiveCount"/> and a
+    /// tight time budget that only the original run's remaining duration -- not a fresh restarted one -- can meet), never doubling it:
+    /// <see cref="MGWindow.WindowClosing"/> fires once at once, <see cref="MGWindow.WindowClosed"/> fires exactly once when that run ends, the
+    /// pending <see cref="Visibility"/> is applied, and the window leaves <see cref="MGWindow.NestedWindows"/>.</summary>
+    [Fact]
+    public void VisibilityDrivenExit_ThenTryCloseWindow_ClosesOnSameRun_NoRestart_WindowClosedOnce()
+    {
+        var (runtime, desktop) = NewDesktop();
+        MGWindow parent = new(desktop, 0, 0, 400, 300) { WindowStyle = WindowStyle.None };
+        desktop.Windows.Add(parent);
+        MGWindow nested = new(parent, 10, 10, 100, 80) { WindowStyle = WindowStyle.None, EnterExit = FadeSettings(exitMs: 400) };
+        parent.AddNestedWindow(nested);
+        Frame(runtime, desktop, 1);
+        GraphNoOpDrawTransaction draw = new(runtime, MGUI.Shared.Rendering.DrawSettings.Default);
+        desktop.Draw(draw); // a Y6 exit only plays once the element has drawn at least once (_hasDrawnSinceAttached)
+        Frame(runtime, desktop, 2);
+
+        nested.Visibility = Visibility.Collapsed; // Y6 Visibility-driven exit starts, not a close
+        Assert.False(nested.IsClosing);
+        Assert.True(desktop.Animations.ActiveCount > 0);
+
+        // Roughly half the exit's duration elapses before the close request: the run is genuinely mid-flight.
+        for (int i = 0; i < 12; i++)
+        {
+            Frame(runtime, desktop, 3 + i);
+        }
+        int activeCountMidExit = desktop.Animations.ActiveCount;
+        Assert.True(activeCountMidExit > 0);
+        Assert.False(nested.IsClosing);
+
+        List<string> events = new();
+        nested.WindowClosing += (_, _) => events.Add("Closing");
+        nested.WindowClosed += (_, _) => events.Add("Closed");
+
+        bool accepted = nested.TryCloseWindow();
+        Assert.True(accepted);
+        Assert.True(nested.IsClosing); // Y12: accepted -- attached to the already-playing exit, not a refusal
+        Assert.Equal(new[] { "Closing" }, events);
+        Assert.Contains(nested, parent.NestedWindows);
+        Assert.Equal(activeCountMidExit, desktop.Animations.ActiveCount); // unchanged: still the SAME run, not restarted, not doubled
+
+        // Enough time for the ORIGINAL run's remaining ~208ms to finish, but well short of a fresh 400ms restart.
+        for (int i = 0; i < 19; i++)
+        {
+            Frame(runtime, desktop, 15 + i);
+        }
+
+        Assert.Equal(new[] { "Closing", "Closed" }, events); // WindowClosed exactly once, no doubling
+        Assert.False(nested.IsClosing);
+        Assert.DoesNotContain(nested, parent.NestedWindows);
+        Assert.Equal(0, desktop.Animations.ActiveCount);
+        Assert.Equal(Visibility.Collapsed, nested.Visibility); // the pending Y6 Visibility write still lands
+    }
+
+    /// <summary>Y12: while a Visibility-driven exit plays -- with no <see cref="MGWindow.TryCloseWindow"/> call at all -- the window already
+    /// takes no mouse input and occludes nothing (the Y7 behaviour), which is keyed on <see cref="MGElement.IsPlayingEnterExitExit"/>, not on
+    /// the narrower <see cref="MGWindow.IsClosing"/>, so it stays true for the whole run even though <see cref="MGWindow.IsClosing"/> itself
+    /// never rises.</summary>
+    [Fact]
+    public void VisibilityDrivenExit_TakesNoInput_AndOccludesNothing_WhileIsClosingStaysFalse()
+    {
+        var (runtime, desktop) = NewDesktop();
+        MGWindow parent = new(desktop, 0, 0, 400, 300) { WindowStyle = WindowStyle.None };
+        MGButton parentButton = new(parent) { PreferredWidth = 200, PreferredHeight = 150 };
+        parent.SetContent(parentButton);
+        desktop.Windows.Add(parent);
+
+        MGWindow nested = new(parent, 0, 0, 100, 80) { WindowStyle = WindowStyle.None, EnterExit = FadeSettings(exitMs: 300) };
+        parent.AddNestedWindow(nested);
+        for (int i = 0; i < 5; i++)
+        {
+            Frame(runtime, desktop, 1 + i);
+        }
+
+        Point overlap = new(nested.Left + 10, nested.Top + 10);
+        Assert.True(nested.LayoutBounds.Contains(overlap));
+        Assert.True(parentButton.LayoutBounds.Contains(overlap));
+
+        Frame(runtime, desktop, 6, overlap);
+        Frame(runtime, desktop, 7, overlap);
+        Assert.False(parentButton.IsHovered); // occluded by the (still fully opaque, not-yet-exiting) nested window
+
+        nested.Visibility = Visibility.Collapsed; // Visibility-driven exit only -- never TryCloseWindow
+        Assert.False(nested.IsClosing);
+
+        Frame(runtime, desktop, 8, overlap);
+        Frame(runtime, desktop, 9, new Point(overlap.X + 1, overlap.Y));
+
+        Assert.True(parentButton.IsHovered); // the exiting nested window no longer occludes/suppresses hover
+        Assert.False(nested.IsClosing); // still not a close, just an exit
+
+        int clicksOnParentButton = 0;
+        parentButton.MouseHandler.PressedInside += (_, _) => clicksOnParentButton++;
+        Frame(runtime, desktop, 10, overlap, leftPressed: true);
+        Assert.True(clicksOnParentButton > 0);
+    }
+
+    /// <summary>Y12: a second <see cref="MGWindow.TryCloseWindow"/> call while a close is in progress does nothing and returns false, even when
+    /// that close was attached to a <see cref="Visibility"/>-driven exit already playing (as opposed to one <see cref="MGWindow.TryCloseWindow"/>
+    /// itself started) -- the rest of the Y7 contract (one <see cref="MGWindow.WindowClosing"/>, the window still listed) is unaffected.</summary>
+    [Fact]
+    public void TryCloseWindow_SecondCall_WhileAttachedToAVisibilityDrivenExit_DoesNothing_ReturnsFalse()
+    {
+        var (runtime, desktop) = NewDesktop();
+        MGWindow parent = new(desktop, 0, 0, 400, 300) { WindowStyle = WindowStyle.None };
+        desktop.Windows.Add(parent);
+        MGWindow nested = new(parent, 10, 10, 100, 80) { WindowStyle = WindowStyle.None, EnterExit = FadeSettings(exitMs: 300) };
+        parent.AddNestedWindow(nested);
+        Frame(runtime, desktop, 1);
+        GraphNoOpDrawTransaction draw = new(runtime, MGUI.Shared.Rendering.DrawSettings.Default);
+        desktop.Draw(draw);
+        Frame(runtime, desktop, 2);
+
+        nested.Visibility = Visibility.Collapsed;
+        Frame(runtime, desktop, 3);
+        int activeCountMidExit = desktop.Animations.ActiveCount;
+        Assert.True(activeCountMidExit > 0);
+
+        List<string> events = new();
+        nested.WindowClosing += (_, _) => events.Add("Closing");
+        nested.WindowClosed += (_, _) => events.Add("Closed");
+
+        Assert.True(nested.TryCloseWindow());
+        Assert.True(nested.IsClosing);
+        Assert.False(nested.TryCloseWindow()); // second call: no-op
+        Assert.True(nested.IsClosing); // unchanged
+        Assert.Equal(new[] { "Closing" }, events); // not raised twice
+        Assert.Contains(nested, parent.NestedWindows);
+        Assert.Equal(activeCountMidExit, desktop.Animations.ActiveCount); // still the one run
+    }
+
+    /// <summary>Y12: a window's exit is superseded mid-run by <see cref="MGWindow.AddNestedWindow"/> reopening it (Y7's carve-out, now keyed on
+    /// <see cref="MGElement.IsPlayingEnterExitExit"/>) after a <see cref="MGWindow.TryCloseWindow"/> call had attached a close to that exit:
+    /// the closing flag must not stay stuck raised on a window that is back in the list and visible, and a later
+    /// <see cref="MGWindow.TryCloseWindow"/> call must still work normally.</summary>
+    [Fact]
+    public void ClosingExit_SupersededByReopen_LeavesNoStaleIsClosing_LaterCloseStillWorks()
+    {
+        var (runtime, desktop) = NewDesktop();
+        MGWindow parent = new(desktop, 0, 0, 400, 300) { WindowStyle = WindowStyle.None };
+        desktop.Windows.Add(parent);
+        MGWindow nested = new(parent, 10, 10, 100, 80) { WindowStyle = WindowStyle.None, EnterExit = FadeSettings(enterMs: 60, exitMs: 300) };
+        parent.AddNestedWindow(nested);
+        Frame(runtime, desktop, 1);
+        GraphNoOpDrawTransaction draw = new(runtime, MGUI.Shared.Rendering.DrawSettings.Default);
+        desktop.Draw(draw);
+        Frame(runtime, desktop, 2);
+
+        nested.Visibility = Visibility.Collapsed; // Y6 exit starts
+        Frame(runtime, desktop, 3);
+
+        int closedCount = 0;
+        nested.WindowClosed += (_, _) => closedCount++;
+
+        Assert.True(nested.TryCloseWindow()); // attaches the close to the running exit
+        Assert.True(nested.IsClosing);
+
+        // Reopen mid-exit: cancels the exit (dropping the pending close) and replays the entry instead of throwing.
+        Exception caught = Record.Exception(() => parent.AddNestedWindow(nested));
+        Assert.Null(caught);
+        Assert.False(nested.IsClosing); // no stale closing flag left raised
+        Assert.Contains(nested, parent.NestedWindows);
+        Assert.Equal(0, closedCount); // the superseded close never ran to completion
+
+        for (int i = 0; i < 10; i++)
+        {
+            Frame(runtime, desktop, 4 + i);
+        }
+        Assert.False(nested.IsClosing);
+        Assert.Contains(nested, parent.NestedWindows);
+        Assert.Equal(Visibility.Visible, nested.Visibility); // the entry restored visibility
+
+        // A later close still works normally.
+        Assert.True(nested.TryCloseWindow());
+        Assert.True(nested.IsClosing);
+        for (int i = 0; i < 25; i++)
+        {
+            Frame(runtime, desktop, 15 + i);
+            if (!parent.NestedWindows.Contains(nested))
+            {
+                break;
+            }
+        }
+        Assert.Equal(1, closedCount);
+        Assert.False(nested.IsClosing);
+        Assert.DoesNotContain(nested, parent.NestedWindows);
     }
 }

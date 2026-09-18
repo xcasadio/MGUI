@@ -11,7 +11,8 @@ public class UIViewState
     /// <summary>Y8: the tooltip whose exit is playing after it stopped being <see cref="ActiveToolTip"/>, kept drawn (at
     /// <see cref="ExitingToolTipDrawPosition"/>, since a tooltip has no position of its own) until the run ends, then cleared -- never fed
     /// input (never updated, only drawn) and never occluding anything (<see cref="MGWindow.OccludesUnscaledPosition"/> is already false while
-    /// <see cref="MGWindow.IsClosing"/>). Only one tooltip sits here at a time: a new occupant ends whatever was here at once.</summary>
+    /// an exit is playing, <see cref="MGElement.IsPlayingEnterExitExit"/> -- a tooltip's own exit removes it from this slot, it is never a
+    /// <see cref="MGWindow.IsClosing"/> window close). Only one tooltip sits here at a time: a new occupant ends whatever was here at once.</summary>
     internal MGToolTip ExitingToolTip { get; set; }
 
     /// <summary>Y8: the screen position <see cref="ExitingToolTip"/> is drawn at -- the mouse position plus <see cref="MGToolTip.DrawOffset"/>

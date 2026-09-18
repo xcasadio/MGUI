@@ -212,7 +212,14 @@ public class TexturedPaintProjectionTests
         Rectangle layoutClip = Rectangle.Intersect(destination, bounds);
         Rectangle expectedScreenClip = element.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, layoutClip);
 
-        brush.Draw(recorder.Args(Point.Zero), element, shape, geometry);
+        //  Y11: the brush now clips from the ambient draw transform (DA.DT.CurrentSettings.Transform), not from a coordinate-space conversion,
+        //  so the harness must carry the window's scale on that ambient transform itself, the way MGWindow.Draw pushes it (see
+        //  MGWindow.cs, "UnscaledScreenSpaceToScaledScreenSpace") before drawing any content - a hand-built identity transform would no
+        //  longer reproduce the real draw-time state.
+        using (recorder.Transaction.SetTransformTemporary(harness.Window.UnscaledScreenSpaceToScaledScreenSpace))
+        {
+            brush.Draw(recorder.Args(Point.Zero), element, shape, geometry);
+        }
 
         GraphTexturedTriangleListCall call = Assert.Single(recorder.Transaction.TexturedTriangleListCalls);
         Assert.NotEqual(layoutClip, expectedScreenClip);

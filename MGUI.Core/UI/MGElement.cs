@@ -4315,9 +4315,22 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
     }
 
-    /// <summary>True while this element (a window, in practice -- see <see cref="MGWindow.IsClosing"/>) is playing an entry or exit run
-    /// started through the window overload, or a Y6 exit driven by <see cref="Visibility"/>: both share the same slot state.</summary>
+    /// <summary>True while this element (a window, in practice) is playing an entry or exit run started through the window overload, or a Y6
+    /// exit driven by <see cref="Visibility"/>: both share the same slot state. Covers every exit regardless of what ends it -- unlike
+    /// <see cref="MGWindow.IsClosing"/> (Y12), which only holds for the narrower removal-bound case -- so this is what the input-suppression
+    /// and occlusion checks (<see cref="MGWindow.OccludesUnscaledPosition"/>, its mouse handlers, the nested-window hover suppression) and the
+    /// <see cref="MGWindow.AddNestedWindow"/>/<see cref="MGWindow.RemoveNestedWindow"/> carve-outs key on instead of <see cref="MGWindow.IsClosing"/>.</summary>
     internal bool IsPlayingEnterExitExit => _animationSlot?.IsExitingEnterExit == true;
+
+    /// <summary>True while <see cref="IsPlayingEnterExitExit"/> is true AND the running exit will end by invoking a completion instead of
+    /// merely applying a pending <see cref="Visibility"/> (Y12): set the moment <see cref="TryPlayEnterExitExitForWindow"/> starts a fresh
+    /// window-removal exit, or the moment <see cref="AppendPendingExitCompletion"/> attaches a close request
+    /// (<see cref="MGWindow.TryCloseWindow"/>) onto a <see cref="Visibility"/>-driven exit that was already playing. False for a plain Y6 exit
+    /// that only carries a pending <see cref="Visibility"/>, and for no exit at all. Reset to false the instant the running exit is superseded
+    /// (<see cref="CancelActiveEnterExitExit"/>, called by <see cref="PlayEnterExitEntryForWindow"/> when e.g. <see cref="MGWindow.AddNestedWindow"/>
+    /// reopens a window mid-exit) or ends naturally (<see cref="HandleEnterExitRunFinished"/>), so it can never stay stuck raised on a window
+    /// that is back in a list and visible. Backs <see cref="MGWindow.IsClosing"/>.</summary>
+    internal bool IsPlayingRemovalBoundExit => _animationSlot is { IsExitingEnterExit: true, PendingExitCompletion: not null };
 
     /// <summary>Windows (Y8): true when this window (or tooltip, context menu, dropdown) would actually play an exit if
     /// <see cref="TryPlayEnterExitExitForWindow"/> were called right now -- an explicit <see cref="EnterExit"/> with
@@ -4351,12 +4364,15 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         return true;
     }
 
-    /// <summary>Windows (Y7-R1 fix): chains <paramref name="extra"/> onto whichever exit is already playing on this window (a
-    /// <see cref="Visibility"/>-driven Y6 exit as well as a window-removal one), instead of starting a new one, so
-    /// <see cref="MGWindow.RemoveNestedWindow"/> can still remove a window whose exit was started by a plain Visibility write: without this,
-    /// that exit's completion only applied the pending <see cref="Visibility"/> and never removed the window (P2 regression). A no-op call
-    /// (nothing exiting) never happens in practice since every caller has already checked <see cref="MGWindow.IsClosing"/>, but is harmless if
-    /// it did: <paramref name="extra"/> is simply never invoked.</summary>
+    /// <summary>Windows (Y7-R1 fix, and Y12 for <see cref="MGWindow.TryCloseWindow"/>): chains <paramref name="extra"/> onto whichever exit is
+    /// already playing on this window (a <see cref="Visibility"/>-driven Y6 exit as well as a window-removal one), instead of starting a new
+    /// one, so <see cref="MGWindow.RemoveNestedWindow"/> can still remove a window whose exit was started by a plain Visibility write, and
+    /// <see cref="MGWindow.TryCloseWindow"/> can close a window that is merely exiting through one, without restarting or doubling the run: for
+    /// either, that exit's completion applies the pending <see cref="Visibility"/> first (unchanged), then runs the newly-chained removal
+    /// (P2 regression fixed in Y7-R1). Setting <see cref="Animation.UIElementAnimationSlot.PendingExitCompletion"/> here is also what flips
+    /// <see cref="IsPlayingRemovalBoundExit"/> (hence <see cref="MGWindow.IsClosing"/>) to true from this call on. A no-op call (nothing
+    /// exiting) never happens in practice since every caller has already checked <see cref="IsPlayingEnterExitExit"/>, but is harmless if it
+    /// did: <paramref name="extra"/> is simply never invoked.</summary>
     internal void AppendPendingExitCompletion(Action extra)
     {
         if (extra == null)
