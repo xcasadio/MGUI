@@ -143,6 +143,8 @@ Aucun test.
 
 `dotnet build MGUI.sln` : 0 erreur. `dotnet test MGUI.Tests` : **2803/2803**.
 
+Un test intermittent, sans rapport avec ce chantier, a echoue deux fois pendant la validation : `LayoutTransitionTests.RepeatedLayoutPasses_AllocateNothing_AfterWarmUp_WhetherOrNotAnElementOptedIn`, qui mesure des allocations. Mesure : 2 echecs sur 8 suites completes, tous deux juste apres un `dotnet build MGUI.sln` complet, puis 0 sur les 10 suivantes ; 0 sur 16 suites completes sur `develop` (`e633fea`) dans un worktree separe ; 0 sur 10 executions du test seul. Il n'echoue donc que sous la charge parallele de la suite entiere, et son propre commentaire (`LayoutTransitionTests.cs:944-946`) documente deja une occurrence du meme probleme, attribuee a la compilation JIT etagee encore en cours apres un build neuf. Ce chantier ne touche ni le layout, ni l'animation, ni le dessin. Signale a l'auteur comme suite a part.
+
 Deux passes de revue en contexte frais ont encadre la livraison :
 
 - apres T2, quatre relecteurs sur des angles disjoints (registre, regle d'analyse, reproduction independante de l'acceptation, surface publique et conventions) plus une passe de completude. Retenu et corrige dans `eefc9c1` : le message affirmait une identite que la position ne prouve pas (P2 introduite), le commentaire XML de l'exception decrivait un cablage jamais construit, l'ADR donnait encore pour livre le T3 refute, l'analyse stricte lisait le markup deux fois, deux tests figeaient des positions en dur. Remonte et transmis a l'auteur : O4 ;
