@@ -270,6 +270,64 @@ public class FocusNavigationTextEntryTests
         GC.KeepAlive(desktop);
     }
 
+    // ---- Ctrl+Tab: the keyboard way out of a control that reserves Tab -------------------------------------------
+
+    /// <summary>Without this, making text entry hosts navigation targets would turn every control that legitimately
+    /// sets <c>AcceptsTab = true</c> into a keyboard trap: Tab is reserved, arrows and Home/End are reserved
+    /// unconditionally, and Escape maps to Cancel, which fallback navigation does not handle.</summary>
+    [Fact]
+    public void CtrlTab_LeavesARichTextBox_WithoutInsertingAnything()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, MGRichTextBox editor, MGButton next) = CreateTabReservingPair();
+
+        KeyFrame(runtime, desktop, 64, Keys.LeftControl, Keys.Tab);
+        KeyFrame(runtime, desktop, 80);
+
+        Assert.Equal(string.Empty, editor.Text);
+        Assert.Same(next, desktop.FocusedKeyboardHandler);
+    }
+
+    [Fact]
+    public void CtrlShiftTab_LeavesARichTextBox_Backwards()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, MGRichTextBox editor, MGButton next) = CreateTabReservingPair(out MGButton previous);
+
+        KeyFrame(runtime, desktop, 64, Keys.LeftControl, Keys.LeftShift, Keys.Tab);
+        KeyFrame(runtime, desktop, 80);
+
+        Assert.Equal(string.Empty, editor.Text);
+        Assert.Same(previous, desktop.FocusedKeyboardHandler);
+        Assert.NotSame(next, desktop.FocusedKeyboardHandler);
+    }
+
+    /// <summary>The escape must not eat the plain key: Tab alone still indents in a control that reserves it.</summary>
+    [Fact]
+    public void PlainTab_InARichTextBox_StillIndents_AndKeepsFocus()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, MGRichTextBox editor, MGButton next) = CreateTabReservingPair();
+
+        KeyFrame(runtime, desktop, 64, Keys.Tab);
+        KeyFrame(runtime, desktop, 80);
+
+        Assert.NotEqual(string.Empty, editor.Text);
+        Assert.Same(editor, desktop.FocusedKeyboardHandler);
+        Assert.NotSame(next, desktop.FocusedKeyboardHandler);
+    }
+
+    /// <summary>The escape is Tab-only. Ctrl+Left keeps its word-wise caret meaning rather than moving focus, which is
+    /// why the rule is expressed as one key and not as "Ctrl suspends text entry preservation".</summary>
+    [Fact]
+    public void CtrlLeft_InARichTextBox_DoesNotMoveFocus()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, MGRichTextBox editor, MGButton next) = CreateTabReservingPair();
+
+        KeyFrame(runtime, desktop, 64, Keys.LeftControl, Keys.Left);
+        KeyFrame(runtime, desktop, 80);
+
+        Assert.Same(editor, desktop.FocusedKeyboardHandler);
+        Assert.NotSame(next, desktop.FocusedKeyboardHandler);
+    }
+
     // ---- The reported bug ----------------------------------------------------------------------------------------
 
     /// <summary>
@@ -408,6 +466,45 @@ public class FocusNavigationTextEntryTests
 
         [Category("Identity")]
         public string Name { get; set; } = string.Empty;
+    }
+
+    /// <summary>A focused <see cref="MGRichTextBox"/> (which sets <c>AcceptsTab = true</c> of its own accord) with a
+    /// button before it and one after it, so both navigation directions have somewhere to land. Focus is taken through
+    /// a real mouse press, so the whole keyboard pipeline behaves as it does in the app.</summary>
+    private static (GraphTestRuntime Runtime, MGDesktop Desktop, MGRichTextBox Editor, MGButton Next) CreateTabReservingPair()
+        => CreateTabReservingPair(out _);
+
+    private static (GraphTestRuntime Runtime, MGDesktop Desktop, MGRichTextBox Editor, MGButton Next) CreateTabReservingPair(out MGButton previous)
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 800, 600));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 400, 300) { WindowStyle = WindowStyle.None };
+        MGButton first = new(window) { PreferredWidth = 120, PreferredHeight = 24 };
+        MGRichTextBox editor = new(window) { PreferredWidth = 120, PreferredHeight = 40 };
+        MGButton last = new(window) { PreferredWidth = 120, PreferredHeight = 24 };
+        MGStackPanel panel = new(window, Orientation.Vertical)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        panel.TryAddChild(first);
+        panel.TryAddChild(editor);
+        panel.TryAddChild(last);
+        window.SetContent(panel);
+        desktop.Windows.Add(window);
+        desktop.Update();
+        desktop.Update();
+
+        Assert.True(editor.AcceptsTab);
+
+        Point caretPoint = editor.LayoutBounds.Center;
+        AdvanceFrame(runtime, desktop, 16, caretPoint, MouseButton.Left);
+        AdvanceFrame(runtime, desktop, 32, caretPoint);
+        AdvanceFrame(runtime, desktop, 48, caretPoint);
+        Assert.Same(editor, desktop.FocusedKeyboardHandler);
+
+        previous = first;
+        return (runtime, desktop, editor, last);
     }
 
     private static MGDesktop CreateDesktopWithSingleWindow(out MGWindow window, int width = 400, int height = 400)

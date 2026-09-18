@@ -289,7 +289,21 @@ Mutations (gardes distinctes, parce que les moities du correctif se masquent l'u
 - remettre `AcceptsTab = true` par defaut doit rendre rouge le critere "Tab depuis cette text box atteint l'element
   suivant".
 
-### ⚪ Tache 2 — Ctrl+Tab / Ctrl+Shift+Tab sortent d'un controle qui reserve Tab
+### 🧪 Tache 2 — Ctrl+Tab / Ctrl+Shift+Tab sortent d'un controle qui reserve Tab
+
+**Livree le 18 septembre 2026.** Build 0 erreur ; suite complete **2903/2903**. La regle est
+`FocusInputPolicy.IsTextEntryNavigationEscape(key, isControlDown)`, volontairement limitee a Tab. Mutation : retirer
+l'appel a cette regle rend rouges `CtrlTab_LeavesARichTextBox_WithoutInsertingAnything` et
+`CtrlShiftTab_LeavesARichTextBox_Backwards`.
+
+Constat de mesure (le plan laissait la question ouverte) : **aucune garde supplementaire n'a ete necessaire dans
+`MGTextBox`** pour empecher Ctrl+Tab d'inserer quatre espaces. La navigation brute est dispatchee depuis le
+`HighPriorityKeyboardHandler` du desktop, pompe avant toute fenetre ; elle marque l'evenement handled, et
+`KeyboardHandler` ne livre `Pressed` que si `InvokeEvenIfHandled || !IsHandled`. Le test
+`PlainTab_InARichTextBox_StillIndents_AndKeepsFocus` prouve que ce chemin d'insertion fonctionne bel et bien, donc
+l'assertion « texte inchange » du test Ctrl+Tab n'est pas vacuine.
+
+Cette tache leve l'etat volontairement non livrable decrit dans les consignes : la branche est desormais coherente.
 
 Perimetre : `MGUI.Core/UI/FocusInputPolicy.cs`, `MGUI.Core/UI/Navigation/UIFocusNavigationService.cs`,
 `MGUI.Core/UI/MGTextBox.cs` si necessaire, nouveaux tests.

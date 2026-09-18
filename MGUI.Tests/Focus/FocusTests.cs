@@ -557,14 +557,21 @@ public class FocusTests
     }
 
     [Theory]
-    [InlineData(false, false, Microsoft.Xna.Framework.Input.Keys.Left, false, true, MGUI.Core.UI.UINavigationAction.MoveLeft)]
-    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Left, false, false, default(MGUI.Core.UI.UINavigationAction))]
-    [InlineData(true, false, Microsoft.Xna.Framework.Input.Keys.Left, false, true, MGUI.Core.UI.UINavigationAction.MoveLeft)]
-    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Enter, false, false, MGUI.Core.UI.UINavigationAction.Submit)]
-    [InlineData(false, false, Microsoft.Xna.Framework.Input.Keys.A, false, false, default(MGUI.Core.UI.UINavigationAction))]
-    public void FocusInputPolicy_TryGetNavigationAction_ReturnsExpectedValue(bool isTextEntryFocused, bool shouldPreserveTextEntryKey, Microsoft.Xna.Framework.Input.Keys key, bool isShiftDown, bool expectedMapped, MGUI.Core.UI.UINavigationAction expectedAction)
+    [InlineData(false, false, Microsoft.Xna.Framework.Input.Keys.Left, false, false, true, MGUI.Core.UI.UINavigationAction.MoveLeft)]
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Left, false, false, false, default(MGUI.Core.UI.UINavigationAction))]
+    [InlineData(true, false, Microsoft.Xna.Framework.Input.Keys.Left, false, false, true, MGUI.Core.UI.UINavigationAction.MoveLeft)]
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Enter, false, false, false, MGUI.Core.UI.UINavigationAction.Submit)]
+    [InlineData(false, false, Microsoft.Xna.Framework.Input.Keys.A, false, false, false, default(MGUI.Core.UI.UINavigationAction))]
+    //  Tab reserved by the focused text entry host stays reserved...
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Tab, false, false, false, default(MGUI.Core.UI.UINavigationAction))]
+    //  ...unless Ctrl is held, the escape that keeps an AcceptsTab control from being a keyboard trap.
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Tab, false, true, true, MGUI.Core.UI.UINavigationAction.MoveNext)]
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Tab, true, true, true, MGUI.Core.UI.UINavigationAction.MovePrevious)]
+    //  The escape is Tab-only: Ctrl+Left keeps its word-wise caret meaning inside the text box.
+    [InlineData(true, true, Microsoft.Xna.Framework.Input.Keys.Left, false, true, false, default(MGUI.Core.UI.UINavigationAction))]
+    public void FocusInputPolicy_TryGetNavigationAction_ReturnsExpectedValue(bool isTextEntryFocused, bool shouldPreserveTextEntryKey, Microsoft.Xna.Framework.Input.Keys key, bool isShiftDown, bool isControlDown, bool expectedMapped, MGUI.Core.UI.UINavigationAction expectedAction)
     {
-        bool actualMapped = MGUI.Core.UI.FocusInputPolicy.TryGetNavigationAction(key, isShiftDown, isTextEntryFocused, shouldPreserveTextEntryKey, out var actualAction);
+        bool actualMapped = MGUI.Core.UI.FocusInputPolicy.TryGetNavigationAction(key, isShiftDown, isControlDown, isTextEntryFocused, shouldPreserveTextEntryKey, out var actualAction);
 
         Assert.Equal(expectedMapped, actualMapped);
         Assert.Equal(expectedAction, actualAction);

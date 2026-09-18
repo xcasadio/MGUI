@@ -48,11 +48,13 @@ not exposed in XAML, so a XAML-only consumer had no opt-in at all.
    a window's empty body must not land in a text box while another control could take it. This governs the fallback and
    nothing else: `MGWindow.DefaultFocusElement` and the window's focus history restore a text entry host normally, and
    the Tab order is not filtered.
-5. **Ctrl+Tab and Ctrl+Shift+Tab will leave a control that reserves Tab** (WPF convention), so controls that
-   legitimately set `AcceptsTab = true` - `MGRichTextBox`, the `MGGraphControls` comment box, the editable markup box of
-   `MGXAMLDesigner` - do not stay keyboard traps. **Decided but NOT yet implemented**: this is task 2 of
-   `Docs/Tasks/focus-navigation-text-entry-tasks.md`, and no Ctrl+Tab handling exists in the code that decisions 1-4 and
-   6 ship. Until it lands, those controls are reachable by Tab with no keyboard way out.
+5. **Ctrl+Tab and Ctrl+Shift+Tab leave a control that reserves Tab** (WPF convention), so controls that legitimately
+   set `AcceptsTab = true` - `MGRichTextBox`, the `MGGraphControls` comment box, the editable markup box of
+   `MGXAMLDesigner` - do not become keyboard traps. The rule is `FocusInputPolicy.IsTextEntryNavigationEscape`, and it
+   releases **Tab only**: Ctrl with any other reserved key keeps its text-editing meaning, so Ctrl+Left and Ctrl+Right
+   still move the caret by word. Nothing else had to change to stop the key inserting a tab as well: raw navigation is
+   dispatched from the desktop's high-priority keyboard handler, before any window is pumped, and marking the event
+   handled there means the text box's own handler is never invoked for it.
 6. **Auto-focus resolution has one implementation.** `MGDesktop.ResolveAutoFocusTarget(MGElement, bool)` delegates to
    `UIFocusNavigationService`; the duplicate copy of it and of `GetFocusableElements` in `MGDesktop` are deleted, so the
    rule cannot drift between them.

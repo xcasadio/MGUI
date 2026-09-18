@@ -208,7 +208,7 @@ public class UIFocusNavigationService
             ? Desktop.FocusedKeyboardHandler
             : null;
         var shouldPreserveTextEntryKey = ShouldPreserveTextEntryKey(e.Key);
-        if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, focusedElement is ITextEntryHost, shouldPreserveTextEntryKey, out var action))
+        if (!FocusInputPolicy.TryGetNavigationAction(e.Key, e.Tracker.IsShiftDown, e.Tracker.IsControlDown, focusedElement is ITextEntryHost, shouldPreserveTextEntryKey, out var action))
         {
             return false;
         }
