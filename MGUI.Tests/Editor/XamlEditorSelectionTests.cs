@@ -398,4 +398,34 @@ public class XamlEditorSelectionTests
         MGTreeViewItem rebuiltOuterItem = rebuiltRootItem.Items.Single();
         Assert.False(rebuiltOuterItem.IsExpanded);
     }
+
+    // -- The caret the selection moves stays visible although the text pane has no keyboard focus. The selection never
+    //    calls Focus() itself; what it cannot control is that MGWindow's own click-to-activate handler
+    //    (MGWindow.ActivatesOnClick, default true) resolves a new focus target on any click that queues no focus of its
+    //    own, which a click on the non-interactive preview never does -- and the text pane can never be that target,
+    //    because MGDesktop.IsNavigationTarget requires IsFocusable and MGTextBox never sets it. That is pre-existing
+    //    framework behaviour, and exactly why the caret has to be visible without focus. --
+
+    [Fact]
+    public void PreviewClick_WithNothingFocused_MovesTheCaretToTheSelectedNodesStartTag_AndTheCaretIsVisible()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view) = CreateHostedView(1280, 720);
+        int frame = 0;
+
+        SetTextAndSettle(runtime, desktop, view,
+            "<Button xmlns=\"" + Ns + "\" Content=\"OK\" Width=\"80\" Height=\"30\" HorizontalAlignment=\"Left\" VerticalAlignment=\"Top\" />",
+            ref frame);
+
+        Assert.Null(desktop.FocusedKeyboardHandler);
+
+        MGElement previewRoot = view.PreviewHost.PreviewRoot;
+        Assert.NotNull(previewRoot);
+        Click(runtime, desktop, ref frame, previewRoot.ActualLayoutBounds.Center);
+
+        Assert.NotNull(view.Selection.SelectedNode);
+        Assert.True(view.TextPane.Caret.HasPosition);
+        Assert.Equal(view.Selection.SelectedNode.StartTagRange.StartIndex, view.TextPane.CaretIndex);
+        Assert.NotSame(view.TextPane, desktop.FocusedKeyboardHandler);
+        Assert.True(view.TextPane.Caret.IsCurrentlyVisible);
+    }
 }

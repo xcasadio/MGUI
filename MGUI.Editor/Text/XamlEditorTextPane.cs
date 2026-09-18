@@ -24,6 +24,11 @@ public sealed class XamlEditorTextPane
     {
         _view = view ?? throw new ArgumentNullException(nameof(view));
 
+        //  The selection (XamlEditorSelection.SyncCaretFromSelection) moves this pane's caret without taking keyboard
+        //  focus, so the caret has to stay visible without focus, or a preview click / tree selection would move it
+        //  somewhere the author cannot see.
+        _view.TextPane.Caret.ShowWhenUnfocused = true;
+
         _view.TextPane.SyntaxHighlighter = new DiagnosticsHighlighterDecorator(this);
 
         _diagnosticsList = new MGListBox<XamlLoaderDiagnostic>(view.Window)

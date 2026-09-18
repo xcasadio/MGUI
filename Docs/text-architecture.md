@@ -23,6 +23,7 @@ MGUI n'est pas une replique WPF : pas de `FlowDocument`, pas de document objet. 
 `MGUI.Core/UI/MGTextBox.cs` est la seule surface d'edition texte du framework. Elle possede :
 
 - caret (`Caret`), selection (`CurrentSelection`, `TextSelection`), clipboard, `AcceptsReturn`/`AcceptsTab`, `CharacterLimit` ;
+- visibilite du caret : `MGTextCaret.ShouldDrawCaret` porte la regle une seule fois, et `Draw` comme `IsCurrentlyVisible` s'y adressent. Sans position, jamais dessine ; avec le focus clavier, il clignote a `BlinkRate` ; sans le focus, il n'est dessine que si `ShowWhenUnfocused` est vrai, et alors sans clignoter, un caret clignotant sans focus se lisant comme un caret actif. `ShowWhenUnfocused` est faux par defaut : un outil qui deplace le caret sans prendre le focus (l'editeur XAML) l'active sur son propre volet. `IsCurrentlyVisible` existe parce qu'un test headless dessine dans une transaction sans effet et ne peut pas inspecter de pixels ;
 - rendu de la selection par injection de codes markdown couleur dans le `MGTextBlock` interne (`UpdateFormattedText`, virtuelle) ;
 - undo/redo : `TryUndo()`/`TryRedo()` sur deux `MGTextUndoStack<RestorableState>`, taille via `UndoRedoHistorySize` (`DefaultUndoRedoHistorySize` = 20) ; toute edition hors undo/redo vide la pile redo.
 
