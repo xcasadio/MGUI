@@ -325,7 +325,9 @@ Rollback : revert du commit ; T4 et les precedentes restent coherentes avec le f
 
 Commit recommande : `feat(docking): persist floating, auto-hidden and closed panel places in layout format 2.0`
 
-### 🧪 T6. Documentation et cloture
+### ✅ T6. Documentation et cloture
+
+Statut (18 septembre 2026) : livre et valide. L'auteur a confirme la validation manuelle dans la demo docking (« tout est ok ») : retours dans le desordre, sauvegarde et rechargement avec une fenetre flottante et un panneau masque, refus d'un ancien fichier sans perdre la disposition en place.
 
 Statut (17 septembre 2026) : livre, en attente de la validation manuelle de l'auteur (ci-dessous). ADR-0012 passee en Accepted avec ses decisions prises en cours de route et ses limites connues ; index des ADR mis a jour ; `MGUI.Core/UI/Docking/TODO-DockingManager.md` corrige (5.2, 5.3 et 5.4 : version 2.0, sections du document, refus d'une autre version, fantomes conserves) ; `Docs/Tasks/docking-bugs-tasks.md` : le point ouvert de sa tache 4 renvoie desormais a ce chantier ; l'audit `analysis-dockmanager.md` reste en lecture seule, comme le veut la regle des ADR. Validation finale : build tests et `MGUI.Samples --no-incremental` 0 erreur ; suite complete 2552 reussis, 0 echec (reference T0 : 2420, aucun echec preexistant).
 
@@ -346,7 +348,7 @@ Criteres d'acceptation :
 - plus aucune phrase de la documentation listee dans l'etat des lieux ne decrit l'effondrement ou la memoire non persistee ;
 - suite complete verte par rapport a la reference T0.
 
-Validation manuelle (auteur) : demo docking (SCN-DOCK-001) : flotter, masquer et fermer des panneaux puis les rendre dans le desordre ; sauvegarder avec une fenetre flottante ouverte, recharger ; charger un ancien `docking_layout.json` (message d'erreur, disposition inchangee). T6 reste 🧪 tant que cette validation n'est pas confirmee.
+Validation manuelle (auteur) : demo docking (SCN-DOCK-001) : flotter, masquer et fermer des panneaux puis les rendre dans le desordre ; sauvegarder avec une fenetre flottante ouverte, recharger ; charger un ancien `docking_layout.json` (message d'erreur, disposition inchangee). Confirmee par l'auteur le 18 septembre 2026.
 
 Rollback : revert du commit.
 
