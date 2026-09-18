@@ -139,7 +139,8 @@ Une seule liste par session : les diagnostics du loader (code, message, ligne, c
 - Chaque ligne de la grille est une chaine, couleurs comprises ; pas d'editeur d'enum, de couleur ou d'epaisseur. La categorie « Resolved (runtime) » ne couvre que cinq chemins (`Margin` n'en fait pas partie).
 - Les styles, ressources et templates ne sont editables que dans le texte ; les parts de template de controle ne sont pas selectionnables.
 - Un contenu declare comme chaine (`Content="texte"`) n'a pas de noeud propre : il s'edite comme attribut de son parent.
-- Une racine `Window` plus grande que le volet est rognee, ni redimensionnee ni defilable.
+- Une racine `Window` plus grande que le volet est rognee, ni redimensionnee ni defilable. De meme, une racine declaree avec un `Left` ou un `Top` qui la porte hors du volet sort du volet et peut devenir invisible : la preview reste fidele au document et ne la ramene pas.
+- La preview montre le chrome de la racine `Window` (barre de titre, bouton de fermeture) : c'est ce que le document decrit, et c'est ce que l'execution afficherait.
 - Docking : les volets ne sont pas fermables (le menu contextuel d'un onglet montre quand meme « Close Others » et « Close All », sans effet) ; « Preview » ne flotte pas, car une racine `Window` de preview est une fenetre imbriquee de la fenetre de l'editeur ; un volet flottant re-docke revient a sa place d'origine (groupes fantomes, ADR-0012) ; le layout n'est ni sauvegarde ni reinitialisable.
 - Pas de completion, pas de gouttiere de numeros de ligne.
 - Le volet « XAML » utilise la police du theme (Arial, proportionnelle) : le depot ne suit aucune police a chasse fixe.
