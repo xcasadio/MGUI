@@ -17,7 +17,7 @@ internal static class FocusInputPolicy
     /// keyboard trap now that text entry hosts are navigation targets.<para/>
     /// ONLY Tab is released this way. Ctrl with any other reserved key keeps its text-editing meaning, so Ctrl+Left and
     /// Ctrl+Right still move the caret by word rather than moving focus.
-    /// See Docs/decisions/0013-keyboard-focus-navigation-single-rule.md.</summary>
+    /// See Docs/decisions/0014-keyboard-focus-navigation-single-rule.md.</summary>
     internal static bool IsTextEntryNavigationEscape(Keys key, bool isControlDown)
         => isControlDown && key == Keys.Tab;
 

@@ -357,7 +357,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     /// overrides <see cref="MGElement.CanHandleKeyboardInput"/> (<see cref="MGTextBox"/>, <see cref="MGMenuBar"/>) is
     /// no longer excluded from navigation just because its <see cref="MGElement.IsFocusable"/> is false. Testing
     /// <see cref="MGElement.IsFocusable"/> here as well used to be redundant for every other control and wrong for
-    /// those two - see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md.</summary>
+    /// those two - see Docs/decisions/0014-keyboard-focus-navigation-single-rule.md.</summary>
     internal bool IsNavigationTarget(MGElement element)
         => element != null
            && element.DerivedIsEnabled

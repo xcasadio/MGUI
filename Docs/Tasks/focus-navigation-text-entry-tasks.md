@@ -205,7 +205,7 @@ refuter, a produit cinq constats confirmes, tous corriges dans ce commit :
   la depriorisation.
 - **P3 — le commentaire de `XamlEditorSelectionTests`** affirmait un vainqueur que les assertions du test ne verifient
   pas ; reformule sur ce que le test couvre reellement, avec renvoi au test unitaire qui epingle la regle.
-- **P3 — ADR-0013 presentait le Ctrl+Tab au present** comme deja effectif alors qu'il releve de la tache 2 ; marque
+- **P3 — ADR-0014 presentait le Ctrl+Tab au present** comme deja effectif alors qu'il releve de la tache 2 ; marque
   explicitement comme decide mais non implemente.
 
 Un seul commit : les decisions 1, 2 et 3 sont indissociables (voir "Consignes").
@@ -344,7 +344,7 @@ Acceptation :
 
 **Livree le 18 septembre 2026.** `Docs/input-architecture.md` : regle unique, depriorisation, nouveau defaut
 `AcceptsTab` et Ctrl+Tab dans les sections focus, plus une nouvelle limite connue (pas de modificateur sur le chemin
-semantique). ADR-0013 passe en `Accepted`, index mis a jour.
+semantique). ADR-0014 passe en `Accepted`, index mis a jour.
 `Docs/input-window-activation-design.md` : corps **non** reecrit, conformement a la regle de lecture seule des
 dossiers de conception ; une note datee est ajoutee a sa section « Statut », en suivant le precedent de cette meme
 section, pour signaler que la decision Q7 et le point 7 de la section 7 decrivent le troisieme cran de resolution tel
@@ -352,7 +352,7 @@ qu'il etait.
 
 Perimetre : `Docs/input-architecture.md`, `Docs/decisions/0013-*.md`, ce fichier.
 
-**Ecart assume par rapport au decoupage initial** : `Docs/decisions/0013-keyboard-focus-navigation-single-rule.md` et
+**Ecart assume par rapport au decoupage initial** : `Docs/decisions/0014-keyboard-focus-navigation-single-rule.md` et
 son entree d'index ont ete crees des la tache 1, parce que les commentaires de code ajoutes par cette tache le
 referencent — une reference vers un fichier inexistant aurait ete un defaut. L'ADR est en `Proposed` ; la tache 3 le
 passe en `Accepted` une fois le programme complet livre, et traite `Docs/input-architecture.md`.
@@ -361,7 +361,7 @@ passe en `Accepted` une fois le programme complet livre, et traite `Docs/input-a
   regle unique de cible de navigation, sens de `IsFocusable`, controles de saisie desormais cibles, nouveau defaut
   `AcceptsTab`, depriorisation `ITextEntryHost` en `firstFocusable`, et Ctrl+Tab. Ajouter dans "Limites connues"
   l'absence de modificateur sur le chemin semantique.
-- ADR-0013 (prochain numero libre) enregistrant les decisions 1, 2, 3, 5 et 6 et leurs consequences, dont l'entree
+- ADR-0014 (prochain numero libre) enregistrant les decisions 1, 2, 3, 5 et 6 et leurs consequences, dont l'entree
   des editeurs de `MGPropertyGrid`, `MGChatBox`, `MGXAMLDesigner` et des boites de commentaire de `MGGraphControls`
   dans l'ordre de tabulation, lecture seule comprise.
 - Verifier si `Docs/input-window-activation-design.md` (sections Q7 et 7) doit etre annote : il decrit la resolution

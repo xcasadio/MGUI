@@ -986,7 +986,7 @@ public class MGTextBox : MGElement, ITextEntryHost
     /// focus to the next navigation target.<para/>
     /// Note: This feature is not available for <see cref="MGPasswordBox"/>.<para/>
     /// Default value: false. It was true until text boxes became navigation targets, which would have made Tab reach a
-    /// text box without ever leaving it - see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md. Controls
+    /// text box without ever leaving it - see Docs/decisions/0014-keyboard-focus-navigation-single-rule.md. Controls
     /// that legitimately consume Tab (<see cref="MGRichTextBox"/>) keep setting it to true themselves.</summary>
     public virtual bool AcceptsTab
     {

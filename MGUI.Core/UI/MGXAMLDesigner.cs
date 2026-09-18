@@ -59,7 +59,7 @@ public class MGXAMLDesigner : MGElement
             MGScrollViewer MarkupScrollViewer = new(ParentWindow);
             FromStringTextBoxComponent = new(ParentWindow, null);
             //  Hand-edited markup: Tab indents here instead of moving focus, as in any code editor. Stated explicitly
-            //  because MGTextBox.AcceptsTab now defaults to false - see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md.
+            //  because MGTextBox.AcceptsTab now defaults to false - see Docs/decisions/0014-keyboard-focus-navigation-single-rule.md.
             //  FromFileTextBoxComponent below needs no such opt-in: it is readonly, so it never consumed Tab anyway.
             FromStringTextBoxComponent.AcceptsTab = true;
             var SampleXAML =

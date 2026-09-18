@@ -2768,7 +2768,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// The converse does not hold: a control that overrides <see cref="CanHandleKeyboardInput"/> to return
     /// <see langword="true"/> is keyboard-active and a navigation target whatever this flag says, because
     /// <see cref="MGDesktop.IsNavigationTarget(MGElement)"/> tests <see cref="CanHandleKeyboardInput"/> and not this
-    /// flag - see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md.<para/>
+    /// flag - see Docs/decisions/0014-keyboard-focus-navigation-single-rule.md.<para/>
     /// When first set to <see langword="true"/>, a one-time subscription to <see cref="MouseHandler"/>
     /// <c>.LMBPressedInside</c> is made so that clicking this element will automatically call <see cref="Focus"/>.</summary>
     public virtual bool IsFocusable

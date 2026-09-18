@@ -21,7 +21,7 @@ namespace MGUI.Tests.Focus;
 /// navigation target instead of being silently excluded by an <see cref="MGElement.IsFocusable"/> that it never set.
 /// Also covers the two behaviours that make that rule usable: text entry hosts are deprioritised when auto-focus
 /// resolution falls back on "first focusable", and <see cref="MGTextBox.AcceptsTab"/> now defaults to false so Tab can
-/// leave a text box. See Docs/decisions/0013-keyboard-focus-navigation-single-rule.md.
+/// leave a text box. See Docs/decisions/0014-keyboard-focus-navigation-single-rule.md.
 /// </summary>
 public class FocusNavigationTextEntryTests
 {

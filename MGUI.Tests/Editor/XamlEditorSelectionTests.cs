@@ -404,7 +404,7 @@ public class XamlEditorSelectionTests
     //    (MGWindow.ActivatesOnClick, default true) resolves a new focus target on any click that queues no focus of its
     //    own, which a click on the non-interactive preview never does.
     //    The text pane is now a legitimate navigation target (MGDesktop.IsNavigationTarget keys off
-    //    CanHandleKeyboardInput alone, see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md), but it is
+    //    CanHandleKeyboardInput alone, see Docs/decisions/0014-keyboard-focus-navigation-single-rule.md), but it is
     //    still not what that resolution picks, because the "first focusable" fallback deprioritises ITextEntryHost.
     //    The assertion below only checks that the text pane did NOT take focus, which is all this test is about; the
     //    deprioritisation rule itself is pinned by

@@ -1018,7 +1018,7 @@ public class MGWindow : MGSingleContentHost
     /// with <c>preferWindowDefault: false</c>): the last-focused element in this window, then <see cref="DefaultFocusElement"/>,
     /// then the first focusable element that is not an <see cref="ITextEntryHost"/> - falling back to the first focusable
     /// element of any kind only when every candidate is one, so a click on a window's empty body does not land in a text
-    /// box while another control could take it (see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md).
+    /// box while another control could take it (see Docs/decisions/0014-keyboard-focus-navigation-single-rule.md).
     /// If the click itself already focused an element (e.g. clicking a focusable control),
     /// that focus takes precedence. If resolution finds no valid target, the current focus is left unchanged.<para/>
     /// Has no effect while blocked by an active modal window or modal overlay (<see cref="MGDesktop.IsBlockedByModalOrOverlay(MGElement)"/>).<para/>

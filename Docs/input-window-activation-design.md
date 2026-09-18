@@ -20,7 +20,7 @@ lot est retire a son tour, comme il l'avait ete pour la tache 8 elle-meme :
 ce document n'est plus suivi de travail en attente et reste comme dossier de
 conception (analyse, decisions, decoupage) pour ce theme.
 
-**Depasse sur un point, le 18 septembre 2026 (ADR-0013).** Le corps de ce
+**Depasse sur un point, le 18 septembre 2026 (ADR-0014).** Le corps de ce
 document n'est pas reecrit, mais deux endroits decrivent la resolution
 d'auto-focus telle qu'elle etait : la decision Q7 (section 3.a) et le point 7
 de la section 7 disent que le troisieme cran est « le premier focusable de la
