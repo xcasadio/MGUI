@@ -360,21 +360,46 @@ public class UIFocusNavigationService
             _ => false
         };
 
-    private MGElement ResolveAutoFocusTarget(MGElement root, bool preferWindowDefault)
+    /// <summary>The single implementation of auto-focus resolution for a root: <see cref="MGDesktop"/> delegates here
+    /// rather than keeping its own copy, so the rule cannot drift between the two.</summary>
+    internal MGElement ResolveAutoFocusTarget(MGElement root, bool preferWindowDefault)
     {
         if (root is not MGWindow window)
         {
-            return GetFocusableElements(root).FirstOrDefault();
+            return GetFirstAutoFocusCandidate(root);
         }
 
         var defaultFocus = window.DefaultFocusElement;
         var lastFocused = Desktop.State.WindowFocusHistory.TryGetValue(window, out var previousFocus) ? previousFocus : null;
-        var firstFocusable = GetFocusableElements(window).FirstOrDefault();
+        var firstFocusable = GetFirstAutoFocusCandidate(window);
 
         defaultFocus = IsNavigationTarget(defaultFocus) && window.IsSelfOrAncestorOf(defaultFocus) ? defaultFocus : null;
         lastFocused = IsNavigationTarget(lastFocused) && window.IsSelfOrAncestorOf(lastFocused) ? lastFocused : null;
 
         return MGDesktop.ResolveAutoFocusTarget(defaultFocus, lastFocused, firstFocusable, preferWindowDefault);
+    }
+
+    /// <summary>The element auto-focus resolution falls back on when neither <see cref="MGWindow.DefaultFocusElement"/>
+    /// nor the window's last-focused element applies: the first navigation target that is NOT an
+    /// <see cref="ITextEntryHost"/>, and only failing that the first navigation target at all.<para/>
+    /// Text entry hosts are deprioritised here and ONLY here. Focusing one captures gameplay input
+    /// (<see cref="MGDesktop.ShouldCaptureGameplayInput"/>), so a mere click on a window's empty body - which
+    /// <see cref="MGWindow.ActivatesOnClick"/> turns into an auto-focus resolution - must not land in a text box while
+    /// another control could take it. Explicit intent still wins: <see cref="MGWindow.DefaultFocusElement"/> and the
+    /// window's focus history restore a text entry host normally, and the Tab order
+    /// (<see cref="GetFocusableElements(MGElement)"/>) is not filtered at all.</summary>
+    private MGElement GetFirstAutoFocusCandidate(MGElement root)
+    {
+        var candidates = GetFocusableElements(root);
+        foreach (var candidate in candidates)
+        {
+            if (candidate is not ITextEntryHost)
+            {
+                return candidate;
+            }
+        }
+
+        return candidates.FirstOrDefault();
     }
 
     private MGElement GetHoveredNavigationTarget()

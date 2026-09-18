@@ -19,7 +19,10 @@ public class TextBoxNativeTabInputRegressionTests
     [Fact]
     public void NativeTab_ThenBackspace_InClickedTextBox_DoesNotThrow_AndEditsFourSpaceTab()
     {
-        Harness h = Harness.Create(textBox => { });
+        // AcceptsTab is opted into explicitly: this test is about the caret/text desynchronization on a Tab INSERTION,
+        // not about the default, which is false since text boxes became navigation targets (a default text box now
+        // moves focus on Tab instead of inserting).
+        Harness h = Harness.Create(textBox => textBox.AcceptsTab = true);
         h.ClickInsideTextBox();
 
         // Tab press: the host forwards the native '\t' character for Keys.Tab on the tick the key goes down.

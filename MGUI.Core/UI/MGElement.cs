@@ -2760,11 +2760,15 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     bool IMouseHandlerHost.CanReceiveMouseInput() => _CanReceiveMouseInput;
     IMouseHandlerHost IMouseHandlerHost.GetMouseInputParent() => Parent;
 
-    /// <summary>If true, this element can receive keyboard focus when clicked,
-    /// without necessarily being a text input control.<br/>
+    /// <summary>If true, this element participates in keyboard focus: it can be focused by clicking it, and it is a
+    /// navigation target, so Tab, directional moves and auto-focus resolution can reach it.<br/>
     /// Controls like <see cref="MGTreeView"/>, <see cref="MGListBox{TItemType}"/>,
     /// and <see cref="MGListView{TItemType}"/> set this to <see langword="true"/> to enable keyboard navigation.<para/>
-    /// Setting this to <see langword="true"/> also makes <see cref="CanHandleKeyboardInput"/> return <see langword="true"/>.<para/>
+    /// Setting this to <see langword="true"/> also makes <see cref="CanHandleKeyboardInput"/> return <see langword="true"/>.
+    /// The converse does not hold: a control that overrides <see cref="CanHandleKeyboardInput"/> to return
+    /// <see langword="true"/> is keyboard-active and a navigation target whatever this flag says, because
+    /// <see cref="MGDesktop.IsNavigationTarget(MGElement)"/> tests <see cref="CanHandleKeyboardInput"/> and not this
+    /// flag - see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md.<para/>
     /// When first set to <see langword="true"/>, a one-time subscription to <see cref="MouseHandler"/>
     /// <c>.LMBPressedInside</c> is made so that clicking this element will automatically call <see cref="Focus"/>.</summary>
     public virtual bool IsFocusable

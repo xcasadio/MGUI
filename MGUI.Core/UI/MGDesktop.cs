@@ -349,9 +349,17 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         return FocusInputPolicy.IsKeyboardInputEligible(element.CanHandleKeyboardInput, canReceiveKeyboardInput, IsBlockedByModalOrOverlay(element));
     }
 
+    /// <summary>True when <paramref name="element"/> may be given keyboard focus by navigation (Tab, directional moves,
+    /// auto-focus resolution).<para/>
+    /// There is a single rule: <see cref="MGElement.CanHandleKeyboardInput"/>, tested through
+    /// <see cref="CanElementReceiveKeyboardInput(MGElement)"/>. It defaults to <see cref="MGElement.IsFocusable"/>, so
+    /// opting a control in with <c>IsFocusable = true</c> still makes it a navigation target; but a control that
+    /// overrides <see cref="MGElement.CanHandleKeyboardInput"/> (<see cref="MGTextBox"/>, <see cref="MGMenuBar"/>) is
+    /// no longer excluded from navigation just because its <see cref="MGElement.IsFocusable"/> is false. Testing
+    /// <see cref="MGElement.IsFocusable"/> here as well used to be redundant for every other control and wrong for
+    /// those two - see Docs/decisions/0013-keyboard-focus-navigation-single-rule.md.</summary>
     internal bool IsNavigationTarget(MGElement element)
         => element != null
-           && element.IsFocusable
            && element.DerivedIsEnabled
            && element.DerivedIsHitTestVisible
            && element.Visibility == Visibility.Visible
@@ -497,22 +505,6 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
     internal void PopFocusScope(MGElement scopeRoot)
         => NavigationService.PopFocusScope(scopeRoot);
-
-    private IReadOnlyList<MGElement> GetFocusableElements(MGElement root)
-    {
-        if (root == null)
-        {
-            return Array.Empty<MGElement>();
-        }
-
-        return root.TraverseVisualTree(true, false, false, false, MGElement.TreeTraversalMode.Preorder)
-            .Where(IsNavigationTarget)
-            .Distinct()
-            .OrderBy(x => x.TabIndex)
-            .ThenBy(x => x.ActualLayoutBounds.Top)
-            .ThenBy(x => x.ActualLayoutBounds.Left)
-            .ToList();
-    }
 
     public IReadOnlyList<MGElement> GetFocusableElements()
         => NavigationService.GetFocusableElements();
@@ -1208,21 +1200,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     }
 
     internal MGElement ResolveAutoFocusTarget(MGElement root, bool preferWindowDefault)
-    {
-        if (root is not MGWindow window)
-        {
-            return GetFocusableElements(root).FirstOrDefault();
-        }
-
-        var defaultFocus = window.DefaultFocusElement;
-        var lastFocused = State.WindowFocusHistory.TryGetValue(window, out var previousFocus) ? previousFocus : null;
-        var firstFocusable = GetFocusableElements(window).FirstOrDefault();
-
-        defaultFocus = IsNavigationTarget(defaultFocus) && window.IsSelfOrAncestorOf(defaultFocus) ? defaultFocus : null;
-        lastFocused = IsNavigationTarget(lastFocused) && window.IsSelfOrAncestorOf(lastFocused) ? lastFocused : null;
-
-        return ResolveAutoFocusTarget(defaultFocus, lastFocused, firstFocusable, preferWindowDefault);
-    }
+        => NavigationService.ResolveAutoFocusTarget(root, preferWindowDefault);
 
     private void QueueAutoFocusIfNeeded(bool preferWindowDefault)
         => NavigationService.QueueAutoFocusIfNeeded(preferWindowDefault);
