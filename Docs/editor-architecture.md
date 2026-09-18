@@ -117,7 +117,7 @@ Une seule liste par session : les diagnostics du loader (code, message, ligne, c
 
 ### Echecs hors du loader
 
-Charger un document et **attacher** l'arbre obtenu sont deux etapes, et la seconde est hors du loader. Une defaillance qui n'apparait qu'a l'attachement remonte donc a l'hote comme une exception ordinaire, sans code, sans source et sans position. `XamlLoaderDiagnostic.FromException(exception, source, documentKind)` la decrit exactement comme le loader decrit les siennes ; un `XamlLoaderException` est rendu tel quel. C'est ce que le volet de preview appelle dans sa branche `catch` generique, pour que la liste montre un diagnostic situe plutot qu'un `ParseFailure` nu (ADR-0013).
+Charger un document et **attacher** l'arbre obtenu sont deux etapes, et la seconde est hors du loader. Une defaillance qui n'apparait qu'a l'attachement remonte donc a l'hote comme une exception ordinaire, sans code, sans source et sans position. `XamlLoaderDiagnostic.FromException(exception, source, documentKind)` la decrit exactement comme le loader decrit les siennes ; un `XamlLoaderException` est rendu tel quel. C'est ce que le volet de preview appelle dans sa branche `catch` generique, pour que la liste montre un diagnostic situe plutot qu'un `ParseFailure` nu (ADR-0013). L'exception doit lui parvenir telle qu'elle a ete levee : le code est trouve en parcourant toute la chaine des exceptions internes, mais la ligne et la colonne ne sont lues que sur l'exception de tete, comme pour tous les diagnostics du loader. Une exception re-enveloppee par l'hote garde donc son code et perd sa position.
 
 ### Noms d'elements
 
