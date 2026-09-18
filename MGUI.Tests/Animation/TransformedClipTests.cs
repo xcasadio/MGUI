@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Animation;
+using MGUI.Core.UI.Brushes.FillBrushes;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Shapes;
+using MGUI.Shared.Assets;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
@@ -178,6 +181,112 @@ public class TransformedClipTests
         // The regression itself: the clip actually moved with the window (it is not still cut at the final, untransformed rectangle).
         Assert.NotEqual(baselineClip.Value, midRunClip.Value);
     }
+
+    #region MGTextureFillBrush (Y11)
+
+    /// <summary>Bounds, rounded shape and Stretch.Uniform destination shared by the Y11 regression tests below: the same partial-destination
+    /// setup as <c>TexturedPaintProjectionTests.TextureFillBrush_PartialDestination_PushesScreenSpaceClipAroundDestination</c>, so the
+    /// destination (a 40x40 square, aspect-ratio 1 image) does not cover <paramref name="bounds"/> and the brush takes its clipped branch.</summary>
+    private static (Rectangle Bounds, MGBoxShape Shape, MGBoxGeometry Geometry, Rectangle LayoutClip) BuildRoundedPartialDestinationShape()
+    {
+        Rectangle bounds = new(10, 10, 160, 40);
+        MGBoxShape shape = new(bounds, new Thickness(0), new MGCornerRadius(12));
+        MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
+        Rectangle destination = new(bounds.Center.X - 20, bounds.Top, 40, 40);
+        Rectangle layoutClip = Rectangle.Intersect(destination, bounds);
+        return (bounds, shape, geometry, layoutClip);
+    }
+
+    private static GraphTexturedTriangleListCall DrawRoundedTextureFillBrush(GraphTestRuntime runtime, MGElement element, MGBoxShape shape,
+        MGBoxGeometry geometry, string imageId, Matrix ambientTransform)
+    {
+        GraphNoOpDrawTransaction transaction = new(runtime, DrawSettings.Default);
+        MGTextureFillBrush brush = new(new MGTextureData(new GraphTestImageResource(imageId, 64, 64)), Stretch.Uniform);
+        ElementDrawArgs args = new(new DrawBaseArgs(TimeSpan.Zero, transaction, 1f), new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
+        using (transaction.SetTransformTemporary(ambientTransform))
+        {
+            brush.Draw(args, element, shape, geometry);
+        }
+
+        return Assert.Single(transaction.TexturedTriangleListCalls);
+    }
+
+    /// <summary>ACCEPTANCE 3a: a rounded <see cref="MGTextureFillBrush"/> (Stretch.Uniform, partial destination) drawn under a translated
+    /// ancestor (the ambient draw transform a <see cref="MGElement.RenderTransform"/> or a sliding window pushes) records a clip that
+    /// follows the transform: it equals the untransformed clip translated by the exact same matrix the content is drawn with.</summary>
+    [Fact]
+    public void TextureFillBrush_RoundedStretchUniform_TranslatedAncestor_ClipFollowsTheAmbientTransform()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 24, 24, 480, 260) { WindowStyle = WindowStyle.None, Padding = new Thickness(0) };
+        MGBorder element = new(window);
+        window.SetContent(element);
+        desktop.Windows.Add(window);
+        Frame(runtime, desktop, 1);
+        Frame(runtime, desktop, 2);
+
+        var (_, shape, geometry, layoutClip) = BuildRoundedPartialDestinationShape();
+
+        GraphTexturedTriangleListCall untransformedCall = DrawRoundedTextureFillBrush(runtime, element, shape, geometry, "tex-y11-untransformed", Matrix.Identity);
+        Assert.Equal(layoutClip, untransformedCall.ClipBounds);
+
+        Matrix ancestorTranslation = Matrix.CreateTranslation(40f, 15f, 0f);
+        GraphTexturedTriangleListCall transformedCall = DrawRoundedTextureFillBrush(runtime, element, shape, geometry, "tex-y11-transformed", ancestorTranslation);
+
+        Rectangle expected = layoutClip.CreateTransformedBoundsF(ancestorTranslation).RoundUp();
+        Assert.Equal(expected, transformedCall.ClipBounds);
+        Assert.NotEqual(untransformedCall.ClipBounds, transformedCall.ClipBounds);
+    }
+
+    /// <summary>ACCEPTANCE 3b: parity, no transform pushed. With the ambient transform at identity (no <see cref="MGWindow.Scale"/>, no
+    /// enter/exit, no <see cref="MGElement.RenderTransform"/>), the recorded clip is exactly what the pre-Y11
+    /// <c>Element.ConvertCoordinateSpace(Layout, Screen, layoutClip)</c> formula produced.</summary>
+    [Fact]
+    public void TextureFillBrush_RoundedStretchUniform_NoTransform_MatchesThePreY11Formula()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 24, 24, 480, 260) { WindowStyle = WindowStyle.None, Padding = new Thickness(0) };
+        MGBorder element = new(window);
+        window.SetContent(element);
+        desktop.Windows.Add(window);
+        Frame(runtime, desktop, 1);
+        Frame(runtime, desktop, 2);
+
+        var (_, shape, geometry, layoutClip) = BuildRoundedPartialDestinationShape();
+        Rectangle expected = element.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, layoutClip);
+
+        GraphTexturedTriangleListCall call = DrawRoundedTextureFillBrush(runtime, element, shape, geometry, "tex-y11-parity-unscaled", Matrix.Identity);
+
+        Assert.Equal(expected, call.ClipBounds);
+    }
+
+    /// <summary>ACCEPTANCE 3c: parity, scaled window. With the ambient transform carrying <see cref="MGWindow.UnscaledScreenSpaceToScaledScreenSpace"/>
+    /// (what <see cref="MGWindow.Draw"/> pushes around its content) and no other transform, the recorded clip is exactly what the pre-Y11
+    /// <c>Element.ConvertCoordinateSpace(Layout, Screen, layoutClip)</c> formula produced.</summary>
+    [Fact]
+    public void TextureFillBrush_RoundedStretchUniform_ScaledWindow_MatchesThePreY11Formula()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 24, 24, 480, 260) { WindowStyle = WindowStyle.None, Padding = new Thickness(0), Scale = 1.5f };
+        MGBorder element = new(window);
+        window.SetContent(element);
+        desktop.Windows.Add(window);
+        Frame(runtime, desktop, 1);
+        Frame(runtime, desktop, 2);
+
+        var (_, shape, geometry, layoutClip) = BuildRoundedPartialDestinationShape();
+        Rectangle expected = element.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, layoutClip);
+        Assert.NotEqual(layoutClip, expected); // guard: the scale must actually move Layout away from Screen, otherwise the parity check is moot.
+
+        GraphTexturedTriangleListCall call = DrawRoundedTextureFillBrush(runtime, element, shape, geometry, "tex-y11-parity-scaled", window.UnscaledScreenSpaceToScaledScreenSpace);
+
+        Assert.Equal(expected, call.ClipBounds);
+    }
+
+    #endregion
 
     private static void AssertMatrix(Matrix expected, Matrix actual)
     {

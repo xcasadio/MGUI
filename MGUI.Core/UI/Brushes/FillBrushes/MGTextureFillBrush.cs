@@ -305,17 +305,15 @@ public sealed class MGTextureFillBrush : UIFreezableBrush, IFillBrush
         }
 
         //  Stretch.Uniform / Stretch.None: only the destination rectangle is painted, like the rectangle path. The clip is consumed in screen space
-        //  (see MGRatingControl); Element is null only for unit tests that draw the brush without an element, hence the translated fallback.
-        //  Y10 sweep (Docs/Tasks/animation-v5-tasks.md): this is the same "coordinate-space conversion instead of the ambient transform"
-        //  pattern as MGScrollViewer.GetContentsClipDefinition, and reachable under a RenderTransform or a sliding window in real usage -
-        //  but NOT fixed here. TexturedPaintProjectionTests.TextureFillBrush_PartialDestination_PushesScreenSpaceClipAroundDestination calls
-        //  this Draw() directly with a hand-built ElementDrawArgs (DA.Offset = Point.Zero, DA.DT.CurrentSettings.Transform = Identity) that
-        //  never goes through MGWindow.Draw/MGElement.Draw, so it never carries the window's scale on DA.DT: switching to the ambient-transform
-        //  formula (TransformClipBounds) makes that existing, out-of-perimeter test see an unscaled clip and fail. Reported, not fixed.
+        //  (see MGRatingControl).
+        //  Y11 (Docs/Tasks/animation-v5-tasks.md): built from the ambient draw transform, exactly like MGElement.TransformClipBounds and
+        //  MGScrollViewer.GetContentsClipDefinition (Y10) - not from a coordinate-space conversion, which only knew about MGWindow.Scale and
+        //  left the clip at its untransformed place under a RenderTransform or a sliding window. The brush is not an MGElement subclass, so it
+        //  cannot call the protected MGElement.TransformClipBounds; the expression is inlined here instead. This also removes the Element-null
+        //  branch: the ambient transform already carries whatever scale applies (identity when none is pushed), so the same formula serves both
+        //  the real MGElement.Draw path and a brush drawn without an element (e.g. in tests).
         var clipLayout = Rectangle.Intersect(destination, bounds);
-        var clipScreen = Element != null
-            ? Element.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, clipLayout)
-            : clipLayout.GetTranslated(DA.Offset);
+        var clipScreen = clipLayout.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
         using (DA.Context.PushRectangleClip(clipScreen, true))
         {
             DA.Context.FillTexturedRoundedRectangle(origin, Geometry, image, uvs, drawColor);
