@@ -115,6 +115,19 @@ La grille montre le noeud XAML, pas le `MGElement`. `XamlNodePropertySource` imp
 
 Une seule liste par session : les diagnostics du loader (code, message, ligne, colonne), l'erreur XML du modele de document quand le texte n'est pas bien forme, et les refus de la grille. Le loader s'arrete a la premiere erreur : la liste en montre donc une a la fois pour le chargement.
 
+### Echecs hors du loader
+
+Charger un document et **attacher** l'arbre obtenu sont deux etapes, et la seconde est hors du loader. Une defaillance qui n'apparait qu'a l'attachement remonte donc a l'hote comme une exception ordinaire, sans code, sans source et sans position. `XamlLoaderDiagnostic.FromException(exception, source, documentKind)` la decrit exactement comme le loader decrit les siennes ; un `XamlLoaderException` est rendu tel quel. C'est ce que le volet de preview appelle dans sa branche `catch` generique, pour que la liste montre un diagnostic situe plutot qu'un `ParseFailure` nu (ADR-0013).
+
+### Noms d'elements
+
+Un nom identifie au plus un element d'une fenetre : c'est par lui que `MGWindow.GetElementByName` et `{MGBinding ElementName=...}` resolvent. Le meme nom pose deux fois est refuse, et il l'est a deux moments differents :
+
+- **a l'analyse**, en mode `Strict`, quand le document declare deux fois le meme `Name` : code `DuplicateElementName`, a la ligne et a la colonne de la **seconde** declaration, avec la ligne de la premiere dans le message. Seuls les noms portes par des elements comptent ; celui d'un `Style`, d'un `ControlTemplate`, d'un `TemplatePart` ou d'un etat visuel n'est pas un nom d'element ;
+- **a l'attachement**, quand une seule declaration a produit plusieurs elements. C'est le cas d'un `Name` pose dans un template d'item : le loader le recopie sur chaque element genere. Le document est valide, l'analyse le laisse passer, et c'est l'index de la fenetre qui refuse le second, avec la position de la declaration du template.
+
+Le second cas ne se produit que si le controle templatise est **enveloppe** par l'element attache : le parcours qui annonce un sous-arbre saute les composants de l'element attache lui-meme, et un `MGListBox` tient ses items dans ses composants. Le meme markup echoue donc sous une racine `Window` ou `StackPanel` et se charge quand la `ListBox` est elle-meme la racine.
+
 ## Tests
 
 - `MGUI.Tests/Xaml/` : positions source (ordinal, ligne, colonne, garde-fou de divergence, parts de template, template d'item).
@@ -132,6 +145,7 @@ Une seule liste par session : les diagnostics du loader (code, message, ligne, c
 - Une racine `Window` plus grande que le volet est rognee, ni redimensionnee ni defilable.
 - Pas de completion, pas de gouttiere de numeros de ligne.
 - Le document doit declarer ses namespaces ; un fragment sans namespace ne se charge pas.
+- Un `Name` pose dans un template d'item empeche l'affichage des que le template genere plus d'un element, et il n'existe pas de portee de noms par instance de template : le retirer, ou ne generer qu'un element. Le diagnostic le dit et pointe la declaration.
 - L'etat d'execution de la preview est perdu a chaque re-parse.
 
 ## Reste a faire

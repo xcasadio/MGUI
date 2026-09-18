@@ -130,11 +130,12 @@ Trois correctifs, decides par l'auteur apres la revue :
 
 Tests : un renommage refuse laisse les deux elements et l'index intacts, et retirer l'element ensuite n'evince pas l'entree du voisin ; un renommage accepte libere l'ancien nom et le rend reattribuable ; retirer un element dont le nom n'a jamais ete accepte par l'index laisse le detenteur reel indexe. Preuve par mutation des trois garde-fous : neutraliser la restauration fait echouer le premier test, neutraliser le controle d'identite fait echouer le troisieme.
 
-### ⏳ T4. Documentation
+### ✅ T4. Documentation
 
-- `Docs/editor-architecture.md`, section « Diagnostics » : les codes que l'editeur peut afficher, la regle des noms (un nom identifie un element d'une fenetre), les deux moments ou le doublon est detecte, et ce que l'auteur du XAML doit changer ; section « Limites connues » : un `Name` dans un template d'item empeche le chargement des qu'il genere plus d'un element.
-- `Docs/scenario-validation-index.md` : etendre l'invariant de `SCN-MARKUP-001` au nom en double.
-- `Docs/decisions/0013-duplicate-element-name.md` : passer `Proposed` a `Accepted`, ajouter la section des decisions prises pendant la livraison (resultat de P10 notamment).
+- `Docs/editor-architecture.md`, section « Diagnostics » : deux sous-sections ajoutees. « Echecs hors du loader » dit pourquoi charger et attacher sont deux etapes et ce que `XamlLoaderDiagnostic.FromException` sert a faire. « Noms d'elements » donne la regle, les deux moments ou un doublon est refuse, ce qui compte comme nom d'element, et pourquoi le meme markup echoue ou passe selon que le controle templatise est enveloppe ou non ;
+- meme fichier, « Limites connues » : un `Name` dans un template d'item empeche l'affichage des que le template genere plus d'un element ;
+- `Docs/scenario-validation-index.md` : l'invariant de `SCN-MARKUP-001` couvre le nom declare deux fois et l'echec constate a l'attachement ;
+- `Docs/decisions/0013-duplicate-element-name.md` : decisions 6 et 7 ecrites, statut `Accepted`, index a jour.
 
 Aucun test.
 
