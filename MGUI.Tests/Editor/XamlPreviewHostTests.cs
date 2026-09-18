@@ -121,6 +121,55 @@ public class XamlPreviewHostTests
         Assert.Equal(2, diagnostic.LineNumber);
     }
 
+    // -- 2b. ADR-0013: where the duplicate-name failure does, and does not, reach --
+
+    /// <summary>The author's reproduction of 2026-09-18: a <c>Name</c> declared once inside an item template, which the
+    /// loader applies to every element the template generates.<para/>
+    /// It previews without a diagnostic <em>here</em>, and that is not a contradiction of ADR-0013 but a consequence of
+    /// this editor's own wiring: a window only ever learns of an element through the <c>MGContentHost</c> add chain, and
+    /// the preview pane hangs from an <c>MGDockTabGroup</c>, which is not in that chain. Nothing of the previewed tree
+    /// is announced to the editor window -- not even the list box's own name -- so its index never sees the second
+    /// generated element and never refuses it. The same document does fail, with a located
+    /// <see cref="XamlLoaderDiagnosticCode.DuplicateElementName"/>, as soon as it is attached through a host that is in
+    /// the chain (see <c>MGUI.Tests/Xaml/DuplicateElementNameTests.cs</c>).<para/>
+    /// Pinned so that a change to the docking wiring cannot flip it silently: if a future layout puts the preview back
+    /// in the chain, this test fails and says so, and the diagnostic the editor then shows is the one
+    /// <c>XamlPreviewHost</c>'s generic catch builds through <see cref="XamlLoaderDiagnostic.FromException"/>.</summary>
+    [Fact]
+    public void ANameAnItemTemplateAppliesToEveryItem_DoesNotReachTheEditorWindowIndex_BecauseTheDockGroupIsNotInTheAddChain()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view, _) = CreateHostedView(1280, 720);
+        XamlPreviewHost host = view.PreviewHost;
+
+        view.Session.Text = $"""
+            <Window xmlns="{Ns}" Left="20" Top="20" Width="400" Height="380">
+                <ListBox Name="Options" Width="220" Height="120">
+                    <ListBox.ItemTemplate>
+                        <ContentTemplate>
+                            <TextBlock Name="ItemLabel" Text="Item" />
+                        </ContentTemplate>
+                    </ListBox.ItemTemplate>
+                    <TextBlock Text="Option 1" />
+                    <TextBlock Text="Option 2" />
+                    <TextBlock Text="Option 3" />
+                </ListBox>
+            </Window>
+            """;
+        Frame(runtime, desktop, 20);
+
+        Assert.Empty(host.Diagnostics);
+        Assert.NotNull(host.PreviewRoot);
+
+        // The template really did generate three elements carrying the one declared name: the document is the one from
+        // the report, not a weaker variant.
+        Assert.Equal(3, host.PreviewRoot.TraverseVisualTree(true, true, true, true).Count(x => x.Name == "ItemLabel"));
+
+        // And the editor window learned of none of them -- nor of the list box itself, which is the tell.
+        Assert.False(view.Window.TryGetElementByName("Options", out _));
+        Assert.False(view.Window.TryGetElementByName("ItemLabel", out _));
+        Assert.IsType<MGDockTabGroup>(view.PreviewPane.Parent);
+    }
+
     // -- 3. DesignDataContext reaches DataContextOverride of the root --
 
     [Fact]
