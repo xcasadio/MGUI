@@ -2,7 +2,9 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Editor.Document;
 using MGUI.Editor.Preview;
+using MGUI.Editor.Properties;
 using MGUI.Editor.Selection;
 using MGUI.Editor.Text;
 
@@ -123,6 +125,92 @@ public class XamlEditorView
         TextEditorPane = new XamlEditorTextPane(this);
         Selection = new XamlEditorSelection(this);
         BindTextPaneToSession();
+        BindPropertyPaneToSelection();
+    }
+
+    /// <summary>The source currently assigned to <see cref="PropertyPane"/>'s <see cref="MGPropertyGrid.SelectedObject"/>, or null
+    /// when nothing is selected. Tracked here (rather than read back from <see cref="MGPropertyGrid.SelectedObject"/>) so what it
+    /// describes can be compared without an unnecessary cast on every selection change: see
+    /// <see cref="CanRefreshPropertyPaneInPlace"/> for what "the same rows" means.</summary>
+    private XamlNodePropertySource _propertySource;
+
+    /// <summary>Follows X4's precedent (<see cref="BindTextPaneToSession"/>): drives <see cref="PropertyPane"/> from
+    /// <see cref="Selection"/>, per <c>Docs/editor-architecture.md</c>'s <c>## Grille de proprietes</c>.<para/>
+    /// <see cref="XamlEditorSelection.Changed"/> fires when the selected node changes (a different ordinal, or null), and also when
+    /// only the representative element changed for the same node (raised from <see cref="Preview.XamlPreviewHost"/>'s update through
+    /// <see cref="XamlEditorSelection"/>'s own re-resolution). Either way the target goes through
+    /// <see cref="SetPropertyPaneTarget"/>, which decides between assigning a brand-new <see cref="XamlNodePropertySource"/> --
+    /// rebuilding the grid, since the source is a new <see cref="System.ComponentModel.ICustomTypeDescriptor"/> instance -- and
+    /// <see cref="XamlNodePropertySource.Update"/> plus <see cref="MGPropertyGrid.RefreshVisibleValues"/> on the instance already
+    /// in place, never a reassignment of the same instance (the setter early-returns on it).<para/>
+    /// <see cref="XamlEditorSelection.DocumentModelChanged"/> fires on every successful re-parse, before <see cref="Selection"/>
+    /// re-resolves its own <see cref="XamlEditorSelection.SelectedNode"/> by ordinal: the still-old <see cref="XamlEditorSelection.SelectedNode"/>'s
+    /// ordinal is looked up again in the just-updated <see cref="XamlEditorSelection.DocumentModel"/> and, when it still resolves,
+    /// goes through <see cref="SetPropertyPaneTarget"/> too (a re-parse that drops the selected node instead reaches
+    /// <see cref="XamlEditorSelection.Changed"/> with a null <see cref="XamlEditorSelection.SelectedNode"/>, handled below).<para/>
+    /// <see cref="MGElement.OnParentChanged"/> on <see cref="PropertyPane"/> refreshes the pane once it has a non-null parent again:
+    /// a re-activated docking pane raises this three times, but <see cref="MGPropertyGrid.RefreshVisibleValues"/> is idempotent.</summary>
+    private void BindPropertyPaneToSelection()
+    {
+        Selection.Changed += (_, _) => ApplySelectionToPropertyPane();
+        Selection.DocumentModelChanged += (_, _) => ApplyReparseToPropertyPane();
+        PropertyPane.OnParentChanged += (_, e) =>
+        {
+            if (e.NewValue != null)
+            {
+                PropertyPane.RefreshVisibleValues();
+            }
+        };
+
+        ApplySelectionToPropertyPane();
+    }
+
+    private void ApplySelectionToPropertyPane()
+        => SetPropertyPaneTarget(Selection.SelectedNode, Selection.SelectedElement);
+
+    private void ApplyReparseToPropertyPane()
+    {
+        if (_propertySource == null || Selection.SelectedNode?.Ordinal is not int ordinal)
+        {
+            return;
+        }
+
+        if (Selection.DocumentModel != null && Selection.DocumentModel.TryGetNodeByOrdinal(ordinal, out XamlDocumentNode node))
+        {
+            SetPropertyPaneTarget(node, Selection.SelectedElement);
+        }
+    }
+
+    /// <summary>True when <paramref name="node"/> and <paramref name="representative"/> produce the same ROWS the current source
+    /// already describes, so the grid can be refreshed in place instead of rebuilt. The node's ordinal is not enough on its own:
+    /// the rows come from the node's DTO type, so a tag rewritten at the same ordinal (<c>Button</c> becoming <c>CheckBox</c>)
+    /// changes them; and the "Resolved (runtime)" category exists only when there is a representative element, so a node selected
+    /// from the caret before the debounced preview has ever rendered must grow that category once the preview arrives. Both cases
+    /// need a real rebuild. Steady typing changes neither, so it still refreshes without rebuilding.</summary>
+    private bool CanRefreshPropertyPaneInPlace(XamlDocumentNode node, MGElement representative)
+        => _propertySource != null
+           && _propertySource.Node.Ordinal == node.Ordinal
+           && _propertySource.Node.DtoType == node.DtoType
+           && (_propertySource.RepresentativeElement == null) == (representative == null);
+
+    private void SetPropertyPaneTarget(XamlDocumentNode node, MGElement representative)
+    {
+        if (node == null)
+        {
+            _propertySource = null;
+            PropertyPane.SelectedObject = null;
+            return;
+        }
+
+        if (CanRefreshPropertyPaneInPlace(node, representative))
+        {
+            _propertySource.Update(node, representative);
+            PropertyPane.RefreshVisibleValues();
+            return;
+        }
+
+        _propertySource = new XamlNodePropertySource(node, representative);
+        PropertyPane.SelectedObject = _propertySource;
     }
 
     /// <summary>Set while one side of <see cref="BindTextPaneToSession"/> writes the other, so the echo it raises is ignored.</summary>

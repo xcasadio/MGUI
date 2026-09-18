@@ -149,13 +149,17 @@ public class XamlPreviewHost
         }
         catch (System.Exception ex)
         {
-            // Not a XamlLoaderException: XamlLoaderMode.Strict only wraps failures raised while parsing the markup
-            // itself, not ones raised later while instantiating the parsed elements (a bad runtime value, a missing
-            // resource resolved at construction time, ...). Surfacing it as a diagnostic (rather than letting it
-            // propagate) is what keeps a bad keystroke from ever crashing the editor; see the report's "decisions".
+            // Not a XamlLoaderException: XamlLoaderMode.Strict wraps failures raised while parsing the markup itself,
+            // not ones raised later -- while instantiating the parsed elements (a bad runtime value, a missing resource
+            // resolved at construction time), nor while ReplaceRoot attaches the built tree, which is where a name a
+            // template applies to more than one element is rejected (ADR-0013). Catching them all is what keeps a bad
+            // keystroke from ever crashing the editor; FromException then classifies and locates them exactly as the
+            // loader does for its own, so such a failure reads as its real code at its real position instead of as a
+            // ParseFailure with none. The exception is passed as it was caught: re-wrapping it would keep the code and
+            // lose its position.
             Diagnostics = new[]
             {
-                new XamlLoaderDiagnostic(XamlLoaderDiagnosticCode.ParseFailure, "Preview", _session.SourceName, null, ex.Message),
+                XamlLoaderDiagnostic.FromException(ex, XamlDocumentSource.FromString(text, _session.SourceName), "Preview"),
             };
         }
 
