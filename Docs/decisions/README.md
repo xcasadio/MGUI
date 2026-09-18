@@ -26,3 +26,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0010 | XAML editor V1: text as the source of truth, loader source positions, separate MGUI.Editor library | Proposed | 2026-09-17 |
 | ADR-0011 | Animation V5: awaitable animations, smooth scrolling, texture frames, layout transitions, enter and exit animations | Accepted | 2026-09-17 |
 | ADR-0012 | Keep emptied docking tab groups as placeholders and persist panel places in layout format 2.0 | Accepted | 2026-09-17 |
+| ADR-0013 | A name identifies one element of a window, and saying so is the loader's job | Proposed | 2026-09-18 |
