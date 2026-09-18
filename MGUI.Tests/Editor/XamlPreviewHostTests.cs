@@ -138,7 +138,7 @@ public class XamlPreviewHostTests
         Assert.Same(dataContext, host.PreviewRoot.DataContextOverride);
     }
 
-    // -- 4. Window root anchored to the pane's top-left corner, re-anchored after the editor window moves and after the pane resizes --
+    // -- 4. Window root anchored to the pane, at the offset its document declares, re-anchored after the editor window moves and after the pane resizes --
 
     [Fact]
     public void WindowRoot_IsAnchoredToThePaneCorner_AndReAnchoredAfterWindowMoveAndPaneResize()
@@ -151,7 +151,8 @@ public class XamlPreviewHostTests
 
         MGWindow previewRoot = Assert.IsType<MGWindow>(view.PreviewHost.PreviewRoot);
         Rectangle paneBounds = view.PreviewPane.LayoutBounds;
-        Assert.Equal(new Point(paneBounds.X, paneBounds.Y), previewRoot.TopLeft);
+        // The pane's corner is the preview's origin; the document's Left and Top place the window from there.
+        Assert.Equal(new Point(paneBounds.X + 440, paneBounds.Y + 20), previewRoot.TopLeft);
 
         // Move the editor window: no new keystroke, but the preview pane's screen bounds shift with it.
         window.Left = 50;
@@ -161,7 +162,7 @@ public class XamlPreviewHostTests
 
         Rectangle paneBoundsAfterMove = view.PreviewPane.LayoutBounds;
         Assert.NotEqual(paneBounds, paneBoundsAfterMove);
-        Assert.Equal(new Point(paneBoundsAfterMove.X, paneBoundsAfterMove.Y), previewRoot.TopLeft);
+        Assert.Equal(new Point(paneBoundsAfterMove.X + 440, paneBoundsAfterMove.Y + 20), previewRoot.TopLeft);
 
         // Change the pane's width (a docking splitter drag): re-anchored again, no new keystroke.
         window.WindowWidth = 1000;
@@ -170,7 +171,7 @@ public class XamlPreviewHostTests
 
         Rectangle paneBoundsAfterResize = view.PreviewPane.LayoutBounds;
         Assert.NotEqual(paneBoundsAfterMove, paneBoundsAfterResize);
-        Assert.Equal(new Point(paneBoundsAfterResize.X, paneBoundsAfterResize.Y), previewRoot.TopLeft);
+        Assert.Equal(new Point(paneBoundsAfterResize.X + 440, paneBoundsAfterResize.Y + 20), previewRoot.TopLeft);
     }
 
     // -- 5. A root bigger than the pane stays anchored and is not resized --
@@ -356,7 +357,7 @@ public class XamlPreviewHostTests
         MGWindow previewRoot = Assert.IsType<MGWindow>(view.PreviewHost.PreviewRoot);
         Assert.Empty(view.PreviewHost.Diagnostics);
         Rectangle paneBounds = view.PreviewPane.LayoutBounds;
-        Assert.Equal(new Point(paneBounds.X, paneBounds.Y), previewRoot.TopLeft);
+        Assert.Equal(new Point(paneBounds.X + 440, paneBounds.Y + 20), previewRoot.TopLeft);
     }
 
     /// <summary>The other direction, which slices X6 (grid edits) and X7 (opening a file) need: writing the session's
@@ -400,8 +401,9 @@ public class XamlPreviewHostTests
 
         MGWindow windowRoot = Assert.IsType<MGWindow>(view.PreviewHost.PreviewRoot);
         Rectangle paneBounds = view.PreviewPane.LayoutBounds;
-        Assert.True(paneBounds.Width > 200 && paneBounds.Height > 100, "the pane must be bigger than the previewed window for this test to mean anything");
-        Assert.Equal(new Rectangle(paneBounds.X, paneBounds.Y, 200, 100), windowRoot.LayoutBounds);
+        Assert.True(paneBounds.Width > 250 && paneBounds.Height > 120, "the pane must be bigger than the previewed window for this test to mean anything");
+        //  The declared size is kept, and the declared Left and Top place the window from the pane's corner.
+        Assert.Equal(new Rectangle(paneBounds.X + 50, paneBounds.Y + 20, 200, 100), windowRoot.LayoutBounds);
 
         // A root that is not a Window is shown at its natural size too, at the same corner.
         view.TextPane.SetText("<Button xmlns=\"" + Ns + "\" Content=\"Plain\" />");

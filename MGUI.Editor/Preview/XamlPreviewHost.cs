@@ -31,6 +31,11 @@ public class XamlPreviewHost
     /// hiding the root while the pane is detached must not turn a root the document declared hidden into a visible one.</summary>
     private Visibility _declaredRootVisibility = Visibility.Visible;
 
+    /// <summary>The <c>Left</c> and <c>Top</c> the loaded document gave a <see cref="MGWindow"/> root, kept because
+    /// anchoring overwrites them: the pane is the preview's origin, and the window sits at its declared offset from
+    /// that corner, the way it would sit at that offset from the corner of a desktop.</summary>
+    private Microsoft.Xna.Framework.Point _declaredRootOffset;
+
     /// <summary>The last root that a re-parse produced. Null before the first successful re-parse, or after the
     /// session's text becomes empty or whitespace-only.</summary>
     public MGElement PreviewRoot { get; private set; }
@@ -164,6 +169,9 @@ public class XamlPreviewHost
         PreviewRoot = newRoot;
         _lastAnchoredPaneBounds = null;
         _declaredRootVisibility = newRoot?.Visibility ?? Visibility.Visible;
+        _declaredRootOffset = newRoot is MGWindow declaredWindow
+            ? new Microsoft.Xna.Framework.Point(declaredWindow.Left, declaredWindow.Top)
+            : Microsoft.Xna.Framework.Point.Zero;
 
         if (newRoot != null)
         {
@@ -197,6 +205,9 @@ public class XamlPreviewHost
 
         if (PreviewRoot is not MGWindow windowRoot)
         {
+            //  Only an MGWindow root carries a declared offset; anything else sits on the pane's corner, so the
+            //  presenter must lose the margin a previous window root gave it.
+            _presenter.Margin = new MonoGame.Extended.Thickness(0);
             return;
         }
 
@@ -210,8 +221,12 @@ public class XamlPreviewHost
         // presenter allocates it), so re-anchoring means writing Left/Top ourselves. Left/Top setters do not
         // invalidate layout on their own: QueueLayoutRefresh does, and ValidateWindowSizeAndPosition() makes the
         // move (and its OnWindowPositionChanged) take effect immediately instead of waiting one extra tick.
-        windowRoot.Left = paneBounds.X;
-        windowRoot.Top = paneBounds.Y;
+        // The pane's corner is the preview's origin and the window keeps the offset its document declared, as it
+        // would from the corner of a desktop; the presenter is pushed by that same offset so that its clip, which
+        // is what keeps the preview inside the pane, covers the window where it now sits.
+        _presenter.Margin = new MonoGame.Extended.Thickness(_declaredRootOffset.X, _declaredRootOffset.Y, 0, 0);
+        windowRoot.Left = paneBounds.X + _declaredRootOffset.X;
+        windowRoot.Top = paneBounds.Y + _declaredRootOffset.Y;
         windowRoot.QueueLayoutRefresh = true;
         windowRoot.ValidateWindowSizeAndPosition();
         _lastAnchoredPaneBounds = paneBounds;
