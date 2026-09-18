@@ -265,6 +265,7 @@ Prerequis : X1b.
 
 Perimetre : `MGUI.Editor/Preview/XamlPreviewHost.cs`, branchement dans `XamlEditorView`.
 
+- Le presentateur de la preview n'etire pas son contenu (aligne en haut a gauche) : un volet qui alloue toute sa surface a la racine gagne sur la taille declaree, et une racine `Window`, dont l'alignement est force a `Stretch`, remplit alors le volet (constat de l'auteur au deuxieme essai le 18 septembre : une fenetre declaree 200 x 100 occupait tout le volet). Une racine est donc affichee a sa taille propre, et ce qui depasse est rogne.
 - Le volet texte EST le texte de la session (oubli du plan, trouve par l'auteur au premier essai le 18 septembre : taper dans le volet ne declenchait aucun rendu). `XamlEditorView` lie les deux dans les deux sens, avec une garde de reentrance : une frappe dans `TextPane` ecrit `Session.Text` ; ecrire `Session.Text` depuis le code (ouverture de fichier en X7, edition de la grille en X6) reecrit le volet ; un texte deja present dans la session a la construction de la vue atteint le volet et demande un premier rendu.
 - Entrees : texte et `DesignDataContext` de la session. Sorties : `PreviewRoot`, `Diagnostics` (liste de `XamlLoaderDiagnostic`), `PreviewVersion`, evenement `PreviewUpdated`.
 - `RequestRefresh()` marque le document sale ; le re-parse a lieu sur l'update de la fenetre de l'editeur apres `DebounceDelay` (250 ms par defaut) mesure avec le temps de l'update ; aucun thread, aucun timer systeme.

@@ -67,7 +67,14 @@ public class XamlEditorView
             VerticalAlignment = VerticalAlignment.Stretch,
         };
 
-        PreviewPresenter = new MGContentPresenter(window);
+        //  Left/Top, never stretched: a previewed root is shown at its own size. A stretched presenter would allocate
+        //  the whole pane to the root, and an MGWindow root, whose alignment is forced to Stretch, would fill the pane
+        //  instead of keeping the Width and Height its document declares. What overflows the pane is clipped.
+        PreviewPresenter = new MGContentPresenter(window)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
         PreviewPane = new MGOverlayPanel(window)
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,

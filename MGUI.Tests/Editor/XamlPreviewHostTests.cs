@@ -386,6 +386,35 @@ public class XamlPreviewHostTests
         Assert.Equal(2, paneChanges);
     }
 
+    /// <summary>A previewed root keeps the size its document declares instead of filling the pane: the pane allocates
+    /// what the presenter asks for, and the presenter asks for the root's own size.</summary>
+    [Fact]
+    public void PreviewedRoots_KeepTheirOwnSize_InsteadOfFillingThePane()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view, _) = CreateHostedView(1280, 720);
+
+        view.TextPane.SetText("<Window xmlns=\"" + Ns + "\" Left=\"50\" Top=\"20\" Width=\"200\" Height=\"100\"><Button Content=\"Salut\" /></Window>");
+        Frame(runtime, desktop, 20);
+        Frame(runtime, desktop, 40);
+        Frame(runtime, desktop, 41);
+
+        MGWindow windowRoot = Assert.IsType<MGWindow>(view.PreviewHost.PreviewRoot);
+        Rectangle paneBounds = view.PreviewPane.LayoutBounds;
+        Assert.True(paneBounds.Width > 200 && paneBounds.Height > 100, "the pane must be bigger than the previewed window for this test to mean anything");
+        Assert.Equal(new Rectangle(paneBounds.X, paneBounds.Y, 200, 100), windowRoot.LayoutBounds);
+
+        // A root that is not a Window is shown at its natural size too, at the same corner.
+        view.TextPane.SetText("<Button xmlns=\"" + Ns + "\" Content=\"Plain\" />");
+        Frame(runtime, desktop, 60);
+        Frame(runtime, desktop, 80);
+        Frame(runtime, desktop, 81);
+
+        MGElement plainRoot = Assert.IsType<MGButton>(view.PreviewHost.PreviewRoot);
+        Assert.Equal(new Point(paneBounds.X, paneBounds.Y), new Point(plainRoot.LayoutBounds.X, plainRoot.LayoutBounds.Y));
+        Assert.True(plainRoot.LayoutBounds.Width > 0 && plainRoot.LayoutBounds.Width < paneBounds.Width);
+        Assert.True(plainRoot.LayoutBounds.Height > 0 && plainRoot.LayoutBounds.Height < paneBounds.Height);
+    }
+
     /// <summary>A session whose text is already set before the view exists renders without a first keystroke.</summary>
     [Fact]
     public void SessionTextSetBeforeTheView_ReachesThePaneAndThePreview()
