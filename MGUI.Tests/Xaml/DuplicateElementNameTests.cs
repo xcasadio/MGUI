@@ -157,12 +157,13 @@ public class DuplicateElementNameTests
         Assert.Equal(expected.Line, duplicate.LineNumber);
         Assert.Equal(expected.Column, duplicate.LinePosition);
 
-        // Both elements are clones of one declared node, so the message says so rather than claiming two declarations.
+        // Both elements carry one source position, so the message reports that, names the template as the cause to look for,
+        // and says what to change -- rather than claiming two declarations.
         Assert.Contains("ItemLabel", duplicate.Message, StringComparison.Ordinal);
         Assert.Contains("TextBlock", duplicate.Message, StringComparison.Ordinal);
-        Assert.Contains("declared once", duplicate.Message, StringComparison.Ordinal);
-        Assert.Contains("instantiated", duplicate.Message, StringComparison.Ordinal);
-        Assert.Contains($"line {expected.Line}, column {expected.Column}", duplicate.Message, StringComparison.Ordinal);
+        Assert.Contains("the same source position", duplicate.Message, StringComparison.Ordinal);
+        Assert.Contains("template", duplicate.Message, StringComparison.Ordinal);
+        Assert.Contains($"line {expected.Line}, column {expected.Column} of 'repro.xaml'", duplicate.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("the second element is", duplicate.Message, StringComparison.Ordinal);
 
         Assert.IsType<MGTextBlock>(duplicate.ExistingElement);
@@ -196,7 +197,42 @@ public class DuplicateElementNameTests
 
         MGDuplicateElementNameException duplicate = Assert.IsType<MGDuplicateElementNameException>(thrown);
         Assert.Equal("ItemLabel", duplicate.Name);
-        Assert.Contains("declared once", duplicate.Message, StringComparison.Ordinal);
+        Assert.Contains("the same source position", duplicate.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The shared-position message names the template as the usual cause without asserting it, because a position is only
+    /// unique within one parse: two documents that share a display name can reach this branch with no template anywhere. The message
+    /// must stay true then -- it reports the evidence (one position, two elements) and never claims one declaration.</summary>
+    [Fact]
+    public void TwoIndependentDocumentsSharingASourceName_GetAMessageThatStaysTrue()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+        MGStackPanel panel = new(host, Orientation.Vertical);
+        presenter.SetContent(panel);
+
+        const string OneElement = """
+            <TextBlock xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core" Name="Foo" Text="Hi" />
+            """;
+
+        // Two independent parses, same display name: their single elements both land at ordinal 0 of "shared.xaml".
+        MGElement first = UIToolingService.LoadPreview(host,
+            XamlDocumentSource.FromString(OneElement, "shared.xaml"), null, XamlLoaderMode.Strict, false, true);
+        MGElement second = UIToolingService.LoadPreview(host,
+            XamlDocumentSource.FromString(OneElement, "shared.xaml"), null, XamlLoaderMode.Strict, false, true);
+
+        Assert.True(panel.TryAddChild(first));
+        MGDuplicateElementNameException duplicate =
+            Assert.Throws<MGDuplicateElementNameException>(() => panel.TryAddChild(second));
+
+        Assert.True(UIToolingService.TryGetXamlSourcePosition(duplicate.ExistingElement, out XamlSourcePosition a));
+        Assert.True(UIToolingService.TryGetXamlSourcePosition(duplicate.NewElement, out XamlSourcePosition b));
+        Assert.Equal(a.Ordinal, b.Ordinal);
+        Assert.Equal(a.SourceName, b.SourceName);
+
+        // There is no template here at all, so the message must not claim there is one, nor claim a single declaration.
+        Assert.Contains("the same source position", duplicate.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("declared once, at line", duplicate.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("is instantiated more than once", duplicate.Message, StringComparison.Ordinal);
     }
 
     // -- 2. a name really declared twice --------------------------------------

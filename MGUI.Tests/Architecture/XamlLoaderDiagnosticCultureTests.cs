@@ -201,6 +201,8 @@ public class XamlLoaderDiagnosticCultureTests
             """);
 
         Assert.Equal(XamlLoaderDiagnosticCode.DuplicateElementName, diagnostic.Code);
+
+        //  The second <Button just above: line 3 of the literal, column 2 (the 'B', right after its '<').
         Assert.Equal(3, diagnostic.LineNumber);
         Assert.Equal(2, diagnostic.LinePosition);
         Assert.Contains("'Same'", diagnostic.Message, StringComparison.Ordinal);

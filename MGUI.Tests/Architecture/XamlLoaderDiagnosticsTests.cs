@@ -107,12 +107,38 @@ public class XamlLoaderDiagnosticsTests
         Assert.Equal(XamlLoaderDiagnosticCode.DuplicateElementName, exception.Diagnostic.Code);
         Assert.Equal("Twice.xaml", exception.Diagnostic.SourceName);
 
-        // The reported position is the second declaration, the one to rename; the first one is named in the message.
-        Assert.Equal(4, exception.Diagnostic.LineNumber);
-        Assert.Equal(10, exception.Diagnostic.LinePosition);
+        // The reported position is the second declaration, the one to rename; the first one is named in the message. Both are
+        // computed from the markup itself, so reformatting TwiceMarkup cannot leave a stale literal behind.
+        (int Line, int Column) first = LocateTagPosition(TwiceMarkup, "<Button Name=\"Same\" Content=\"First\"");
+        (int Line, int Column) second = LocateTagPosition(TwiceMarkup, "<Button Name=\"Same\" Content=\"Second\"");
+
+        Assert.Equal(second.Line, exception.Diagnostic.LineNumber);
+        Assert.Equal(second.Column, exception.Diagnostic.LinePosition);
         Assert.Contains("'Same'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("'Button'", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("already declared at line 3, column 10", exception.Message, StringComparison.Ordinal);
+        Assert.Contains($"already declared at line {first.Line}, column {first.Column}", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Locates <paramref name="tagOpenMarker"/> and returns the 1-based (line, column) of the first character of the
+    /// element's name, right after its <c>&lt;</c>, by counting newlines -- independently of the parser under test.</summary>
+    private static (int Line, int Column) LocateTagPosition(string text, string tagOpenMarker)
+    {
+        int index = text.IndexOf(tagOpenMarker, StringComparison.Ordinal);
+        Assert.True(index >= 0, $"Marker not found: {tagOpenMarker}");
+
+        int nameStart = index + 1; // skip '<'
+        int line = 1;
+        int lastNewline = -1;
+        for (int i = 0; i < nameStart; i++)
+        {
+            if (text[i] == '\n')
+            {
+                line++;
+                lastNewline = i;
+            }
+        }
+
+        return (line, nameStart - lastNewline);
     }
 
     [Fact]

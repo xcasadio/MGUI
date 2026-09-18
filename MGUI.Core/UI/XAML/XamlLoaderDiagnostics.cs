@@ -76,14 +76,22 @@ internal static class XamlLoaderDiagnostics
         }
     }
 
+    /// <summary>Reads <paramref name="markup"/> for the validations below, or returns null outside
+    /// <see cref="XamlLoaderMode.Strict"/>, where none of them run. Parsed once per load and handed to each validation, rather than
+    /// re-parsed by each: a strict load runs on every refresh of a designer or of an editor's preview.</summary>
+    internal static XDocument ReadForValidation(string markup, XamlLoaderMode mode)
+        => mode == XamlLoaderMode.Strict ? XDocument.Parse(markup, LoadOptions.SetLineInfo) : null;
+
     internal static void ValidateKnownElementNames(string markup, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
+        => ValidateKnownElementNames(ReadForValidation(markup, mode), source, documentKind, mode);
+
+    internal static void ValidateKnownElementNames(XDocument document, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
     {
-        if (mode != XamlLoaderMode.Strict)
+        if (mode != XamlLoaderMode.Strict || document == null)
         {
             return;
         }
 
-        var document = XDocument.Parse(markup, LoadOptions.SetLineInfo);
         foreach (var element in document.Descendants())
         {
             var localName = element.Name.LocalName;
@@ -123,14 +131,13 @@ internal static class XamlLoaderDiagnostics
     /// A name declared once inside a template is not a duplicate here: the document declares it once. That collision only exists once
     /// the template has been instantiated more than once, and it is <see cref="MGUI.Core.UI.MGDuplicateElementNameException"/> that
     /// explains it.</summary>
-    internal static void ValidateUniqueElementNames(string markup, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
+    internal static void ValidateUniqueElementNames(XDocument document, XamlDocumentSource source, string documentKind, XamlLoaderMode mode)
     {
-        if (mode != XamlLoaderMode.Strict)
+        if (mode != XamlLoaderMode.Strict || document == null)
         {
             return;
         }
 
-        var document = XDocument.Parse(markup, LoadOptions.SetLineInfo);
         Dictionary<string, (int LineNumber, int LinePosition)> declared = new(StringComparer.Ordinal);
 
         foreach (var element in document.Descendants())

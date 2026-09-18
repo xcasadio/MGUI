@@ -7,14 +7,17 @@ namespace MGUI.Core.UI;
 /// window's index already holds. A name identifies at most one element of a window (ADR-0013): the index is what
 /// <see cref="MGWindow.GetElementByName(string)"/> and <c>{MGBinding ElementName=...}</c> resolve through, so it cannot hold two
 /// elements under one key.<para/>
-/// Two very different mistakes end up here, and <see cref="Exception.Message"/> tells them apart. When both elements carry the
-/// <see cref="XamlSourcePosition"/> of the <em>same</em> document node -- same <see cref="XamlSourcePosition.SourceName"/> and same
-/// <see cref="XamlSourcePosition.Ordinal"/> -- the name was declared once, inside a template the loader cloned once per generated
-/// element. Otherwise the name was simply declared twice, or assigned twice from code.<para/>
+/// Two very different mistakes end up here, and <see cref="Exception.Message"/> distinguishes them by what it can actually observe:
+/// whether both elements carry the <em>same</em> <see cref="XamlSourcePosition"/> -- same <see cref="XamlSourcePosition.SourceName"/>
+/// and same <see cref="XamlSourcePosition.Ordinal"/>. That is evidence of one declaration reaching two elements, which a template
+/// applied to more than one element does; it is reported as such, as the usual cause, not asserted as proven identity, because a
+/// position is only unique within one parse of one document (<see cref="XamlSourcePosition.Ordinal"/> restarts at zero for every
+/// parse and a display name is not required to be unique). Otherwise the name was declared twice, or assigned twice from code.<para/>
 /// <see cref="LineNumber"/> and <see cref="LinePosition"/> are the position of the declaration the second element came from, or 0
-/// when it has none (an element built by code, a control template part, a theme element). They are named exactly so that
-/// <c>XamlLoaderDiagnostics</c> reads them back by reflection and carries them into a
-/// <see cref="XamlLoaderDiagnosticCode.DuplicateElementName"/> diagnostic.</summary>
+/// when it has none (an element built by code, a control template part, a theme element). They are plain <see langword="int"/>
+/// properties under these exact names so that a host which catches this exception -- while attaching a preview, for instance -- can
+/// report it at that position. No loader code reads them back today: this exception is raised by the window's index, outside any
+/// loader call, so it never becomes a <see cref="XamlLoaderDiagnostic"/> on its own (ADR-0013).</summary>
 public sealed class MGDuplicateElementNameException : InvalidOperationException
 {
     /// <summary>The name both elements carry.</summary>
@@ -57,16 +60,21 @@ public sealed class MGDuplicateElementNameException : InvalidOperationException
         var LineNumber = HasNewPosition ? NewPosition.LineNumber : 0;
         var LinePosition = HasNewPosition ? NewPosition.LinePosition : 0;
 
-        //  Same document node, two instances: the loader deep-copies a ContentTemplate's content once per generated element and
-        //  re-applies the declared Name to every copy, so the author sees one Name in the text and N elements at runtime.
+        //  One position, two elements: the loader deep-copies a ContentTemplate's content once per generated element and re-applies
+        //  the declared Name to every copy, so the author sees one Name in the text and N elements at runtime. The message reports
+        //  the shared position as the evidence it is, and names that cause as the usual one, rather than asserting it: a position is
+        //  only unique within one parse of one document, so two parses of two documents that share a display name can collide here
+        //  with no template involved at all.
         if (HasExistingPosition && HasNewPosition
             && ExistingPosition.Ordinal == NewPosition.Ordinal
             && string.Equals(ExistingPosition.SourceName, NewPosition.SourceName, StringComparison.Ordinal))
         {
-            return ($"Duplicate element name '{Name}'. A {ExistingType} already carries that name in this window. " +
-                    $"The name is declared once, at line {LineNumber}, column {LinePosition}, inside a template that is instantiated " +
-                    $"more than once: a name may only identify one element of a window. Remove the name from the template content, " +
-                    $"or make the template generate a single element.",
+            var OfSource = string.IsNullOrWhiteSpace(NewPosition.SourceName) ? string.Empty : $" of '{NewPosition.SourceName}'";
+            return ($"Duplicate element name '{Name}'. A {ExistingType} already carries that name in this window, and both elements " +
+                    $"carry the same source position: line {LineNumber}, column {LinePosition}{OfSource}. A name declared once and " +
+                    $"reaching more than one element is what a template does, applying it to every element it generates. Remove the " +
+                    $"name from the template content, or make the template generate a single element. A name may only identify one " +
+                    $"element of a window.",
                 LineNumber, LinePosition);
         }
 
