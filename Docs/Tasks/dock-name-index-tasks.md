@@ -1,0 +1,254 @@
+# Taches : les conteneurs annoncent leurs enfants a la chaine des hotes de contenu
+
+Plan d'execution du chantier ouvert par le bug rapporte par l'auteur le 19 septembre 2026 : « Error building docking layout: Duplicate element name 'Root'. A MGStackPanel already carries that name in this window, and both elements carry the same source position: line 3, column 6 of 'untitled-....xaml'... » affiche par l'hote de docking de `MGUI.Editor.Host` quand un volet est deplace a la souris.
+
+Les decisions D1 -> D5 ci-dessous ont ete arbitrees avec l'auteur le 19 septembre 2026 : **ce plan les applique, il ne les rediscute pas**. Les points P1 -> P8 sont des arbitrages proposes par l'agent, a valider avec le plan.
+
+Ce fichier doit etre mis a jour pendant le travail : l'icone au debut de chaque tache indique son statut courant.
+
+> **Approuve par l'auteur le 19 septembre 2026** (mode AUTO jusqu'a T2.2), apres trois relectures en contexte frais : les deux premieres ont chacune releve un point corrige (ordre des taches ; test de selection non inventorie ; preuve P5 par renommage impossible), la relecture de cloture a affine la preuve de P5 (fenetre flottante autonome), corrigee ensuite sans nouvelle relecture automatique.
+> **Execution** : autonome, tache par tache ; arret uniquement sur ⚠️ Blocked ou sur une decision qui n'est pas dans ce plan ; retour vers l'auteur en T2.2.
+
+## Objectif
+
+Corriger le bug a sa racine, et non par un contournement de la reconstruction du docking. La racine est une asymetrie : l'index des noms d'une `MGWindow` n'est alimente que par la chaine d'evenements des `MGContentHost` (contenu ajoute / retire), alors que plusieurs conteneurs du depot tiennent leurs enfants hors de cette chaine (reparentage par `SetParent` nu, ou enfants tenus dans des composants). Ces conteneurs deviennent des hotes de contenu, et la chaine elle-meme devient symetrique la ou elle ne l'etait pas (composants retires jamais annonces, composants de l'element attache jamais parcourus).
+
+Le chantier livre :
+
+- les trois conteneurs de docking (`MGDockTabGroup`, `MGDockSplitContainer`, `MGDockAutoHideDrawer`) comme `MGContentHost`, chaque reparentage annonce ; les fenetres flottantes liberent leur contenu a la fermeture. C'est ce qui corrige le bug rapporte. Dans le meme commit, parce que la chaine relie des lors la preview a la fenetre de l'editeur : quand l'attachement d'une nouvelle racine de preview echoue (nom en double), la preview precedente est conservee, et le test sentinelle de l'editeur est reecrit en cas positif ;
+- `MGContentHost` : le retrait d'un composant est annonce comme son ajout l'est deja, et l'attachement d'un element annonce aussi les composants de cet element lui-meme ;
+- `MGListBox<T>`, `MGChatBox` et `MGChatBoxMessage` comme `MGContentHost`, pour que leurs items et messages ajoutes apres l'attachement atteignent l'index ;
+- les tests de regression, la reecriture des tests poses en sentinelle sur l'ancien cablage, les documents d'architecture et l'ADR-0015.
+
+Ce qu'il ne livre pas est dans « Hors perimetre ».
+
+## Etat verifie du depot (19 septembre 2026, `develop` = `xaml-editor` = `213f277`, arbre propre)
+
+Faits lus dans le code par la session principale, puis reverifies fichier:ligne par trois relecteurs independants (mecanisme, causes alternatives, consequences des correctifs). Le bug a ete reproduit par un test jetable (supprime, arbre propre ; copie conservee hors depot) dont les mesures sont donnees plus bas.
+
+**L'index des noms et la chaine d'annonce.**
+
+- `MGWindow` cree `ElementsByName` et s'abonne a ses propres `OnDirectOrNestedContentAdded` / `OnDirectOrNestedContentRemoved` (`MGUI.Core/UI/MGWindow.cs:1563-1565`). `Element_Added` indexe (`:1999-2003`), `Element_Removed` desindexe (`:2029-2033`), `Element_NameChanged` renomme (`:2060-2074`). `IndexElementName` leve `MGDuplicateElementNameException` des que la cle existe, sans test d'identite (`:1978-1986`) ; `UnindexElementName` ne retire l'entree que si c'est celle de l'element (`ReferenceEquals`, `:1991-1997`). Aucun autre chemin n'alimente l'index (`rg ElementsByName`).
+- `MGContentHost.InvokeContentAdded(Element)` (`MGUI.Core/UI/Containers/MGContentHost.cs:49-66`) annonce `Element`, puis chaque element de `Element.TraverseVisualTree(IncludeSelf: false, includeComponents: true, false, false)` -- le sous-arbre present a cet instant, **composants de l'element attache lui-meme exclus** (`MGElement.cs:6144-6160` : les composants ne sont parcourus que sous `IncludeSelf`) -- et ne s'abonne aux evenements imbriques que si `Element` est lui-meme un `MGContentHost`. `InvokeContentRemoved` est son miroir (`:87-104`). `MGSingleContentHost.SetContentVirtual` retire l'ancien contenu par la chaine puis ajoute le nouveau (`:258-283`) ; `MGContentPresenter` idem, sauf avec `SuppressContentAddedAndRemoved` (constructeur interne, `:361-403`).
+- `MGContentHost.AddComponent` annonce le composant ajoute (`:14-18`). Rien ne surcharge `RemoveComponent` : `MGElement.RemoveComponent` (`MGUI.Core/UI/MGElement.cs:1091-1107`) detache sans annoncer, et `EnsureComponentBinding` (`:1110-1140`) retire puis ajoute a chaque changement de structure de template.
+- `MGElement.SetParent` ne touche que le parent, les ressources et le layout (`MGElement.cs:921-951`) ; il n'efface pas le champ de l'ancien parent qui tenait l'element.
+
+**Les conteneurs de docking sont hors de la chaine.**
+
+- `MGDockTabGroup : MGElement` (`MGUI.Core/UI/Docking/Controls/MGDockTabGroup.cs:16`). Reparentages nus : constructeur `:373`, `:387`, `:401` ; `AttachControlTemplateStructure` `:426`, `:453` ; `UpdateActiveContent` `:629` (retrait garde par `_activeContentContainer.Parent == this`, `:627-628`), `:635`, `:645`, `:662`. `Detach()` fait `GroupNode = null` (`:274-277`), dont le setter appelle `UpdateActiveContent` (`:26-54`). `GetChildren()` rend le panneau d'en-tetes, les deux boutons et le contenu actif (`:731-753`). Composants de template : accent et deux icones (`:439-451`). Aucun `Invoke*` dans le dossier `Docking/Controls` hors `MGDockHost` (`rg`).
+- `MGDockSplitContainer : MGElement` (`MGDockSplitContainer.cs:11`) ; setters `FirstChild` / `SecondChild` `:41-49` / `:70-78` ; `_splitterBar.SetParent(this)` `:202` ; `GetChildren` `:304-320`.
+- `MGDockAutoHideDrawer : MGElement` (`MGDockAutoHideDrawer.cs:16`) ; `_content` `:201-202`, `Reparent<T>` des parts `:272-280`, `RefreshContent` `:329-349` ; `ActivePanel` setter `:85-97` ; l'hote l'active et le vide par `_autoHideDrawer.ActivePanel = panel / null` (`MGDockHost.cs:1923`, `:1936`).
+- `MGDockHost : MGSingleContentHost` (`MGDockHost.cs:13`). `RebuildVisualTree` (`:2203-2266`) : `Detach()` de chaque ancien groupe (`:2208-2213`), construction du nouvel arbre (le meme contenu de panneau, `DockPanelNode.GetOrCreateContent` en cache, `DockPanelNode.cs:245-252`, est reparente dans un nouveau `MGDockTabGroup` par `BuildTabGroup` `:2393-2403`), puis `SetContent(visualRoot)` (`:2257`) ; `catch (Exception)` -> `SetContent(CreateErrorPlaceholder(ex.Message))` (`:2260-2263`, texte `:2496`). `CommitModelChange` = `SyncNodeSubscriptions` ; `SyncFloatingWindows` ; `RebuildVisualTree` (`:2522-2527`) ; `MutateModelSuspended` fait exactement une reconstruction (`:2539-2552`). Un drop docke -> docke fait `PerformDropOperation()` sans suspension puis `RebuildVisualTree()` explicite (`:1031-1037`) : la mutation du modele leve `LayoutChanged` (`DockNode.cs:21-32`, `DockLayoutModel.cs:500-517`) donc **un seul geste reconstruit deux fois**. `ActivePanelId` / `ActivePanel` sont filtres de `LayoutChanged` (`DockLayoutModel.cs:502-512`) : un changement d'onglet detache le contenu sortant sans aucune reconstruction (`MGDockHost.OnTabGroupPropertyChanged` `:2662-2674`).
+- Les operations du modele retirent le panneau de son groupe avant de l'ajouter au groupe cible : `DockOperation.DockAsTab` (`DockOperation.cs:35-47`), `SplitDock` (`:56-70`), `SplitDockAtRoot` (`:298-311`), `FloatPanel` (`:726-731`). `ReorderTab` retire puis reinsere dans le meme groupe (`DockTabGroupNode.cs:305`, `:322`).
+- `MGFloatingDockWindow : MGWindow` (`MGFloatingDockWindow.cs:13`), index de noms propre. Elle construit son `MGDockTabGroup` avec `GroupNode` deja pose (`:116-119`, le contenu y est reparente a cet instant) puis `SetContent(_tabGroup)` (`:152`). `SyncFloatingWindows` cree ces fenetres **avant** la reconstruction de l'arbre docke (`MGDockHost.cs:2523-2525`). Ni `CloseFloatingWindow` (`:1584-1612`) ni `OnFloatingWindowClosed` (`:1503-1540`) ni la fenetre elle-meme n'appellent `Detach()` sur son groupe d'onglets (`rg Detach MGFloatingDockWindow.cs` : aucun).
+- `MGUI.Samples/Features/DockingDemo.cs` construit ses contenus en code sans poser de `Name` (relecture des consequences) : aucun changement observable attendu dans la demo.
+
+**L'editeur.**
+
+- `XamlEditorView` : `PreviewPresenter = new MGContentPresenter(window)` (constructeur public, donc annoncant, `MGUI.Editor/XamlEditorView.cs:85-89`), enfant de `PreviewPane`, un `MGOverlayPanel` (`MGMultiContentHost`, `:90-95`) ; les cinq `ContentFactory` rendent des singletons (`:117-121`). Aucun element de `MGUI.Editor` ne porte de `Name` (`rg`).
+- `XamlPreviewHost.Reparse` : `LoadPreview` et `ReplaceRoot` dans le meme `try` ; `catch (XamlLoaderException)` garde la racine precedente ; `catch (Exception)` passe par `XamlLoaderDiagnostic.FromException` (`MGUI.Editor/Preview/XamlPreviewHost.cs:131-166`). `ReplaceRoot` (`:168-183`) fait `_presenter.Content?.RemoveDataBindings(true)` **puis** `_presenter.SetContent(newRoot)` **puis** `PreviewRoot = newRoot` : un echec dans `SetContent` laisse le presentateur sur la nouvelle racine a moitie annoncee et `PreviewRoot` sur l'ancienne, dont les bindings sont deja retires. `RemoveDataBindings` parcourt `TraverseVisualTree()` et ne depend pas du parent (`MGElement.cs:3500-3510`).
+- `XamlEditorSession.SourceName` est fixe une fois par session (`untitled-<guid>.xaml`) : deux analyses successives du meme document produisent deux racines distinctes de meme `(SourceName, Ordinal)`, et `MGDuplicateElementNameException` choisit le message « both elements carry the same source position » sur cette egalite, pas sur l'identite (`MGDuplicateElementNameException.cs:63-78`, ADR-0013 decision 3).
+
+**ListBox et ChatBox.**
+
+- `MGListBox<TItemType> : MGElement` (`MGUI.Core/UI/MGListBox.cs:33`). Toute la structure vit dans des composants poses par `AttachControlTemplateStructure` (`:1182-1250`, `EnsureComponentBinding` pour `OuterBorder`, `TitleBorder`, `InnerBorder`) ; `InnerBorder` -> `ScrollViewer` (`MGSingleContentHost`) -> `ItemsPanel` (`MGStackPanel`, `MGMultiContentHost`) ou `VirtualizingStackPanel` (`MGMultiContentHost`, `Containers/VirtualizingStackPanel.cs:14`, cree `:1371`) ; les items sont ajoutes par `ItemsPanel.TryAddChild / TryInsertChild / TryRemoveChild / TryReplaceChild` (`:252`, `:343`, `:354`, `:369`). `MGListBox` ne surcharge ni `GetChildren`, ni `UpdateContentMeasurement`, ni `UpdateContentLayout`, ni `DrawContents` (`rg override`).
+- `MGChatBox : MGElement` (`MGChatBox.cs:16`) : composants `BorderComponent` (`:142`) et `MainContent` (un `MGDockPanel`, `MGMultiContentHost`, `:148`). `MGChatBoxMessage : MGElement` (`:271`) : composant `MainContent` (`:299`). Aucune des deux ne surcharge les trois methodes ci-dessus.
+- Les composants sont parcourus par `TraverseVisualTree(includeComponents: true)` sauf pour l'element attache lui-meme (point precedent) : les items d'une `ListBox` **enveloppee** sont annonces a l'attachement, ceux d'une `ListBox` **racine** jamais. C'est le fait pose par ADR-0013 (contexte, point 4) et par `MGUI.Tests/Xaml/DuplicateElementNameTests.cs:183-190` (`TheSameMarkup_Loads_WhenTheTemplatedControlIsTheRoot`).
+- Seuls `MGContentHost.cs:61/99`, `MGElement.cs:335/589` et `XAML/Containers.cs:35` branchent sur le type d'hote de contenu, et les trois derniers sur `MGSingleContentHost` seulement (`rg`) : changer la classe de base des conteneurs vises ne change aucun autre comportement du framework par ce biais.
+- Rien n'instancie `MGDockTabGroup`, `MGDockSplitContainer` ni `MGDockAutoHideDrawer` depuis le XAML (`rg` sur `MGUI.Core/UI/XAML` : aucun) ; `MGListBox` et `MGChatBox` ont leurs DTO, qui construisent l'element puis ajoutent les items par l'API publique, inchangee.
+
+**Mesures de la reproduction (test jetable, session du 19 septembre).**
+
+| Scenario (vue de l'editeur hebergee, preview `<StackPanel Name="Root">` chargee) | Resultat |
+|---|---|
+| Avant toute reconstruction | `Root` absent de l'index de la fenetre |
+| 1er `RebuildVisualTree()` | pas d'erreur, `Root` **entre** dans l'index |
+| 2e `RebuildVisualTree()` | placeholder « Error building docking layout: Duplicate element name 'Root'... same source position... » |
+| `DetachToFloating(volet Document)` puis `RedockPanel` | pas d'erreur au flottement, **erreur au redock** |
+| `DetachToFloating(volet Preview)` puis `RedockPanel` | pas d'erreur au premier cycle, `Root` entre dans l'index au redock (l'erreur viendrait au cycle suivant) |
+
+Mecanisme confirme : la premiere reconstruction indexe la preview par le parcours complet de `SetContent(visualRoot)` ; `Detach()` de la reconstruction suivante retire le contenu de l'ancien arbre en silence, donc le retrait de l'ancienne racine ne le desindexe pas, et l'ajout de la nouvelle le retrouve. Variante courante dans l'editeur : entre deux reconstructions, une frappe remplace la racine par `ReplaceRoot` en silence ; l'index garde l'ancienne racine (morte) et refuse la nouvelle, avec le meme texte. Les correctifs « reordonner `RebuildVisualTree` » et « index idempotent par identite » ne couvrent pas cette variante ni le changement d'onglet ni le flottement : rejetes par les trois relecteurs.
+
+**Tests et documents touches par le chantier (inventaire).**
+
+- A reecrire en T1.1 : `MGUI.Tests/Editor/XamlPreviewHostTests.cs:139-171` (`ANameAnItemTemplateAppliesToEveryItem_DoesNotReachTheEditorWindowIndex_BecauseTheDockGroupIsNotInTheAddChain`, sentinelle volontaire sur l'ancien cablage ; son document enveloppe la `ListBox` dans un `<Window>`, donc les trois `ItemLabel` sont annonces des que le groupe d'onglets relaie, et `Assert.Empty(host.Diagnostics)` `:160`, `Assert.NotNull(host.PreviewRoot)` `:161`, `Assert.False(TryGetElementByName("Options"))` `:168` tombent des T1.1).
+- A reecrire en T1.2 (bascule due a P2, racine `ListBox` attachee directement) : `MGUI.Tests/Xaml/DuplicateElementNameTests.cs:183-190` et son commentaire de classe (`:14-21`) ; `MGUI.Tests/Editor/XamlEditorSelectionTests.cs:241-255` (`Name="ItemLabel"` retire du document de test, voir P2).
+- Balayage des documents previsualises ou attaches par les tests avec un `Name` dans un template (`rg 'Name="' MGUI.Tests/Editor`, `rg -l ItemLabel MGUI.Tests`) : seuls les deux tests d'editeur ci-dessus sont concernes ; `MGUI.Tests/Xaml/XamlSourcePositionTests.cs` et `MGUI.Tests/Architecture/XamlLoaderDiagnosticsTests.cs` citent `ItemLabel` sans attacher le document dans une chaine d'hote (chargement par `LoadRootWindow` et validation d'analyse), non touches.
+- A renumeroter : `MGUI.Tests/Architecture/ResolvedPilotWriteSitesTests.cs:92` autorise `MGUI.Core\UI\Containers\MGContentHost.cs` **ligne 316** (parametre `Color? Foreground = null`) ; toute ligne inseree au-dessus decale cette entree.
+- A relancer en priorite : `MGUI.Tests/Editor/XamlEditorViewTests.cs:159-196` (compte exact des `OnParentChanged`, `1` puis `4` : aucun `SetParent` supplementaire ne doit etre ajoute) et `:219-260` ; `MGUI.Tests/Docking/*` (`DockSplitterLiveResizeTests`, `DockPlaceholderGroupHostTests`, `DockLayoutPersistenceTests`, `FloatingWindow*Tests`, `DockCompositeStructuralTemplateTests`, `DockPartVocabularyTests`) ; `MGUI.Tests/Architecture/ControlTemplateInfrastructureTests.cs:187-209`, `:265-274` (assertions textuelles sur `DrawContents` des deux fichiers de docking, qui gardent leur surcharge) ; `FocusArchitectureTests.cs:133-137` (lit `_Content.SetParent(this);` dans `MGContentHost.cs`, inchange) ; `ListBoxVirtualizedItemsSourceTests`, `TemplateStructureRebuildThemeTests`, `ThemeValueInvalidationInventoryTests` (citent `MGListBox`).
+- Documents : `Docs/editor-architecture.md:47` (« l'index des noms d'une MGWindow n'est pas tenu a jour par les groupes d'onglets du docking ») devient faux ; `Docs/controls-architecture.md:110-121` (vue d'ensemble du docking) ; `Docs/decisions/0013-duplicate-element-name.md`, contexte point 4 (asymetrie `IncludeSelf`) et point 5 (le presentateur de l'editeur hors de la chaine) deviennent des faits historiques ; prochain numero d'ADR : 0015 (`Docs/decisions/README.md`).
+- Suite de tests de reference : 2934/2934 sur `develop` `18692ab` le 19 septembre (6 suites), `xaml-editor` au meme commit.
+
+## Decisions verrouillees (auteur, 19 septembre 2026)
+
+| Ref | Decision |
+|---|---|
+| D1 | Les noms du document previsualise entrent dans l'index de la fenetre de l'editeur des le chargement. Un document dont un template applique un `Name` a plusieurs elements devient un diagnostic `DuplicateElementName` dans l'editeur (ADR-0013, option A) au lieu de se previsualiser en silence ; le test sentinelle est reecrit en cas positif. |
+| D2 | Perimetre : les trois conteneurs de docking **et** `MGListBox<T>` / `MGChatBox` / `MGChatBoxMessage` (conteneurs qui tiennent leurs enfants en composants), avec la mecanique de `MGContentHost` qu'ils exigent (retrait de composant annonce, composants de l'element attache parcourus). Le reste du framework n'est pas touche. |
+| D3 | Quand l'attachement d'une nouvelle racine de preview echoue, l'editeur revient a la racine precedente : la preview ne devient jamais vide sur une frappe fautive, le diagnostic s'affiche. |
+| D4 | Branche `fix/dock-name-index`, creee depuis `develop` `213f277` (= `xaml-editor`). Ni push, ni merge : fusion dans `develop` puis `xaml-editor` par l'auteur. |
+| D5 | Reprise d'ADR-0013, inchangee : le registre de noms continue de lever devant un doublon ; ni tolerance « le premier gagne », ni portee de noms, ni exception par identite. |
+
+## Points a valider par l'auteur (propositions de l'agent)
+
+- P1. **Invariant et mecanisme.** L'invariant enregistre par l'ADR-0015 est : *tout element qui tient d'autres elements annonce leur arrivee et leur depart par la chaine des `MGContentHost`, de sorte qu'un ecouteur de la chaine (l'index des noms d'une `MGWindow`) voit exactement les elements presents dans l'arbre.* Le mecanisme reste `MGContentHost` (ses evenements et `InvokeContentAdded / InvokeContentRemoved`, membres proteges) : les conteneurs vises en derivent, aucun nouveau mecanisme n'est ajoute a `MGElement`. Generaliser a `MGElement` (chaque element annoncant ses composants) est une autre decision, hors perimetre, notee dans l'ADR.
+- P2. **Le parcours d'attachement annonce aussi les composants de l'element attache.** `InvokeContentAdded` / `InvokeContentRemoved` parcourent `Element.TraverseVisualTree(IncludeSelf: true, includeComponents: true, false, false)` en sautant `Element` lui-meme (annonce a part, comme aujourd'hui), au lieu de `IncludeSelf: false`. Consequence assumee : un document dont la racine est une `ListBox` dont le template d'item porte un `Name` echoue desormais a l'attachement **comme** sa version enveloppee (ADR-0013 decision 1 appliquee uniformement) ; `TheSameMarkup_Loads_WhenTheTemplatedControlIsTheRoot` est reecrit en `..._Fails_LikeAnyWrapper`, et le document de `XamlEditorSelectionTests.AListItemTemplateClick_SelectsTheSharedNode_AndAdornsOnlyTheClickedItem` (racine `ListBox`, `Name="ItemLabel"` dans le template, `MGUI.Tests/Editor/XamlEditorSelectionTests.cs:241-255`) perd ce `Name`, qui ne sert pas au test (les libelles y sont retrouves par `TraverseVisualTree(...).OfType<MGTextBlock>()`, `:257-258`, jamais par nom). A distinguer de la sentinelle de `XamlPreviewHostTests`, dont la `ListBox` est enveloppee dans un `<Window>` : elle bascule des T1.1, sans P2. Consequence secondaire : les composants de tout element attache directement (chrome d'une `MGWindow` previsualisee, parts de template) sont annonces ; leurs noms de part sont effaces par `ControlTemplateLoader` (ADR-0013, consequence mesuree), donc aucune entree nouvelle n'est attendue ; la suite complete et les samples le verifient (T1.2, T2.2).
+- P3. **`MGContentHost.RemoveComponent`** surcharge `MGElement.RemoveComponent` et annonce le retrait apres la suppression, miroir exact d'`AddComponent`. Effet pour tous les hotes de contenu : un changement de structure de template (`EnsureComponentBinding`) annonce retrait puis ajout, la ou il n'annoncait que l'ajout.
+- P4. **Groupe d'onglets : annonce de retrait inconditionnelle.** Dans `MGDockTabGroup.UpdateActiveContent`, `InvokeContentRemoved(ancien contenu)` est appele des que le champ change, **sans** la garde `Parent == this` ; seule l'instruction `SetParent(null)` garde cette garde (un contenu deja vole par le groupe d'une fenetre flottante ne doit pas etre deparente). Sans cela, le chemin flottement -> redock garde une entree fantome dans la fenetre principale (l'ordre `SyncFloatingWindows` avant `RebuildVisualTree` rend la garde deja fausse au `Detach`). Meme regle pour `MGDockAutoHideDrawer.RefreshContent` et `Reparent<T>`.
+- P5. **Fenetres flottantes.** Une fenetre flottante adossee au modele libere son contenu par le modele : `RedockPanel`, `CloseFloatingWindow` (branche modele) et `OnFloatingWindowClosed` retirent le panneau de son groupe flottant (`DockOperation.DetachFromFloatingGroup` `:744-767`, `ClosePanel` `:873-909`), `Panels` est une `ObservableCollection` (`DockTabGroupNode.cs:15`), et `MGDockTabGroup.OnPanelsCollectionChanged` -> `UpdateActiveContent` (`:714-719`) annonce le retrait des que P4 est en place. Reste la fenetre **autonome** (constructeur public `MGFloatingDockWindow(ownerHost, initialPanel, left, top, ...)`, `FloatingGroup` null, `:59-80`, aucun usage dans le depot mais API publique) : son groupe tient encore le panneau quand `CloseFloatingWindow` cesse de la suivre (branche non-modele, `MGDockHost.cs:1608-1612`) et rien ne libere le contenu ; la fenetre morte garderait son entree d'index et ses abonnements sur des elements vivants (`Element_Removed` retire `OnNameChanged`, `ToolTipChanged`, `ContextMenuChanged`). L'hote appelle donc `window.TabGroup.Detach()` quand il cesse de suivre une fenetre, dans `CloseFloatingWindow` (les deux branches) et dans `OnFloatingWindowClosed` (par symetrie ; seules les fenetres du modele y sont abonnees aujourd'hui, `AttachFloatingWindow` `:1497-1502`). La preuve de P5 se fait sur la fenetre autonome, seul chemin ou `Detach()` est la seule liberation.
+- P6. **Emplacement des tests.** Nouveau `MGUI.Tests/Docking/DockNameIndexTests.cs` (docking, hote construit en code avec `GraphTestRuntime` comme `DockPlaceholderGroupHostTests`) ; ajouts dans `MGUI.Tests/Xaml/DuplicateElementNameTests.cs` (composants, `ListBox`) ; nouveau `MGUI.Tests/Controls/ChatBoxNameIndexTests.cs` ou ajout dans un fichier existant du dossier des tests de `MGChatBox` s'il en existe un (a verifier par `fd ChatBox MGUI.Tests`) ; editeur dans `MGUI.Tests/Editor/XamlPreviewHostTests.cs` et `XamlEditorViewTests.cs`. Chaque garde est prouvee par mutation pendant la tache (retrait temporaire de l'annonce -> test rouge), la preuve est notee sous la tache.
+- P7. **Documents.** ADR-0015 (nouveau, `Proposed` en T0.1, `Accepted` en T2.1) ; ADR-0013 **non modifie** (regle du README : un enregistrement n'est jamais reecrit), l'ADR-0015 dit explicitement quels points de son contexte ne tiennent plus et que ses sept decisions restent en vigueur ; `Docs/editor-architecture.md:47` reecrit (« un volet ne porte pas de `Name` » devient une regle, puisque les volets partagent l'index de la fenetre de l'editeur avec la preview ; l'index est tenu a jour) ; `Docs/controls-architecture.md`, vue d'ensemble du docking, recoit une phrase sur l'invariant.
+- P8. **Emplacement du plan.** `Docs/Tasks/` et son format, convention du depot (douze plans, dont `duplicate-element-name-tasks.md` du 18 septembre), plutot que `ai-agent/tasks/` du modele generique du skill `plan` ; identifiants `T<phase>.<numero>` et legende a cinq statuts du modele conserves.
+
+## Regles d'execution pour l'agent
+
+- **Branche dediee `fix/dock-name-index`**, creee depuis `develop` `213f277` (D4). Ne jamais committer sur `develop`, `master` ni `xaml-editor`. Verifier la branche courante avant chaque commit (`git branch --show-current`).
+- **Une seule tache a la fois.** Avant de commencer une tache, remplacer son icone `⏳` par `🚧`. A la fin, lancer la validation indiquee, remplacer l'icone par `✅`, `🧪` ou `⚠️`, ajouter une courte note de validation sous la tache, puis **creer un commit dedie** qui inclut la mise a jour de ce fichier.
+- **Un commit par tache**, atomique et compilable, message en anglais au format `type(area): summary`. Le message suggere est donne dans chaque tache. Indexer fichier par fichier (`git add <chemin>`), jamais `git add -A` ni `git add .` ; ne jamais indexer `.serena/` ni une modification preexistante de l'auteur.
+- **Ne jamais pousser.** La fusion reste une decision de l'auteur.
+- **Ne rien inventer** : toute API, tout fichier, toute regle utilisee existe dans le depot ou vient d'une reponse de l'auteur. Sinon : passer la tache en ⚠️ Blocked, ecrire la question dans « Points ouverts », et **s'arreter**.
+- **Build obligatoire** avant de passer une tache en ✅ : `dotnet build MGUI.Tests/MGUI.Tests.csproj` (compile `MGUI.Core`, `MGUI.Editor` et les tests) ; **tests** `dotnet test MGUI.Tests/MGUI.Tests.csproj`, suite complete a chaque tache de code (la suite est parallele par classe ; un test qui touche un etat statique va dans une collection `DisableParallelization = true`). `MGUI.Editor.Host` et `MGUI.Samples` sont compiles en T2.2 (`--no-incremental` pour Samples, jamais `-t:Compile` en dernier build). Un verrou MSB3021/MSB3026 sur Samples ou Host (application ouverte par l'auteur) n'est pas une regression : le noter, ne rien tuer.
+- Si le code est ecrit mais qu'une verification manuelle manque, utiliser `🧪 Needs testing` et noter precisement ce qui manque.
+- **Ne jamais laisser une tache en 🚧** a la fin d'une session.
+- **Langue** : ce plan en francais sans accents ; code, commentaires, messages de commit, documents de `Docs/decisions/` en anglais ; `Docs/*.md` en francais sans accents.
+- **Pas de nouveau `SetParent`** dans les conteneurs de docking : les tests de l'editeur comptent les `OnParentChanged` a l'unite. Apparier chaque `SetParent` existant avec une annonce, sans en ajouter.
+- **Outils** : `rg`, `fd`, `ast-grep` ; `rtk` n'est pas installe. Serena utilisable (C#). Pour editer un fichier CRLF depuis Bash, passer par l'outil d'edition ou PowerShell, jamais `sed -i`.
+
+## Legende des statuts
+
+- ⏳ Todo : pas encore commence.
+- 🚧 In progress : en cours de modification locale.
+- 🧪 Needs testing : code ecrit, validation incomplete ou en attente.
+- ✅ Done : code valide, build/tests OK, commit effectue.
+- ⚠️ Blocked : bloque par une erreur non resolue ou une decision manquante.
+
+## Validation globale
+
+- `dotnet build MGUI.Tests/MGUI.Tests.csproj` : 0 erreur.
+- `dotnet test MGUI.Tests/MGUI.Tests.csproj` : 0 echec ; nombre de tests >= 2934 + tests ajoutes ; aucun test supprime sans remplacement nomme dans ce plan.
+- `dotnet build MGUI.Editor.Host/MGUI.Editor.Host.csproj` et `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-incremental` : 0 erreur.
+- Smoke manuel par l'auteur (T2.2) : dans `MGUI.Editor.Host`, ouvrir un document avec `<StackPanel Name="Root">`, taper quelques caracteres, deplacer chaque volet (drop docke -> docke, flottement, redock, auto-hide, onglets) : jamais de placeholder d'erreur ; ouvrir un document dont un `ItemTemplate` porte un `Name` : un diagnostic `DuplicateElementName` a la position du template, la preview precedente reste affichee. Dans `MGUI.Samples`, `DockingDemo` : memes gestes, aucune regression visuelle ; `ListBox` et `ChatBox` des samples inchanges.
+
+---
+
+## Phase 0 -- Cadrage
+
+### ✅ T0.1 -- Branche, plan et ADR-0015 `Proposed`
+
+- Objectif : ouvrir le chantier sans toucher au code.
+- Fichiers : `Docs/Tasks/dock-name-index-tasks.md` (ce fichier), `Docs/decisions/0015-containers-announce-their-children.md` (nouveau), `Docs/decisions/README.md` (index).
+- Etapes :
+  1. `git switch -c fix/dock-name-index develop` (verifier `git status --short` vide avant).
+  2. Ecrire l'ADR-0015 avec le skill `adr` : statut `Proposed`, contexte = l'etat verifie ci-dessus (index alimente par la chaine seulement ; conteneurs hors chaine ; asymetries `RemoveComponent` et `IncludeSelf` ; mesures de la reproduction), decisions = P1 a P5 et D1, D3, consequences = D1 pour l'editeur, `ListBox` racine (P2), volets sans `Name`, points d'ADR-0013 qui deviennent historiques (contexte 4 et 5) et decisions d'ADR-0013 maintenues, hors perimetre (generalisation a `MGElement`, `MGXAMLDesigner` voue a la suppression par le plan de l'editeur).
+  3. Ajouter la ligne ADR-0015 a l'index du README.
+- Validation : les deux fichiers existent, `git diff --stat` ne montre que des `.md`.
+- Commit : `docs(docking): plan and ADR-0015 for containers announcing their children`
+- Note de validation (19 septembre 2026) : branche `fix/dock-name-index` creee depuis `develop` `213f277` ; `Docs/decisions/0015-containers-announce-their-children.md` ecrit (`Proposed`), ligne ajoutee a l'index du README ; seuls des `.md` dans le commit.
+
+---
+
+## Phase 1 -- MGUI.Core
+
+### ⏳ T1.1 -- Les conteneurs de docking annoncent leur contenu, l'editeur suit (corrige le bug rapporte)
+
+- Objectif : `MGDockTabGroup`, `MGDockSplitContainer` et `MGDockAutoHideDrawer` derivent de `MGContentHost` et annoncent chaque reparentage ; les fenetres flottantes liberent leur contenu a la fermeture ; le scenario du rapport et ses variantes sont fixes par des tests. Dans le meme commit, parce que la chaine relie des lors le presentateur de la preview a la fenetre de l'editeur (D1 devient vrai) : `XamlPreviewHost.ReplaceRoot` revient a la racine precedente quand l'attachement echoue (D3), la sentinelle de `XamlPreviewHostTests` est reecrite en cas positif, et la regression du rapport est fixee cote editeur. Sans ces trois elements, la suite serait rouge au commit de T1.1.
+- Fichiers : `MGUI.Core/UI/Docking/Controls/MGDockTabGroup.cs`, `MGDockSplitContainer.cs`, `MGDockAutoHideDrawer.cs`, `MGDockHost.cs` (fermeture des fenetres flottantes), `MGUI.Editor/Preview/XamlPreviewHost.cs`, nouveau `MGUI.Tests/Docking/DockNameIndexTests.cs`, `MGUI.Tests/Editor/XamlPreviewHostTests.cs`, `MGUI.Tests/Editor/XamlEditorViewTests.cs`.
+- Etapes :
+  1. Classe de base `MGContentHost` pour les trois controles (constructeur `base(window, MGElementType.Custom)` inchange ; `GetChildren`, `UpdateContentMeasurement`, `UpdateContentLayout`, `DrawContents` deja surcharges dans les trois, verifier la compilation des `override` devenus `abstract override`).
+  2. `MGDockTabGroup` : apparier chaque `SetParent` (`:373`, `:387`, `:401`, `:426`, `:453`, `:629`, `:635`, `:645`, `:662`) avec `InvokeContentAdded` / `InvokeContentRemoved` ; dans `UpdateActiveContent`, annonce de retrait inconditionnelle (P4), `SetParent(null)` toujours garde par `Parent == this`. Le panneau d'en-tetes est annonce comme enfant (ses `MGDockTabItem` suivent par la chaine du `MGStackPanel`).
+  3. `MGDockSplitContainer` : setters `FirstChild` / `SecondChild` et `_splitterBar` apparies.
+  4. `MGDockAutoHideDrawer` : `_content` (constructeur, `RefreshContent`) et `Reparent<T>` apparies (P4).
+  5. `MGDockHost` : `CloseFloatingWindow` (les deux branches, apres le `MutateModelSuspended` de la branche modele) et `OnFloatingWindowClosed` appellent `window.TabGroup.Detach()` quand l'hote cesse de suivre la fenetre (P5). Sur le redock, le contenu est deja libere par le retrait du panneau du groupe flottant (`DetachFromFloatingWindow` dans `MutateModelSuspended`, `:1725-1738`, avant `CommitModelChange`) : `Detach()` n'y libere rien de plus, il ne fait que retirer les abonnements du groupe visuel au noeud du modele.
+  6. Tests `DockNameIndexTests` (hote dans une `MGWindow` d'un `MGDesktop` de test, panneaux dont le contenu est un `MGContentPresenter` ou un `MGStackPanel` portant un element nomme) :
+     - contenu nomme cree avant l'attachement de l'hote -> resolu par `window.TryGetElementByName` apres `window.SetContent(host)` ;
+     - contenu nomme pose dans un volet **apres** l'attachement (sans reconstruction) -> resolu immediatement ;
+     - deux `RebuildVisualTree()` de suite -> aucun `MGTextBlock` « Error building docking layout », le nom resout toujours la meme instance ;
+     - instance de contenu remplacee entre deux reconstructions (variante « frappe puis drag ») -> aucune erreur, le nom resout la nouvelle instance, l'ancienne n'est plus indexee ;
+     - changement d'onglet (`DockAsTab` puis `SetActivePanel`) : contenu inactif non resolu, reactive resolu ;
+     - `DetachToFloating` : la fenetre principale ne resout plus, la fenetre flottante (`host.FloatingWindows[0]`, reference gardee par le test) resout ; `RedockPanel` : la fenetre principale resout de nouveau la meme instance, la fenetre flottante fermee ne resout plus, le contenu a pour parent le nouveau groupe docke. C'est le test d'ordre du chemin modele (P4 : sans l'annonce de retrait inconditionnelle, la fenetre principale garde une entree fantome et le redock affiche le placeholder d'erreur) ; il ne prouve pas P5, le contenu y etant libere par le retrait du panneau du groupe flottant avant la fermeture ;
+     - fenetre flottante **autonome** (preuve de P5) : `new MGFloatingDockWindow(host, panel, 100, 100)` (constructeur public), `host.ParentWindow.AddNestedWindow(window)`, une mise a jour du bureau ; la fenetre flottante resout le nom du contenu du panneau ; `host.CloseFloatingWindow(window)` -> la fenetre fermee ne resout plus (`window.TryGetElementByName(nom, out _)` faux), son groupe d'onglets ne tient plus le contenu (absent de `window.TabGroup.GetChildren()`), le contenu n'a plus de parent. Sans le `Detach()`, la fenetre morte resout encore et son groupe tient encore le contenu ;
+     - drop docke -> docke reproduit par `DockOperation.DockAsTab(model, panel, autreGroupe)` puis `RebuildVisualTree()` (le double rebuild d'`ExecuteDrop`) -> aucune erreur ;
+     - auto-hide : `UnpinPanel` (contenu hors index), ouverture du tiroir (indexe), fermeture (hors index), `RepinPanel` (indexe) ;
+     - `FirstChild` d'un `MGDockSplitContainer` remplace -> ancien hors index, nouveau indexe ;
+     - fermeture d'un panneau (`RemovePanel` de l'hote) -> hors index.
+  7. `XamlPreviewHost.ReplaceRoot` (D3) : garder `previous = _presenter.Content` ; `try { _presenter.SetContent(newRoot); } catch { _presenter.SetContent(previous); throw; }` ; **puis seulement** `previous?.RemoveDataBindings(true)` et la mise a jour de `PreviewRoot` et des champs derives. Le retrait de la racine a moitie annoncee desindexe ce qui l'avait ete (identite), la racine precedente est re-annoncee et reindexee ; ses bindings sont intacts puisqu'ils ne sont retires qu'apres un attachement reussi. L'exception remonte au `catch (Exception)` de `Reparse`, qui produit le diagnostic `DuplicateElementName` comme aujourd'hui.
+  8. `XamlPreviewHostTests` : la sentinelle `ANameAnItemTemplateAppliesToEveryItem_DoesNotReachTheEditorWindowIndex_BecauseTheDockGroupIsNotInTheAddChain` devient `ANameAnItemTemplateAppliesToEveryItem_IsRefusedAtAttach_AsADuplicateElementNameDiagnostic` : un diagnostic `DuplicateElementName` a la ligne et la colonne du `TextBlock` du template ; `PreviewRoot` null (premier document) et `PreviewPresenter.Content` null ; `ItemLabel` et `Options` absents de l'index ; `view.PreviewPane.Parent` toujours un `MGDockTabGroup`. Second test : un document valide charge d'abord, puis le document fautif -> `PreviewRoot` inchange, `PreviewPresenter.Content` == `PreviewRoot`, ses bindings toujours actifs (une propriete liee mise a jour apres l'echec se reflete), l'index resout toujours les noms du document valide ; puis un document valide -> preview remplacee. Nouveau test : `<StackPanel Name="Root">` charge -> `view.Window.TryGetElementByName("Root")` resout `PreviewRoot` ; texte modifie -> resout la nouvelle racine, l'ancienne n'est plus indexee.
+  9. `XamlEditorViewTests` : nouveau test issu de la reproduction, `DraggingAnyPanel_AfterAnEdit_ShowsNoDockingError` : preview nommee, texte modifie (nouvelle racine), puis `DetachToFloating(volet Document)` + `RedockPanel`, puis `DockOperation.DockAsTab` + `RebuildVisualTree()` ; aucun `MGTextBlock` « Error building docking layout », `Root` resout `PreviewRoot`. Le test existant `TabSwitchAndFloatRedockCycle_RaisesNoException_AndLeavesNoPaneUnaccountedFor` est conserve.
+  10. Preuve par mutation, notee sous la tache : remettre la garde `Parent == this` devant l'annonce de retrait -> le scenario flottement/redock devient rouge (entree fantome dans la fenetre principale, erreur au redock) ; retirer le `Detach()` de `CloseFloatingWindow` -> dans le scenario de la fenetre autonome, « la fenetre fermee ne resout plus » et « son groupe ne tient plus le contenu » deviennent rouges (le scenario `DetachToFloating` / `RedockPanel` reste vert, ce qui est attendu) ; retirer le `catch` de `ReplaceRoot` -> le second test de sentinelle rouge (presentateur et `PreviewRoot` divergent).
+- Validation : `dotnet build MGUI.Tests/MGUI.Tests.csproj` ; `dotnet test MGUI.Tests/MGUI.Tests.csproj` complet, **au commit de T1.1 seul**, 0 echec ; `XamlEditorViewTests.InactiveTab_DetachesItsContent_AndReattachesItWhenActivatedAgain` toujours `1` puis `4` ; les tests de `MGUI.Tests/Docking`, `MGUI.Tests/Editor` (dont `XamlEditorSelectionTests`, dont le document racine `ListBox` charge encore a ce stade, ses composants n'etant parcourus qu'apres P2) et `ControlTemplateInfrastructureTests` verts.
+- Commit : `fix(docking): announce panel content through the content-host chain`
+
+### ⏳ T1.2 -- `MGContentHost` : composants annonces des deux cotes
+
+- Objectif : le retrait d'un composant est annonce (P3) et l'attachement d'un element annonce ses propres composants (P2).
+- Fichiers : `MGUI.Core/UI/Containers/MGContentHost.cs`, `MGUI.Tests/Xaml/DuplicateElementNameTests.cs`, `MGUI.Tests/Architecture/ResolvedPilotWriteSitesTests.cs` (ligne autorisee de `MGContentHost.cs`).
+- Etapes :
+  1. `protected override bool RemoveComponent(MGComponentBase Component)` : `base.RemoveComponent`, puis `InvokeContentRemoved(Component.BaseElement)` si retire.
+  2. `InvokeContentAdded` / `InvokeContentRemoved` : parcours `Element.TraverseVisualTree(true, true, false, false)` en sautant le premier element (`Element` lui-meme, deja annonce), avec un commentaire qui dit pourquoi (les composants de l'element attache faisaient partie de l'arbre sans etre annonces ; ADR-0015).
+  3. Renumeroter l'entree `MGContentHost.cs` de `ResolvedPilotWriteSitesTests.AllowedLines` (`:92`) sur la nouvelle ligne du parametre `Color? Foreground = null`.
+  4. `DuplicateElementNameTests` : `TheSameMarkup_Loads_WhenTheTemplatedControlIsTheRoot` devient `TheSameMarkup_Fails_WhenTheTemplatedControlIsTheRoot_LikeAnyWrapper` (meme exception, meme message que la version enveloppee) ; commentaire de classe (`:14-21`) reecrit : l'enveloppement ne decide plus de rien. `XamlEditorSelectionTests.AListItemTemplateClick_SelectsTheSharedNode_AndAdornsOnlyTheClickedItem` : `Name="ItemLabel"` retire de son document (P2), assertions inchangees. Nouveaux tests : un composant nomme ajoute a un hote deja attache (via une sous-classe de test de `MGSingleContentHost` qui expose `AddComponent` / `RemoveComponent`, ou via un controle du depot dont un composant est accessible) est resolu, puis ne l'est plus une fois retire ; un element attache directement dont un composant porte un `Name` est resolu apres attachement et ne l'est plus apres retrait.
+  5. Preuve par mutation : revenir a `IncludeSelf: false` -> le test « composant de l'element attache » rouge ; retirer la surcharge `RemoveComponent` -> le test de retrait rouge.
+- Validation : build + suite complete, 0 echec ; en particulier `ControlTemplateInfrastructureTests`, `TemplateStructureRebuildThemeTests`, `ThemeValueInvalidationInventoryTests`, `FocusArchitectureTests`, tous les tests `Xaml`. Si un test du depot revele un nom de composant indexe deux fois (un cas que la lecture n'a pas trouve : `rg 'Name = "'` dans `MGUI.Core/UI` ne rend que des noms de transitions et d'animations), ne pas assouplir l'index : passer en ⚠️ Blocked avec le cas, et s'arreter.
+- Commit : `fix(core): announce components on both sides of the content-host chain`
+
+### ⏳ T1.3 -- `MGListBox`, `MGChatBox`, `MGChatBoxMessage` deviennent des hotes de contenu
+
+- Objectif : les items d'une liste et les messages d'un chat ajoutes apres l'attachement atteignent l'index, et le quittent quand ils sont retires (D2).
+- Fichiers : `MGUI.Core/UI/MGListBox.cs`, `MGUI.Core/UI/MGChatBox.cs` (les deux classes), tests dans `MGUI.Tests/Xaml/DuplicateElementNameTests.cs` (liste) et un fichier de tests du chat (P6).
+- Etapes :
+  1. Classe de base `MGContentHost` pour les trois ; surcharges obligatoires : `GetChildren()` rend `Enumerable.Empty<MGElement>()` (la structure reste dans les composants), `UpdateContentMeasurement(Size)` rend `UpdateContentMeasurementBaseImplementation(AvailableSize)` (`MGElement.cs:6012-6016`, prevu pour ce cas), `UpdateContentLayout(Rectangle)` vide. Verifier que `DrawContents` de `MGContentHost` (dessine `GetChildren()`, vide) ne change pas le rendu : le dessin des composants reste celui de `MGElement`.
+  2. Rien d'autre ne change dans ces classes : `AddComponent` de `MGContentHost` annonce desormais les composants (`OuterBorder`, `TitleBorder`, `InnerBorder` ; `BorderComponent`, `MainContent`), et la chaine `InnerBorder -> ScrollViewer -> ItemsPanel / VirtualizingStackPanel -> items` est deja faite d'hotes de contenu.
+  3. Tests liste : `ListBox` attachee dans une fenetre, item ajoute apres l'attachement dont le contenu porte un `Name` -> resolu ; item retire -> non resolu ; `Header` nomme pose apres l'attachement -> resolu ; meme scenario en mode virtualise (`ItemsSource` virtualisee, voir `ListBoxVirtualizedItemsSourceTests` pour la construction) pour l'item realise. Tests chat : `MGChatBox` attache, un composant ou un element interne nomme dans le test (`InputTextBox.Name`) resolu apres attachement ; message ajoute apres l'attachement dont un bloc de texte est nomme dans le test (via l'evenement d'ajout de message ou la liste des messages, a lire dans `MGChatBox.cs`) -> resolu.
+  4. Preuve par mutation : remettre `: MGElement` sur `MGListBox` -> le test « item ajoute apres l'attachement » rouge.
+- Validation : build + suite complete, 0 echec ; `ListBoxVirtualizedItemsSourceTests`, `TemplateStructureRebuildThemeTests`, `ThemeValueInvalidationInventoryTests`, `BorderShapeAdoptionTests`, `FillBrushLifecycleTests`, `EditorCompactPresetTests` verts.
+- Commit : `fix(controls): list box and chat box announce their children`
+
+---
+
+## Phase 2 -- Documents et cloture
+
+### ⏳ T2.1 -- Documents et ADR-0015 `Accepted`
+
+- Objectif : les documents disent l'etat courant.
+- Fichiers : `Docs/editor-architecture.md`, `Docs/controls-architecture.md`, `Docs/decisions/0015-containers-announce-their-children.md`, `Docs/decisions/README.md`, ce fichier.
+- Etapes :
+  1. `Docs/editor-architecture.md:47` : la regle « un volet ne porte pas de `Name` » reste, avec sa vraie raison (les volets, la preview et le chrome de l'editeur partagent l'index de la fenetre de l'editeur, tenu a jour par le docking) ; un paragraphe sur l'echec d'attachement (D3) et sur l'entree des noms de la preview dans l'index (D1) pres de la ligne 136.
+  2. `Docs/controls-architecture.md`, vue d'ensemble du docking : une phrase sur l'invariant (les controles de docking sont des `MGContentHost` et annoncent leur contenu ; les fenetres flottantes le liberent a la fermeture).
+  3. ADR-0015 : statut `Accepted`, consequences completees par ce qui a ete mesure (nombre de tests, cas revele par la suite s'il y en a eu).
+  4. Ce fichier : historique de fin de chantier, taches en ✅ / 🧪.
+- Validation : relecture ; `git diff --stat` ne montre que des `.md`.
+- Commit : `docs(docking): record the content-host chain invariant`
+
+### ⏳ T2.2 -- Validation globale et rapport
+
+- Objectif : preuve de bout en bout et liste des verifications manuelles laissees a l'auteur.
+- Sources : l'ensemble de la branche.
+- Etapes :
+  1. `dotnet build MGUI.Tests/MGUI.Tests.csproj`, `dotnet build MGUI.Editor.Host/MGUI.Editor.Host.csproj`, `dotnet build MGUI.Samples/MGUI.Samples.csproj --no-incremental`.
+  2. `dotnet test MGUI.Tests/MGUI.Tests.csproj` complet, trois fois de suite (la suite est parallele), 0 echec.
+  3. Verification en contexte frais (role `verifier`) sur la revendication exacte : « dans l'editeur heberge, une preview nommee puis n'importe quelle operation de docking, y compris apres une frappe, ne produit plus le placeholder d'erreur, et les noms de la preview resolvent la racine courante » plus la revendication `ListBox` (item ajoute apres l'attachement resolu).
+  4. Rapport de fin (fichiers, validations, hypotheses, risques, prochaine etape) et liste du smoke manuel de « Validation globale » ; la tache reste 🧪 jusqu'a la validation de l'auteur.
+- Validation : les commandes ci-dessus, verdict `CONFIRMED`.
+- Commit : aucun (ou `docs(docking): close the plan` si ce fichier change).
+
+---
+
+## Points ouverts
+
+A trancher pendant l'execution, ou a remonter en ⚠️ Blocked si la reponse manque.
+
+| Ref | Sujet | Tache concernee |
+|---|---|---|
+| O1 | Si la suite ou les samples revelent, apres P2, un composant **du framework ou d'un sample** (code de `MGUI.Core`, `MGUI.Samples`, templates ou themes, pas un document de test) portant un `Name` indexe deux fois (aucun trouve a la lecture), le cas est remonte a l'auteur avec le nom et le fichier ; l'index n'est pas assoupli (D5). Un document de test qu'une decision de ce plan refuse desormais (D1, P2) n'est pas un blocage : il est reecrit comme l'inventaire le dit. | T1.2, T2.2 |
+| O2 | `MGChatBox` : l'evenement ou la liste exposant un message ajoute, necessaire au test « message nomme apres l'attachement », est a lire dans `MGChatBox.cs` pendant T1.3 ; si aucune API ne donne acces au `MGChatBoxMessage`, le test nomme un composant du chat lui-meme et le cas « message » est note comme couvert par la chaine du `MGDockPanel` sans test dedie. | T1.3 |
+| O3 | Ordre exact `SyncFloatingWindows` -> `CloseFloatingWindow` -> `Detach` -> `RebuildVisualTree` sur le redock : a confirmer par le test flottement/redock de T1.1 ; si le contenu est encore parente au groupe flottant au moment du `Detach`, `SetParent(null)` s'applique (garde vraie) et la reconstruction le reparente ensuite, ce qui est l'ordre attendu. | T1.1 |
+
+## Hors perimetre
+
+- Generaliser l'annonce des composants a tout `MGElement` (chaque element annoncant ses composants par un mecanisme porte par `MGElement`) : autre decision, notee dans l'ADR-0015 comme suite possible ; les controles hors D2 qui tiennent des composants (`MGGridColorPicker`, `MGColorPicker`, `MGRatingControl`, `MGTextBox`, ...) ne portent pas de contenu utilisateur nomme et gardent leur classe de base.
+- `MGXAMLDesigner` (`: MGElement`, composant `MainContent`) : voue a la suppression par le plan de l'editeur XAML (decision 2 du 17 septembre) ; non modifie.
+- Une portee de noms par document previsualise (isoler la preview de l'index de la fenetre de l'editeur) : refuse par D1 et par ADR-0013 (pas de portee de noms).
+- Une tolerance de l'index a la re-annonce d'une meme instance : refusee (D5) ; avec la chaine complete, une double annonce sans retrait entre les deux serait un defaut d'ordre a corriger a sa source, pas a tolerer.
+- Le message de `MGDuplicateElementNameException` qui nomme un template comme cause probable d'une position partagee : inchange (ADR-0013 decision 3) ; avec la chaine complete, la re-indexation d'une meme instance ou d'une racine morte ne se produit plus, donc ce message ne s'affiche plus a tort dans le docking.
+- La double reconstruction d'un drop docke -> docke (`ExecuteDrop` sans `MutateModelSuspended`) : inefficace mais correcte une fois la chaine symetrique ; non modifiee.
+- L'asymetrie preexistante d'`OnParentChanged` (`1` puis `4` evenements par changement d'onglet, `XamlEditorViewTests:159-196`) : non modifiee.
