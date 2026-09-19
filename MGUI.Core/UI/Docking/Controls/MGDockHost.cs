@@ -1537,6 +1537,12 @@ public class MGDockHost : MGSingleContentHost
             }
         }
 
+        // The host stopped tracking floatWin above (_floatingWindows.Remove): release whatever its tab
+        // group still holds (ADR-0015 decision 3, P5). For a model-backed window (the "if" branch) the
+        // content was already released through the model mutation above; here this only drops the
+        // visual's model subscriptions. For a standalone window (the "else" branch) this is the only release.
+        floatWin.TabGroup.Detach();
+
         SyncRegistryVisibility();
     }
 
@@ -1601,6 +1607,11 @@ public class MGDockHost : MGSingleContentHost
                 }
             });
 
+            // Idempotent with the Detach() below the re-entrant bookkeeping branch (SyncFloatingWindows
+            // closes this same window once its group has left the model, ADR-0015 decision 3, P5):
+            // GroupNode is already null there, so Detach() no-ops when reached a second time.
+            window.TabGroup.Detach();
+
             SyncRegistryVisibility();
             return;
         }
@@ -1608,6 +1619,10 @@ public class MGDockHost : MGSingleContentHost
         window.WindowClosed -= OnFloatingWindowClosed;
         _floatingWindows.Remove(window);
         ParentWindow.RemoveNestedWindow(window);
+        // The host stops tracking this (non model-backed) window here: its tab group is the only
+        // holder of its content, so it must release it now (ADR-0015 decision 3, P5), or the closed
+        // window would keep resolving names of elements it no longer displays.
+        window.TabGroup.Detach();
         SyncRegistryVisibility();
     }
 

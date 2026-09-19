@@ -13,7 +13,7 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// Container that displays a horizontal strip of tabs and the content of the active panel.
 /// Bound to a DockTabGroupNode model.
 /// </summary>
-public class MGDockTabGroup : MGElement
+public class MGDockTabGroup : MGContentHost
 {
     public const string AccentPartName = "PART_Accent";
     public const string DropdownIconPartName = "PART_DropdownIcon";
@@ -371,6 +371,7 @@ public class MGDockTabGroup : MGElement
             // Create empty content container
             _activeContentContainer = CreateEmptyContent();
             _activeContentContainer.SetParent(this);
+            InvokeContentAdded(_activeContentContainer);
 
             // Set group node (will trigger rebuild)
             if (groupNode != null)
@@ -385,6 +386,7 @@ public class MGDockTabGroup : MGElement
             _dropdownBtn = CreateCompactButton(window, "", CompactButtonHoverColor, () => ShowDropdown());
             _dropdownBtn.Visibility = Visibility.Collapsed;
             _dropdownBtn.SetParent(this);
+            InvokeContentAdded(_dropdownBtn);
 
             // Maximize / restore toggle — its icon is the PART_WindowStateIcon component
             _maximizeBtn = CreateCompactButton(window, "", CompactButtonHoverColor, () =>
@@ -399,6 +401,7 @@ public class MGDockTabGroup : MGElement
                 }
             });
             _maximizeBtn.SetParent(this);
+            InvokeContentAdded(_maximizeBtn);
 
             SyncHeaderVisuals();
         }
@@ -424,6 +427,7 @@ public class MGDockTabGroup : MGElement
         {
             _tabHeadersPanel.TryRemoveAll();
             _tabHeadersPanel.SetParent(null);
+            InvokeContentRemoved(_tabHeadersPanel);
         }
 
         _tabHeadersPanel = headersPanel;
@@ -451,6 +455,7 @@ public class MGDockTabGroup : MGElement
         if (headersPanelChanged)
         {
             _tabHeadersPanel.SetParent(this);
+            InvokeContentAdded(_tabHeadersPanel);
             if (GroupNode != null)
             {
                 RebuildTabHeaders();
@@ -623,16 +628,27 @@ public class MGDockTabGroup : MGElement
     /// </summary>
     private void UpdateActiveContent()
     {
-        // Remove old content
-        if (_activeContentContainer != null && _activeContentContainer.Parent == this)
+        // Remove old content. The removal is announced unconditionally (ADR-0015 decision 2, P4):
+        // SetParent never clears the previous holder's field, so a content already stolen by
+        // another tab group (e.g. a floating window's, whose Parent is no longer this) still has
+        // to be unindexed here, or the window that used to hold it keeps a phantom entry. Only the
+        // SetParent(null) call itself keeps the Parent == this guard, to avoid deparenting content
+        // that another group has already taken.
+        var previousContent = _activeContentContainer;
+        if (previousContent != null)
         {
-            _activeContentContainer.SetParent(null);
+            if (previousContent.Parent == this)
+            {
+                previousContent.SetParent(null);
+            }
+            InvokeContentRemoved(previousContent);
         }
 
         if (GroupNode == null || GroupNode.IsEmpty)
         {
             _activeContentContainer = CreateEmptyContent();
             _activeContentContainer.SetParent(this);
+            InvokeContentAdded(_activeContentContainer);
             LayoutChanged(this, true);
             return;
         }
@@ -643,13 +659,14 @@ public class MGDockTabGroup : MGElement
         {
             _activeContentContainer = CreateEmptyContent();
             _activeContentContainer.SetParent(this);
+            InvokeContentAdded(_activeContentContainer);
             LayoutChanged(this, true);
             return;
         }
-            
+
         // Get or create panel content
         var content = activePanel.GetOrCreateContent();
-            
+
         if (content == null)
         {
             _activeContentContainer = CreatePlaceholderContent(activePanel.Title);
@@ -660,6 +677,7 @@ public class MGDockTabGroup : MGElement
         }
 
         _activeContentContainer.SetParent(this);
+        InvokeContentAdded(_activeContentContainer);
         InvalidateVtcCache();
         LayoutChanged(this, true);
 

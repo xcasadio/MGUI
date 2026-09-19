@@ -121,53 +121,152 @@ public class XamlPreviewHostTests
         Assert.Equal(2, diagnostic.LineNumber);
     }
 
-    // -- 2b. ADR-0013: where the duplicate-name failure does, and does not, reach --
+    // -- 2b. ADR-0015: the preview's names now reach the editor window's index, so a template that applies one
+    // -- Name to several elements is refused at attach, and the previous preview is kept (D1, D3).
+
+    /// <summary>Locates <paramref name="tagOpenMarker"/> in <paramref name="text"/> and returns the 1-based (line, column) of the
+    /// first character of the element's name, right after its <c>&lt;</c> -- computed by counting newlines, independently of the
+    /// parser under test. Same helper as <c>DuplicateElementNameTests.LocateTagPosition</c>.</summary>
+    private static (int Line, int Column) LocateTagPosition(string text, string tagOpenMarker)
+    {
+        int index = text.IndexOf(tagOpenMarker, System.StringComparison.Ordinal);
+        Assert.True(index >= 0, $"Marker not found: {tagOpenMarker}");
+
+        int nameStart = index + 1; // skip '<'
+        int line = 1;
+        int lastNewline = -1;
+        for (int i = 0; i < nameStart; i++)
+        {
+            if (text[i] == '\n')
+            {
+                line++;
+                lastNewline = i;
+            }
+        }
+
+        return (line, nameStart - lastNewline);
+    }
+
+    private const string ANameAnItemTemplateAppliesToEveryItemMarkup = $"""
+        <Window xmlns="{Ns}" Left="20" Top="20" Width="400" Height="380">
+            <ListBox Name="Options" Width="220" Height="120">
+                <ListBox.ItemTemplate>
+                    <ContentTemplate>
+                        <TextBlock Name="ItemLabel" Text="Item" />
+                    </ContentTemplate>
+                </ListBox.ItemTemplate>
+                <TextBlock Text="Option 1" />
+                <TextBlock Text="Option 2" />
+                <TextBlock Text="Option 3" />
+            </ListBox>
+        </Window>
+        """;
 
     /// <summary>The author's reproduction of 2026-09-18: a <c>Name</c> declared once inside an item template, which the
     /// loader applies to every element the template generates.<para/>
-    /// It previews without a diagnostic <em>here</em>, and that is not a contradiction of ADR-0013 but a consequence of
-    /// this editor's own wiring: a window only ever learns of an element through the <c>MGContentHost</c> add chain, and
-    /// the preview pane hangs from an <c>MGDockTabGroup</c>, which is not in that chain. Nothing of the previewed tree
-    /// is announced to the editor window -- not even the list box's own name -- so its index never sees the second
-    /// generated element and never refuses it. The same document does fail, with a located
-    /// <see cref="XamlLoaderDiagnosticCode.DuplicateElementName"/>, as soon as it is attached through a host that is in
-    /// the chain (see <c>MGUI.Tests/Xaml/DuplicateElementNameTests.cs</c>).<para/>
-    /// Pinned so that a change to the docking wiring cannot flip it silently: if a future layout puts the preview back
-    /// in the chain, this test fails and says so, and the diagnostic the editor then shows is the one
-    /// <c>XamlPreviewHost</c>'s generic catch builds through <see cref="XamlLoaderDiagnostic.FromException"/>.</summary>
+    /// Now that the docking containers announce every reparent (ADR-0015), the preview presenter is wired into the
+    /// editor window's name index through the chain: <c>PreviewPane</c> (an <see cref="MGOverlayPanel"/>) hangs from an
+    /// <see cref="MGDockTabGroup"/>, which announces it, which announces <c>PreviewPresenter</c>'s content when
+    /// <see cref="XamlPreviewHost.ReplaceRoot"/> attaches it. The attach throws <c>MGDuplicateElementNameException</c>
+    /// (ADR-0013, option A) as soon as the template's second generated element reaches the index, exactly as it already
+    /// did for a host in the chain (see <c>MGUI.Tests/Xaml/DuplicateElementNameTests.cs</c>). <see cref="XamlPreviewHost.ReplaceRoot"/>
+    /// rolls the presenter back to the previous root (D3, here: none, so the presenter and <see cref="XamlPreviewHost.PreviewRoot"/>
+    /// stay null) and the exception reaches <c>Reparse</c>'s generic catch, which reports it as a located
+    /// <see cref="XamlLoaderDiagnosticCode.DuplicateElementName"/> diagnostic instead of previewing silently.</summary>
     [Fact]
-    public void ANameAnItemTemplateAppliesToEveryItem_DoesNotReachTheEditorWindowIndex_BecauseTheDockGroupIsNotInTheAddChain()
+    public void ANameAnItemTemplateAppliesToEveryItem_IsRefusedAtAttach_AsADuplicateElementNameDiagnostic()
     {
         (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view, _) = CreateHostedView(1280, 720);
         XamlPreviewHost host = view.PreviewHost;
 
-        view.Session.Text = $"""
-            <Window xmlns="{Ns}" Left="20" Top="20" Width="400" Height="380">
-                <ListBox Name="Options" Width="220" Height="120">
-                    <ListBox.ItemTemplate>
-                        <ContentTemplate>
-                            <TextBlock Name="ItemLabel" Text="Item" />
-                        </ContentTemplate>
-                    </ListBox.ItemTemplate>
-                    <TextBlock Text="Option 1" />
-                    <TextBlock Text="Option 2" />
-                    <TextBlock Text="Option 3" />
-                </ListBox>
-            </Window>
-            """;
+        view.Session.Text = ANameAnItemTemplateAppliesToEveryItemMarkup;
         Frame(runtime, desktop, 20);
 
-        Assert.Empty(host.Diagnostics);
-        Assert.NotNull(host.PreviewRoot);
+        XamlLoaderDiagnostic diagnostic = Assert.Single(host.Diagnostics);
+        Assert.Equal(XamlLoaderDiagnosticCode.DuplicateElementName, diagnostic.Code);
+        (int Line, int Column) expected = LocateTagPosition(ANameAnItemTemplateAppliesToEveryItemMarkup, "<TextBlock Name=\"ItemLabel\"");
+        Assert.Equal(expected.Line, diagnostic.LineNumber);
+        Assert.Equal(expected.Column, diagnostic.LinePosition);
 
-        // The template really did generate three elements carrying the one declared name: the document is the one from
-        // the report, not a weaker variant.
-        Assert.Equal(3, host.PreviewRoot.TraverseVisualTree(true, true, true, true).Count(x => x.Name == "ItemLabel"));
-
-        // And the editor window learned of none of them -- nor of the list box itself, which is the tell.
+        // This is the first document of the session: there was no previous root to roll back to.
+        Assert.Null(host.PreviewRoot);
+        Assert.Null(view.PreviewPresenter.Content);
         Assert.False(view.Window.TryGetElementByName("Options", out _));
         Assert.False(view.Window.TryGetElementByName("ItemLabel", out _));
         Assert.IsType<MGDockTabGroup>(view.PreviewPane.Parent);
+    }
+
+    /// <summary>D3: when a valid preview is already showing, an edit that turns it into the faulty template document above
+    /// is refused at attach and the previous preview stays exactly as it was -- same instance, still the presenter's
+    /// content, still indexed -- with the diagnostic reported. A following valid edit still replaces the preview normally.</summary>
+    [Fact]
+    public void AFaultyEditAfterAValidPreview_KeepsThePreviousRoot_StillPresentedAndIndexed()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view, _) = CreateHostedView(1280, 720);
+        XamlPreviewHost host = view.PreviewHost;
+
+        view.Session.Text = "<StackPanel xmlns=\"" + Ns + "\" Name=\"Root\"><TextBlock Name=\"Label\" Text=\"first\" /></StackPanel>";
+        Frame(runtime, desktop, 20);
+
+        Assert.Empty(host.Diagnostics);
+        MGElement validRoot = host.PreviewRoot;
+        Assert.NotNull(validRoot);
+        Assert.Same(validRoot, view.PreviewPresenter.Content);
+        Assert.True(view.Window.TryGetElementByName("Root", out MGElement indexedRoot));
+        Assert.Same(validRoot, indexedRoot);
+        Assert.True(view.Window.TryGetElementByName("Label", out MGElement indexedLabel));
+        Assert.IsType<MGTextBlock>(indexedLabel);
+
+        // The faulty document.
+        view.Session.Text = ANameAnItemTemplateAppliesToEveryItemMarkup;
+        Frame(runtime, desktop, 40);
+
+        Assert.Single(host.Diagnostics);
+        Assert.Equal(XamlLoaderDiagnosticCode.DuplicateElementName, host.Diagnostics[0].Code);
+        Assert.Same(validRoot, host.PreviewRoot);
+        Assert.Same(validRoot, view.PreviewPresenter.Content);
+
+        // The index still resolves the kept root's names.
+        Assert.True(view.Window.TryGetElementByName("Root", out MGElement rootAfterFailure));
+        Assert.Same(validRoot, rootAfterFailure);
+        Assert.True(view.Window.TryGetElementByName("Label", out MGElement labelAfterFailure));
+        Assert.Same(indexedLabel, labelAfterFailure);
+        Assert.False(view.Window.TryGetElementByName("Options", out _));
+        Assert.False(view.Window.TryGetElementByName("ItemLabel", out _));
+
+        // A valid document again replaces the preview normally.
+        view.Session.Text = "<TextBlock xmlns=\"" + Ns + "\" Name=\"Root\" Text=\"replaced\" />";
+        Frame(runtime, desktop, 60);
+
+        Assert.Empty(host.Diagnostics);
+        Assert.NotSame(validRoot, host.PreviewRoot);
+        Assert.Same(host.PreviewRoot, view.PreviewPresenter.Content);
+        Assert.True(view.Window.TryGetElementByName("Root", out MGElement replacedRoot));
+        Assert.Same(host.PreviewRoot, replacedRoot);
+        Assert.False(view.Window.TryGetElementByName("Label", out _));
+    }
+
+    /// <summary>D1: the preview's own names enter the editor window's index as soon as it loads, and a following edit
+    /// that changes the root re-indexes the new instance and drops the old one.</summary>
+    [Fact]
+    public void PreviewNames_EnterTheEditorWindowIndex_AndFollowARootReplacement()
+    {
+        (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view, _) = CreateHostedView(1280, 720);
+        XamlPreviewHost host = view.PreviewHost;
+
+        view.Session.Text = "<StackPanel xmlns=\"" + Ns + "\" Name=\"Root\"></StackPanel>";
+        Frame(runtime, desktop, 20);
+
+        Assert.True(view.Window.TryGetElementByName("Root", out MGElement firstRoot));
+        Assert.Same(host.PreviewRoot, firstRoot);
+
+        // Change the text, keeping Name="Root" but changing something else: a new root instance is built.
+        view.Session.Text = "<StackPanel xmlns=\"" + Ns + "\" Name=\"Root\" Orientation=\"Horizontal\"></StackPanel>";
+        Frame(runtime, desktop, 40);
+
+        Assert.True(view.Window.TryGetElementByName("Root", out MGElement secondRoot));
+        Assert.Same(host.PreviewRoot, secondRoot);
+        Assert.NotSame(firstRoot, secondRoot);
     }
 
     // -- 3. DesignDataContext reaches DataContextOverride of the root --

@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.DockLayout;
 
 namespace MGUI.Core.UI.Docking.Controls;
@@ -8,7 +9,7 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// Container that displays two child elements separated by a draggable splitter bar.
 /// Supports horizontal (left/right) and vertical (top/bottom) orientations.
 /// </summary>
-public class MGDockSplitContainer : MGElement
+public class MGDockSplitContainer : MGContentHost
 {
     private Orientation _orientation;
     /// <summary>
@@ -42,6 +43,7 @@ public class MGDockSplitContainer : MGElement
                 if (_firstChild != null)
                 {
                     _firstChild.SetParent(null);
+                    InvokeContentRemoved(_firstChild);
                 }
 
                 _firstChild = value;
@@ -49,6 +51,7 @@ public class MGDockSplitContainer : MGElement
                 if (_firstChild != null)
                 {
                     _firstChild.SetParent(this);
+                    InvokeContentAdded(_firstChild);
                 }
 
                 LayoutChanged(this, true);
@@ -71,6 +74,7 @@ public class MGDockSplitContainer : MGElement
                 if (_secondChild != null)
                 {
                     _secondChild.SetParent(null);
+                    InvokeContentRemoved(_secondChild);
                 }
 
                 _secondChild = value;
@@ -78,6 +82,7 @@ public class MGDockSplitContainer : MGElement
                 if (_secondChild != null)
                 {
                     _secondChild.SetParent(this);
+                    InvokeContentAdded(_secondChild);
                 }
 
                 LayoutChanged(this, true);
@@ -200,6 +205,7 @@ public class MGDockSplitContainer : MGElement
             // Create splitter bar
             _splitterBar = new MGDockSplitterBar(window);
             _splitterBar.SetParent(this);
+            InvokeContentAdded(_splitterBar);
 
             // Default alignment
             HorizontalAlignment = HorizontalAlignment.Stretch;

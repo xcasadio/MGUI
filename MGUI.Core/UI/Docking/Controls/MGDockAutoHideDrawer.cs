@@ -1,6 +1,7 @@
 using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using MGUI.Core.UI.Containers;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.Styling;
 using MGUI.Shared.Input.Mouse;
@@ -13,7 +14,7 @@ namespace MGUI.Core.UI.Docking.Controls;
 /// Its eight parts (border, title bar and title text, pin and close buttons and icons, resize grip) are created by the
 /// <c>Dock.AutoHideDrawer.Default</c> control template, which also applies the drawer's theme colors.
 /// </summary>
-public class MGDockAutoHideDrawer : MGElement
+public class MGDockAutoHideDrawer : MGContentHost
 {
     public const string BorderPartName = "PART_Border";
     public const string TitleBarPartName = "PART_TitleBar";
@@ -200,6 +201,7 @@ public class MGDockAutoHideDrawer : MGElement
 
             _content = CreatePlaceholder();
             _content.SetParent(this);
+            InvokeContentAdded(_content);
             ApplyThemeVisuals();
         }
     }
@@ -268,15 +270,24 @@ public class MGDockAutoHideDrawer : MGElement
         LayoutChanged(this, true);
     }
 
-    /// <summary>Parents <paramref name="part"/> to this drawer and detaches the part it replaces, if a new structure brings another element.</summary>
+    /// <summary>Parents <paramref name="part"/> to this drawer and detaches the part it replaces, if a new structure brings another element.
+    /// Announces only an actual change: <see cref="MGElement.SetParent"/> no-ops when <paramref name="part"/> is already <paramref name="previous"/>,
+    /// so re-announcing that same instance would double-index it without an intervening release (refused by ADR-0015, D5).</summary>
     private T Reparent<T>(T previous, T part) where T : MGElement
     {
-        if (previous != null && !ReferenceEquals(previous, part))
+        var changed = !ReferenceEquals(previous, part);
+
+        if (previous != null && changed)
         {
             previous.SetParent(null);
+            InvokeContentRemoved(previous);
         }
 
         part.SetParent(this);
+        if (changed)
+        {
+            InvokeContentAdded(part);
+        }
         return part;
     }
 
@@ -331,6 +342,7 @@ public class MGDockAutoHideDrawer : MGElement
         if (_content != null)
         {
             _content.SetParent(null);
+            InvokeContentRemoved(_content);
         }
 
         if (_activePanel != null)
@@ -346,6 +358,7 @@ public class MGDockAutoHideDrawer : MGElement
         }
 
         _content.SetParent(this);
+        InvokeContentAdded(_content);
         LayoutChanged(this, true);
     }
 

@@ -168,8 +168,26 @@ public class XamlPreviewHost
 
     private void ReplaceRoot(MGElement newRoot)
     {
-        _presenter.Content?.RemoveDataBindings(true);
-        _presenter.SetContent(newRoot);
+        // Attach the new root before releasing the previous one's data bindings (ADR-0015 decision 7).
+        // Now that the docking chain announces every reparent, the presenter is wired into the editor
+        // window's name index (D1): attaching a root whose names collide with the window's throws
+        // MGDuplicateElementNameException out of SetContent. Roll back to the previous root on that
+        // failure -- attaching it again re-announces it and reindexes it, and its data bindings are
+        // still intact since they are only removed after a successful attach -- and let the exception
+        // keep propagating to Reparse's generic catch, which reports it as a DuplicateElementName
+        // diagnostic while the previous preview stays displayed and interactive (D3).
+        MGElement previous = _presenter.Content;
+        try
+        {
+            _presenter.SetContent(newRoot);
+        }
+        catch
+        {
+            _presenter.SetContent(previous);
+            throw;
+        }
+        previous?.RemoveDataBindings(true);
+
         PreviewRoot = newRoot;
         _lastAnchoredPaneBounds = null;
         _declaredRootVisibility = newRoot?.Visibility ?? Visibility.Visible;

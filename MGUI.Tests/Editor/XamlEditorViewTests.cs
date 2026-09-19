@@ -7,6 +7,8 @@ using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Editor;
 using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+using MGUI.Shared.Rendering;
 using Xunit;
 
 namespace MGUI.Tests.Editor;
@@ -296,5 +298,70 @@ public class XamlEditorViewTests
         view.CreateDockHost();
 
         Assert.Throws<InvalidOperationException>(() => view.CreateDockHost());
+    }
+
+    // -- 8. ADR-0015: a preview root replaced by an edit, then dragged around the dock, resolves its name and never
+    // -- shows the docking error placeholder (the author's original report, reproduced end to end).
+
+    private const string PreviewNs = "clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core";
+
+    /// <summary>Advances the runtime's clock to <paramref name="frameIndex"/> * 16 ms and runs one desktop update, mouse
+    /// off every pane. Same helper as <c>XamlPreviewHostTests.Frame</c>, needed here to let <see cref="XamlEditorView"/>'s
+    /// preview host debounce and re-parse, which the plain <see cref="MGDesktop.Update()"/> calls used by the rest of this
+    /// file (zero elapsed time) never let elapse.</summary>
+    private static void Frame(GraphTestRuntime runtime, MGDesktop desktop, int frameIndex)
+    {
+        MouseState mouse = new(1, 1, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+        runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(16 * frameIndex), TimeSpan.FromMilliseconds(16), mouse, new KeyboardState()));
+        desktop.Update();
+    }
+
+    [Fact]
+    public void DraggingAnyPanel_AfterAnEdit_ShowsNoDockingError()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 1280, 720));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 0, 0, 1280, 720)
+        {
+            WindowStyle = WindowStyle.None,
+        };
+
+        XamlEditorSession session = new();
+        XamlEditorView view = new(window, session);
+
+        MGDockHost host = view.CreateDockHost();
+        window.SetContent(host);
+        desktop.Windows.Add(window);
+
+        Frame(runtime, desktop, 0);
+        Frame(runtime, desktop, 1);
+
+        // A named preview, settled.
+        view.Session.Text = "<StackPanel xmlns=\"" + PreviewNs + "\" Name=\"Root\"></StackPanel>";
+        Frame(runtime, desktop, 20);
+        Frame(runtime, desktop, 40); // past the debounce delay
+        Assert.NotNull(view.PreviewHost.PreviewRoot);
+
+        // An edit: XamlPreviewHost.ReplaceRoot swaps in a new root instance.
+        view.Session.Text = "<StackPanel xmlns=\"" + PreviewNs + "\" Name=\"Root\" Orientation=\"Horizontal\"></StackPanel>";
+        Frame(runtime, desktop, 60);
+        Frame(runtime, desktop, 80); // past the debounce delay
+
+        // Drag any panel around: float + redock, then a docked-to-docked drop (mirrors ExecuteDrop's double rebuild).
+        DockPanelNode treePanel = host.FindPanel(XamlEditorView.TreeDockableId);
+        MGFloatingDockWindow floatingWindow = host.DetachToFloating(treePanel, new Point(500, 300));
+        host.RedockPanel(treePanel, floatingWindow);
+
+        DockPanelNode propertiesPanel = host.FindPanel(XamlEditorView.PropertiesDockableId);
+        DockTabGroupNode textGroup = host.GetAllTabGroups()
+            .Single(group => group.Panels.Any(panel => panel.Id == XamlEditorView.TextDockableId));
+        DockOperation.DockAsTab(host.LayoutModel, propertiesPanel, textGroup);
+        host.RebuildVisualTree();
+
+        Assert.DoesNotContain(host.TraverseVisualTree(true, false, false, false),
+            element => element is MGTextBlock textBlock && textBlock.Text.StartsWith("Error building docking layout"));
+
+        Assert.True(view.Window.TryGetElementByName("Root", out MGElement indexedRoot));
+        Assert.Same(view.PreviewHost.PreviewRoot, indexedRoot);
     }
 }
