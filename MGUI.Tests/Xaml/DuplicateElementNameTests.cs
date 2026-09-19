@@ -13,12 +13,15 @@ namespace MGUI.Tests.Xaml;
 
 /// <summary>ADR-0013: a name identifies at most one element of a window, and the window's index says so with an
 /// <see cref="MGDuplicateElementNameException"/> that tells a declaration a template cloned from a name declared twice.<para/>
-/// The collision is raised by <c>MGContentHost.InvokeContentAdded</c>, when a subtree is attached into a content host and its
-/// traversal announces every element it holds. That traversal passes <c>IncludeSelf: false</c>, which skips the attached
-/// element's own components -- and <c>MGListBox</c> keeps its items structure in its components. So the generated items of a
-/// list box are announced when the list box is <em>wrapped</em> by the attached element (a <c>Window</c> root, a
-/// <c>StackPanel</c> root) and are not announced when the list box <em>is</em> that element. Both behaviours are pinned below,
-/// because they are what makes the same markup load or fail depending only on its root.</summary>
+/// The collision is raised by <c>MGContentHost.InvokeContentAdded</c>, when a subtree enters a window's content-host chain and
+/// its traversal announces every element it holds -- including, since ADR-0015 decision 5, the attached element's own
+/// components. <c>MGListBox</c> keeps its items structure in its components, so the generated items of a list box are
+/// announced whether the list box is <em>wrapped</em> by the attached element (a <c>Window</c> root, a <c>StackPanel</c> root)
+/// or <em>is</em> that element itself: the wrapping no longer decides anything, pinned below.<para/>
+/// Where the collision surfaces depends only on when the tree first enters a live window's chain, never on parsing alone: for
+/// a root that is not a <c>Window</c>, that moment is the host's own <c>SetContent</c> once the loaded tree is attached
+/// elsewhere; for a <c>Window</c> root, it is the loader itself, because an <see cref="MGWindow"/> indexes its own tree from
+/// construction and its own <c>SetContent</c> (called while the loader builds it) is that entry point.</summary>
 public class DuplicateElementNameTests
 {
     /// <summary>The author's exact reproduction of 2026-09-18.</summary>
@@ -97,20 +100,20 @@ public class DuplicateElementNameTests
     }
 
     /// <summary>Loads <paramref name="markup"/> the way a preview host does, then attaches it into a presenter of the host
-    /// window and runs a few frames -- the sequence of the XAML editor's re-parse. Returns the exception the attachment raised,
-    /// or null.</summary>
+    /// window and runs a few frames -- the sequence of the XAML editor's re-parse. Returns the exception raised by either step,
+    /// or null: for a <c>Window</c> root the collision surfaces inside the load itself (ADR-0015 decision 5, the loaded window
+    /// indexes its own tree from construction), for any other root it surfaces at the attach, so both are wrapped here.</summary>
     private static Exception LoadAndAttach(string markup, out MGWindow host)
     {
         var (runtime, desktop, hostWindow, presenter) = CreateHost();
         host = hostWindow;
 
-        MGElement root = UIToolingService.LoadPreview(hostWindow,
-            XamlDocumentSource.FromString(markup, "repro.xaml"), null, XamlLoaderMode.Strict, false, true);
-
         MGDesktop capturedDesktop = desktop;
         GraphTestRuntime capturedRuntime = runtime;
         return Record.Exception(() =>
         {
+            MGElement root = UIToolingService.LoadPreview(hostWindow,
+                XamlDocumentSource.FromString(markup, "repro.xaml"), null, XamlLoaderMode.Strict, false, true);
             presenter.SetContent(root);
             for (int i = 1; i <= 4; i++)
             {
@@ -144,6 +147,10 @@ public class DuplicateElementNameTests
 
     // -- 1. the author's reproduction -----------------------------------------
 
+    /// <summary>The exception now surfaces from inside <c>LoadAndAttach</c>'s load step, not its attach step: <c>WindowRootMarkup</c>'s
+    /// root is a <c>Window</c>, so the collision is raised by that window's own <c>SetContent</c> while the loader still builds
+    /// it (ADR-0015 decision 5) -- one call earlier than the later <c>presenter.SetContent</c>. Same exception, same assertions,
+    /// wherever it is thrown from.</summary>
     [Fact]
     public void TheAuthorsReproduction_Throws_NamingTheTemplateDeclarationAndItsPosition()
     {
@@ -177,15 +184,17 @@ public class DuplicateElementNameTests
         Assert.Equal(existing.SourceName, added.SourceName);
     }
 
-    /// <summary>The asymmetry the author reported, pinned so a change to the traversal cannot make it drift silently: the very
-    /// same markup loads when the templated control is the document root.</summary>
+    /// <summary>ADR-0015 decision 5: the attach-time traversal now walks the attached element's own components too, so a
+    /// <c>ListBox</c> root whose item template carries a <c>Name</c> fails exactly like a wrapped one -- the wrapping never
+    /// decided anything, only the traversal's <c>IncludeSelf</c> asymmetry did.</summary>
     [Fact]
-    public void TheSameMarkup_Loads_WhenTheTemplatedControlIsTheRoot()
+    public void TheSameMarkup_Fails_WhenTheTemplatedControlIsTheRoot_LikeAnyWrapper()
     {
-        Assert.Null(LoadAndAttach(ListBoxRootMarkup, out MGWindow host));
+        Exception thrown = LoadAndAttach(ListBoxRootMarkup, out _);
 
-        // Nothing was indexed either: the generated labels were never announced to the window.
-        Assert.False(host.TryGetElementByName("ItemLabel", out _));
+        MGDuplicateElementNameException duplicate = Assert.IsType<MGDuplicateElementNameException>(thrown);
+        Assert.Equal("ItemLabel", duplicate.Name);
+        Assert.Contains("the same source position", duplicate.Message, StringComparison.Ordinal);
     }
 
     /// <summary>The root is not what matters, the wrapping is: a <c>StackPanel</c> root around the same list box fails exactly
@@ -360,17 +369,45 @@ public class DuplicateElementNameTests
     // -- 5. what a host gets when it catches the attachment failure (ADR-0013, option A) --
 
     /// <summary>The failure of the report is raised outside every loader call, so no wrapping inside the loader can classify it.
-    /// A host that attaches a loaded tree itself catches it and asks for the same description the loader would have produced.</summary>
+    /// A host that attaches a loaded tree itself catches it and asks for the same description the loader would have produced.
+    /// Uses <c>WrappedListBoxMarkup</c> (a <c>StackPanel</c> root, not a <c>Window</c>): its load genuinely succeeds, since
+    /// nothing indexes anything until the tree is attached into a live window's content-host chain -- unlike a <c>Window</c>
+    /// root, covered by <see cref="ADocumentFailingInsideTheLoader_GetsTheSameDiagnosticThroughFromException"/> below.</summary>
     [Fact]
     public void AHostThatCatchesTheAttachment_GetsTheSameDiagnosticTheLoaderWouldHaveGiven()
     {
         var (runtime, desktop, host, presenter) = CreateHost();
-        XamlDocumentSource source = XamlDocumentSource.FromString(WindowRootMarkup, "repro.xaml");
+        XamlDocumentSource source = XamlDocumentSource.FromString(WrappedListBoxMarkup, "repro.xaml");
 
         // The loader itself succeeds: this is the whole point.
         MGElement root = UIToolingService.LoadPreview(host, source, null, XamlLoaderMode.Strict, false, true);
 
         Exception thrown = Record.Exception(() => presenter.SetContent(root));
+        Assert.IsType<MGDuplicateElementNameException>(thrown);
+
+        XamlLoaderDiagnostic diagnostic = XamlLoaderDiagnostic.FromException(thrown, source, "Preview");
+
+        Assert.Equal(XamlLoaderDiagnosticCode.DuplicateElementName, diagnostic.Code);
+        Assert.Equal("repro.xaml", diagnostic.SourceName);
+        Assert.Equal("Preview", diagnostic.DocumentKind);
+
+        (int Line, int Column) expected = LocateTagPosition(WrappedListBoxMarkup, "<TextBlock Name=\"ItemLabel\"");
+        Assert.Equal(expected.Line, diagnostic.LineNumber);
+        Assert.Equal(expected.Column, diagnostic.LinePosition);
+        Assert.Contains("ItemLabel", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The other half: a document whose root is a <c>Window</c> directly wrapping the templated control fails inside
+    /// the loader itself (ADR-0015 decision 5, the loaded window indexes its own tree from construction). It still gets the
+    /// same diagnostic through <see cref="XamlLoaderDiagnostic.FromException"/>, unwrapped from wherever it was thrown.</summary>
+    [Fact]
+    public void ADocumentFailingInsideTheLoader_GetsTheSameDiagnosticThroughFromException()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+        XamlDocumentSource source = XamlDocumentSource.FromString(WindowRootMarkup, "repro.xaml");
+
+        Exception thrown = Record.Exception(() =>
+            UIToolingService.LoadPreview(host, source, null, XamlLoaderMode.Strict, false, true));
         Assert.IsType<MGDuplicateElementNameException>(thrown);
 
         XamlLoaderDiagnostic diagnostic = XamlLoaderDiagnostic.FromException(thrown, source, "Preview");
@@ -488,5 +525,105 @@ public class DuplicateElementNameTests
         Assert.True(panel.TryRemoveChild(intruder));
         Assert.True(window.TryGetElementByName("X", out MGElement stillTheHolder));
         Assert.Same(holder, stillTheHolder);
+    }
+
+    // -- 7. components are announced on both sides of the content-host chain (ADR-0015 decisions 4/5, T1.2) --
+
+    /// <summary>A minimal <see cref="MGSingleContentHost"/> that exposes the protected <c>AddComponent</c> / <c>RemoveComponent</c>
+    /// of <see cref="MGContentHost"/>, to prove a component added to (or removed from) an already-attached host reaches the
+    /// window's name index exactly like the host's regular content does.</summary>
+    private sealed class ComponentTestHost : MGSingleContentHost
+    {
+        public ComponentTestHost(MGWindow window) : base(window, MGElementType.Custom) { }
+
+        private MGComponent<MGBorder> _namedComponent;
+
+        public void AddNamedComponent(MGBorder element)
+        {
+            _namedComponent = MGComponentBase.Create(element);
+            AddComponent(_namedComponent);
+        }
+
+        public void RemoveNamedComponent()
+        {
+            if (_namedComponent != null)
+            {
+                RemoveComponent(_namedComponent);
+                _namedComponent = null;
+            }
+        }
+    }
+
+    /// <summary>ADR-0015 decision 5: attaching an element announces its own components too, not only the components of the
+    /// elements nested below it (those were already announced before this decision, since a nested element's own
+    /// <c>TraverseVisualTree</c> call always passes <c>IncludeSelf: true</c>).<para/>
+    /// Mutation proof (P2 step 7i): reverting <c>InvokeContentAdded</c> / <c>InvokeContentRemoved</c> to
+    /// <c>IncludeSelf: false</c> turns this test red while <see cref="ANestedElement_AnnouncesItsOwnComponents_JustLikeBeforeThisDecision"/>
+    /// stays green.</summary>
+    [Fact]
+    public void ADirectlyAttachedElement_AnnouncesItsOwnComponents_IndexedAfterAttachAndUnindexedAfterRemoval()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+
+        MGListBox<string> listBox = new(host);
+        listBox.InnerBorder.Name = "Inner";
+
+        Assert.False(host.TryGetElementByName("Inner", out _));
+
+        presenter.SetContent(listBox);
+        Assert.True(host.TryGetElementByName("Inner", out MGElement resolved));
+        Assert.Same(listBox.InnerBorder, resolved);
+
+        presenter.SetContent(null);
+        Assert.False(host.TryGetElementByName("Inner", out _));
+    }
+
+    /// <summary>Same scenario as above, but the named element is nested one level below the attached root: this already worked
+    /// before ADR-0015 decision 5, and stays true after it (pinned so the fix cannot regress the case it did not change).</summary>
+    [Fact]
+    public void ANestedElement_AnnouncesItsOwnComponents_JustLikeBeforeThisDecision()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+
+        MGListBox<string> listBox = new(host);
+        listBox.InnerBorder.Name = "InnerNested";
+        MGStackPanel panel = new(host, Orientation.Vertical);
+        Assert.True(panel.TryAddChild(listBox));
+
+        Assert.False(host.TryGetElementByName("InnerNested", out _));
+
+        presenter.SetContent(panel);
+        Assert.True(host.TryGetElementByName("InnerNested", out MGElement resolved));
+        Assert.Same(listBox.InnerBorder, resolved);
+
+        presenter.SetContent(null);
+        Assert.False(host.TryGetElementByName("InnerNested", out _));
+    }
+
+    /// <summary>ADR-0015 decision 4: a component removed from an already-attached host is unindexed, mirroring the add path;
+    /// adding the same instance back does not throw <see cref="MGDuplicateElementNameException"/>, because the removal really
+    /// unindexed it.<para/>
+    /// Mutation proof (P2 step 7ii): removing the <c>MGContentHost.RemoveComponent</c> override turns the "removed -> not
+    /// resolved" assertion red.</summary>
+    [Fact]
+    public void AComponentAddedToAnAlreadyAttachedHost_IsIndexedThenUnindexedOnRemoval_AndCanBeReaddedWithoutADuplicateNameError()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+        ComponentTestHost testHost = new(host);
+        presenter.SetContent(testHost);
+
+        MGBorder namedBorder = new(host) { Name = "Late" };
+        Assert.False(host.TryGetElementByName("Late", out _));
+
+        testHost.AddNamedComponent(namedBorder);
+        Assert.True(host.TryGetElementByName("Late", out MGElement resolved));
+        Assert.Same(namedBorder, resolved);
+
+        testHost.RemoveNamedComponent();
+        Assert.False(host.TryGetElementByName("Late", out _));
+
+        testHost.AddNamedComponent(namedBorder);
+        Assert.True(host.TryGetElementByName("Late", out MGElement resolvedAgain));
+        Assert.Same(namedBorder, resolvedAgain);
     }
 }

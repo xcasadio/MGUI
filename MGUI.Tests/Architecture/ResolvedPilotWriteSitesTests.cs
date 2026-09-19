@@ -89,7 +89,7 @@ public class ResolvedPilotWriteSitesTests
         (@"MGUI.Core\UI\MGXAMLDesigner.cs", 66, "inside a verbatim string literal (sample XAML shown in the designer UI), not code (shifted by the explicit AcceptsTab opt-in added above it when text boxes became navigation targets)"),
         (@"MGUI.Core\UI\MGSlider.cs", 675, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\MGResizeGrip.cs", 180, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
-        (@"MGUI.Core\UI\Containers\MGContentHost.cs", 316, "method parameter (`Color? Foreground = null`), not a pilot write"),
+        (@"MGUI.Core\UI\Containers\MGContentHost.cs", 338, "method parameter (`Color? Foreground = null`), not a pilot write (shifted by the RemoveComponent override and the EnumerateHostedSubtree helper added above it, ADR-0015)"),
         (@"MGUI.Core\UI\Containers\Grids\MGGridSplitter.cs", 263, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\TextEditing\MGRichTextStyle.cs", 5, "record struct parameter (`Color? Foreground = null`), not a pilot write"),
         (@"MGUI.Core\UI\Brushes\FillBrushes\MGSpriteSheetGrid.cs", 18, "record struct parameter (`Point Margin = default`, ADR-0011 decision C4: the sprite sheet's pixel margin), not the MGElement.Margin pilot"),

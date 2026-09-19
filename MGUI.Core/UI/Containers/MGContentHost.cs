@@ -4,6 +4,7 @@ using MGUI.Shared.Helpers;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Linq;
 using MGUI.Core.UI.Styling;
 
 namespace MGUI.Core.UI.Containers;
@@ -15,6 +16,17 @@ public abstract class MGContentHost : MGElement
     {
         base.AddComponent(Component);
         InvokeContentAdded(Component.BaseElement);
+    }
+
+    /// <summary>ADR-0015 decision 4: a component is announced on both sides, mirroring <see cref="AddComponent(MGComponentBase)"/>.</summary>
+    protected override bool RemoveComponent(MGComponentBase Component)
+    {
+        bool removed = base.RemoveComponent(Component);
+        if (removed)
+        {
+            InvokeContentRemoved(Component.BaseElement);
+        }
+        return removed;
     }
 
     public abstract override IEnumerable<MGElement> GetChildren();
@@ -43,6 +55,12 @@ public abstract class MGContentHost : MGElement
     internal IDisposable AllowChangingContentTemporarily()
         => new TemporaryChange<bool>(CanChangeContent, true, x => CanChangeContent = x);
 
+    /// <summary>Enumerates every element of <paramref name="element"/>'s subtree except <paramref name="element"/> itself,
+    /// including components (ADR-0015 decision 5). <see cref="MGElement.TraverseVisualTree"/>'s default preorder traversal
+    /// with <c>IncludeSelf: true</c> yields <paramref name="element"/> first, so skipping it here is exact.</summary>
+    private static IEnumerable<MGElement> EnumerateHostedSubtree(MGElement element)
+        => element.TraverseVisualTree(true, true, false, false).Skip(1);
+
     /// <summary>Invoked when a child element is added directly to this <see cref="MGContentHost"/>.<br/>
     /// (I.E. an immediate child is added)<para/>See also: <see cref="OnNestedContentAdded"/></summary>
     public event EventHandler<MGElement> OnContentAdded;
@@ -53,7 +71,9 @@ public abstract class MGContentHost : MGElement
             OnContentAdded?.Invoke(this, Element);
             OnDirectOrNestedContentAdded?.Invoke(this, Element);
 
-            foreach (var Nested in Element.TraverseVisualTree(false, true, false, false))
+            // ADR-0015 decision 5: the attached element's own components are part of the tree it brings in, and were
+            // skipped by IncludeSelf:false. Element itself is skipped here since it was already announced just above.
+            foreach (var Nested in EnumerateHostedSubtree(Element))
             {
                 InvokeNestedContentAdded(this, Nested);
             }
@@ -91,7 +111,9 @@ public abstract class MGContentHost : MGElement
             OnContentRemoved?.Invoke(this, Element);
             OnDirectOrNestedContentRemoved?.Invoke(this, Element);
 
-            foreach (var Nested in Element.TraverseVisualTree(false, true, false, false))
+            // ADR-0015 decision 5: mirrors InvokeContentAdded, so a component announced on the way in is also
+            // announced on the way out.
+            foreach (var Nested in EnumerateHostedSubtree(Element))
             {
                 InvokeNestedContentRemoved(this, Nested);
             }

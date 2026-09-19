@@ -244,9 +244,12 @@ public class XamlEditorSelectionTests
         (GraphTestRuntime runtime, MGDesktop desktop, _, XamlEditorView view) = CreateHostedView(1280, 720);
         int frame = 0;
 
+        // No Name on the template's TextBlock (ADR-0015 decision 5): since the attach-time traversal now walks the
+        // attached ListBox root's own components too, a named item template part would fail at attach like any wrapped
+        // one. The labels below are located by TraverseVisualTree(...).OfType<MGTextBlock>(), never by name.
         SetTextAndSettle(runtime, desktop, view,
             "<ListBox xmlns=\"" + Ns + "\" Name=\"MyListBox\" Width=\"200\" Height=\"200\" HorizontalAlignment=\"Left\" VerticalAlignment=\"Top\">" +
-            "<ListBox.ItemTemplate><ContentTemplate><StackPanel Orientation=\"Horizontal\"><TextBlock Name=\"ItemLabel\" Text=\"Item\" /></StackPanel></ContentTemplate></ListBox.ItemTemplate>" +
+            "<ListBox.ItemTemplate><ContentTemplate><StackPanel Orientation=\"Horizontal\"><TextBlock Text=\"Item\" /></StackPanel></ContentTemplate></ListBox.ItemTemplate>" +
             "<TextBlock Text=\"Option 1\" /><TextBlock Text=\"Option 2\" /><TextBlock Text=\"Option 3\" />" +
             "</ListBox>",
             ref frame);

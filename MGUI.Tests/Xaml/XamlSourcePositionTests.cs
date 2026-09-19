@@ -151,6 +151,16 @@ public class XamlSourcePositionTests
         return visited.SingleOrDefault(e => e.Name == name);
     }
 
+    /// <summary>Same reachability walk as <see cref="FindByName"/>, but locating a DTO by its type rather than by a <c>Name</c>
+    /// -- used where the markup under test must not carry a <c>Name</c> at all (ADR-0015 decision 5: a name inside an item
+    /// template is refused at attach, so a template's own DTO has to be found some other way).</summary>
+    private static T FindFirstOfType<T>(XamlElement root) where T : XamlElement
+    {
+        HashSet<XamlElement> visited = new(ReferenceEqualityComparer.Instance);
+        CollectElements(root, visited);
+        return visited.OfType<T>().FirstOrDefault();
+    }
+
     [Fact]
     public void Ordinal_Line_And_Column_AreExact_OnANestedDocument()
     {
@@ -382,12 +392,14 @@ public class XamlSourcePositionTests
     {
         GraphTestRuntime runtime = new(new Rectangle(0, 0, 400, 300));
         MGDesktop desktop = new(runtime);
+        // No Name on the template's TextBlock (ADR-0015 decision 5): a name applied to an item template is refused at attach,
+        // since the ListBox here is the Window's direct content. The label DTO below is found by type instead.
         string xaml = "<Window xmlns=\"" + Ns + "\" xmlns:x=\"" + NsX + "\" xmlns:System=\"" + NsSystem + "\" Left=\"0\" Top=\"0\" Width=\"400\" Height=\"300\">" +
                       "<ListBox Name=\"MyListBox\" ItemType=\"{x:Type System:String}\">" +
                       "<ListBox.ItemTemplate>" +
                       "<ContentTemplate>" +
                       "<StackPanel Orientation=\"Horizontal\">" +
-                      "<TextBlock Name=\"ItemLabel\" Text=\"Item\" />" +
+                      "<TextBlock Text=\"Item\" />" +
                       "</StackPanel>" +
                       "</ContentTemplate>" +
                       "</ListBox.ItemTemplate>" +
@@ -404,7 +416,7 @@ public class XamlSourcePositionTests
         var listBoxDefinition = FindListBoxDefinition(definition);
         Assert.NotNull(listBoxDefinition);
         int templateRootOrdinal = listBoxDefinition.ItemTemplate.Content.SourcePosition.Value.Ordinal;
-        int templateLabelOrdinal = FindByName(listBoxDefinition.ItemTemplate.Content, "ItemLabel").SourcePosition.Value.Ordinal;
+        int templateLabelOrdinal = FindFirstOfType<MGUI.Core.UI.XAML.TextBlock>(listBoxDefinition.ItemTemplate.Content).SourcePosition.Value.Ordinal;
 
         MGWindow window = XAMLParser.LoadRootWindow(desktop, XamlDocumentSource.FromString(xaml, "list.xaml"), XamlLoaderMode.Compatibility, false, true);
         desktop.Update();
