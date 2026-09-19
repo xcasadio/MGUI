@@ -212,7 +212,7 @@ Mecanisme confirme : la premiere reconstruction indexe la preview par le parcour
 
 ## Phase 2 -- Documents et cloture
 
-### ⏳ T2.1 -- Documents et ADR-0015 `Accepted`
+### ✅ T2.1 -- Documents et ADR-0015 `Accepted`
 
 - Objectif : les documents disent l'etat courant.
 - Fichiers : `Docs/editor-architecture.md`, `Docs/controls-architecture.md`, `Docs/decisions/0015-containers-announce-their-children.md`, `Docs/decisions/README.md`, ce fichier.
@@ -223,6 +223,7 @@ Mecanisme confirme : la premiere reconstruction indexe la preview par le parcour
   4. Ce fichier : historique de fin de chantier, taches en ✅ / 🧪.
 - Validation : relecture ; `git diff --stat` ne montre que des `.md`.
 - Commit : `docs(docking): record the content-host chain invariant`
+- Note de validation (19 septembre 2026, session principale) : `Docs/editor-architecture.md` (regle du `Name` des volets avec sa vraie raison ; « charger et attacher » nuance pour une racine `Window` ; le paragraphe sur l'enveloppement remplace ; paragraphe sur l'entree des noms de la preview dans l'index et le retour a la racine precedente), `Docs/controls-architecture.md` (phrase sur l'invariant dans la vue d'ensemble du docking), ADR-0015 `Accepted` avec deux consequences mesurees ajoutees (garde P4 non exercee par le modele, `MGChatBoxMessage` sans effet mesurable ; racine `Window` a contenu direct templatise refusee dans le loader, aucun XAML du depot concerne), index du README. Seuls des `.md`.
 
 ### ⏳ T2.2 -- Validation globale et rapport
 

@@ -44,7 +44,7 @@ Les volets sont heberges par le docking manager de `MGUI.Core`. La vue expose ci
 
 Regles que le docking impose aux taches de l'editeur :
 
-- un volet ne porte pas de `Name` : l'index des noms d'une `MGWindow` n'est pas tenu a jour par les groupes d'onglets du docking ; on atteint un volet par les proprietes de la vue ;
+- un volet ne porte pas de `Name` : les volets, le chrome de l'editeur et le document previsualise partagent l'index des noms de la fenetre de l'editeur, que le docking tient a jour (les conteneurs de docking sont des `MGContentHost` qui annoncent chaque contenu pris et rendu, ADR-0015) ; un nom pose sur un volet entrerait en collision avec le meme nom pose dans un document ; on atteint un volet par les proprietes de la vue ;
 - un volet peut etre cache : le contenu d'un onglet inactif ou d'un tiroir auto-hide ferme est detache de l'arbre visuel (`Parent == null`) et garde ses derniers bounds ; `MGElement.OnParentChanged` signale chaque attache et detache, dans tous les etats (onglet, fenetre flottante, tiroir) ; un volet qui redevient actif en recoit trois (attache, detache, re-attache) : un gestionnaire doit etre idempotent et lire le `Parent` final ;
 - une vue n'est hebergee que par un seul hote de docking a la fois.
 
@@ -129,7 +129,7 @@ Une seule liste par session : les diagnostics du loader (code, message, ligne, c
 
 ### Echecs hors du loader
 
-Charger un document et **attacher** l'arbre obtenu sont deux etapes, et la seconde est hors du loader. Une defaillance qui n'apparait qu'a l'attachement remonte donc a l'hote comme une exception ordinaire, sans code, sans source et sans position. `XamlLoaderDiagnostic.FromException(exception, source, documentKind)` la decrit exactement comme le loader decrit les siennes ; un `XamlLoaderException` est rendu tel quel. C'est ce que le volet de preview appelle dans sa branche `catch` generique, pour que la liste montre un diagnostic situe plutot qu'un `ParseFailure` nu (ADR-0013). L'exception doit lui parvenir telle qu'elle a ete levee : le code est trouve en parcourant toute la chaine des exceptions internes, mais la ligne et la colonne ne sont lues que sur l'exception de tete, comme pour tous les diagnostics du loader. Une exception re-enveloppee par l'hote garde donc son code et perd sa position.
+Charger un document et **attacher** l'arbre obtenu sont deux etapes, et la seconde est hors du loader quand la racine n'est pas une `Window` (une racine `Window` est elle-meme une fenetre qui indexe son contenu a sa construction : ce qui echoue a l'attachement echoue alors dans l'appel du loader, avec la meme exception). Une defaillance qui n'apparait qu'a l'attachement remonte donc a l'hote comme une exception ordinaire, sans code, sans source et sans position. `XamlLoaderDiagnostic.FromException(exception, source, documentKind)` la decrit exactement comme le loader decrit les siennes ; un `XamlLoaderException` est rendu tel quel. C'est ce que le volet de preview appelle dans sa branche `catch` generique, pour que la liste montre un diagnostic situe plutot qu'un `ParseFailure` nu (ADR-0013). L'exception doit lui parvenir telle qu'elle a ete levee : le code est trouve en parcourant toute la chaine des exceptions internes, mais la ligne et la colonne ne sont lues que sur l'exception de tete, comme pour tous les diagnostics du loader. Une exception re-enveloppee par l'hote garde donc son code et perd sa position.
 
 ### Noms d'elements
 
@@ -138,7 +138,9 @@ Un nom identifie au plus un element d'une fenetre : c'est par lui que `MGWindow.
 - **a l'analyse**, en mode `Strict`, quand le document declare deux fois le meme `Name` : code `DuplicateElementName`, a la ligne et a la colonne de la **seconde** declaration, avec la ligne de la premiere dans le message. Seuls les noms portes par des elements comptent ; celui d'un `Style`, d'un `ControlTemplate`, d'un `TemplatePart` ou d'un etat visuel n'est pas un nom d'element ;
 - **a l'attachement**, quand une seule declaration a produit plusieurs elements. C'est le cas d'un `Name` pose dans un template d'item : le loader le recopie sur chaque element genere. Le document est valide, l'analyse le laisse passer, et c'est l'index de la fenetre qui refuse le second, avec la position de la declaration du template.
 
-Le second cas ne se produit que si le controle templatise est **enveloppe** par l'element attache : le parcours qui annonce un sous-arbre saute les composants de l'element attache lui-meme, et un `MGListBox` tient ses items dans ses composants. Le meme markup echoue donc sous une racine `Window` ou `StackPanel` et se charge quand la `ListBox` est elle-meme la racine.
+Le second cas ne depend ni de la racine ni de l'enveloppement : le parcours qui annonce un sous-arbre inclut les composants de l'element attache lui-meme (ADR-0015), et un `MGListBox` tient ses items dans ses composants. Le meme markup echoue donc sous une racine `Window`, `StackPanel` ou `ListBox`, seul l'endroit change (dans le loader pour une racine `Window`, au `SetContent` du presentateur sinon).
+
+Dans l'editeur, les noms du document previsualise entrent dans l'index de la fenetre de l'editeur des que la preview est attachee, et en sortent quand elle est remplacee ou quand le volet est cache (onglet inactif, tiroir ferme, fenetre flottante : la fenetre flottante les indexe alors a son tour). Quand l'attachement d'une nouvelle racine echoue, `XamlPreviewHost.ReplaceRoot` remet la racine precedente dans le presentateur avant de laisser l'exception remonter : la preview precedente reste affichee, avec ses bindings, et la liste montre le diagnostic `DuplicateElementName` a la position de la declaration du template.
 
 ## Tests
 
