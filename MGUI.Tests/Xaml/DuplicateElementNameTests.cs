@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MGUI.Shared.Helpers;
 using MGUI.Shared.Rendering;
+using System.Collections.ObjectModel;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace MGUI.Tests.Xaml;
@@ -625,5 +626,90 @@ public class DuplicateElementNameTests
         testHost.AddNamedComponent(namedBorder);
         Assert.True(host.TryGetElementByName("Late", out MGElement resolvedAgain));
         Assert.Same(namedBorder, resolvedAgain);
+    }
+
+    // -- 8. MGListBox becomes a content host (ADR-0015 decision 6, T1.3) ------
+
+    /// <summary>An item added to an already-attached <see cref="MGListBox{TItemType}"/> reaches the window's name index, and
+    /// leaves it once removed. Before ADR-0015 decision 6, this failed: a directly attached root list box announces only its
+    /// own components at attach time (ADR-0015 decision 5), never the nested events raised by items added afterwards, because
+    /// only an <c>MGContentHost</c> relays those.<para/>
+    /// Mutation proof (T1.3 step 6): reverting <see cref="MGListBox{TItemType}"/> to derive from <c>MGElement</c> turns the
+    /// "resolved after attach" assertion red.</summary>
+    [Fact]
+    public void AListBox_ItemAddedAfterAttach_IsIndexed_AndUnindexedOnRemoval()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+
+        MGListBox<string> listBox = new(host)
+        {
+            ItemTemplate = item => new MGTextBlock(host, item)
+        };
+        presenter.SetContent(listBox);
+
+        ObservableCollection<string> source = new() { "First" };
+        listBox.SetItemsSource(source);
+        Assert.False(host.TryGetElementByName("Late", out _));
+
+        listBox.ListBoxItems[0].Content.Name = "Late";
+        Assert.True(host.TryGetElementByName("Late", out MGElement resolved));
+        Assert.Same(listBox.ListBoxItems[0].Content, resolved);
+
+        source.RemoveAt(0);
+        Assert.False(host.TryGetElementByName("Late", out _));
+    }
+
+    /// <summary>Same invariant for <see cref="MGListBox{TItemType}.Header"/>: set after attach, it is indexed; replaced, the
+    /// previous instance leaves the index and the new one enters it.</summary>
+    [Fact]
+    public void AListBox_HeaderSetAfterAttach_IsIndexed_AndReplacedHeaderSwapsTheIndexEntry()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+
+        MGListBox<string> listBox = new(host);
+        presenter.SetContent(listBox);
+
+        MGTextBlock firstHeader = new(host, "First") { Name = "Header" };
+        listBox.Header = firstHeader;
+        Assert.True(host.TryGetElementByName("Header", out MGElement resolved));
+        Assert.Same(firstHeader, resolved);
+
+        MGTextBlock secondHeader = new(host, "Second") { Name = "Header" };
+        listBox.Header = secondHeader;
+        Assert.True(host.TryGetElementByName("Header", out MGElement resolvedAfterReplace));
+        Assert.Same(secondHeader, resolvedAfterReplace);
+    }
+
+    /// <summary>Same invariant under UI virtualization: a realized item's element is indexed once named, exactly like the
+    /// non-virtualized case above.</summary>
+    [Fact]
+    public void AVirtualizedListBox_RealizedItemNamedAfterAttach_IsIndexed()
+    {
+        var (runtime, desktop, host, presenter) = CreateHost();
+
+        MGListBox<string> listBox = new(host)
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            VirtualizationMode = ListBoxVirtualizationMode.Always,
+            ItemTemplate = item => new MGTextBlock(host, item)
+        };
+        presenter.SetContent(listBox);
+
+        ObservableCollection<string> source = new(Enumerable.Range(0, 5).Select(i => $"item {i}"));
+        listBox.SetItemsSource(source);
+        desktop.Update();
+        desktop.Update();
+
+        Assert.False(host.TryGetElementByName("RealizedItem", out _));
+
+        //  InternalItems (and so ListBoxItems) is null in the recycling path (virtualized mode), so the realized
+        //  item's content is found the same way an item's text is found elsewhere in this suite: by walking the
+        //  visual tree the item template actually produced.
+        MGTextBlock realizedItem = listBox.TraverseVisualTree(true, true, false, false).OfType<MGTextBlock>()
+            .First(tb => tb.Text.StartsWith("item ", StringComparison.Ordinal));
+        realizedItem.Name = "RealizedItem";
+        Assert.True(host.TryGetElementByName("RealizedItem", out MGElement resolved));
+        Assert.Same(realizedItem, resolved);
     }
 }

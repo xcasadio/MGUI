@@ -13,8 +13,13 @@ namespace MGUI.Core.UI;
 
 public readonly record struct ChatBoxMessageData(string Username, DateTime Timestamp, string Message);
 
-public class MGChatBox : MGElement
+public class MGChatBox : MGContentHost
 {
+    /// <summary>ADR-0015: this control keeps its whole structure in components, so it hosts no direct children of its own.</summary>
+    public override IEnumerable<MGElement> GetChildren() => Enumerable.Empty<MGElement>();
+    protected override Thickness UpdateContentMeasurement(MonoGame.Extended.Size AvailableSize) => UpdateContentMeasurementBaseImplementation(AvailableSize);
+    protected override void UpdateContentLayout(Microsoft.Xna.Framework.Rectangle Bounds) { }
+
     #region Border
     /// <summary>Provides direct access to this element's border.</summary>
     public MGComponent<MGBorder> BorderComponent { get; }
@@ -268,8 +273,13 @@ public class MGChatBox : MGElement
 }
 
 /// <summary>Represents a single message inside an <see cref="MGChatBox"/></summary>
-public class MGChatBoxMessage : MGElement
+public class MGChatBoxMessage : MGContentHost
 {
+    /// <summary>ADR-0015: this control keeps its whole structure in components, so it hosts no direct children of its own.</summary>
+    public override IEnumerable<MGElement> GetChildren() => Enumerable.Empty<MGElement>();
+    protected override Thickness UpdateContentMeasurement(MonoGame.Extended.Size AvailableSize) => UpdateContentMeasurementBaseImplementation(AvailableSize);
+    protected override void UpdateContentLayout(Microsoft.Xna.Framework.Rectangle Bounds) { }
+
     public MGChatBox ChatBox { get; }
     public ChatBoxMessageData MessageData { get; }
 

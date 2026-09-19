@@ -30,8 +30,13 @@ public enum ListBoxSelectionMode
 }
 
 /// <typeparam name="TItemType">The type that the ItemsSource will be bound to.</typeparam>
-public class MGListBox<TItemType> : MGElement, INavigationTargetVisibilityHandler
+public class MGListBox<TItemType> : MGContentHost, INavigationTargetVisibilityHandler
 {
+    /// <summary>ADR-0015: this control keeps its whole structure in components, so it hosts no direct children of its own.</summary>
+    public override IEnumerable<MGElement> GetChildren() => Enumerable.Empty<MGElement>();
+    protected override Thickness UpdateContentMeasurement(MonoGame.Extended.Size AvailableSize) => UpdateContentMeasurementBaseImplementation(AvailableSize);
+    protected override void UpdateContentLayout(Rectangle Bounds) { }
+
     public const string OuterBorderPartName = "PART_OuterBorder";
     public const string InnerBorderPartName = "PART_InnerBorder";
     public const string TitleBorderPartName = "PART_TitleBorder";
