@@ -248,6 +248,21 @@ public class MGWindow : MGSingleContentHost
     /// <returns>The computed size that this <see cref="MGWindow"/> will be changed to.</returns>
     public Size ApplySizeToContent(SizeToContent Value, int MinWidth = 50, int MinHeight = 50, int? MaxWidth = 1920, int? MaxHeight = 1080, bool UpdateLayoutImmediately = true)
     {
+        //  Sizing to content in a dimension contradicts a preferred size in that dimension, and this call is
+        //  the later and more explicit of the two, so it wins. Without this, a window that declared its size
+        //  -- in XAML, Width and Height are the aliases of PreferredWidth and PreferredHeight -- could never
+        //  grow afterwards: the measurement below would keep handing back the declared size. That made both
+        //  this method and the XAML SizeToContent attribute silent no-ops on such a window.
+        if (Value is SizeToContent.Width or SizeToContent.WidthAndHeight)
+        {
+            PreferredWidth = null;
+        }
+
+        if (Value is SizeToContent.Height or SizeToContent.WidthAndHeight)
+        {
+            PreferredHeight = null;
+        }
+
         var (MinSize, MaxSize) = GetEffectiveSizeConstraints(
             MinWidth,
             MinHeight,
