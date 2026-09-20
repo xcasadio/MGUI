@@ -4101,14 +4101,19 @@ public class Window : SingleContentHost
     public SizeToContent? SizeToContent { get; set; }
 
     /// <summary>Where this window sits horizontally within the desktop, instead of at an absolute <see cref="Left"/>.
-    /// <c>Margin</c> is the inset from the chosen edge, and an aligned window never exceeds the space that margin
-    /// leaves. See <see cref="MGWindow.ScreenHorizontalAlignment"/>.</summary>
+    /// <see cref="ScreenMargin"/> is the inset from the chosen edge, and an aligned window never exceeds the space that
+    /// margin leaves. See <see cref="MGWindow.ScreenHorizontalAlignment"/>.</summary>
     [Category("Layout")]
     public HorizontalAlignment? ScreenHorizontalAlignment { get; set; }
     /// <summary>Where this window sits vertically within the desktop, instead of at an absolute <see cref="Top"/>.
     /// See <see cref="MGWindow.ScreenVerticalAlignment"/>.</summary>
     [Category("Layout")]
     public VerticalAlignment? ScreenVerticalAlignment { get; set; }
+
+    /// <summary>The inset between this window and the edges of the view it aligns to. Not <c>Margin</c>, which on a
+    /// root window insets the window's own content instead. See <see cref="MGWindow.ScreenMargin"/>.</summary>
+    [Category("Layout")]
+    public Thickness? ScreenMargin { get; set; }
 
     [Category("Layout")]
     public float? Scale { get; set; }
@@ -4334,6 +4339,11 @@ public class Window : SingleContentHost
         }
 
         //  After the size-to-content block: placement reads the window's size, so it must see the final one.
+        if (ScreenMargin.HasValue)
+        {
+            Window.ScreenMargin = ScreenMargin.Value.ToThickness();
+        }
+
         if (ScreenHorizontalAlignment.HasValue)
         {
             Window.ScreenHorizontalAlignment = ScreenHorizontalAlignment.Value;

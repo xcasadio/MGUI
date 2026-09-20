@@ -175,10 +175,10 @@ public class MGWindow : MGSingleContentHost
     private HorizontalAlignment? _ScreenHorizontalAlignment;
     /// <summary>Where this window sits horizontally within its desktop's <see cref="MGDesktop.ValidScreenBounds"/>,
     /// or null to leave <see cref="Left"/> alone.<para/>
-    /// <see cref="MGElement.Margin"/> is the inset from the chosen edge, exactly as it insets an aligned element inside a
-    /// panel, and an aligned window is kept inside the space that margin leaves. A window can therefore never be wider
-    /// than the view it lives in -- which matters in a split-screen view, where each viewport is only a fraction of the
-    /// back buffer. <see cref="MGElement.MinWidth"/> still wins if the view is narrower than that.<para/>
+    /// <see cref="ScreenMargin"/> is the inset from the chosen edge, and an aligned window is kept inside the space that
+    /// margin leaves. A window can therefore never be wider than the view it lives in -- which matters in a split-screen
+    /// view, where each viewport is only a fraction of the back buffer. <see cref="MGElement.MinWidth"/> still wins if
+    /// the view is narrower than that.<para/>
     /// Re-applied every frame, so a window follows a view that changes size.<para/>
     /// Not to be confused with <see cref="MGElement.HorizontalAlignment"/>, which describes this window's CONTENT and
     /// which a root window keeps at <see cref="HorizontalAlignment.Stretch"/>.<para/>
@@ -215,6 +215,27 @@ public class MGWindow : MGSingleContentHost
         }
     }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Thickness _ScreenMargin;
+    /// <summary>The inset between this window and the edges of the view it is aligned to, used by
+    /// <see cref="ScreenHorizontalAlignment"/> and <see cref="ScreenVerticalAlignment"/>. Zero by default.<para/>
+    /// Deliberately NOT <see cref="MGElement.Margin"/>, which on a root window already means something else: it insets
+    /// the window's own CONTENT, like a second padding. Reusing it would have quietly shrunk every placed window's
+    /// content by the amount it was inset from the screen.</summary>
+    public Thickness ScreenMargin
+    {
+        get => _ScreenMargin;
+        set
+        {
+            if (!_ScreenMargin.Equals(value))
+            {
+                _ScreenMargin = value;
+                NotifyPropertyChanged(nameof(ScreenMargin));
+                ApplyScreenPlacement();
+            }
+        }
+    }
+
     /// <summary>True when this window is placed relative to its desktop in at least one axis.</summary>
     public bool HasScreenPlacement => ScreenHorizontalAlignment.HasValue || ScreenVerticalAlignment.HasValue;
 
@@ -236,7 +257,7 @@ public class MGWindow : MGSingleContentHost
         }
 
         var Bounds = Desktop.ValidScreenBounds;
-        var Insets = ResolvedMargin;
+        var Insets = ScreenMargin;
 
         if (ScreenHorizontalAlignment.HasValue)
         {

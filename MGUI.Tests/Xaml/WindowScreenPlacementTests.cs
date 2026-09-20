@@ -14,9 +14,10 @@ namespace MGUI.Tests.Xaml;
 /// the fact, not a placement. Every screen that wanted to be centred, or pinned to a corner, or no taller
 /// than the view, wrote the arithmetic itself, duplicating in C# the size already declared in its markup.
 /// <para/>
-/// <see cref="MGElement.Margin"/> is the inset from the chosen edge, and an aligned window is kept within
-/// the space the margin leaves, so the cap on size falls out of the placement rather than being a separate
-/// feature. Not to be confused with <see cref="MGElement.HorizontalAlignment"/>, which describes a window's
+/// <see cref="MGWindow.ScreenMargin"/> is the inset from the chosen edge -- deliberately not
+/// <see cref="MGElement.Margin"/>, which on a root window insets the window's own content instead. An aligned
+/// window is kept within the space it leaves, so the cap on size falls out of the placement rather than being
+/// a separate feature. Not to be confused with <see cref="MGElement.HorizontalAlignment"/>, which describes a window's
 /// content and which a root window keeps at Stretch.
 /// </summary>
 public class WindowScreenPlacementTests
@@ -34,9 +35,9 @@ public class WindowScreenPlacementTests
     }
 
     [Fact]
-    public void AWindowPinnedToACorner_InsetsItselfByItsMargin()
+    public void AWindowPinnedToACorner_InsetsItselfByItsScreenMargin()
     {
-        MGWindow window = LoadWindow("""Width="300" Height="200" Margin="10" ScreenHorizontalAlignment="Right" ScreenVerticalAlignment="Top" """);
+        MGWindow window = LoadWindow("""Width="300" Height="200" ScreenMargin="10" ScreenHorizontalAlignment="Right" ScreenVerticalAlignment="Top" """);
 
         Assert.Equal(ScreenWidth - 300 - 10, window.Left);
         Assert.Equal(10, window.Top);
@@ -45,18 +46,18 @@ public class WindowScreenPlacementTests
     [Fact]
     public void AWindowAnchoredToTheBottom_LeavesItsBottomMarginBelow()
     {
-        MGWindow window = LoadWindow("""Width="300" Height="36" Margin="0,0,0,14" ScreenHorizontalAlignment="Center" ScreenVerticalAlignment="Bottom" """);
+        MGWindow window = LoadWindow("""Width="300" Height="36" ScreenMargin="0,0,0,14" ScreenHorizontalAlignment="Center" ScreenVerticalAlignment="Bottom" """);
 
         Assert.Equal((ScreenWidth - 300) / 2, window.Left);
         Assert.Equal(ScreenHeight - 36 - 14, window.Top);
     }
 
     [Fact]
-    public void AnAlignedWindow_NeverExceedsTheSpaceItsMarginLeaves()
+    public void AnAlignedWindow_NeverExceedsTheSpaceItsScreenMarginLeaves()
     {
         // The reason this matters: in a split-screen view each viewport is a fraction of the back buffer, and a
         // panel declared 560 tall would otherwise run off the bottom of a short one.
-        MGWindow window = LoadWindow("""Width="320" Height="5000" Margin="10" ScreenHorizontalAlignment="Right" ScreenVerticalAlignment="Top" """);
+        MGWindow window = LoadWindow("""Width="320" Height="5000" ScreenMargin="10" ScreenHorizontalAlignment="Right" ScreenVerticalAlignment="Top" """);
 
         Assert.Equal(ScreenHeight - 20, window.WindowHeight);
         Assert.Equal(10, window.Top);
@@ -67,15 +68,15 @@ public class WindowScreenPlacementTests
     {
         // A window asked to be at least 320 wide stays 320 wide on a view too narrow for it, rather than
         // silently collapsing. That is what makes "at most 720, at least 320, otherwise the view" declarable.
-        MGWindow window = LoadWindow("""Width="720" MinWidth="320" Margin="40" ScreenHorizontalAlignment="Center" """, screenWidth: 200);
+        MGWindow window = LoadWindow("""Width="720" MinWidth="320" ScreenMargin="40" ScreenHorizontalAlignment="Center" """, screenWidth: 200);
 
         Assert.Equal(320, window.WindowWidth);
     }
 
     [Fact]
-    public void AStretchedWindow_FillsTheAxisMinusItsMargin()
+    public void AStretchedWindow_FillsTheAxisMinusItsScreenMargin()
     {
-        MGWindow window = LoadWindow("""Height="100" Margin="24" ScreenHorizontalAlignment="Stretch" """);
+        MGWindow window = LoadWindow("""Height="100" ScreenMargin="24" ScreenHorizontalAlignment="Stretch" """);
 
         Assert.Equal(ScreenWidth - 48, window.WindowWidth);
         Assert.Equal(24, window.Left);
@@ -136,7 +137,7 @@ public class WindowScreenPlacementTests
     public void PlacementIsIdempotent()
     {
         // It runs on every desktop tick, so repeating it must not walk the window across the screen.
-        MGWindow window = LoadWindow("""Width="300" Height="200" Margin="10" ScreenHorizontalAlignment="Right" ScreenVerticalAlignment="Bottom" """);
+        MGWindow window = LoadWindow("""Width="300" Height="200" ScreenMargin="10" ScreenHorizontalAlignment="Right" ScreenVerticalAlignment="Bottom" """);
         (int Left, int Top, int Width, int Height) first = (window.Left, window.Top, window.WindowWidth, window.WindowHeight);
 
         for (int i = 0; i < 5; i++)

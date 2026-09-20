@@ -29,7 +29,7 @@ namespace MGUI.Samples.Controls
 
             Button.AddCommandHandler((_, _) =>
             {
-                Window.Margin = Horizontal.HasValue || Vertical.HasValue ? PlacementMargin : new Thickness(0);
+                Window.ScreenMargin = Horizontal.HasValue || Vertical.HasValue ? PlacementMargin : new Thickness(0);
                 Window.ScreenHorizontalAlignment = Horizontal;
                 Window.ScreenVerticalAlignment = Vertical;
             });
