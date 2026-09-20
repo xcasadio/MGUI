@@ -2662,6 +2662,14 @@ public class Slider : Element
     [Category("Value")]
     public float? Value { get; set; }
 
+    /// <summary>Whether the slider draws its current value next to the number line.<para/>
+    /// See also: <see cref="ValueLabelFormat"/></summary>
+    [Category("Value")]
+    public bool? ShowValueLabel { get; set; }
+    /// <summary>Format of the value drawn when <see cref="ShowValueLabel"/> is true, such as <c>F2</c>.</summary>
+    [Category("Value")]
+    public string ValueLabelFormat { get; set; }
+
     [Category("Value")]
     public bool? UseDiscreteValues { get; set; }
     [Category("Value")]
@@ -2728,6 +2736,16 @@ public class Slider : Element
         if (Value.HasValue)
         {
             Slider.SetValue(Value.Value);
+        }
+
+        if (ShowValueLabel.HasValue)
+        {
+            Slider.ShowValueLabel = ShowValueLabel.Value;
+        }
+
+        if (ValueLabelFormat != null)
+        {
+            Slider.ValueLabelFormat = ValueLabelFormat;
         }
 
         if (UseDiscreteValues.HasValue)
