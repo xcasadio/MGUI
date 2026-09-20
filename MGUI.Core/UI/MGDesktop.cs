@@ -1529,6 +1529,18 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             }
         }
 
+        //  Re-place the windows that sit relative to the screen rather than at an absolute Left/Top, so they follow a
+        //  view that changed size. Unconditional rather than gated on a bounds change, because a window's own size or
+        //  margin moves it too; ApplyScreenPlacement returns immediately for a window that declares no placement, and
+        //  recomputing one is a handful of integer operations.
+        using (UIPerformanceProbe.BeginDesktopPhase("RootWindowPlacement"))
+        {
+            foreach (var window in Windows)
+            {
+                window.ApplyScreenPlacement();
+            }
+        }
+
         //  One Update() call == one frame == one reset of the paint dedup registry, so a stateful paint shared by
         //  reference across several slots/elements is ticked exactly once this frame regardless of how many places reference it.
         PaintUpdateRegistry.Clear();

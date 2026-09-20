@@ -170,6 +170,133 @@ public class MGWindow : MGSingleContentHost
     /// It is invoked during the Update tick to improve performance by only allowing it to notify once per tick.</summary>
     public event EventHandler<EventArgs<(int Width, int Height)>> OnWindowSizeChanged;
 
+    #region Screen Placement
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private HorizontalAlignment? _ScreenHorizontalAlignment;
+    /// <summary>Where this window sits horizontally within its desktop's <see cref="MGDesktop.ValidScreenBounds"/>,
+    /// or null to leave <see cref="Left"/> alone.<para/>
+    /// <see cref="ScreenMargin"/> is the inset from the chosen edge, and an aligned window is kept inside the space that
+    /// margin leaves. A window can therefore never be wider than the view it lives in -- which matters in a split-screen
+    /// view, where each viewport is only a fraction of the back buffer. <see cref="MGElement.MinWidth"/> still wins if
+    /// the view is narrower than that.<para/>
+    /// Re-applied every frame, so a window follows a view that changes size.<para/>
+    /// Not to be confused with <see cref="MGElement.HorizontalAlignment"/>, which describes this window's CONTENT and
+    /// which a root window keeps at <see cref="HorizontalAlignment.Stretch"/>.<para/>
+    /// See also: <see cref="ApplyScreenPlacement"/></summary>
+    public HorizontalAlignment? ScreenHorizontalAlignment
+    {
+        get => _ScreenHorizontalAlignment;
+        set
+        {
+            if (_ScreenHorizontalAlignment != value)
+            {
+                _ScreenHorizontalAlignment = value;
+                NotifyPropertyChanged(nameof(ScreenHorizontalAlignment));
+                ApplyScreenPlacement();
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private VerticalAlignment? _ScreenVerticalAlignment;
+    /// <summary>Where this window sits vertically within its desktop's <see cref="MGDesktop.ValidScreenBounds"/>,
+    /// or null to leave <see cref="Top"/> alone. Mirrors <see cref="ScreenHorizontalAlignment"/> in every respect.</summary>
+    public VerticalAlignment? ScreenVerticalAlignment
+    {
+        get => _ScreenVerticalAlignment;
+        set
+        {
+            if (_ScreenVerticalAlignment != value)
+            {
+                _ScreenVerticalAlignment = value;
+                NotifyPropertyChanged(nameof(ScreenVerticalAlignment));
+                ApplyScreenPlacement();
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Thickness _ScreenMargin;
+    /// <summary>The inset between this window and the edges of the view it is aligned to, used by
+    /// <see cref="ScreenHorizontalAlignment"/> and <see cref="ScreenVerticalAlignment"/>. Zero by default.<para/>
+    /// Deliberately NOT <see cref="MGElement.Margin"/>, which on a root window already means something else: it insets
+    /// the window's own CONTENT, like a second padding. Reusing it would have quietly shrunk every placed window's
+    /// content by the amount it was inset from the screen.</summary>
+    public Thickness ScreenMargin
+    {
+        get => _ScreenMargin;
+        set
+        {
+            if (!_ScreenMargin.Equals(value))
+            {
+                _ScreenMargin = value;
+                NotifyPropertyChanged(nameof(ScreenMargin));
+                ApplyScreenPlacement();
+            }
+        }
+    }
+
+    /// <summary>True when this window is placed relative to its desktop in at least one axis.</summary>
+    public bool HasScreenPlacement => ScreenHorizontalAlignment.HasValue || ScreenVerticalAlignment.HasValue;
+
+    /// <summary>Positions and, where needed, shrinks this window to satisfy <see cref="ScreenHorizontalAlignment"/> and
+    /// <see cref="ScreenVerticalAlignment"/>. Does nothing when neither is set, or before this window has a desktop.<para/>
+    /// Called on every desktop update tick, so it must stay cheap and must be safe to repeat: it is, since it computes
+    /// the same answer from the same inputs and assigning an unchanged <see cref="Left"/> is a no-op.</summary>
+    public void ApplyScreenPlacement()
+    {
+        if (!HasScreenPlacement)
+        {
+            return;
+        }
+
+        var Desktop = GetDesktop();
+        if (Desktop == null)
+        {
+            return;
+        }
+
+        var Bounds = Desktop.ValidScreenBounds;
+        var Insets = ScreenMargin;
+
+        if (ScreenHorizontalAlignment.HasValue)
+        {
+            var Available = Math.Max(0, Bounds.Width - Insets.Left - Insets.Right);
+
+            if (ScreenHorizontalAlignment.Value == HorizontalAlignment.Stretch || WindowWidth > Available)
+            {
+                WindowWidth = Available;
+            }
+
+            Left = ScreenHorizontalAlignment.Value switch
+            {
+                HorizontalAlignment.Left or HorizontalAlignment.Stretch => Bounds.Left + Insets.Left,
+                HorizontalAlignment.Right => Bounds.Right - Insets.Right - WindowWidth,
+                HorizontalAlignment.Center => Bounds.Left + Insets.Left + (Available - WindowWidth) / 2,
+                _ => Left
+            };
+        }
+
+        if (ScreenVerticalAlignment.HasValue)
+        {
+            var Available = Math.Max(0, Bounds.Height - Insets.Top - Insets.Bottom);
+
+            if (ScreenVerticalAlignment.Value == VerticalAlignment.Stretch || WindowHeight > Available)
+            {
+                WindowHeight = Available;
+            }
+
+            Top = ScreenVerticalAlignment.Value switch
+            {
+                VerticalAlignment.Top or VerticalAlignment.Stretch => Bounds.Top + Insets.Top,
+                VerticalAlignment.Bottom => Bounds.Bottom - Insets.Bottom - WindowHeight,
+                VerticalAlignment.Center => Bounds.Top + Insets.Top + (Available - WindowHeight) / 2,
+                _ => Top
+            };
+        }
+    }
+    #endregion Screen Placement
+
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private int PreviousLeft;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -248,6 +375,21 @@ public class MGWindow : MGSingleContentHost
     /// <returns>The computed size that this <see cref="MGWindow"/> will be changed to.</returns>
     public Size ApplySizeToContent(SizeToContent Value, int MinWidth = 50, int MinHeight = 50, int? MaxWidth = 1920, int? MaxHeight = 1080, bool UpdateLayoutImmediately = true)
     {
+        //  Sizing to content in a dimension contradicts a preferred size in that dimension, and this call is
+        //  the later and more explicit of the two, so it wins. Without this, a window that declared its size
+        //  -- in XAML, Width and Height are the aliases of PreferredWidth and PreferredHeight -- could never
+        //  grow afterwards: the measurement below would keep handing back the declared size. That made both
+        //  this method and the XAML SizeToContent attribute silent no-ops on such a window.
+        if (Value is SizeToContent.Width or SizeToContent.WidthAndHeight)
+        {
+            PreferredWidth = null;
+        }
+
+        if (Value is SizeToContent.Height or SizeToContent.WidthAndHeight)
+        {
+            PreferredHeight = null;
+        }
+
         var (MinSize, MaxSize) = GetEffectiveSizeConstraints(
             MinWidth,
             MinHeight,

@@ -2662,6 +2662,14 @@ public class Slider : Element
     [Category("Value")]
     public float? Value { get; set; }
 
+    /// <summary>Whether the slider draws its current value next to the number line.<para/>
+    /// See also: <see cref="ValueLabelFormat"/></summary>
+    [Category("Value")]
+    public bool? ShowValueLabel { get; set; }
+    /// <summary>Format of the value drawn when <see cref="ShowValueLabel"/> is true, such as <c>F2</c>.</summary>
+    [Category("Value")]
+    public string ValueLabelFormat { get; set; }
+
     [Category("Value")]
     public bool? UseDiscreteValues { get; set; }
     [Category("Value")]
@@ -2720,7 +2728,7 @@ public class Slider : Element
 
         var Slider = Element as MGSlider;
 
-        if (Minimum.HasValue || MaxHeight.HasValue)
+        if (Minimum.HasValue || Maximum.HasValue)
         {
             Slider.SetRange(Minimum ?? Slider.Minimum, Maximum ?? Slider.Maximum);
         }
@@ -2728,6 +2736,16 @@ public class Slider : Element
         if (Value.HasValue)
         {
             Slider.SetValue(Value.Value);
+        }
+
+        if (ShowValueLabel.HasValue)
+        {
+            Slider.ShowValueLabel = ShowValueLabel.Value;
+        }
+
+        if (ValueLabelFormat != null)
+        {
+            Slider.ValueLabelFormat = ValueLabelFormat;
         }
 
         if (UseDiscreteValues.HasValue)
@@ -4082,6 +4100,21 @@ public class Window : SingleContentHost
     [Category("Layout")]
     public SizeToContent? SizeToContent { get; set; }
 
+    /// <summary>Where this window sits horizontally within the desktop, instead of at an absolute <see cref="Left"/>.
+    /// <see cref="ScreenMargin"/> is the inset from the chosen edge, and an aligned window never exceeds the space that
+    /// margin leaves. See <see cref="MGWindow.ScreenHorizontalAlignment"/>.</summary>
+    [Category("Layout")]
+    public HorizontalAlignment? ScreenHorizontalAlignment { get; set; }
+    /// <summary>Where this window sits vertically within the desktop, instead of at an absolute <see cref="Top"/>.
+    /// See <see cref="MGWindow.ScreenVerticalAlignment"/>.</summary>
+    [Category("Layout")]
+    public VerticalAlignment? ScreenVerticalAlignment { get; set; }
+
+    /// <summary>The inset between this window and the edges of the view it aligns to. Not <c>Margin</c>, which on a
+    /// root window insets the window's own content instead. See <see cref="MGWindow.ScreenMargin"/>.</summary>
+    [Category("Layout")]
+    public Thickness? ScreenMargin { get; set; }
+
     [Category("Layout")]
     public float? Scale { get; set; }
 
@@ -4303,6 +4336,22 @@ public class Window : SingleContentHost
         else if (!Height.HasValue)
         {
             Window.ApplySizeToContent(UI.SizeToContent.Height, 10, 10, null, null, false);
+        }
+
+        //  After the size-to-content block: placement reads the window's size, so it must see the final one.
+        if (ScreenMargin.HasValue)
+        {
+            Window.ScreenMargin = ScreenMargin.Value.ToThickness();
+        }
+
+        if (ScreenHorizontalAlignment.HasValue)
+        {
+            Window.ScreenHorizontalAlignment = ScreenHorizontalAlignment.Value;
+        }
+
+        if (ScreenVerticalAlignment.HasValue)
+        {
+            Window.ScreenVerticalAlignment = ScreenVerticalAlignment.Value;
         }
 
         if (Scale != null)
