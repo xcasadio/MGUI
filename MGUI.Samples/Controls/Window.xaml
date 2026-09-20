@@ -25,18 +25,31 @@
             <TextBlock StyleNames="Header1" Text="Window:" HorizontalAlignment="Center" />
             <Separator/>
             <TextBlock>
-
+A root window is normally placed by an absolute [b]Left[/b] and [b]Top[/b]. It can instead say where it sits inside the view, and then follow a view that changes size.
             </TextBlock>
             <Separator />
 
             <DockPanel>
-                <TextBlock Dock="Top">
-
-                </TextBlock>
-                <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="2">
+                <TextBlock Dock="Top" StyleNames="Header1" Text="Screen placement" />
+                <StackPanel Orientation="Vertical" Background="White * 0.1" Padding="4" Margin="0,4,0,0" Spacing="4">
                     <TextBlock>
-
+[b]ScreenHorizontalAlignment[/b] and [b]ScreenVerticalAlignment[/b] place this window inside the view instead of at an absolute position. [b]Margin[/b] is the inset from the edge it aligns to, exactly as it insets an aligned element inside a panel.
                     </TextBlock>
+                    <TextBlock>
+An aligned window is also kept within the space its margin leaves, so it can never be larger than the view. That matters in a split view, where each viewport is only a fraction of the back buffer. A [b]MinWidth[/b] or [b]MinHeight[/b] still wins over the available space.
+                    </TextBlock>
+                    <TextBlock>
+Move this very window, and notice it is re-placed every tick rather than once:
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Name="btnPlaceTopLeft"><TextBlock Text="Top left" /></Button>
+                        <Button Name="btnPlaceCenter"><TextBlock Text="Centre" /></Button>
+                        <Button Name="btnPlaceBottomRight"><TextBlock Text="Bottom right" /></Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Name="btnPlaceStretch"><TextBlock Text="Stretch width" /></Button>
+                        <Button Name="btnPlaceNone"><TextBlock Text="Back to absolute" /></Button>
+                    </StackPanel>
                 </StackPanel>
             </DockPanel>
             <Separator/>

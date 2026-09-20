@@ -4100,6 +4100,16 @@ public class Window : SingleContentHost
     [Category("Layout")]
     public SizeToContent? SizeToContent { get; set; }
 
+    /// <summary>Where this window sits horizontally within the desktop, instead of at an absolute <see cref="Left"/>.
+    /// <c>Margin</c> is the inset from the chosen edge, and an aligned window never exceeds the space that margin
+    /// leaves. See <see cref="MGWindow.ScreenHorizontalAlignment"/>.</summary>
+    [Category("Layout")]
+    public HorizontalAlignment? ScreenHorizontalAlignment { get; set; }
+    /// <summary>Where this window sits vertically within the desktop, instead of at an absolute <see cref="Top"/>.
+    /// See <see cref="MGWindow.ScreenVerticalAlignment"/>.</summary>
+    [Category("Layout")]
+    public VerticalAlignment? ScreenVerticalAlignment { get; set; }
+
     [Category("Layout")]
     public float? Scale { get; set; }
 
@@ -4321,6 +4331,17 @@ public class Window : SingleContentHost
         else if (!Height.HasValue)
         {
             Window.ApplySizeToContent(UI.SizeToContent.Height, 10, 10, null, null, false);
+        }
+
+        //  After the size-to-content block: placement reads the window's size, so it must see the final one.
+        if (ScreenHorizontalAlignment.HasValue)
+        {
+            Window.ScreenHorizontalAlignment = ScreenHorizontalAlignment.Value;
+        }
+
+        if (ScreenVerticalAlignment.HasValue)
+        {
+            Window.ScreenVerticalAlignment = ScreenVerticalAlignment.Value;
         }
 
         if (Scale != null)

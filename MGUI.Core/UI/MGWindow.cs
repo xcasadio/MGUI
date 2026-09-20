@@ -170,6 +170,112 @@ public class MGWindow : MGSingleContentHost
     /// It is invoked during the Update tick to improve performance by only allowing it to notify once per tick.</summary>
     public event EventHandler<EventArgs<(int Width, int Height)>> OnWindowSizeChanged;
 
+    #region Screen Placement
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private HorizontalAlignment? _ScreenHorizontalAlignment;
+    /// <summary>Where this window sits horizontally within its desktop's <see cref="MGDesktop.ValidScreenBounds"/>,
+    /// or null to leave <see cref="Left"/> alone.<para/>
+    /// <see cref="MGElement.Margin"/> is the inset from the chosen edge, exactly as it insets an aligned element inside a
+    /// panel, and an aligned window is kept inside the space that margin leaves. A window can therefore never be wider
+    /// than the view it lives in -- which matters in a split-screen view, where each viewport is only a fraction of the
+    /// back buffer. <see cref="MGElement.MinWidth"/> still wins if the view is narrower than that.<para/>
+    /// Re-applied every frame, so a window follows a view that changes size.<para/>
+    /// Not to be confused with <see cref="MGElement.HorizontalAlignment"/>, which describes this window's CONTENT and
+    /// which a root window keeps at <see cref="HorizontalAlignment.Stretch"/>.<para/>
+    /// See also: <see cref="ApplyScreenPlacement"/></summary>
+    public HorizontalAlignment? ScreenHorizontalAlignment
+    {
+        get => _ScreenHorizontalAlignment;
+        set
+        {
+            if (_ScreenHorizontalAlignment != value)
+            {
+                _ScreenHorizontalAlignment = value;
+                NotifyPropertyChanged(nameof(ScreenHorizontalAlignment));
+                ApplyScreenPlacement();
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private VerticalAlignment? _ScreenVerticalAlignment;
+    /// <summary>Where this window sits vertically within its desktop's <see cref="MGDesktop.ValidScreenBounds"/>,
+    /// or null to leave <see cref="Top"/> alone. Mirrors <see cref="ScreenHorizontalAlignment"/> in every respect.</summary>
+    public VerticalAlignment? ScreenVerticalAlignment
+    {
+        get => _ScreenVerticalAlignment;
+        set
+        {
+            if (_ScreenVerticalAlignment != value)
+            {
+                _ScreenVerticalAlignment = value;
+                NotifyPropertyChanged(nameof(ScreenVerticalAlignment));
+                ApplyScreenPlacement();
+            }
+        }
+    }
+
+    /// <summary>True when this window is placed relative to its desktop in at least one axis.</summary>
+    public bool HasScreenPlacement => ScreenHorizontalAlignment.HasValue || ScreenVerticalAlignment.HasValue;
+
+    /// <summary>Positions and, where needed, shrinks this window to satisfy <see cref="ScreenHorizontalAlignment"/> and
+    /// <see cref="ScreenVerticalAlignment"/>. Does nothing when neither is set, or before this window has a desktop.<para/>
+    /// Called on every desktop update tick, so it must stay cheap and must be safe to repeat: it is, since it computes
+    /// the same answer from the same inputs and assigning an unchanged <see cref="Left"/> is a no-op.</summary>
+    public void ApplyScreenPlacement()
+    {
+        if (!HasScreenPlacement)
+        {
+            return;
+        }
+
+        var Desktop = GetDesktop();
+        if (Desktop == null)
+        {
+            return;
+        }
+
+        var Bounds = Desktop.ValidScreenBounds;
+        var Insets = ResolvedMargin;
+
+        if (ScreenHorizontalAlignment.HasValue)
+        {
+            var Available = Math.Max(0, Bounds.Width - Insets.Left - Insets.Right);
+
+            if (ScreenHorizontalAlignment.Value == HorizontalAlignment.Stretch || WindowWidth > Available)
+            {
+                WindowWidth = Available;
+            }
+
+            Left = ScreenHorizontalAlignment.Value switch
+            {
+                HorizontalAlignment.Left or HorizontalAlignment.Stretch => Bounds.Left + Insets.Left,
+                HorizontalAlignment.Right => Bounds.Right - Insets.Right - WindowWidth,
+                HorizontalAlignment.Center => Bounds.Left + Insets.Left + (Available - WindowWidth) / 2,
+                _ => Left
+            };
+        }
+
+        if (ScreenVerticalAlignment.HasValue)
+        {
+            var Available = Math.Max(0, Bounds.Height - Insets.Top - Insets.Bottom);
+
+            if (ScreenVerticalAlignment.Value == VerticalAlignment.Stretch || WindowHeight > Available)
+            {
+                WindowHeight = Available;
+            }
+
+            Top = ScreenVerticalAlignment.Value switch
+            {
+                VerticalAlignment.Top or VerticalAlignment.Stretch => Bounds.Top + Insets.Top,
+                VerticalAlignment.Bottom => Bounds.Bottom - Insets.Bottom - WindowHeight,
+                VerticalAlignment.Center => Bounds.Top + Insets.Top + (Available - WindowHeight) / 2,
+                _ => Top
+            };
+        }
+    }
+    #endregion Screen Placement
+
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private int PreviousLeft;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
