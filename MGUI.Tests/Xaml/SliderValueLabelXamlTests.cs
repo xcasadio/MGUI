@@ -46,6 +46,25 @@ public class SliderValueLabelXamlTests
         Assert.Equal(reference.ValueLabelFormat, untouched.ValueLabelFormat);
     }
 
+    [Fact]
+    public void ASliderThatDeclaresOnlyAMaximum_HonoursIt()
+    {
+        // The range guard tested MaxHeight -- a layout property inherited from Element -- where it meant
+        // Maximum, so a slider that named only its maximum had it dropped in silence. ProgressBar, next door,
+        // has always tested each of the two separately.
+        MGSlider slider = LoadSlider("""<Slider Name="sld" Maximum="10" />""");
+
+        Assert.Equal(10f, slider.Maximum);
+    }
+
+    [Fact]
+    public void ASliderThatDeclaresOnlyAMinimum_HonoursIt()
+    {
+        MGSlider slider = LoadSlider("""<Slider Name="sld" Minimum="-5" />""");
+
+        Assert.Equal(-5f, slider.Minimum);
+    }
+
     private static MGSlider LoadSlider(string sliderMarkup)
     {
         GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));

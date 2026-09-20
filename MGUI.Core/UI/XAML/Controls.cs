@@ -2728,7 +2728,7 @@ public class Slider : Element
 
         var Slider = Element as MGSlider;
 
-        if (Minimum.HasValue || MaxHeight.HasValue)
+        if (Minimum.HasValue || Maximum.HasValue)
         {
             Slider.SetRange(Minimum ?? Slider.Minimum, Maximum ?? Slider.Maximum);
         }
