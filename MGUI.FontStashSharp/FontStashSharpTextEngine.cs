@@ -279,6 +279,30 @@ namespace MGUI.FontStashSharp
         }
 
         /// <summary>
+        /// Unregisters the static font previously registered for <paramref name="family"/> and
+        /// <paramref name="style"/> with <see cref="AddStaticFont"/>, so that later
+        /// <see cref="ResolveFont"/> calls no longer return it: the family falls back exactly as if it
+        /// had never been registered.
+        /// <para/>
+        /// Only future resolutions change. A <see cref="ResolvedFont"/> already handed out — held by a
+        /// text element that resolved the family before this call — keeps referencing the removed font;
+        /// whoever displays a font is expected to keep it alive while it is displayed.
+        /// </summary>
+        /// <param name="family">Case-sensitive font family name, as given to <see cref="AddStaticFont"/>.</param>
+        /// <param name="style">The style variant to remove.</param>
+        /// <returns><c>true</c> when a font was registered for this family and style and has been removed.</returns>
+        public bool RemoveStaticFont(string family, CustomFontStyles style)
+        {
+            if (!_staticFonts.Remove((family, style)))
+            {
+                return false;
+            }
+
+            InvalidateCache();
+            return true;
+        }
+
+        /// <summary>
         /// Calibrates FSS metrics against <see cref="SpriteFontTextEngine"/> for every
         /// logical font size, so that both engines produce identical layout results:
         /// <list type="bullet">
