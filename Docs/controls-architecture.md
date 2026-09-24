@@ -132,7 +132,7 @@ Environ 40 fichiers dans `MGUI.Core/UI/Color/`. Utilisation : `Docs/mgui_colorpi
 
 ### MGCanvas
 
-`MGUI.Core/UI/Containers/MGCanvas.cs` + `MGCanvasLayoutEngine.cs` : `MGMultiContentHost` avec API attachee statique `MGCanvas.SetLeft` / `SetTop` / `SetRight` / `SetBottom` (+ getters, `int?`). Precedence : Left gagne sur Right, Top gagne sur Bottom ; sans coordonnees, arrangement a l'origine. Coordonnees stockees dans `MGElement.Metadata` avec invalidation de layout automatique. XAML : attributs `CanvasLeft` / `CanvasTop` / `CanvasRight` / `CanvasBottom` sur les noeuds enfants. Pas de `ZIndex` public : ordre de dessin et de hit-test = ordre naturel des enfants. Conteneur neutre pour l'input. C'est la surface hote du graphe (`MGGraphView.NodesCanvas`).
+`MGUI.Core/UI/Containers/MGCanvas.cs` + `MGCanvasLayoutEngine.cs` : `MGMultiContentHost` avec API attachee statique `MGCanvas.SetLeft` / `SetTop` / `SetRight` / `SetBottom` (+ getters, `int?`). Precedence : Left gagne sur Right, Top gagne sur Bottom ; sans coordonnees, arrangement a l'origine. Coordonnees stockees dans des champs types de `MGElement`, exposees aussi par les proprietes liables `CanvasLeft` / `CanvasTop` / `CanvasRight` / `CanvasBottom` (`int?`, sans allocation), avec invalidation de layout automatique (ADR-0016). XAML : attributs `CanvasLeft` / `CanvasTop` / `CanvasRight` / `CanvasBottom` sur les noeuds enfants. Pas de `ZIndex` public : ordre de dessin et de hit-test = ordre naturel des enfants. Conteneur neutre pour l'input. C'est la surface hote du graphe (`MGGraphView.NodesCanvas`).
 
 ## Limites connues
 
