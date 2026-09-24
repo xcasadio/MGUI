@@ -29,3 +29,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0013 | A name identifies one element of a window, and saying so is the loader's job | Accepted | 2026-09-18 |
 | ADR-0014 | One rule for keyboard focus navigation, and text entry controls as navigation targets | Accepted | 2026-09-18 |
 | ADR-0015 | Containers announce their children through the content-host chain | Accepted | 2026-09-19 |
+| ADR-0016 | Host-resolved and animated image sources, bindable canvas coordinates, and allocation-free binding pushes | Accepted | 2026-09-24 |
