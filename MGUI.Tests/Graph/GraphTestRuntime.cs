@@ -38,10 +38,14 @@ internal sealed class GraphTestRuntime : IUIDesktopRuntime
         }
     }
 
-    public GraphTestRuntime(Rectangle surfaceBounds)
+    public GraphTestRuntime(Rectangle surfaceBounds) : this(surfaceBounds, null) { }
+
+    /// <param name="assetProvider">A custom provider (for example one that implements <see cref="IUIAssetProvider.TryResolveImage"/>),
+    /// or null to use the default <see cref="GraphTestAssetProvider"/>.</param>
+    public GraphTestRuntime(Rectangle surfaceBounds, IUIAssetProvider assetProvider)
     {
         Surface = new GraphTestSurface(surfaceBounds, new GraphTestRenderTarget(surfaceBounds.Width, surfaceBounds.Height));
-        AssetProvider = new GraphTestAssetProvider();
+        AssetProvider = assetProvider ?? new GraphTestAssetProvider();
         _textEngine = new GraphTestTextEngine(DefaultFontFamily);
     }
 

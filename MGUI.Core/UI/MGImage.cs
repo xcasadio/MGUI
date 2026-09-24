@@ -47,27 +47,35 @@ public class MGImage : MGElement
         {
             if (_SourceName != value)
             {
-                var Resources = GetResources();
-                if (SourceName != null)
-                {
-                    Resources.OnTextureAdded -= Resources_OnTextureAddedRemoved;
-                    Resources.OnTextureRemoved -= Resources_OnTextureAddedRemoved;
-                }
                 _SourceName = value;
                 NotifyPropertyChanged(nameof(SourceName));
                 if (SourceName != null)
                 {
-                    Resources.OnTextureAdded += Resources_OnTextureAddedRemoved;
-                    Resources.OnTextureRemoved += Resources_OnTextureAddedRemoved;
+                    SubscribeToTextureEventsOnce();
                 }
                 UpdateActualSource();
             }
         }
     }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private MGResources _SubscribedTextureResources;
+
+    /// <summary>Subscribes to <see cref="MGResources.OnTextureAdded"/>/<see cref="MGResources.OnTextureRemoved"/> at most once
+    /// for this element's lifetime, instead of on every change of <see cref="SourceName"/> (ADR-0016, "SourceName without event churn").</summary>
+    private void SubscribeToTextureEventsOnce()
+    {
+        if (_SubscribedTextureResources == null)
+        {
+            _SubscribedTextureResources = GetResources();
+            _SubscribedTextureResources.OnTextureAdded += Resources_OnTextureAddedRemoved;
+            _SubscribedTextureResources.OnTextureRemoved += Resources_OnTextureAddedRemoved;
+        }
+    }
+
     private void Resources_OnTextureAddedRemoved(object sender, (string Name, MGTextureData Data) e)
     {
-        if (Name == SourceName)
+        if (e.Name == SourceName)
         {
             UpdateActualSource();
         }
@@ -96,15 +104,15 @@ public class MGImage : MGElement
     {
         if (Source != null)
         {
-            _ActualSource = Source;
+            ActualSource = Source;
         }
         else if (GetResources().TryGetTexture(SourceName, out var Texture))
         {
-            _ActualSource = Texture;
+            ActualSource = Texture;
         }
         else
         {
-            _ActualSource = null;
+            ActualSource = null;
         }
     }
 

@@ -183,6 +183,8 @@ public class MGResources
     public void AddTexture(string Name, MGTextureData Data)
     {
         _Textures.Add(Name, Data);
+        //  A name explicitly (re-)added no longer counts as unresolvable (ADR-0016's negative cache).
+        _UnresolvableProviderNames?.Remove(Name);
         OnTextureAdded?.Invoke(this, (Name, Data));
     }
 
@@ -206,12 +208,49 @@ public class MGResources
         {
             return true;
         }
-        else if (Parent?.TryGetTexture(Name, out Data) == true)
+        else if (Parent != null)
         {
+            return Parent.TryGetTexture(Name, out Data);
+        }
+        else
+        {
+            //  This is the root scope (ADR-0016, "Host resolution of image names"): a name unknown anywhere in the
+            //  scope chain falls back to the AssetProvider, and the resolved texture is cached here so every scope
+            //  sees it and every MGImage waiting on that name is notified via OnTextureAdded.
+            return TryResolveTextureFromProvider(Name, out Data);
+        }
+    }
+
+    /// <summary>Names the <see cref="AssetProvider"/> has already failed to resolve at this (root) scope, so it is never asked
+    /// twice for the same unresolvable name. Only ever populated on the root scope, since only the root calls
+    /// <see cref="TryResolveTextureFromProvider"/>. Cleared for a name that is later added explicitly via <see cref="AddTexture"/>.</summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private HashSet<string> _UnresolvableProviderNames;
+
+    private bool TryResolveTextureFromProvider(string Name, out MGTextureData Data)
+    {
+        if (Name == null || AssetProvider == null || (_UnresolvableProviderNames?.Contains(Name) == true))
+        {
+            Data = default;
+            return false;
+        }
+
+        //  Re-entrancy guard: AddTexture below raises OnTextureAdded, whose handlers (e.g. MGImage) may call back into
+        //  TryGetTexture for this same Name before this call returns. _Textures.Add already ran by then, so check it again.
+        if (_Textures.TryGetValue(Name, out Data))
+        {
+            return true;
+        }
+
+        if (AssetProvider.TryResolveImage(Name, out var Image, out var SourceRect))
+        {
+            Data = new MGTextureData(Image, SourceRect);
+            AddTexture(Name, Data);
             return true;
         }
         else
         {
+            (_UnresolvableProviderNames ??= new()).Add(Name);
             Data = default;
             return false;
         }
