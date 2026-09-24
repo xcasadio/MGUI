@@ -4,6 +4,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Docking;
 using MGUI.Core.UI.Docking.Controls;
 using MGUI.Core.UI.Docking.DockLayout;
+using MGUI.Core.UI.Styling;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
@@ -25,7 +26,8 @@ namespace MGUI.Tests.Docking;
 /// <c>RebuildTabHeaders</c> no longer following, the new tab following instead).</item>
 /// <item><see cref="MGFloatingDockWindow"/> (follows the active panel, switches on activation change).</item>
 /// <item><see cref="MGDockAutoHideStrip"/> (one button per auto-hidden panel).</item>
-/// <item><see cref="MGDockAutoHideDrawer"/> (follows its active panel, stops following a previous one).</item>
+/// <item><see cref="MGDockAutoHideDrawer"/> (follows its active panel, stops following a previous one, and a drawer
+/// replaced by a host template rebuild lets go of its panel).</item>
 /// </list>
 /// Every assertion below reads the displayed text immediately after mutating <see cref="DockPanelNode.Title"/>, with
 /// no hover, activation or explicit relayout call in between — exactly the "redrawn for another reason" gap the bug
@@ -96,9 +98,10 @@ public class DockTitleFollowTests
     /// <summary>A bare window, with no <see cref="MGDesktop.Windows"/> registration and no <see cref="MGDockHost"/>:
     /// tests (1) and (1b) build the <see cref="MGDockTabGroup"/> directly against this window (the same pattern
     /// <c>DockPartVocabularyTests</c> uses), so the panel's <see cref="DockPanelNode.PropertyChanged"/> reaches
-    /// nothing but the tab item under test — no <see cref="DockLayoutModel"/> is involved to also resync the
-    /// visual tree on ANY node property change (it does, deliberately, for a host-managed layout; see
-    /// <see cref="MGDockHost"/>'s <c>CommitModelChange</c>), which would otherwise mask a missing subscription.</summary>
+    /// nothing but the tab item under test. With a host-managed layout, a <see cref="DockLayoutModel"/> rebuilds the
+    /// visual tree when a node it subscribed changes, which would mask a missing subscription; it subscribes only the
+    /// nodes present when its root is assigned or a floating group is added, not a panel docked later through
+    /// <see cref="DockOperation.DockAsTab"/> — the editor's document tabs, hence the missing "*".</summary>
     private static MGWindow CreateStandaloneWindow()
     {
         GraphTestRuntime runtime = new(new Rectangle(0, 0, 480, 320));
@@ -306,5 +309,74 @@ public class DockTitleFollowTests
 
         p.Title = "P**";
         Assert.Equal("Q*", titleLabel.Text);
+    }
+
+    // ── (4b) A drawer replaced by a host template rebuild lets go of its panel ─
+
+    [Fact]
+    public void ReplacingTheHostStructure_DetachesTheOpenDrawer_TheNewDrawerFollowsInstead()
+    {
+        DockPanelNode p = null;
+        Harness h = CreateHarness(window =>
+        {
+            p = Panel(window, "P");
+            DockTabGroupNode g = new();
+            g.AddPanel(p, -1);
+            DockTabGroupNode other = new();
+            other.AddPanel(Panel(window, "Other"), -1);
+            return new DockSplitNode
+            {
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                FirstChild = g,
+                SecondChild = other,
+            };
+        });
+
+        h.Host.UnpinPanel(p);
+        h.Frame();
+        h.Host.ShowAutoHideDrawer(p);
+        h.Frame();
+
+        MGDockAutoHideDrawer oldDrawer = (MGDockAutoHideDrawer)h.Host.TemplateParts[MGDockHost.AutoHideDrawerPartName];
+        MGTextBlock oldTitleLabel = (MGTextBlock)oldDrawer.TemplateParts[MGDockAutoHideDrawer.TitleBarTextPartName];
+        Assert.Equal("P", oldTitleLabel.Text);
+
+        // Same replacement structure as DockCompositeStructuralTemplateTests: every surface is a new instance.
+        h.Desktop.Resources.AddControlTemplate(new MGControlTemplate("Test.DockHost", context =>
+        {
+            MGControlTemplateStructure structure = new(null);
+            structure.AddPart(MGDockHost.PreviewOverlayPartName, new MGDockPreviewOverlay(h.MainWindow));
+            structure.AddPart(MGDockHost.DropIndicatorsPartName, new MGDockDropIndicators(h.MainWindow));
+            structure.AddPart(MGDockHost.LeftAutoHideStripPartName, new MGDockAutoHideStrip(h.MainWindow, AutoHideSide.Left));
+            structure.AddPart(MGDockHost.RightAutoHideStripPartName, new MGDockAutoHideStrip(h.MainWindow, AutoHideSide.Right));
+            structure.AddPart(MGDockHost.TopAutoHideStripPartName, new MGDockAutoHideStrip(h.MainWindow, AutoHideSide.Top));
+            structure.AddPart(MGDockHost.BottomAutoHideStripPartName, new MGDockAutoHideStrip(h.MainWindow, AutoHideSide.Bottom));
+            structure.AddPart(MGDockHost.AutoHideDrawerPartName, new MGDockAutoHideDrawer(h.MainWindow));
+            return structure;
+        }, null, _ => { }));
+        h.Host.ControlTemplateName = "Test.DockHost";
+        Assert.Null(h.Host.LastControlTemplateError);
+
+        MGDockAutoHideDrawer newDrawer = (MGDockAutoHideDrawer)h.Host.TemplateParts[MGDockHost.AutoHideDrawerPartName];
+        Assert.NotSame(oldDrawer, newDrawer);
+        // The discarded drawer released its panel when the host dropped it, and no longer mirrors its title.
+        Assert.Null(oldDrawer.ActivePanel);
+        string oldTitleBeforeChange = oldTitleLabel.Text;
+
+        p.Title = "P*";
+
+        Assert.Equal(oldTitleBeforeChange, oldTitleLabel.Text);
+
+        // The drawer that replaced it shows the panel and follows it.
+        h.Host.ShowAutoHideDrawer(p);
+        h.Frame();
+        MGTextBlock newTitleLabel = (MGTextBlock)newDrawer.TemplateParts[MGDockAutoHideDrawer.TitleBarTextPartName];
+        Assert.Equal("P*", newTitleLabel.Text);
+
+        p.Title = "P**";
+
+        Assert.Equal("P**", newTitleLabel.Text);
+        Assert.Equal(oldTitleBeforeChange, oldTitleLabel.Text);
     }
 }

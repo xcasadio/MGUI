@@ -425,6 +425,8 @@ public class MGDockHost : MGSingleContentHost
                 _autoHideDrawer.PanelCloseRequested -= OnAutoHideDrawerPanelCloseRequested;
                 _autoHideDrawer.CloseRequested -= OnAutoHideDrawerCloseRequested;
                 _autoHideDrawer.DrawerSizeChanged -= OnAutoHideDrawerSizeChanged;
+                //  Like previousStrip.Detach() above: the discarded drawer stops following the panel it showed.
+                _autoHideDrawer.ActivePanel = null;
             }
 
             drawer.Visibility = Visibility.Collapsed;
