@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.IO;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
@@ -21,6 +22,11 @@ namespace MGUI.Samples.Features
         public MGWindow Window { get; }
         private MGDockHost _dockHost;
         private const string LayoutFilePath = "docking_layout.json";
+
+        /// <summary>T4.5 (D17): id of the demo panel whose close the "Unsaved changes" checkbox vetoes.</summary>
+        private const string ScratchpadPanelId = "panel_scratchpad";
+        private MGCheckBox _unsavedChangesCheckBox;
+        private MGTextBlock _closeVetoStatusText;
 
         private bool _IsVisible;
         public bool IsVisible
@@ -63,6 +69,12 @@ namespace MGUI.Samples.Features
 
             // Create and configure dock host
             _dockHost = new MGDockHost(Window);
+
+            // T4.5 (D17): let the host veto a user close of the Scratchpad panel while its
+            // "Unsaved changes" checkbox is checked - the pattern the editor uses for a modified
+            // screen document, demonstrated here without needing the editor.
+            _dockHost.PanelClosing += OnDockHostPanelClosing;
+
             SetupInitialLayout();
 
             // Set as window content
@@ -130,11 +142,21 @@ namespace MGUI.Samples.Features
                 ContentFactory = () => CreateDocumentContent("README.md")
             };
 
+            var scratchpadPanel = new DockPanelNode(ScratchpadPanelId)
+            {
+                Title = "Scratchpad",
+                Icon = null,
+                CanClose = true,
+                CanFloat = true,
+                ContentFactory = () => CreateScratchpadContent()
+            };
+
             // Build tab groups
             var leftGroup = new DockTabGroupNode();
             leftGroup.AddPanel(solutionExplorerPanel, -1);
             leftGroup.AddPanel(propertiesPanel, -1);
             leftGroup.AddPanel(layoutManagerPanel, -1);
+            leftGroup.AddPanel(scratchpadPanel, -1);
             leftGroup.SetActivePanel(solutionExplorerPanel.Id);
 
             var bottomGroup = new DockTabGroupNode();
@@ -434,6 +456,61 @@ namespace MGUI.Samples.Features
         }
 
         /// <summary>
+        /// Creates content for the Scratchpad panel: T4.5 (D17)'s demonstration of
+        /// <see cref="MGDockHost.PanelClosing"/> vetoing a user close.
+        /// </summary>
+        private MGElement CreateScratchpadContent()
+        {
+            var stackPanel = new MGStackPanel(Window, Orientation.Vertical)
+            {
+                Spacing = 8,
+                Padding = new Core.UI.XAML.Thickness(10).ToThickness()
+            };
+
+            stackPanel.TryAddChild(new MGTextBlock(Window, "[b]Scratchpad[/b]") { FontSize = 14 });
+            stackPanel.TryAddChild(new MGTextBlock(Window,
+                "Close this tab (its × button, or Close/Close Others/Close All from its context menu) " +
+                "while the box below is checked: the host refuses the close, exactly as the editor refuses " +
+                "to lose a modified screen document (D17).")
+            {
+                FontSize = 10,
+                Opacity = 0.8f
+            });
+
+            _unsavedChangesCheckBox = new MGCheckBox(Window, false);
+            _unsavedChangesCheckBox.SetContent(new MGTextBlock(Window, "Unsaved changes"));
+            stackPanel.TryAddChild(_unsavedChangesCheckBox);
+
+            _closeVetoStatusText = new MGTextBlock(Window, "")
+            {
+                FontSize = 10,
+                Margin = new Core.UI.XAML.Thickness(0, 4, 0, 0).ToThickness()
+            };
+            stackPanel.TryAddChild(_closeVetoStatusText);
+
+            return stackPanel;
+        }
+
+        /// <summary>
+        /// <see cref="MGDockHost.PanelClosing"/> handler (T4.5, D17): refuses to close the Scratchpad
+        /// panel while its "Unsaved changes" checkbox is checked, and reports the refusal in its status
+        /// text. Every other panel closes exactly as before - this only demonstrates the veto.
+        /// </summary>
+        private void OnDockHostPanelClosing(object sender, CancelEventArgs<DockPanelNode> e)
+        {
+            if (e.Data?.Id != ScratchpadPanelId || _unsavedChangesCheckBox?.IsChecked != true)
+            {
+                return;
+            }
+
+            e.Cancel = true;
+            if (_closeVetoStatusText != null)
+            {
+                _closeVetoStatusText.SetText("[c=OrangeRed]Close refused: uncheck \"Unsaved changes\" first.[/c]");
+            }
+        }
+
+        /// <summary>
         /// Saves the current docking layout to a JSON file.
         /// </summary>
         private void SaveLayout()
@@ -469,6 +546,7 @@ namespace MGUI.Samples.Features
                     "panel_layout_manager" => () => CreateLayoutManagerContent(),
                     "panel_document1" => () => CreateDocumentContent("Document1.cs"),
                     "panel_readme" => () => CreateDocumentContent("README.md"),
+                    ScratchpadPanelId => () => CreateScratchpadContent(),
                     _ => null
                 };
 

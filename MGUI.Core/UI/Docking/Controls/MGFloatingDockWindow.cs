@@ -257,6 +257,11 @@ public class MGFloatingDockWindow : MGWindow
             return;
         }
 
+        if (OwnerHost.RaisePanelClosingVetoed(panel))
+        {
+            return;
+        }
+
         if (FloatingGroup != null)
         {
             // Model-backed: go through the model so the place is (not yet, T4) remembered

@@ -98,6 +98,47 @@ public class MGDockHost : MGSingleContentHost
     public event EventHandler<DockPanelNode> PanelRemoved;
 
     /// <summary>
+    /// Raised BEFORE a panel is removed by a USER close action, so a subscriber can veto the close by
+    /// setting <see cref="CancelEventArgs{T}.Cancel"/> (T4.5, D17). A cancelled panel is left exactly as
+    /// it was: no removal happens, and nothing else this close action would have done (e.g. closing the
+    /// other tabs of a "Close Others"/"Close All") is undone either.
+    /// <para>
+    /// Raised, one panel at a time, in this order, before the removal each path decides: a tab's close
+    /// button, "Close Others" and "Close All" (each closes its remaining panels one by one even if an
+    /// earlier one in the same batch was cancelled — <see cref="MGDockTabGroup"/>'s
+    /// <c>PanelCloseRequested</c>), a floating window's tab close (<see cref="MGFloatingDockWindow"/>,
+    /// both the model-backed branch through <see cref="CloseFloatingPanel"/> and the standalone branch),
+    /// the auto-hide drawer's close button (<see cref="CloseAutoHidePanel"/>), and closing an entire
+    /// floating window (<see cref="MGWindow.TryCloseWindow"/>, its close button or application code):
+    /// raised once per panel the window still holds, in order, and the window close itself is cancelled
+    /// at the first refusal — panels already asked earlier in that same pass keep whatever their own
+    /// subscriber did (there is no rollback across panels).
+    /// </para>
+    /// <para>
+    /// NOT raised for a programmatic removal: <see cref="RemovePanel"/> or <see cref="CloseFloatingWindow"/>
+    /// called directly by application code.
+    /// </para>
+    /// </summary>
+    public event EventHandler<CancelEventArgs<DockPanelNode>> PanelClosing;
+
+    /// <summary>
+    /// Raises <see cref="PanelClosing"/> for <paramref name="panel"/> and returns whether a subscriber
+    /// cancelled it. No-ops (returns <see langword="false"/>) when <paramref name="panel"/> is null or
+    /// nothing is subscribed.
+    /// </summary>
+    internal bool RaisePanelClosingVetoed(DockPanelNode panel)
+    {
+        if (panel == null || PanelClosing == null)
+        {
+            return false;
+        }
+
+        CancelEventArgs<DockPanelNode> args = new(panel);
+        PanelClosing.Invoke(this, args);
+        return args.Cancel;
+    }
+
+    /// <summary>
     /// Event raised when the active panel in any tab group changes.
     /// </summary>
     public event EventHandler<DockPanelNode> ActivePanelChanged;
@@ -407,7 +448,15 @@ public class MGDockHost : MGSingleContentHost
 
     private void OnAutoHideDrawerPinRequested(object sender, DockPanelNode panel) => RepinPanel(panel);
 
-    private void OnAutoHideDrawerPanelCloseRequested(object sender, DockPanelNode panel) => CloseAutoHidePanel(panel);
+    private void OnAutoHideDrawerPanelCloseRequested(object sender, DockPanelNode panel)
+    {
+        if (RaisePanelClosingVetoed(panel))
+        {
+            return;
+        }
+
+        CloseAutoHidePanel(panel);
+    }
 
     private void OnAutoHideDrawerCloseRequested(object sender, EventArgs e) => HideAutoHideDrawer();
 
@@ -1492,13 +1541,39 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>
     /// Tracks <paramref name="floatWin"/> and attaches it as a nested window of the host's parent window. The host owns the lifecycle of the
     /// floating window whichever way it closes: through <see cref="CloseFloatingWindow"/>, or through <see cref="MGWindow.TryCloseWindow"/> (the
-    /// close button of the window template, or application code), which <see cref="OnFloatingWindowClosed"/> observes.
+    /// close button of the window template, or application code), which <see cref="OnFloatingWindowClosed"/> observes. The host also subscribes
+    /// to the window's cancelable <see cref="MGWindow.WindowClosing"/> (T4.5, D17), so a whole-window close can be vetoed panel by panel through
+    /// <see cref="PanelClosing"/> before <see cref="MGWindow.TryCloseWindow"/> removes anything.
     /// </summary>
     private void AttachFloatingWindow(MGFloatingDockWindow floatWin)
     {
         _floatingWindows.Add(floatWin);
+        floatWin.WindowClosing += OnFloatingWindowClosing;
         floatWin.WindowClosed += OnFloatingWindowClosed;
         ParentWindow.AddNestedWindow(floatWin);
+    }
+
+    /// <summary>
+    /// Raises <see cref="PanelClosing"/> for every panel <paramref name="sender"/> (a floating window being closed as a whole through
+    /// <see cref="MGWindow.TryCloseWindow"/>) still holds, in order, and cancels the window close at the first refusal. Panels already asked
+    /// earlier in this same pass keep whatever their subscriber did (there is no rollback across panels) — only the window close itself, and
+    /// any panel not yet asked, is cancelled.
+    /// </summary>
+    private void OnFloatingWindowClosing(object sender, CancelEventArgs e)
+    {
+        if (sender is not MGFloatingDockWindow floatWin)
+        {
+            return;
+        }
+
+        foreach (var panel in floatWin.GroupNode.Panels.ToList())
+        {
+            if (RaisePanelClosingVetoed(panel))
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -1514,6 +1589,7 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
+        floatWin.WindowClosing -= OnFloatingWindowClosing;
         floatWin.WindowClosed -= OnFloatingWindowClosed;
 
         if (floatWin.FloatingGroup != null)
@@ -1616,6 +1692,7 @@ public class MGDockHost : MGSingleContentHost
             return;
         }
 
+        window.WindowClosing -= OnFloatingWindowClosing;
         window.WindowClosed -= OnFloatingWindowClosed;
         _floatingWindows.Remove(window);
         ParentWindow.RemoveNestedWindow(window);
@@ -2423,6 +2500,11 @@ public class MGDockHost : MGSingleContentHost
         {
             if (panelToClose != null && LayoutModel != null)
             {
+                if (RaisePanelClosingVetoed(panelToClose))
+                {
+                    return;
+                }
+
                 MutateModelSuspended(() =>
                 {
                     // Remove from panel registry BEFORE removing from model,
