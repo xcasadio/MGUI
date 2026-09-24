@@ -78,6 +78,9 @@ public static class DataBindingManager
         {
             foreach (var Binding in ObjectBindings)
             {
+                //  Out of _Bindings as well: a binding still listed there keeps TargetObject, and the tree above it,
+                //  reachable long after the element left the visual tree.
+                _Bindings.Remove(Binding);
                 Binding.Dispose();
             }
 
