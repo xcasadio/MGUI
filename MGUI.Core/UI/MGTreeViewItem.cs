@@ -33,8 +33,12 @@ public class MGTreeViewItem : MGSingleContentHost
             // sweep would attribute LocalValue) so this stays Theme, consistent with the rest of this chrome.
             SetBackgroundSlot(UIValueSlot.Selected, SolidFillBrushes.Transparent, UIValueResolutionSource.Theme(UIInvalidationKind.Draw));
             SetPadding(new(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            SetMargin(new(0, 0, 4, 0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
-            MinWidth = 10;
+            // The expander column's width is the reserved, exact width computed by UpdateExpanderButtonWidth (below), not a
+            // margin: a leaf and a sibling with children must start their header text at the same X.
+            SetMargin(new(0), UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
+            // MGToggleButton's own constructor sets MinWidth = 16 (a plain, untagged local value): left as-is, it would clamp
+            // PreferredWidth (set by UpdateExpanderButtonWidth) from ever going below 16, defeating an ExpanderButtonSize < 16.
+            MinWidth = 0;
             SetMinHeight(10, UIValueResolutionSource.Theme(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             HorizontalContentAlignment = HorizontalAlignment.Center;
             VerticalContentAlignment = VerticalAlignment.Center;
@@ -234,7 +238,10 @@ public class MGTreeViewItem : MGSingleContentHost
             HeaderContainer.SetBorderThickness(new(0), UIValueResolutionSource.LocalValue(UIInvalidationKind.Measure | UIInvalidationKind.Arrange));
             HeaderPanel.TryAddChild(HeaderContainer, Dock.Left);
             ChildrenPanel = new MGStackPanel(Window, Orientation.Vertical);
-            ExpanderButton.Visibility = Visibility.Collapsed;
+            // Hidden (not Collapsed): the expander column keeps reserving its width on a leaf, so its header text
+            // lines up with a sibling that has children and shows the triangle.
+            ExpanderButton.Visibility = Visibility.Hidden;
+            UpdateExpanderButtonWidth();
             ChildrenPanel.Visibility = Visibility.Collapsed;
             ChildrenPanel.CanChangeContent = false;
             HeaderPanel.MouseHandler.LMBClickedInside += OnHeaderPanelClick;
@@ -308,6 +315,21 @@ public class MGTreeViewItem : MGSingleContentHost
         }
     }
 
+    /// <summary>
+    /// Resizes the expander column to <see cref="MGTreeView.ExpanderButtonSize"/> (falling back to
+    /// <see cref="MGControlTemplateCatalog.DefaultTreeViewExpanderButtonSize"/> when there is no owner tree, or when the
+    /// owner's value is <= 0), so a leaf's reserved column is exactly as wide as an expandable sibling's triangle column.
+    /// </summary>
+    internal void UpdateExpanderButtonWidth()
+    {
+        var configured = OwnerTreeView?.ExpanderButtonSize;
+        var width = configured is > 0 ? configured.Value : MGControlTemplateCatalog.DefaultTreeViewExpanderButtonSize;
+        if (ExpanderButton.PreferredWidth != width)
+        {
+            ExpanderButton.PreferredWidth = width;
+        }
+    }
+
     private void UpdateExpanderVisibility()
     {
         if (HasItems)
@@ -317,7 +339,8 @@ public class MGTreeViewItem : MGSingleContentHost
         }
         else
         {
-            ExpanderButton.Visibility = Visibility.Collapsed;
+            // Hidden (not Collapsed): the column stays reserved so the header text does not shift when the last child is removed.
+            ExpanderButton.Visibility = Visibility.Hidden;
         }
     }
 
@@ -471,6 +494,7 @@ public class MGTreeViewItem : MGSingleContentHost
         item.Level = Level + 1;
         item._OwnerTreeView = OwnerTreeView;
         item.UpdateIndentation();
+        item.UpdateExpanderButtonWidth();
         if (OwnerTreeView != null)
         {
             OwnerTreeView.RegisterItemRecursive(item);
@@ -591,7 +615,7 @@ public class MGTreeViewItem : MGSingleContentHost
     private void OnHeaderPanelClick(object sender, Shared.Input.Mouse.BaseMouseClickedEventArgs e)
     {
         var layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-        var clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
+        var clickedExpander = ExpanderButton != null && ExpanderButton.Visibility == Visibility.Visible && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
         TrackHeaderBodySequence(e, clickedExpander);
         if (clickedExpander)
         {
@@ -612,7 +636,7 @@ public class MGTreeViewItem : MGSingleContentHost
     private void OnHeaderPanelDoubleClick(object sender, Shared.Input.Mouse.BaseMouseClickedEventArgs e)
     {
         var layoutPos = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position);
-        var clickedExpander = ExpanderButton != null && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
+        var clickedExpander = ExpanderButton != null && ExpanderButton.Visibility == Visibility.Visible && ExpanderButton.LayoutBounds.ContainsInclusive(layoutPos);
         if (clickedExpander)
         {
             return;

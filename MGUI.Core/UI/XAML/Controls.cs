@@ -3983,6 +3983,9 @@ public class TreeView : MultiContentHost
     [Category("Layout")]
     public int? IndentSize { get; set; }
 
+    [Category("Layout")]
+    public int? ExpanderButtonSize { get; set; }
+
     [Category("Appearance")]
     public FillBrush SelectionBackgroundBrush { get; set; }
     [Category("Appearance")]
@@ -3998,6 +4001,11 @@ public class TreeView : MultiContentHost
         if (IndentSize.HasValue)
         {
             TreeView.IndentSize = IndentSize.Value;
+        }
+
+        if (ExpanderButtonSize.HasValue)
+        {
+            TreeView.ExpanderButtonSize = ExpanderButtonSize.Value;
         }
 
         if (SelectionBackgroundBrush != null)

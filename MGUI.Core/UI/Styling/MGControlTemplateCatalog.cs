@@ -51,6 +51,10 @@ public static class MGControlTemplateCatalog
     public static readonly Thickness DefaultListBoxItemContentPadding = new(1, 0);
     public static readonly Thickness DefaultComboBoxDropdownItemPadding = new(8, 5, 8, 5);
     public const int DefaultTreeViewIndentSize = 20;
+    /// <summary>The default width, in pixels, reserved for the expand/collapse triangle column of an <see cref="MGTreeViewItem"/>
+    /// when neither <see cref="MGTreeView.ExpanderButtonSize"/> nor <see cref="MGTheme.TreeViewExpanderButtonSize"/> supplies a
+    /// value greater than 0.</summary>
+    public const int DefaultTreeViewExpanderButtonSize = 16;
 
     public static MGUniformBorderBrush CreateDefaultListBoxItemBorderBrush()
         => new MGSolidFillBrush(Color.Black * 0.35f).AsUniformBorderBrush();
@@ -1131,6 +1135,9 @@ public static class MGControlTemplateCatalog
         Context.ApplyOwnerThemeDefault("TreeView.SelectionBackgroundBrush", SelectionBrush ?? new VisualStateFillBrush(new MGSolidFillBrush(Color.LightBlue)), () => TreeView.SelectionBackgroundBrush, value => TreeView.SelectionBackgroundBrush = value);
         Context.ApplyOwnerThemeDefault("TreeView.SelectionForeground", Theme?.TreeViewSelectionForeground ?? Color.Black, () => TreeView.SelectionForeground, value => TreeView.SelectionForeground = value);
         Context.ApplyOwnerThemeDefault("TreeView.IndentSize", Theme?.TreeViewIndentSize ?? DefaultTreeViewIndentSize, () => TreeView.IndentSize, value => TreeView.IndentSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
+        // A value <= 0 never produces a 0-width expander column: an unset/empty theme (MGTheme.CreateEmpty gives 0) falls back to the constant.
+        Context.ApplyOwnerThemeDefault("TreeView.ExpanderButtonSize", Theme?.TreeViewExpanderButtonSize > 0 ? Theme.TreeViewExpanderButtonSize : DefaultTreeViewExpanderButtonSize,
+            () => TreeView.ExpanderButtonSize, value => TreeView.ExpanderButtonSize = value, UIInvalidationKind.Measure | UIInvalidationKind.Arrange);
     }
 
     private static void ApplyPropertyGridTemplate(MGControlTemplateContext Context)
