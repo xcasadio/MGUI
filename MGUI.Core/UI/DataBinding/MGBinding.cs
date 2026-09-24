@@ -9,8 +9,10 @@ using Portable.Xaml.Markup;
 using MGUI.Core.UI.DataBinding.Converters;
 #endif
 
-//  This markup extension is intentionally placed in MGUI.Core.UI.XAML namespace so that it can be
-//  referenced in XAML without requiring any additional XML namespace prefixes.
+//  This markup extension is declared in the MGUI.Core.UI.DataBinding namespace (not MGUI.Core.UI.XAML), so
+//  referencing it from XAML requires its own prefix mapped to this namespace, e.g.:
+//  xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
+//  and then "{dataBinding:MGBinding ...}" -- the unprefixed "{MGBinding ...}" form throws.
 namespace MGUI.Core.UI.DataBinding;
 
 public class MGBinding : MarkupExtension

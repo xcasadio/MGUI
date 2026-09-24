@@ -58,6 +58,7 @@ Architecture docs are organized per theme under `Docs/`, with remaining work tra
 - Responsive layout engine: see [Docs/layout-architecture.md](Docs/layout-architecture.md).
 - Text editing (TextBox/RichTextBox): see [Docs/text-architecture.md](Docs/text-architecture.md).
 - Composite controls (PropertyGrid, Graph, ColorPicker, Docking): see [Docs/controls-architecture.md](Docs/controls-architecture.md).
+- Host-resolved/animated image sources, bindable canvas coordinates, data binding pushes: see [Docs/image-sources-and-data-binding.md](Docs/image-sources-and-data-binding.md).
 
 Practical guides: MonoGame host wiring [Docs/monogame-host-integration-guide.md](Docs/monogame-host-integration-guide.md), custom engine backend [Docs/custom-render-backend-integration.md](Docs/custom-render-backend-integration.md), graph view [Docs/graph-view-v1-guide.md](Docs/graph-view-v1-guide.md), color picker [Docs/mgui_colorpicker_usage_guide.md](Docs/mgui_colorpicker_usage_guide.md).
 
