@@ -1,0 +1,78 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
+        Left="460" Top="80" Width="480" MinHeight="0" SizeToContent="Height" TitleText="Bound Images" Padding="10">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Bound Images:" HorizontalAlignment="Center" />
+            <TextBlock>
+                Demonstrates ADR-0016: canvas coordinates bound to a view model, an image whose source name is
+                resolved by the host application's own asset provider instead of MGResources.AddTexture, and a
+                host-resolved animated image with a bindable start offset and playing flag.
+            </TextBlock>
+            <Separator />
+
+            <!-- 1. Bindable canvas coordinates -->
+            <TextBlock StyleNames="Header1" Text="1. Bindable canvas coordinates" />
+            <TextBlock>
+                CanvasLeft and CanvasTop are ordinary bindable properties: the sprite below is bound (OneWay) to
+                BoundImagesViewModel.SpriteLeft/SpriteTop, which a timer in BoundImagesSample updates every tick.
+            </TextBlock>
+            <Border Background="White * 0.08" Padding="6">
+                <Canvas Name="MovementCanvas" Width="420" Height="110" Background="Black * 0.25" BorderThickness="1" BorderBrush="White * 0.35">
+                    <Image Name="MovementImage" SourceName="Wrench" Width="24" Height="24" Stretch="None"
+                           CanvasLeft="{dataBinding:MGBinding Path=SpriteLeft}" CanvasTop="{dataBinding:MGBinding Path=SpriteTop}" />
+                </Canvas>
+            </Border>
+            <Separator />
+
+            <!-- 2. Host-resolved image source -->
+            <TextBlock StyleNames="Header1" Text="2. Host-resolved image source" />
+            <TextBlock>
+                This image's SourceName is unknown to MGResources: it is resolved by BoundImagesAssetProvider's own
+                IUIAssetProvider.TryResolveImage, a sprite rectangle cut from the same "AngryMeteor" sheet the sample
+                app already loads.
+            </TextBlock>
+            <StackPanel Orientation="Horizontal" Spacing="10" Background="White * 0.08" Padding="6">
+                <Image Name="HostSpriteImage" SourceName="BoundImages.HostSprite" Width="64" Height="64" Stretch="Uniform" />
+                <TextBlock VerticalAlignment="Center" Text="SourceName=&quot;BoundImages.HostSprite&quot;" WrapText="True" Width="220" />
+            </StackPanel>
+            <Separator />
+
+            <!-- 3. Host-resolved animated image -->
+            <TextBlock StyleNames="Header1" Text="3. Host-resolved animated image" />
+            <TextBlock>
+                This image's SourceName resolves to an animation through IUIAssetProvider.TryCreateAnimatedImage: one
+                independent IUIAnimatedImage instance, cycling four cells of the same sheet, advanced every frame in
+                MGImage.UpdateSelf. AnimationStartOffset and IsAnimationPlaying are ordinary bindable properties.
+            </TextBlock>
+            <StackPanel Orientation="Horizontal" Spacing="10" Background="White * 0.08" Padding="6">
+                <Image Name="AnimatedSpriteImage" SourceName="BoundImages.Anim" Width="64" Height="64" Stretch="Uniform"
+                       AnimationStartOffset="{dataBinding:MGBinding Path=AnimationStartOffset}"
+                       IsAnimationPlaying="{dataBinding:MGBinding Path=IsAnimationPlaying}" />
+                <StackPanel Orientation="Vertical" Spacing="6">
+                    <ToggleButton Name="PlayPauseToggle" Content="Playing" IsChecked="{dataBinding:MGBinding Path=IsAnimationPlaying, Mode=TwoWay}" />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Name="RestartAtZeroButton" Content="Restart at 0s" />
+                        <Button Name="RestartAtOffsetButton" Content="Restart at 0.4s" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

@@ -53,6 +53,11 @@ namespace MGUI.Samples
             MonoGameBackendSession<GameRenderHost<Game1>> backend = MonoGameBackendBootstrap.Create(
                 new GameRenderHost<Game1>(this));
             MGUIRenderer = backend.Renderer;
+            //  Wrapped so MGImage.SourceName can additionally resolve the "BoundImages" sample's own host-resolved
+            //  and animated sprite names (ADR-0016); every other member forwards to the real backend unchanged
+            //  (see HostRuntimeContractTests.Repo_ShowsBothHistoricAndDelegateHostBootstrapPaths, which pins the
+            //  line below: MGUIRenderer itself is reassigned first so that line's own text stays exact).
+            MGUIRenderer = new Features.BoundImagesRuntime(MGUIRenderer);
             Desktop = new MGDesktop((IUIDesktopRuntime)MGUIRenderer);
             Desktop.LoadDefaultResources();
 
