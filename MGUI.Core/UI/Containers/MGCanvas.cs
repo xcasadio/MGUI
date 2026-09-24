@@ -8,10 +8,6 @@ namespace MGUI.Core.UI.Containers;
 
 public class MGCanvas : MGMultiContentHost
 {
-    private const string LeftMetadataKey = "Canvas.Left";
-    private const string TopMetadataKey = "Canvas.Top";
-    private const string RightMetadataKey = "Canvas.Right";
-    private const string BottomMetadataKey = "Canvas.Bottom";
     private static readonly Size UnlimitedMeasureSize = new(int.MaxValue / 2, int.MaxValue / 2);
     private readonly List<CanvasChildMeasurement> _ChildMeasurements = new();
     private readonly List<Rectangle> _ArrangedChildBounds = new();
@@ -40,52 +36,18 @@ public class MGCanvas : MGMultiContentHost
     }
     #endregion Border
 
-    public static int? GetLeft(MGElement element) => GetCanvasCoordinate(element, LeftMetadataKey);
-    public static int? GetTop(MGElement element) => GetCanvasCoordinate(element, TopMetadataKey);
-    public static int? GetRight(MGElement element) => GetCanvasCoordinate(element, RightMetadataKey);
-    public static int? GetBottom(MGElement element) => GetCanvasCoordinate(element, BottomMetadataKey);
+    public static int? GetLeft(MGElement element) => element?.CanvasLeft;
+    public static int? GetTop(MGElement element) => element?.CanvasTop;
+    public static int? GetRight(MGElement element) => element?.CanvasRight;
+    public static int? GetBottom(MGElement element) => element?.CanvasBottom;
 
-    public static void SetLeft(MGElement element, int? value) => SetCanvasCoordinate(element, LeftMetadataKey, value);
-    public static void SetTop(MGElement element, int? value) => SetCanvasCoordinate(element, TopMetadataKey, value);
-    public static void SetRight(MGElement element, int? value) => SetCanvasCoordinate(element, RightMetadataKey, value);
-    public static void SetBottom(MGElement element, int? value) => SetCanvasCoordinate(element, BottomMetadataKey, value);
+    public static void SetLeft(MGElement element, int? value) => RequireElement(element).CanvasLeft = value;
+    public static void SetTop(MGElement element, int? value) => RequireElement(element).CanvasTop = value;
+    public static void SetRight(MGElement element, int? value) => RequireElement(element).CanvasRight = value;
+    public static void SetBottom(MGElement element, int? value) => RequireElement(element).CanvasBottom = value;
 
-    private static int? GetCanvasCoordinate(MGElement element, string metadataKey)
-    {
-        if (element == null)
-        {
-            return null;
-        }
-
-        if (element.Metadata.TryGetValue(metadataKey, out var value) && value is int actualValue)
-        {
-            return actualValue;
-        }
-
-        return null;
-    }
-
-    private static void SetCanvasCoordinate(MGElement element, string metadataKey, int? value)
-    {
-        if (element == null)
-        {
-            throw new ArgumentNullException(nameof(element));
-        }
-
-        if (value.HasValue)
-        {
-            element.Metadata[metadataKey] = value.Value;
-        }
-        else
-        {
-            element.Metadata.Remove(metadataKey);
-        }
-
-        if (element.Parent is MGCanvas canvas)
-        {
-            canvas.LayoutChanged(canvas, true);
-        }
-    }
+    private static MGElement RequireElement(MGElement element)
+        => element ?? throw new ArgumentNullException(nameof(element));
 
     public bool TryAddChild(MGElement item, int? left = null, int? top = null, int? right = null, int? bottom = null)
     {

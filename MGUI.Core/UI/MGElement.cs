@@ -3268,6 +3268,103 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     /// <summary>General-purpose dictionary to attach your own data to this <see cref="MGElement"/></summary>
     public Dictionary<string, object> Metadata { get; } = new();
+
+    #region Canvas coordinates
+    //  Typed storage for the four coordinates a parent MGCanvas positions this element by (ADR-0016 decision D7).
+    //  Read/written through MGCanvas.Get/SetLeft/Top/Right/Bottom, which forward to these properties, and reachable
+    //  from XAML as a literal ("CanvasLeft=\"12\"") or an {MGBinding} (ProcessBindings targets the CLR property name
+    //  directly since MGUI.Core.UI.XAML.Element.CanvasLeft/CanvasTop/CanvasRight/CanvasBottom have the same names).
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int? _canvasLeft;
+    /// <summary>This element's offset from its parent <see cref="Containers.MGCanvas"/>'s left edge, in pixels.<para/>
+    /// Only meaningful while <see cref="Parent"/> is an <see cref="Containers.MGCanvas"/>. Settable in XAML via the
+    /// <c>CanvasLeft</c> attribute (as a literal or an <see cref="DataBinding.MGBinding"/>), or in code via
+    /// <see cref="Containers.MGCanvas.SetLeft(MGElement, int?)"/>.</summary>
+    public int? CanvasLeft
+    {
+        get => _canvasLeft;
+        set
+        {
+            if (_canvasLeft != value)
+            {
+                _canvasLeft = value;
+                NotifyPropertyChanged(nameof(CanvasLeft));
+                if (Parent is Containers.MGCanvas ParentCanvas)
+                {
+                    ParentCanvas.LayoutChanged(ParentCanvas, true);
+                }
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int? _canvasTop;
+    /// <summary>This element's offset from its parent <see cref="Containers.MGCanvas"/>'s top edge, in pixels.<para/>
+    /// Only meaningful while <see cref="Parent"/> is an <see cref="Containers.MGCanvas"/>. Settable in XAML via the
+    /// <c>CanvasTop</c> attribute (as a literal or an <see cref="DataBinding.MGBinding"/>), or in code via
+    /// <see cref="Containers.MGCanvas.SetTop(MGElement, int?)"/>.</summary>
+    public int? CanvasTop
+    {
+        get => _canvasTop;
+        set
+        {
+            if (_canvasTop != value)
+            {
+                _canvasTop = value;
+                NotifyPropertyChanged(nameof(CanvasTop));
+                if (Parent is Containers.MGCanvas ParentCanvas)
+                {
+                    ParentCanvas.LayoutChanged(ParentCanvas, true);
+                }
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int? _canvasRight;
+    /// <summary>This element's offset from its parent <see cref="Containers.MGCanvas"/>'s right edge, in pixels.<para/>
+    /// Only meaningful while <see cref="Parent"/> is an <see cref="Containers.MGCanvas"/>, and only used when
+    /// <see cref="CanvasLeft"/> is unset. Set in code via <see cref="Containers.MGCanvas.SetRight(MGElement, int?)"/>.</summary>
+    public int? CanvasRight
+    {
+        get => _canvasRight;
+        set
+        {
+            if (_canvasRight != value)
+            {
+                _canvasRight = value;
+                NotifyPropertyChanged(nameof(CanvasRight));
+                if (Parent is Containers.MGCanvas ParentCanvas)
+                {
+                    ParentCanvas.LayoutChanged(ParentCanvas, true);
+                }
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int? _canvasBottom;
+    /// <summary>This element's offset from its parent <see cref="Containers.MGCanvas"/>'s bottom edge, in pixels.<para/>
+    /// Only meaningful while <see cref="Parent"/> is an <see cref="Containers.MGCanvas"/>, and only used when
+    /// <see cref="CanvasTop"/> is unset. Set in code via <see cref="Containers.MGCanvas.SetBottom(MGElement, int?)"/>.</summary>
+    public int? CanvasBottom
+    {
+        get => _canvasBottom;
+        set
+        {
+            if (_canvasBottom != value)
+            {
+                _canvasBottom = value;
+                NotifyPropertyChanged(nameof(CanvasBottom));
+                if (Parent is Containers.MGCanvas ParentCanvas)
+                {
+                    ParentCanvas.LayoutChanged(ParentCanvas, true);
+                }
+            }
+        }
+    }
+    #endregion Canvas coordinates
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private object _tag;
     /// <summary>General-purpose object to attach your own data to this <see cref="MGElement"/></summary>

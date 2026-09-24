@@ -1,10 +1,9 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
 using MGUI.Core.UI;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Runtime.Serialization;
+using MGUI.Tests.Graph;
 
 namespace MGUI.Tests.Architecture;
 
@@ -82,9 +81,14 @@ public class CanvasLayoutEngineTests
     }
 
     [Fact]
-    public void Canvas_AttachedCoordinateHelpers_StoreAndReadMetadata()
+    public void Canvas_AttachedCoordinateHelpers_StoreAndReadTypedStorage()
     {
-        MGElement element = CreateMetadataOnlyElement();
+        // Since T1.2 (ADR-0016 decision D7), the four coordinates live in typed fields on MGElement itself
+        // (MGElement.CanvasLeft/Top/Right/Bottom) instead of MGElement.Metadata, so this only needs a real element.
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540));
+        MGDesktop desktop = new(runtime);
+        MGWindow window = new(desktop, 24, 24, 480, 260) { WindowStyle = WindowStyle.None };
+        MGTextBlock element = new(window, "");
 
         MGCanvas.SetLeft(element, 12);
         MGCanvas.SetTop(element, 18);
@@ -96,15 +100,13 @@ public class CanvasLayoutEngineTests
         Assert.Equal(24, MGCanvas.GetRight(element));
         Assert.Equal(30, MGCanvas.GetBottom(element));
 
+        Assert.Equal(12, element.CanvasLeft);
+        Assert.Equal(18, element.CanvasTop);
+        Assert.Equal(24, element.CanvasRight);
+        Assert.Equal(30, element.CanvasBottom);
+
         MGCanvas.SetLeft(element, null);
         Assert.Null(MGCanvas.GetLeft(element));
-    }
-
-    private static MGElement CreateMetadataOnlyElement()
-    {
-        MGTextBlock element = (MGTextBlock)FormatterServices.GetUninitializedObject(typeof(MGTextBlock));
-        FieldInfo metadataField = typeof(MGElement).GetField("<Metadata>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!;
-        metadataField.SetValue(element, new Dictionary<string, object>());
-        return element;
+        Assert.Null(element.CanvasLeft);
     }
 }
