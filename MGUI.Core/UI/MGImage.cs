@@ -100,8 +100,20 @@ public class MGImage : MGElement
         }
     }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private IUIAnimatedImage _AnimatedSource;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Point _AnimatedDrawOffset;
+
     private void UpdateActualSource()
     {
+        if (_AnimatedSource != null)
+        {
+            _AnimatedSource.Dispose();
+            _AnimatedSource = null;
+        }
+        _AnimatedDrawOffset = Point.Zero;
+
         if (Source != null)
         {
             ActualSource = Source;
@@ -110,9 +122,76 @@ public class MGImage : MGElement
         {
             ActualSource = Texture;
         }
+        else if (SourceName != null && GetResources().AssetProvider?.TryCreateAnimatedImage(SourceName, out var AnimatedImage) == true)
+        {
+            _AnimatedSource = AnimatedImage;
+            _AnimatedSource.Restart(AnimationStartOffset);
+            ApplyAnimatedFrame();
+        }
         else
         {
             ActualSource = null;
+        }
+    }
+
+    /// <summary>Copies the current frame of <see cref="_AnimatedSource"/> into <see cref="ActualSource"/> and <see cref="_AnimatedDrawOffset"/>.
+    /// Does not advance the animation; call <see cref="IUIAnimatedImage.Advance(TimeSpan)"/> first if that is desired.</summary>
+    private void ApplyAnimatedFrame()
+    {
+        var Frame = _AnimatedSource.CurrentImage;
+        _AnimatedDrawOffset = _AnimatedSource.CurrentDrawOffset;
+        ActualSource = Frame == null ? null : new MGTextureData(Frame, _AnimatedSource.CurrentSourceRect);
+    }
+
+    /// <summary>Restarts the currently-set animated source (if any) at <see cref="AnimationStartOffset"/> and refreshes the
+    /// displayed frame, without waiting for the next <see cref="UpdateSelf(ElementUpdateArgs)"/>.</summary>
+    private void RestartAnimation()
+    {
+        if (_AnimatedSource == null)
+        {
+            return;
+        }
+
+        _AnimatedSource.Restart(AnimationStartOffset);
+        ApplyAnimatedFrame();
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private TimeSpan _AnimationStartOffset;
+    /// <summary>The point in the animation's timeline to restart at. Setting this restarts the animation at the new offset.<para/>
+    /// Default value: <see cref="TimeSpan.Zero"/><para/>
+    /// See also: <see cref="IsAnimationPlaying"/></summary>
+    public TimeSpan AnimationStartOffset
+    {
+        get => _AnimationStartOffset;
+        set
+        {
+            if (_AnimationStartOffset != value)
+            {
+                _AnimationStartOffset = value;
+                NotifyPropertyChanged(nameof(AnimationStartOffset));
+                RestartAnimation();
+            }
+        }
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsAnimationPlaying = true;
+    /// <summary>Whether the current animated source (if any) advances every frame in <see cref="UpdateSelf(ElementUpdateArgs)"/>.<para/>
+    /// Setting this to false restarts the animation at <see cref="AnimationStartOffset"/> and holds its first frame there.<br/>
+    /// Setting this to true resumes playing from <see cref="AnimationStartOffset"/>.<para/>
+    /// Default value: true</summary>
+    public bool IsAnimationPlaying
+    {
+        get => _IsAnimationPlaying;
+        set
+        {
+            if (_IsAnimationPlaying != value)
+            {
+                _IsAnimationPlaying = value;
+                NotifyPropertyChanged(nameof(IsAnimationPlaying));
+                RestartAnimation();
+            }
         }
     }
 
@@ -251,6 +330,17 @@ public class MGImage : MGElement
 
             HorizontalContentAlignment = HorizontalAlignment.Center;
             VerticalContentAlignment = VerticalAlignment.Center;
+        }
+    }
+
+    public override void UpdateSelf(ElementUpdateArgs UA)
+    {
+        base.UpdateSelf(UA);
+
+        if (_AnimatedSource != null && IsAnimationPlaying)
+        {
+            _AnimatedSource.Advance(UA.BA.FrameElapsed);
+            ApplyAnimatedFrame();
         }
     }
 
@@ -402,7 +492,7 @@ public class MGImage : MGElement
             throw new NotImplementedException($"Unrecognized {nameof(Stretch)}: {Stretch}");
         }
 
-        var destinationBounds = Bounds.GetTranslated(DA.Offset);
+        var destinationBounds = Bounds.GetTranslated(DA.Offset).GetTranslated(_AnimatedDrawOffset);
         var isDownscaling = destinationBounds.Width < UnstretchedWidth || destinationBounds.Height < UnstretchedHeight;
         var shouldUseLinearFiltering = UseLinearFilteringWhenDownscaling
                                        && isDownscaling

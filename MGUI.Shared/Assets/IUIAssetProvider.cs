@@ -22,6 +22,18 @@ namespace MGUI.Shared.Assets
             sourceRect = null;
             return false;
         }
+
+        /// <summary>Creates a new, independent animation instance for a name the host recognizes as an animated image (ADR-0016,
+        /// "Animated image sources"), so each <c>MGUI.Core.UI.MGImage</c> whose <c>SourceName</c> names it can play its own phase.<para/>
+        /// The default implementation creates nothing, so existing implementers of <see cref="IUIAssetProvider"/> keep compiling
+        /// unchanged.</summary>
+        /// <param name="name">The name, as referenced by <c>MGImage.SourceName</c>. Never null.</param>
+        /// <param name="animatedImage">A new, independent animation instance, or null if <paramref name="name"/> does not name an animation.</param>
+        bool TryCreateAnimatedImage(string name, out IUIAnimatedImage animatedImage)
+        {
+            animatedImage = null;
+            return false;
+        }
     }
 
 }

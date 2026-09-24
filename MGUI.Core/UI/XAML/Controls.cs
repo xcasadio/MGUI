@@ -1275,6 +1275,11 @@ public class Image : Element
     [Category("Layout")]
     public Stretch? Stretch { get; set; }
 
+    [Category("Behavior")]
+    public TimeSpan? AnimationStartOffset { get; set; }
+    [Category("Behavior")]
+    public bool? IsAnimationPlaying { get; set; }
+
     protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent)
         => Source.HasValue ? new MGImage(Window, Source.Value) : new MGImage(Window, SourceName);
 
@@ -1290,6 +1295,16 @@ public class Image : Element
         if (Stretch.HasValue)
         {
             Image.Stretch = Stretch.Value;
+        }
+
+        if (AnimationStartOffset.HasValue)
+        {
+            Image.AnimationStartOffset = AnimationStartOffset.Value;
+        }
+
+        if (IsAnimationPlaying.HasValue)
+        {
+            Image.IsAnimationPlaying = IsAnimationPlaying.Value;
         }
     }
 

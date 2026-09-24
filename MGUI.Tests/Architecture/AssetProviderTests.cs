@@ -18,11 +18,11 @@ public class AssetProviderTests
         }
     }
 
-    /// <summary>ADR-0016, "Host resolution of image names": <see cref="IUIAssetProvider"/> stays minimal after gaining
-    /// <see cref="IUIAssetProvider.TryResolveImage"/> -- still just the two whole-image loaders plus the one resolution
-    /// member, no properties.</summary>
+    /// <summary>ADR-0016, "Host resolution of image names" and "Animated image sources": <see cref="IUIAssetProvider"/> stays
+    /// minimal after gaining <see cref="IUIAssetProvider.TryResolveImage"/> and <see cref="IUIAssetProvider.TryCreateAnimatedImage"/>
+    /// -- still just the two whole-image loaders plus the one resolution member and the one animation-creation member, no properties.</summary>
     [Fact]
-    public void IUIAssetProvider_ExposesImageLoadingAndResolutionOnly()
+    public void IUIAssetProvider_ExposesImageLoadingResolutionAndAnimationCreationOnly()
     {
         Type contractType = typeof(IUIAssetProvider);
         string[] propertyNames = contractType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
@@ -37,7 +37,11 @@ public class AssetProviderTests
 
         Assert.Empty(propertyNames);
         Assert.Equal(
-            new[] { nameof(IUIAssetProvider.LoadImage), nameof(IUIAssetProvider.TryLoadImage), nameof(IUIAssetProvider.TryResolveImage) }.OrderBy(x => x),
+            new[]
+            {
+                nameof(IUIAssetProvider.LoadImage), nameof(IUIAssetProvider.TryLoadImage),
+                nameof(IUIAssetProvider.TryResolveImage), nameof(IUIAssetProvider.TryCreateAnimatedImage)
+            }.OrderBy(x => x),
             methodNames);
     }
 
