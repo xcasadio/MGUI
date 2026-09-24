@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
@@ -151,6 +152,12 @@ public class MGDockAutoHideStrip : MGElement
     /// </summary>
     public void Refresh(IReadOnlyList<DockPanelNode> panels)
     {
+        // Unsubscribe from the panels the old buttons showed before dropping them.
+        foreach (var panel in _buttonMap.Values)
+        {
+            panel.PropertyChanged -= OnPanelPropertyChanged;
+        }
+
         // Remove all old buttons
         foreach (var btn in _buttons)
         {
@@ -167,6 +174,7 @@ public class MGDockAutoHideStrip : MGElement
             btn.SetParent(this);
             _buttons.Add(btn);
             _buttonMap[btn] = capturedPanel;
+            capturedPanel.PropertyChanged += OnPanelPropertyChanged;
 
             btn.MouseHandler.LMBReleasedInside += (_, e) =>
             {
@@ -180,6 +188,51 @@ public class MGDockAutoHideStrip : MGElement
 
         ApplyThemeVisuals();
         LayoutChanged(this, true);
+    }
+
+    /// <summary>Releases this strip's panel subscriptions without touching its buttons. Called by <see cref="MGDockHost"/>
+    /// before discarding a strip that a control template rebuild replaces, so a discarded strip stops mirroring
+    /// panels it no longer displays.</summary>
+    public void Detach()
+    {
+        foreach (var panel in _buttonMap.Values)
+        {
+            panel.PropertyChanged -= OnPanelPropertyChanged;
+        }
+    }
+
+    /// <summary>Keeps a button's label following its panel's <see cref="DockPanelNode.Title"/> with no hover or relayout
+    /// needed. <see cref="Refresh"/> subscribes each panel it shows a button for and unsubscribes all of them before
+    /// rebuilding, so a button no longer shown stops mirroring its panel's title.</summary>
+    private void OnPanelPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(DockPanelNode.Title) || sender is not DockPanelNode panel)
+        {
+            return;
+        }
+
+        foreach (var kvp in _buttonMap)
+        {
+            if (ReferenceEquals(kvp.Value, panel))
+            {
+                UpdateButtonText(kvp.Key, panel.Title);
+                break;
+            }
+        }
+    }
+
+    /// <summary>Refreshes a button's label text — an <see cref="MGTextBlock"/> for a horizontal strip, an
+    /// <see cref="MGRotatedTextLabel"/> for a vertical one (see <see cref="CreateButton"/>).</summary>
+    private static void UpdateButtonText(MGBorder btn, string title)
+    {
+        if (btn.Content is MGTextBlock label)
+        {
+            label.SetText(title);
+        }
+        else if (btn.Content is MGRotatedTextLabel rotatedLabel)
+        {
+            rotatedLabel.Text = title;
+        }
     }
 
     public void ApplyThemeVisuals()

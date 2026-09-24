@@ -513,7 +513,14 @@ public class MGDockTabGroup : MGContentHost
     /// </summary>
     private void RebuildTabHeaders()
     {
-        // Clear existing tabs
+        // Detach existing tabs from their panel (MGDockTabItem.Detach unsubscribes from
+        // DockPanelNode.PropertyChanged) before dropping them, so a discarded tab item stops
+        // mirroring a panel's title once it is no longer shown.
+        foreach (var tabItem in _tabItems.Values)
+        {
+            tabItem.Detach();
+        }
+
         _tabItems.Clear();
         if (_tabHeadersPanel == null)
         {

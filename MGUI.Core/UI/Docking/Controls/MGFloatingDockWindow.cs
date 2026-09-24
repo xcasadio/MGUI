@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Shared.Helpers;
 
@@ -40,6 +41,11 @@ public class MGFloatingDockWindow : MGWindow
 
     /// <summary>Saved window bounds captured just before a maximize operation so we can restore them later.</summary>
     private (int Left, int Top, int Width, int Height)? _preMaximizeBounds;
+
+    /// <summary>The panel whose <see cref="DockPanelNode.Title"/> currently backs <see cref="MGWindow.TitleText"/> — the
+    /// active panel, or <see cref="DockTabGroupNode.Panels"/>'s first panel when none is active. Tracked so
+    /// <see cref="UpdateTitle"/> can unsubscribe from it before following a different panel (see <see cref="OnTitleSourcePanelPropertyChanged"/>).</summary>
+    private DockPanelNode _titleSourcePanel;
 
     // ──────────────────────────────────────────────────────────────────────
     // Constructors
@@ -321,18 +327,34 @@ public class MGFloatingDockWindow : MGWindow
 
     private void UpdateTitle()
     {
-        var active = GroupNode.ActivePanel;
-        if (active != null)
+        var active = GroupNode.ActivePanel ?? (GroupNode.Panels.Count > 0 ? GroupNode.Panels[0] : null);
+
+        if (!ReferenceEquals(_titleSourcePanel, active))
         {
-            TitleText = active.Title;
+            if (_titleSourcePanel != null)
+            {
+                _titleSourcePanel.PropertyChanged -= OnTitleSourcePanelPropertyChanged;
+            }
+
+            _titleSourcePanel = active;
+
+            if (_titleSourcePanel != null)
+            {
+                _titleSourcePanel.PropertyChanged += OnTitleSourcePanelPropertyChanged;
+            }
         }
-        else if (GroupNode.Panels.Count > 0)
+
+        TitleText = active?.Title ?? string.Empty;
+    }
+
+    /// <summary>Keeps <see cref="MGWindow.TitleText"/> following <see cref="_titleSourcePanel"/>'s <see cref="DockPanelNode.Title"/>
+    /// with no hover or relayout needed. <see cref="UpdateTitle"/> moves this subscription whenever the active (or fallback) panel
+    /// changes, and drops it once no panel remains (see its <c>ReferenceEquals(_titleSourcePanel, active)</c> guard).</summary>
+    private void OnTitleSourcePanelPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DockPanelNode.Title))
         {
-            TitleText = GroupNode.Panels[0].Title;
-        }
-        else
-        {
-            TitleText = string.Empty;
+            TitleText = _titleSourcePanel?.Title ?? string.Empty;
         }
     }
 }

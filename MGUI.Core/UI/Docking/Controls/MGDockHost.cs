@@ -396,6 +396,7 @@ public class MGDockHost : MGSingleContentHost
                 if (previousStrip != null)
                 {
                     previousStrip.PanelActivated -= OnAutoHideStripPanelActivated;
+                    previousStrip.Detach();
                 }
 
                 strip.Side = side;

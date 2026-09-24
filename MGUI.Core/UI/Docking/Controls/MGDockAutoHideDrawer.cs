@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
@@ -84,7 +85,10 @@ public class MGDockAutoHideDrawer : MGContentHost
     }
 
     private DockPanelNode _activePanel;
-    /// <summary>The panel currently shown in the drawer, or null.</summary>
+    /// <summary>The panel currently shown in the drawer, or null. Setting this unsubscribes from the previous panel's
+    /// <see cref="DockPanelNode.PropertyChanged"/> and subscribes to the new one, so the drawer keeps following its
+    /// panel's <see cref="DockPanelNode.Title"/> (see <see cref="OnActivePanelPropertyChanged"/>) for as long as it
+    /// shows it, and stops when set to null.</summary>
     public DockPanelNode ActivePanel
     {
         get => _activePanel;
@@ -92,10 +96,31 @@ public class MGDockAutoHideDrawer : MGContentHost
         {
             if (_activePanel != value)
             {
+                if (_activePanel != null)
+                {
+                    _activePanel.PropertyChanged -= OnActivePanelPropertyChanged;
+                }
+
                 _activePanel = value;
+
+                if (_activePanel != null)
+                {
+                    _activePanel.PropertyChanged += OnActivePanelPropertyChanged;
+                }
+
                 RefreshContent();
                 NotifyPropertyChanged(nameof(ActivePanel));
             }
+        }
+    }
+
+    /// <summary>Refreshes <see cref="_titleLabel"/> as soon as <see cref="_activePanel"/> changes its <see cref="DockPanelNode.Title"/>,
+    /// with no hover or relayout needed.</summary>
+    private void OnActivePanelPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DockPanelNode.Title))
+        {
+            _titleLabel?.SetText(_activePanel?.Title ?? "");
         }
     }
 

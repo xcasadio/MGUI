@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
@@ -23,7 +24,10 @@ public class MGDockTabItem : MGElement
 
     private DockPanelNode _panel;
     /// <summary>
-    /// The dock panel node this tab represents.
+    /// The dock panel node this tab represents. Setting this unsubscribes from the previous panel's
+    /// <see cref="DockPanelNode.PropertyChanged"/> and subscribes to the new one, so this tab keeps
+    /// following its panel's <see cref="DockPanelNode.Title"/> (see <see cref="OnPanelPropertyChanged"/>)
+    /// for as long as it displays it. Set to null (see <see cref="Detach"/>) to let go of a discarded panel.
     /// </summary>
     public DockPanelNode Panel
     {
@@ -32,12 +36,39 @@ public class MGDockTabItem : MGElement
         {
             if (_panel != value)
             {
+                if (_panel != null)
+                {
+                    _panel.PropertyChanged -= OnPanelPropertyChanged;
+                }
+
                 _panel = value;
+
+                if (_panel != null)
+                {
+                    _panel.PropertyChanged += OnPanelPropertyChanged;
+                }
+
                 UpdateVisuals();
                 NotifyPropertyChanged(nameof(Panel));
             }
         }
     }
+
+    /// <summary>Refreshes the title text as soon as the panel it is bound to changes its <see cref="DockPanelNode.Title"/>,
+    /// with no hover or relayout needed. <see cref="MGTextBlock.SetText(string, bool)"/> invalidates this tab's layout on
+    /// an actual change, which is all the resize a title change needs (see <see cref="UpdateContentMeasurement"/>).</summary>
+    private void OnPanelPropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DockPanelNode.Title))
+        {
+            _titleText?.SetText(_panel?.Title);
+        }
+    }
+
+    /// <summary>Detaches this tab item from the panel it displays, unsubscribing from its <see cref="DockPanelNode.PropertyChanged"/>.
+    /// Called by <see cref="MGDockTabGroup.RebuildTabHeaders"/> (and any other discard site) before dropping a tab item it no
+    /// longer needs, so a discarded tab stops mirroring a panel's title after it has been replaced.</summary>
+    public void Detach() => Panel = null;
 
     private bool _isActive;
     /// <summary>
@@ -251,6 +282,10 @@ public class MGDockTabItem : MGElement
         using (BeginInitializing())
         {
             _panel = panel;
+            if (_panel != null)
+            {
+                _panel.PropertyChanged += OnPanelPropertyChanged;
+            }
 
             // Set default brushes with better visual distinction
             NormalBrush = new MGSolidFillBrush(new Color(45, 45, 48));      // Dark gray (inactive)
