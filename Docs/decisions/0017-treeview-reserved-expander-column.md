@@ -54,10 +54,12 @@ default, and propagation to every item through `RegisterItemRecursive`.
 ## Consequences
 
 - Built-in themes: `Dark_Blue` and `Light_Gray` both set `TreeViewExpanderButtonSize = 16`, so an expandable item's
-  column stays 16 px (was 14 px: `MinWidth 10` + `4` px margin) — a 2 px widening for those items — while a leaf's
-  column grows from 0 to 16 px, shifting its header text right by one full column. `Dark` sets `14`, unchanged.
-  `MGUI.Samples/Features/EditorCompact.Themes.xaml` (`BasedOn="Dark"`) does not override the value and keeps
-  inheriting 14. An empty theme (`MGTheme.CreateEmpty`) still falls back to the 16 px constant instead of 0.
+  column becomes 16 px (was 14 px: `MinWidth 10` + `4` px margin) — a 2 px widening for those items — while a leaf's
+  column grows from 0 to 16 px, shifting its header text right by one full column. `Dark` sets `14`: an expandable
+  item's column keeps its previous 14 px width, but a leaf's column still grows from 0 to 14 px, so leaves shift right
+  under `Dark` too. `MGUI.Samples/Features/EditorCompact.Themes.xaml` (`BasedOn="Dark"`) does not override the value
+  and inherits 14, as does the `MGUI.Editor` host, which uses `Dark`: their leaves shift right by 14 px. An empty theme
+  (`MGTheme.CreateEmpty`) falls back to the 16 px constant instead of 0.
 - `UIThemeValueInvalidation`'s `TreeViewExpanderButtonSize` entry is now read by `MGControlTemplateCatalog`'s TreeView
   template default, so its "not read by any control yet" comment no longer applies.
 - The sample at `MGUI.Samples/Controls/TreeView.xaml` gains a fourth, childless root item (`Root Item 4`) so a

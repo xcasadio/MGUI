@@ -318,7 +318,7 @@ public class MGTreeViewItem : MGSingleContentHost
     /// <summary>
     /// Resizes the expander column to <see cref="MGTreeView.ExpanderButtonSize"/> (falling back to
     /// <see cref="MGControlTemplateCatalog.DefaultTreeViewExpanderButtonSize"/> when there is no owner tree, or when the
-    /// owner's value is <= 0), so a leaf's reserved column is exactly as wide as an expandable sibling's triangle column.
+    /// owner's value is less than or equal to 0), so a leaf's reserved column is exactly as wide as an expandable sibling's triangle column.
     /// </summary>
     internal void UpdateExpanderButtonWidth()
     {

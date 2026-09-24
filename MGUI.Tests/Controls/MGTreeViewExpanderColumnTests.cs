@@ -60,6 +60,12 @@ public class MGTreeViewExpanderColumnTests
         Assert.Equal(1, leaf.Level);
         Assert.Equal(1, branch.Level);
         Assert.Equal(leaf.HeaderContent.ActualLayoutBounds.X, branch.HeaderContent.ActualLayoutBounds.X);
+
+        // Not only equal to each other: both headers start one indentation level plus one expander column to the right of
+        // the root item's left edge, so a consistent but wrong nested column width (or indent) cannot pass.
+        int expectedOffset = leaf.Level * harness.TreeView.IndentSize + harness.TreeView.ExpanderButtonSize;
+        Assert.Equal(expectedOffset, leaf.HeaderContent.ActualLayoutBounds.X - parent.ActualLayoutBounds.X);
+        Assert.Equal(expectedOffset, branch.HeaderContent.ActualLayoutBounds.X - parent.ActualLayoutBounds.X);
     }
 
     [Fact]

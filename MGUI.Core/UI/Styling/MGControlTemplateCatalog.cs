@@ -51,9 +51,11 @@ public static class MGControlTemplateCatalog
     public static readonly Thickness DefaultListBoxItemContentPadding = new(1, 0);
     public static readonly Thickness DefaultComboBoxDropdownItemPadding = new(8, 5, 8, 5);
     public const int DefaultTreeViewIndentSize = 20;
-    /// <summary>The default width, in pixels, reserved for the expand/collapse triangle column of an <see cref="MGTreeViewItem"/>
-    /// when neither <see cref="MGTreeView.ExpanderButtonSize"/> nor <see cref="MGTheme.TreeViewExpanderButtonSize"/> supplies a
-    /// value greater than 0.</summary>
+    /// <summary>The default width, in pixels, reserved for the expand/collapse triangle column of an <see cref="MGTreeViewItem"/>:
+    /// the initial value of <see cref="MGTreeView.ExpanderButtonSize"/>, the theme default when
+    /// <see cref="MGTheme.TreeViewExpanderButtonSize"/> is less than or equal to 0, and the width an item uses whenever the
+    /// effective <see cref="MGTreeView.ExpanderButtonSize"/> is less than or equal to 0 (even if the theme supplies a
+    /// positive value) or the item has no owner tree.</summary>
     public const int DefaultTreeViewExpanderButtonSize = 16;
 
     public static MGUniformBorderBrush CreateDefaultListBoxItemBorderBrush()
