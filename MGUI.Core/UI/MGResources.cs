@@ -185,6 +185,10 @@ public class MGResources
         _Textures.Add(Name, Data);
         //  A name explicitly (re-)added no longer counts as unresolvable (ADR-0016's negative cache).
         _UnresolvableProviderNames?.Remove(Name);
+        //  An explicit caller now owns this name, so ForgetHostResolvedTextures must leave it alone.
+        //  TryResolveTextureFromProvider itself marks a name host-resolved AFTER calling this method, so this
+        //  never undoes its own bookkeeping.
+        _HostResolvedNames?.Remove(Name);
         OnTextureAdded?.Invoke(this, (Name, Data));
     }
 
@@ -227,6 +231,13 @@ public class MGResources
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private HashSet<string> _UnresolvableProviderNames;
 
+    /// <summary>Names in <see cref="_Textures"/> that were added by <see cref="TryResolveTextureFromProvider"/> itself,
+    /// as opposed to an explicit <see cref="AddTexture"/> call (XAML markup, a theme, or any other caller). Only
+    /// these -- plus <see cref="_UnresolvableProviderNames"/> -- are cleared by <see cref="ForgetHostResolvedTextures"/>,
+    /// so a texture nothing but the host resolved is never confused with one the scope owns some other way.</summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private HashSet<string> _HostResolvedNames;
+
     private bool TryResolveTextureFromProvider(string Name, out MGTextureData Data)
     {
         if (Name == null || AssetProvider == null || (_UnresolvableProviderNames?.Contains(Name) == true))
@@ -246,6 +257,7 @@ public class MGResources
         {
             Data = new MGTextureData(Image, SourceRect);
             AddTexture(Name, Data);
+            (_HostResolvedNames ??= new()).Add(Name);
             return true;
         }
         else
@@ -254,6 +266,39 @@ public class MGResources
             Data = default;
             return false;
         }
+    }
+
+    /// <summary>
+    /// Forgets every texture this (root) scope resolved through <see cref="AssetProvider"/> -- as opposed to
+    /// one added explicitly via <see cref="AddTexture"/> -- and clears the negative cache of names the
+    /// provider failed to resolve, so every one of those names is asked again the next time it is needed.
+    /// <para/>
+    /// For an <see cref="MGImage"/> currently showing a host-resolved name: removing its texture here raises
+    /// <see cref="OnTextureRemoved"/> exactly as <see cref="RemoveTexture"/> does, so it refreshes (to nothing,
+    /// until the name resolves again) the same way it would if the host had unloaded that texture.
+    /// <para/>
+    /// Intended for a host whose <see cref="AssetProvider"/> now resolves against a different source -- an
+    /// editor that switched project, for example (ADR-0038's engine counterpart): a name resolved against the
+    /// previous source, or one the provider failed to resolve only because that source was not ready yet, must
+    /// not stay cached. Only ever does anything on the scope that actually populated these caches -- the root
+    /// scope, the only one <see cref="TryResolveTextureFromProvider"/> runs on -- so calling this on any other
+    /// scope is a harmless no-op.
+    /// </summary>
+    public void ForgetHostResolvedTextures()
+    {
+        if (_HostResolvedNames is { Count: > 0 })
+        {
+            //  RemoveTexture mutates _Textures; copy the names first since _HostResolvedNames itself is
+            //  cleared below regardless of what RemoveTexture does.
+            foreach (var Name in _HostResolvedNames.ToArray())
+            {
+                RemoveTexture(Name);
+            }
+
+            _HostResolvedNames.Clear();
+        }
+
+        _UnresolvableProviderNames?.Clear();
     }
 
     public bool TryLoadImage(string Name, string AssetName)

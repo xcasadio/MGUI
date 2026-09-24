@@ -143,6 +143,47 @@ public class HostImageResolutionTests
         Assert.Equal(0, after - before);
     }
 
+    [Fact]
+    public void ForgetHostResolvedTextures_AsksProviderAgain_ButLeavesExplicitlyAddedTexturesAndFiresRemoval()
+    {
+        FakeResolvingAssetProvider provider = new();
+        FakeImageResource resolvedImage = new(32, 32);
+        FakeImageResource explicitImage = new(8, 8);
+        provider.Register("sprite:hero", resolvedImage);
+
+        Harness harness = Harness.Create(provider);
+        harness.Desktop.Resources.AddTexture("explicit:name", new MGTextureData(explicitImage));
+
+        MGImage resolvedByProvider = new(harness.Window, "sprite:hero");
+        MGImage unresolvable = new(harness.Window, "sprite:missing");
+        harness.Panel.TryAddChild(resolvedByProvider);
+        harness.Panel.TryAddChild(unresolvable);
+        harness.Desktop.Update();
+        harness.Desktop.Update();
+
+        Assert.NotNull(resolvedByProvider.ActualSource);
+        Assert.Equal(1, provider.AskCount("sprite:hero"));
+        Assert.Equal(1, provider.AskCount("sprite:missing"));
+
+        var removedNames = new List<string>();
+        harness.Desktop.Resources.OnTextureRemoved += (_, e) => removedNames.Add(e.Name);
+
+        harness.Desktop.Resources.ForgetHostResolvedTextures();
+
+        // The provider-resolved texture was removed (raising OnTextureRemoved); the explicitly added one was not.
+        Assert.Contains("sprite:hero", removedNames);
+        Assert.DoesNotContain("explicit:name", removedNames);
+        Assert.True(harness.Desktop.Resources.TryGetTexture("explicit:name", out _));
+
+        // Both the positive and the negative cache were forgotten: a fresh lookup asks the provider again for
+        // each name (the "sprite:hero" MGImage already triggered its own re-lookup from the removal event
+        // above; "sprite:missing" never got one, since nothing was removed for a name that never resolved).
+        harness.Desktop.Resources.TryGetTexture("sprite:hero", out _);
+        harness.Desktop.Resources.TryGetTexture("sprite:missing", out _);
+        Assert.Equal(2, provider.AskCount("sprite:hero"));
+        Assert.Equal(2, provider.AskCount("sprite:missing"));
+    }
+
     private sealed class FakeResolvingAssetProvider : IUIAssetProvider
     {
         private readonly Dictionary<string, (IUIImageResource Image, Rectangle? SourceRect)> _registrations = new();
