@@ -273,9 +273,11 @@ public class MGResources
     /// one added explicitly via <see cref="AddTexture"/> -- and clears the negative cache of names the
     /// provider failed to resolve, so every one of those names is asked again the next time it is needed.
     /// <para/>
-    /// For an <see cref="MGImage"/> currently showing a host-resolved name: removing its texture here raises
-    /// <see cref="OnTextureRemoved"/> exactly as <see cref="RemoveTexture"/> does, so it refreshes (to nothing,
-    /// until the name resolves again) the same way it would if the host had unloaded that texture.
+    /// Removing a texture here raises <see cref="OnTextureRemoved"/> on this scope exactly as <see cref="RemoveTexture"/>
+    /// does, so an <see cref="MGImage"/> subscribed to this same scope refreshes. An image whose nearest scope is a
+    /// child scope (a window or element with its own resources) is NOT notified: texture events are not forwarded
+    /// down to child scopes (only the two events of <see cref="WeakParentScopeForwarder"/> are), so such an image
+    /// keeps the texture it already had until its <see cref="MGImage.SourceName"/> changes.
     /// <para/>
     /// Intended for a host whose <see cref="AssetProvider"/> now resolves against a different source -- an
     /// editor that switched project, for example (ADR-0038's engine counterpart): a name resolved against the
