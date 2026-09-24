@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Globalization;
 using MGUI.Core.UI.Brushes.FillBrushes;
+using Microsoft.Xna.Framework;
+using MonoGame.Extended;
 
 #if UseWPF
 using System.Windows.Data;
@@ -75,6 +77,27 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
     private readonly MGElement PilotOwner;
     private readonly UIPilotProperty PilotProperty;
     private readonly UIValueSlot PilotSlot;
+
+    /// <summary>ADR-0016: the <see cref="Styling.UIValueResolutionSource.LocalBinding"/> this binding's pilot writes
+    /// (if any) should carry, computed once here instead of on every push (the previous implementation built a fresh
+    /// one, plus a fresh closure, every time the source value changed).</summary>
+    private readonly UIValueResolutionSource PilotResolutionSource;
+
+    /// <summary>ADR-0016: the source-&gt;target tagged writer, built once in the constructor instead of once per push.
+    /// Never used for the target-&gt;source direction, which must never tag a pilot contribution.</summary>
+    private readonly Func<object, bool> ForwardTaggedWriter;
+
+    /// <summary>ADR-0016: which allocation-free push path <see cref="PushSourceToTarget"/> should take, re-selected in
+    /// <see cref="SourceProperty"/>'s setter whenever the source property is (re)resolved: <see cref="PushStrategy.Reflection"/>
+    /// is the pre-existing path (still used for a converter, a string format, a reference-typed pilot value, a type
+    /// mismatch, or while no source is resolved); the others copy a value of the shown CLR type with no boxing and no
+    /// reflection.</summary>
+    private enum PushStrategy { Reflection, PilotThickness, PilotNullableInt, PilotNullableColor, TypedCopy }
+    private PushStrategy Strategy = PushStrategy.Reflection;
+    private Func<object, Thickness> TypedThicknessGetter;
+    private Func<object, int?> TypedNullableIntGetter;
+    private Func<object, Color?> TypedNullableColorGetter;
+    private Action<object, object> TypedCopyDelegate;
 
     public readonly object TargetObject;
     public readonly string TargetPropertyName;
@@ -235,7 +258,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
                 //  Apply OneTime bindings
                 else if (Config.BindingMode is DataBindingMode.OneTime)
                 {
-                    TrySetPropertyValue(SourceObject, SourceProperty, SourcePropertyType, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings, true);
+                    PushSourceToTarget();
                 }
 
                 //  Listen for changes to the source object's property value
@@ -263,6 +286,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             {
                 _SourceProperty = value;
                 SourcePropertyType = GetUnderlyingType(SourceProperty);
+                SelectPushStrategy();
             }
         }
     }
@@ -289,28 +313,12 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         return Current;
     }
 
-    private static readonly Dictionary<object, Dictionary<string, PropertyInfo>> CachedProperties = new();
+    /// <summary>ADR-0016: delegates to <see cref="TypedAccessorCache.GetProperty"/>, keyed by (owner <see cref="Type"/>,
+    /// property name) instead of by object instance -- the previous instance-keyed cache never evicted an entry, so
+    /// every bound object stayed alive for the process lifetime. A type-keyed cache is bounded by the number of
+    /// distinct CLR types seen, not by the number of bound instances.</summary>
     private static PropertyInfo GetPublicProperty(object Parent, string PropertyName)
-    {
-        if (Parent == null || string.IsNullOrEmpty(PropertyName))
-        {
-            return null;
-        }
-
-        if (!CachedProperties.TryGetValue(Parent, out var PropertiesByName))
-        {
-            PropertiesByName = new();
-            CachedProperties.Add(Parent, PropertiesByName);
-        }
-
-        if (!PropertiesByName.TryGetValue(PropertyName, out var PropInfo))
-        {
-            PropInfo = Parent.GetType().GetProperty(PropertyName);
-            PropertiesByName.Add(PropertyName, PropInfo);
-        }
-
-        return PropInfo;
-    }
+        => Parent == null ? null : TypedAccessorCache.GetProperty(Parent.GetType(), PropertyName);
 
     /// <summary>Retrieve the given <paramref name="PropInfo"/>'s <see cref="PropertyInfo.PropertyType"/>, 
     /// but prioritizes the underlying type if the type is wrapped in a Nullable&lt;T&gt;</summary>
@@ -336,6 +344,15 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         //  contribution instead of writing TargetProperty via reflection. A path that isn't a pilot (the vast
         //  majority of bindings) leaves HasPilotTarget false and every write below behaves exactly as before.
         HasPilotTarget = UIPilotPropertyResolver.TryResolve(TargetRoot, Config.TargetPath, out PilotOwner, out PilotProperty, out PilotSlot);
+
+        //  ADR-0016: build the pilot resolution source and the tagged writer closure ONCE here, instead of on every
+        //  push (the previous BuildTaggedWriter allocated a fresh closure on every source value change).
+        PilotResolutionSource = HasPilotTarget
+            ? UIValueResolutionSource.LocalBinding(UIPilotPropertyResolver.KindOf(PilotProperty), Config.TargetPath)
+            : default;
+        ForwardTaggedWriter = HasPilotTarget
+            ? Value => UIPilotPropertyResolver.TrySetTagged(PilotOwner, PilotProperty, PilotSlot, Value, PilotResolutionSource)
+            : null;
 
         //  The Source object is computed in 3 steps:
         //  1. Use the SourceObjectResolver to determine where to start
@@ -394,21 +411,12 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
     #region Set Property Value
     private bool IsSettingValue = false;
 
-    /// <summary>ADR-0005/S8: builds a delegate that attempts a tagged <see cref="UIValueResolutionSource.LocalBinding"/>
-    /// write of the (already-converted) value via <see cref="Styling.UIPilotPropertyResolver.TrySetTagged"/>, or
-    /// <see langword="null"/> when this binding's target isn't a pilot property (<see cref="HasPilotTarget"/> false)
-    /// or the call site is the target-&gt;source direction (<paramref name="AllowPilotTagging"/> false, e.g.
-    /// <see cref="TargetPropertyValueChanged"/>, which writes into the SOURCE and must never be tagged).</summary>
-    private Func<object, bool> BuildTaggedWriter(bool AllowPilotTagging)
-    {
-        if (!AllowPilotTagging || !HasPilotTarget)
-        {
-            return null;
-        }
-
-        return Value => UIPilotPropertyResolver.TrySetTagged(PilotOwner, PilotProperty, PilotSlot, Value,
-            UIValueResolutionSource.LocalBinding(UIPilotPropertyResolver.KindOf(PilotProperty), Config.TargetPath));
-    }
+    /// <summary>ADR-0016: which cached, per-binding tagged writer (or <see langword="null"/>) a caller in this class
+    /// should pass to <see cref="TrySetValue"/>. <paramref name="AllowPilotTagging"/> is <see langword="false"/> for
+    /// the target-&gt;source direction (<see cref="TargetPropertyValueChanged"/>), which writes into the SOURCE and
+    /// must never be tagged; <see cref="ForwardTaggedWriter"/> (built once in the constructor) is <see langword="null"/>
+    /// whenever this binding's target isn't a pilot property (<see cref="HasPilotTarget"/> false).</summary>
+    private Func<object, bool> GetTaggedWriter(bool AllowPilotTagging) => AllowPilotTagging ? ForwardTaggedWriter : null;
 
     private bool TrySetPropertyValue(object Value, object TargetObject, PropertyInfo TargetProperty, Type TargetPropertyType, ConverterConfig? ConverterSettings, bool AllowPilotTagging)
     {
@@ -420,7 +428,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         try
         {
             IsSettingValue = true;
-            return TrySetValue(this, Value, TargetObject, TargetProperty, TargetPropertyType, ConverterSettings, Config.StringFormat, BuildTaggedWriter(AllowPilotTagging));
+            return TrySetValue(this, Value, TargetObject, TargetProperty, TargetPropertyType, ConverterSettings, Config.StringFormat, GetTaggedWriter(AllowPilotTagging));
         }
         finally { IsSettingValue = false; }
     }
@@ -438,9 +446,162 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             IsSettingValue = true;
             return TrySetValue(this, SourceObject, SourceProperty, SourcePropertyType,
                 TargetObject, TargetProperty, TargetPropertyType,
-                ConverterSettings, Config.StringFormat, BuildTaggedWriter(AllowPilotTagging));
+                ConverterSettings, Config.StringFormat, GetTaggedWriter(AllowPilotTagging));
         }
         finally { IsSettingValue = false; }
+    }
+
+    /// <summary>ADR-0016: re-selects, without compiling anything new for a (type, property) pair already seen, which
+    /// allocation-free push path <see cref="PushSourceToTarget"/> should take for the SOURCE-&gt;TARGET direction.
+    /// Called whenever <see cref="SourceProperty"/> is (re)resolved: first resolution, a new source object, a new
+    /// data context, or a different declared source property type.<para/>
+    /// Stays on <see cref="PushStrategy.Reflection"/> (the pre-existing, unoptimized path -- still correct, just not
+    /// allocation-free) whenever a converter or a string format is configured, no source property is currently
+    /// resolved, the pilot's expected value type isn't one of the three value-typed pilots (a reference-typed pilot
+    /// value, e.g. a brush, already writes with no boxing via <see cref="ForwardTaggedWriter"/>'s <see cref="object"/>
+    /// overload), or (for a non-pilot target) the source and target CLR property types don't match exactly.</summary>
+    private void SelectPushStrategy()
+    {
+        Strategy = PushStrategy.Reflection;
+        TypedThicknessGetter = null;
+        TypedNullableIntGetter = null;
+        TypedNullableColorGetter = null;
+        TypedCopyDelegate = null;
+
+        if (SourceObject == null || SourceProperty == null || Config.Converter != null || Config.StringFormat != null)
+        {
+            return;
+        }
+
+        Type SourceOwnerType = SourceObject.GetType();
+
+        if (HasPilotTarget)
+        {
+            if (SourceProperty.PropertyType == typeof(Thickness) &&
+                TypedAccessorCache.GetOrBuildGetter(SourceOwnerType, SourceProperty) is Func<object, Thickness> ThicknessGetter)
+            {
+                TypedThicknessGetter = ThicknessGetter;
+                Strategy = PushStrategy.PilotThickness;
+            }
+            else if (SourceProperty.PropertyType == typeof(int?) &&
+                TypedAccessorCache.GetOrBuildGetter(SourceOwnerType, SourceProperty) is Func<object, int?> NullableIntGetter)
+            {
+                TypedNullableIntGetter = NullableIntGetter;
+                Strategy = PushStrategy.PilotNullableInt;
+            }
+            else if (SourceProperty.PropertyType == typeof(Color?) &&
+                TypedAccessorCache.GetOrBuildGetter(SourceOwnerType, SourceProperty) is Func<object, Color?> NullableColorGetter)
+            {
+                TypedNullableColorGetter = NullableColorGetter;
+                Strategy = PushStrategy.PilotNullableColor;
+            }
+
+            //  Otherwise (a reference-typed pilot value, or a source property type that doesn't match): keep
+            //  PushStrategy.Reflection, which already writes through ForwardTaggedWriter with no boxing for a
+            //  reference-typed value.
+            return;
+        }
+
+        if (TargetProperty != null)
+        {
+            Action<object, object> Copy = TypedAccessorCache.GetOrBuildCopy(SourceOwnerType, SourceProperty, TargetObject.GetType(), TargetProperty);
+            if (Copy != null)
+            {
+                TypedCopyDelegate = Copy;
+                Strategy = PushStrategy.TypedCopy;
+            }
+        }
+    }
+
+    /// <summary>ADR-0016: pushes the current <see cref="SourceObject"/>/<see cref="SourceProperty"/> value into
+    /// <see cref="TargetObject"/>/<see cref="TargetProperty"/> along whichever path <see cref="SelectPushStrategy"/>
+    /// last chose. Guards re-entrancy exactly like the reflection-based <see cref="TrySetPropertyValue"/> overloads
+    /// (this replaces their call for the source-&gt;target direction), and reports errors the same way.</summary>
+    private bool PushSourceToTarget()
+    {
+        if (IsSettingValue)
+        {
+            return false;
+        }
+
+        try
+        {
+            IsSettingValue = true;
+
+            switch (Strategy)
+            {
+                case PushStrategy.PilotThickness:
+                    return PushPilotThickness();
+                case PushStrategy.PilotNullableInt:
+                    return PushPilotNullableInt();
+                case PushStrategy.PilotNullableColor:
+                    return PushPilotNullableColor();
+                case PushStrategy.TypedCopy:
+                    return PushTypedCopy();
+                default:
+                    return TrySetValue(this, SourceObject, SourceProperty, SourcePropertyType,
+                        TargetObject, TargetProperty, TargetPropertyType, ConvertSettings, Config.StringFormat, ForwardTaggedWriter);
+            }
+        }
+        finally { IsSettingValue = false; }
+    }
+
+    private bool PushPilotThickness()
+    {
+        try
+        {
+            UIPilotPropertyResolver.TrySetTagged(PilotOwner, PilotProperty, PilotSlot, TypedThicknessGetter(SourceObject), PilotResolutionSource);
+            HasError = false;
+            LastError = null;
+            return true;
+        }
+        catch (Exception ex) { return ReportPushError(ex); }
+    }
+
+    private bool PushPilotNullableInt()
+    {
+        try
+        {
+            UIPilotPropertyResolver.TrySetTagged(PilotOwner, PilotProperty, PilotSlot, TypedNullableIntGetter(SourceObject), PilotResolutionSource);
+            HasError = false;
+            LastError = null;
+            return true;
+        }
+        catch (Exception ex) { return ReportPushError(ex); }
+    }
+
+    private bool PushPilotNullableColor()
+    {
+        try
+        {
+            UIPilotPropertyResolver.TrySetTagged(PilotOwner, PilotProperty, PilotSlot, TypedNullableColorGetter(SourceObject), PilotResolutionSource);
+            HasError = false;
+            LastError = null;
+            return true;
+        }
+        catch (Exception ex) { return ReportPushError(ex); }
+    }
+
+    private bool PushTypedCopy()
+    {
+        try
+        {
+            TypedCopyDelegate(SourceObject, TargetObject);
+            HasError = false;
+            LastError = null;
+            return true;
+        }
+        catch (Exception ex) { return ReportPushError(ex); }
+    }
+
+    /// <summary>Shared error reporting for the allocation-free push paths, matching what <see cref="TrySetValue"/>
+    /// already does for the reflection path.</summary>
+    private bool ReportPushError(Exception ex)
+    {
+        Debug.WriteLine($"[DataBinding ERROR] Typed push failed for property '{TargetProperty?.Name}' on '{TargetObject?.GetType().Name}': {ex.Message}");
+        HasError = true;
+        LastError = ex.Message;
+        return false;
     }
 
     /// <summary>Attempts to copy the given <paramref name="Value"/> into the <paramref name="TargetObject"/>'s <paramref name="TargetProperty"/>.</summary>
@@ -772,7 +933,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         //  Propagate the new value to the TargetProperty
         if (!IsSettingValue && Config.BindingMode is DataBindingMode.OneWay or DataBindingMode.TwoWay)
         {
-            TrySetPropertyValue(SourceObject, SourceProperty, SourcePropertyType, TargetObject, TargetProperty, TargetPropertyType, ConvertSettings, true);
+            PushSourceToTarget();
         }
     }
 

@@ -148,6 +148,75 @@ internal static class UIPilotPropertyResolver
         }
     }
 
+    /// <summary>ADR-0016: typed overload of <see cref="TrySetTagged(MGElement, UIPilotProperty, UIValueSlot, object, UIValueResolutionSource)"/>
+    /// for the three pilots whose tagged value is a value type (<see cref="Thickness"/>): <c>Margin</c>, <c>Padding</c>
+    /// and <c>BorderThickness</c>. Taking <paramref name="value"/> as a plain <see cref="Thickness"/> instead of
+    /// <see cref="object"/> lets a typed binding push (<see cref="DataBinding.TypedAccessorCache"/>) call this without
+    /// boxing the value first. Same slot/owner rules as the <see cref="object"/> overload.</summary>
+    /// <remarks>See <c>MGUI.Core.UI.DataBinding.TypedAccessorCache</c> for the compiled, boxing-free source read
+    /// that supplies this overload's <paramref name="value"/>.</remarks>
+    public static bool TrySetTagged(MGElement owner, UIPilotProperty pilot, UIValueSlot slot, Thickness value, UIValueResolutionSource source)
+    {
+        if (owner == null)
+            return false;
+
+        switch (pilot)
+        {
+            case UIPilotProperty.Margin:
+                owner.SetMargin(value, source);
+                return true;
+            case UIPilotProperty.Padding:
+                owner.SetPadding(value, source);
+                return true;
+            case UIPilotProperty.BorderThickness:
+                owner.SetBorderThicknessTagged(value, source);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>ADR-0016: typed overload for the one pilot whose tagged value is <see cref="int"/>?: <c>MinHeight</c>.
+    /// See the <see cref="Thickness"/> overload's remarks.</summary>
+    public static bool TrySetTagged(MGElement owner, UIPilotProperty pilot, UIValueSlot slot, int? value, UIValueResolutionSource source)
+    {
+        if (owner == null || pilot != UIPilotProperty.MinHeight)
+        {
+            return false;
+        }
+
+        owner.SetMinHeight(value, source);
+        return true;
+    }
+
+    /// <summary>ADR-0016: typed overload for the pilots whose tagged value is a <see cref="Color"/>?: the Background
+    /// container's <c>FocusedColor</c> sub-slot, and the <c>Normal</c>/<c>Selected</c>/<c>Disabled</c>/<c>Focused</c>
+    /// sub-slots of <c>DefaultTextForeground</c> and (on an <see cref="MGTextBlock"/>) <c>Foreground</c>. See the
+    /// <see cref="Thickness"/> overload's remarks.</summary>
+    public static bool TrySetTagged(MGElement owner, UIPilotProperty pilot, UIValueSlot slot, Color? value, UIValueResolutionSource source)
+    {
+        if (owner == null)
+        {
+            return false;
+        }
+
+        switch (pilot)
+        {
+            case UIPilotProperty.Background when slot == UIValueSlot.FocusedColor:
+                owner.SetBackgroundFocusedColor(value, source);
+                return true;
+            case UIPilotProperty.DefaultTextForeground when slot is UIValueSlot.Normal or UIValueSlot.Selected or UIValueSlot.Disabled or UIValueSlot.Focused:
+                owner.SetDefaultTextForegroundSlot(slot, value, source);
+                return true;
+            case UIPilotProperty.Foreground when owner is MGTextBlock textBlockOwner
+                                                 && slot is UIValueSlot.Normal or UIValueSlot.Selected or UIValueSlot.Disabled or UIValueSlot.Focused:
+                textBlockOwner.SetForegroundSlot(slot, value, source);
+                return true;
+            default:
+                return false;
+        }
+    }
+
     /// <summary>Clears the contribution of <paramref name="kind"/> for (<paramref name="owner"/>, <paramref name="pilot"/>,
     /// <paramref name="slot"/>), falling back to the next-highest-precedence contribution (or the current CLR value,
     /// unnotified, if none remains) -- see <see cref="MGElement.ClearPilotSource"/>.</summary>
