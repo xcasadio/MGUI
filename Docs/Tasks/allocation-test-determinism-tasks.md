@@ -12,6 +12,7 @@ Le but est que ces tests rendent le meme verdict seuls, avec leur classe ou dans
 ## Historique du fichier
 
 - 25 septembre 2026 : defauts mesures et diagnostiques pendant la validation de `9081461` (branche `chantier/host-image-allocation-test-flake`, partie de `develop` `deb1534`). L'auteur demande de corriger les deux, option (a) pour le premier. Plan ecrit dans la foulee.
+- 25 septembre 2026 : T1, T2 et T3 livrees ; deux courses du meme type que T2 trouvees par T3, consignees en O1 et O2.
 
 ## Decisions de l'auteur (25 septembre 2026)
 
@@ -59,11 +60,19 @@ Commit : `test(binding): run the TypedAccessorCache growth test outside parallel
 
 Note de validation (25 septembre 2026) : collection `TypedAccessorCacheCollection` (`DisableParallelization = true`) definie dans le meme fichier, classe marquee `[Collection]`. Demonstration A/B avec une classe temporaire, non commitee, qui appelle `TypedAccessorCache.GetProperty` sur un type nouveau toutes les 0,2 ms pendant 4 s, lancee avec `DataBindingAllocationTests` seulement : avant, 4 echecs sur 5 (`Expected: 1690`, `Actual: 1691`, soit une entree ajoutee par l'autre classe pendant les 50 liaisons) ; apres, 5 sur 5 verts, la classe ne demarrant plus qu'apres la phase parallele. Suite complete : 3088/3088, deux fois.
 
-### ⏳ T3. Verification independante et validation finale
+### ✅ T3. Verification independante et validation finale
 
 Revue adverse du diff de T1 et T2, et recherche d'autres tests exposes aux deux memes defauts (etat statique du processus lu pendant que d'autres classes l'ecrivent ; cout unique du processus dans une fenetre de mesure). Puis les 55 tests « Allocat... » lances seuls, et 10 suites completes consecutives.
 
 Commit : `docs(plan): record the final validation of the allocation test determinism work`.
+
+Note de validation (25 septembre 2026) :
+
+- Verification en contexte frais de `deb1534..10cf82c` : CONFIRMED, aucun constat P0 a P2. Un P3 : les commentaires de `AllocationWindow` et de `LayoutTransitionTests` presentent le mecanisme du GC d'arriere-plan comme un fait, alors que le plan n'en consignait aucune reproduction. Reproductions faites dans la session du 25 septembre, consignees ici : (1) application console jetable, fenetres de 2 ms sans allocation sur un thread dont le contexte n'est pas vide, un autre thread qui alloue en continu : 47 fenetres sur 1500 comptent 7856 a 8112 octets avec le GC concurrent, 0 sur 1500 avec `DOTNET_gcConcurrent=0`, 0 sur 1500 avec le contexte vide au depart ; (2) vraie methode `SourceName_ChangesBetweenAlreadyResolvedNames_AllocateNothing` appelee en boucle 90 s sous GC d'arriere-plan provoques : 1 echec sur 1420 sans `AllocationWindow.Start()` (1808 octets), 0 sur 1205 avec ; (3) `FreezableBrushTests.ForGuards...` : 4 echecs sur 8,7 millions avant, 0 sur 489 000 apres. Les commentaires restent donc tels quels. Trois P4 sans suite a donner.
+- Verification des affirmations sur le runtime contre les sources `release/9.0` (`gc.cpp`, `comutilnative.cpp`) : CONFIRMED, les cinq tiennent, aucun autre chemin ne modifie le contexte d'un thread sans compter. Nuances P4 : dans une region NoGC, `GC.Collect` ne vide pas les contextes (aucun test n'en ouvre) ; rien ne doit allouer entre `GC.Collect` et la lecture, ce que `AllocationWindow.Start()` garantit en enchainant les deux.
+- Recherche d'autres cas, deux angles independants, candidats verifies chacun par un agent charge de les refuter : deux courses reelles du meme type que T2, non reproduites (fenetres tres etroites), consignees en O1 et O2. Aucun autre test d'allocation expose a un cout unique du processus.
+- Les 55 tests « Allocat... » lances seuls, chacun dans un processus neuf : 55/55 (52/55 avant T1).
+- Suite complete : 10 executions consecutives a 3088/3088.
 
 ## Validation minimale
 
@@ -73,7 +82,11 @@ Commit : `docs(plan): record the final validation of the allocation test determi
 
 ## Points ouverts
 
-- (aucun)
+Trouves par la recherche de T3, hors du perimetre demande, a trancher par l'auteur. Faits verifies ; aucun des deux n'a encore ete vu echouer.
+
+- O1. `PropertyGridDescriptorTests` (`MGUI.Tests/PropertyGrid/PropertyGridDescriptorTests.cs:56`, `:66`, `:77`) vide `MGPropertyGridDescriptorCache.Cache`, un `Dictionary` statique non synchronise (`MGUI.Core/UI/PropertyGrid/MGPropertyGridDescriptorCache.cs:8`, `Clear` en `:10-13`, lecture puis ecriture en `:22-26`), pendant que d'autres classes sans collection l'ecrivent par `MGPropertyGrid.SelectedObject` -> `RebuildView` (`MGUI.Core/UI/MGPropertyGrid.cs:267`), par exemple `PropertyGridTests`, `XamlNodePropertySourceTests`, `FocusNavigationTextEntryTests`, `ThemeLayoutInvalidationTests`, `ResolvedOwnerThemeDefaultTests`.
+- O2. `DataBindingRegistryTests` (`MGUI.Tests/Architecture/DataBindingRegistryTests.cs:48`, `:49`, `:64`) enumere `DataBindingManager.Bindings`, qui rend la `List` statique vivante (`MGUI.Core/UI/DataBinding/DataBindingManager.cs:6-7`), pendant que les autres classes ajoutent et retirent des liaisons : `InvalidOperationException` (« Collection was modified ») ou verdict faux possibles.
+- Dans les deux cas, une collection `DisableParallelization` (precedent de T2) protege les tests qui lisent, mais pas les ecritures concurrentes que plusieurs autres classes font entre elles sur ces structures non thread-safe, pensees pour le seul thread UI. L'alternative est de rendre ces etats statiques surs en parallele cote `MGUI.Core`, ce qui touche le code de production. Choix de l'auteur.
 
 ## Risques
 
