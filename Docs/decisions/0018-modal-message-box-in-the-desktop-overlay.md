@@ -3,8 +3,8 @@
 - **Status**: Accepted
 - **Date**: 2026-09-25
 - **Source**: CasaEngine chantier `ai-agent/tasks/mgui-message-boxes-tasks.md` (decisions D3, D5, D7), branch
-  `chantier/mgui-message-boxes`, decided with the author on 2026-09-25. CasaEngine counterpart: CasaEngine ADR-0039
-  (`docs/decisions/0039-editor-message-boxes-are-mgui.md` in the parent repository).
+  `chantier/mgui-message-boxes`, decided with the author on 2026-09-25. CasaEngine counterpart: CasaEngine ADR-0041
+  (`docs/decisions/0041-editor-message-boxes-are-mgui.md` in the parent repository).
 
 ## Context
 
