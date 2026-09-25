@@ -33,6 +33,11 @@
 - `MGDockHost.PanelClosing` keeps its type; its arguments become `DockPanelClosingEventArgs`, a subclass of
   `CancelEventArgs<DockPanelNode>` whose `ClosingFloatingWindow` names the floating window being closed as a whole,
   and is null for every other close path.
+- Add `MGDockHost.ClosePanel(DockPanelNode)`: closes a panel by code wherever the host holds it (docked, auto-hidden,
+  or in a floating window the host tracks) exactly as the user's close does once `PanelClosing` lets it through, without
+  raising `PanelClosing`. Taken during the same chantier (plan task T1.2), when a test showed that
+  `MGDockHost.DetachToFloating` removes the panel from the host's registry, so `RemovePanel` cannot close a floating
+  panel and an asynchronous subscriber had no public way to close it after its answer.
 
 ## Consequences
 
@@ -42,4 +47,6 @@
   active one; hosts that use overlays for something else must account for it.
 - The `PanelClosing` change is additive: existing subscribers keep compiling and behaving the same; a subscriber that
   cares about whole floating-window closes casts the arguments.
+- `ClosePanel` is additive too; `RemovePanel` keeps its behaviour (it still does not see floating panels). A floating
+  window created by application code and never tracked by the host is not searched by `ClosePanel`.
 - No icons in this version; they can be added later without changing the callback contract.
