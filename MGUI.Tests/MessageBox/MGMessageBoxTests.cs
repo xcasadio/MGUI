@@ -249,6 +249,36 @@ public class MGMessageBoxTests
         Assert.True(harness.Desktop.ShouldCaptureGameplayInput());
     }
 
+    /// <summary>
+    /// The frame that answers a box also removes its overlay, and the desktop updates the other windows after the overlay
+    /// window in that same frame: the release that answered must not reach what lies under the box's button.
+    /// </summary>
+    [Fact]
+    public void TheClickThatAnswersABox_DoesNotReachWhatLiesUnderIt()
+    {
+        Harness harness = new();
+        MGWindow rootWindow = new(harness.Desktop, 0, 0, 800, 600) { WindowStyle = WindowStyle.None };
+        int underneathReleases = 0;
+        int underneathClicks = 0;
+        MGButton underneath = new(rootWindow, _ => underneathClicks++);
+        underneath.MouseHandler.ReleasedInside += (_, _) => underneathReleases++;
+        rootWindow.SetContent(underneath); // fills the whole window, so it lies under every button of the box
+        harness.Desktop.Windows.Add(rootWindow);
+        harness.Settle();
+
+        List<int> answers = new();
+        MGMessageBox box = MGMessageBox.Show(harness.Desktop, "Delete", "Delete 2 items?", new[] { "Yes", "No" }, 0, 1, answers.Add);
+        harness.Settle();
+        Assert.True(underneath.ActualLayoutBounds.Contains(CenterOf(box.Buttons[1])));
+
+        harness.Click(CenterOf(box.Buttons[1]));
+        harness.Settle();
+
+        Assert.Equal(new[] { 1 }, answers);
+        Assert.Equal(0, underneathReleases);
+        Assert.Equal(0, underneathClicks);
+    }
+
     [Fact]
     public void ABoxShownOverAnotherOverlay_BecomesActive_AndHandsBackWhenAnswered()
     {
