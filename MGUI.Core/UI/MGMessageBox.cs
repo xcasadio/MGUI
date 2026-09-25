@@ -219,7 +219,6 @@ public sealed class MGMessageBox
         _content.OnBeginUpdate -= KeepKeyboardFocusInside;
 
         MGOverlayHost host = Desktop.OverlayHost;
-        //  TryClose first: TryRemoveOverlay alone leaves an open overlay in OpenOverlays.
         host.TryClose(Overlay);
         host.TryRemoveOverlay(Overlay);
 

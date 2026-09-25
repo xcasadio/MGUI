@@ -116,7 +116,6 @@ Environ 40 fichiers dans `MGUI.Core/UI/Color/`. Utilisation : `Docs/mgui_colorpi
 - **Clavier** : chemin de navigation du bureau (`UINavigationAction`), brut ou semantique. Entree / Espace activent le bouton qui a le focus, le bouton par defaut a l'ouverture ; Tab passe d'un bouton a l'autre ; Echap choisit le bouton d'annulation. Le focus est ramene sur le bouton par defaut s'il quitte les boutons (un clic sur le texte, par exemple) tant que la boite est la surcouche active.
 - **Enchainement** : ouvrir une autre boite depuis `closed` est permis ; elle devient la surcouche active et l'entree qui a ferme la precedente ne l'atteint pas (un bouton ne se declenche qu'au relachement d'un appui recu par lui-meme ; une touche n'est envoyee qu'une fois, a un seul element). Une boite ouverte par-dessus une autre surcouche passe devant elle (`ZIndex`), et lui rend la main a sa fermeture.
 - **Pas de file** : MGUI ne met pas les boites en attente ; un hote qui peut poser plusieurs questions a la fois tient sa propre file.
-- **Fermeture** : `MGOverlayHost.TryRemoveOverlay` seul laisse une surcouche ouverte dans `OpenOverlays` ; la boite appelle `TryClose` puis `TryRemoveOverlay`.
 - Tests : `MGUI.Tests/MessageBox/MGMessageBoxTests.cs`. Sample : page `MessageBox` du Compendium (`MGUI.Samples/Controls/MessageBox.xaml`).
 
 ## Docking (vue d'ensemble)
