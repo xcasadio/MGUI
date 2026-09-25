@@ -268,6 +268,15 @@ public class MGFloatingDockWindow : MGWindow
             return;
         }
 
+        ClosePanelWithoutVeto(panel);
+    }
+
+    /// <summary>
+    /// Closes one of this window's panels as a user tab close does once <see cref="MGDockHost.PanelClosing"/> let it
+    /// through; shared by that path and <see cref="MGDockHost.ClosePanel"/> (ADR-0018). Closes the window when it empties.
+    /// </summary>
+    internal void ClosePanelWithoutVeto(DockPanelNode panel)
+    {
         if (FloatingGroup != null)
         {
             // Model-backed: go through the model so the place is (not yet, T4) remembered

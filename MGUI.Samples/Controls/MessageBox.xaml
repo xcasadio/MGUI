@@ -1,0 +1,12 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="440" Top="20" MinHeight="0" Width="460" SizeToContent="Height" TitleText="MessageBox" Padding="10">
+    <StackPanel Orientation="Vertical" Spacing="8">
+        <TextBlock IsBold="True" FontSize="14" Text="MGMessageBox" HorizontalAlignment="Center" />
+        <TextBlock WrapText="True" Text="A modal question shown over the whole desktop, in MGDesktop.OverlayHost. Enter activates the focused button (the default one when the box opens), Escape chooses the cancel button. The answer arrives in a callback." />
+        <Button Name="ShowOkButton" Content="Show an OK message" />
+        <Button Name="AskYesNoButton" Content="Ask Yes / No" />
+        <Button Name="AskSaveButton" Content="Ask Save / Don't Save / Cancel" />
+        <Button Name="AskTwiceButton" Content="Ask two questions in a row (the second opens from the first's callback)" />
+        <TextBlock Name="ResultText" Text="No answer yet." />
+    </StackPanel>
+</Window>

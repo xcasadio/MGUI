@@ -115,8 +115,13 @@ public class MGDockHost : MGSingleContentHost
     /// subscriber did (there is no rollback across panels).
     /// </para>
     /// <para>
-    /// NOT raised for a programmatic removal: <see cref="RemovePanel"/> or <see cref="CloseFloatingWindow"/>
-    /// called directly by application code.
+    /// NOT raised for a programmatic removal: <see cref="RemovePanel"/>, <see cref="ClosePanel"/> or
+    /// <see cref="CloseFloatingWindow"/> called directly by application code.
+    /// </para>
+    /// <para>
+    /// The arguments are always a <see cref="DockPanelClosingEventArgs"/> (ADR-0018): its
+    /// <see cref="DockPanelClosingEventArgs.ClosingFloatingWindow"/> names the floating window when the close of that
+    /// whole window raised the event, and is null on every other path.
     /// </para>
     /// </summary>
     public event EventHandler<CancelEventArgs<DockPanelNode>> PanelClosing;
@@ -124,16 +129,17 @@ public class MGDockHost : MGSingleContentHost
     /// <summary>
     /// Raises <see cref="PanelClosing"/> for <paramref name="panel"/> and returns whether a subscriber
     /// cancelled it. No-ops (returns <see langword="false"/>) when <paramref name="panel"/> is null or
-    /// nothing is subscribed.
+    /// nothing is subscribed. <paramref name="closingFloatingWindow"/> is the floating window being closed as a
+    /// whole, only when that close is the cause.
     /// </summary>
-    internal bool RaisePanelClosingVetoed(DockPanelNode panel)
+    internal bool RaisePanelClosingVetoed(DockPanelNode panel, MGFloatingDockWindow closingFloatingWindow = null)
     {
         if (panel == null || PanelClosing == null)
         {
             return false;
         }
 
-        CancelEventArgs<DockPanelNode> args = new(panel);
+        DockPanelClosingEventArgs args = new(panel, closingFloatingWindow);
         PanelClosing.Invoke(this, args);
         return args.Cancel;
     }
@@ -1112,6 +1118,39 @@ public class MGDockHost : MGSingleContentHost
     }
 
     /// <summary>
+    /// Closes <paramref name="panel"/> by code wherever this host holds it — in a docked tab group, auto-hidden, or in one
+    /// of the floating windows it tracks (<see cref="FloatingWindows"/>) — exactly as the user's close of that panel does
+    /// once <see cref="PanelClosing"/> lets it through, and without raising <see cref="PanelClosing"/> (ADR-0018). Meant for
+    /// a subscriber that refused a close to ask a question asynchronously and now has an answer that lets the panel close.
+    /// <see cref="PanelRemoved"/> is raised as on the user path; a floating window left empty closes.<para/>
+    /// Unlike <see cref="RemovePanel"/>, this finds floating panels: a panel detached to a floating window leaves the host's
+    /// panel registry, so <see cref="RemovePanel"/> does not see it.
+    /// </summary>
+    /// <returns><see langword="false"/> when the host does not hold <paramref name="panel"/> (a floating window created by
+    /// application code and never tracked by the host is not searched).</returns>
+    public bool ClosePanel(DockPanelNode panel)
+    {
+        if (panel == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _floatingWindows.Count; i++)
+        {
+            MGFloatingDockWindow floatingWindow = _floatingWindows[i];
+            if (floatingWindow.GroupNode.Panels.Contains(panel))
+            {
+                floatingWindow.ClosePanelWithoutVeto(panel);
+                return true;
+            }
+        }
+
+        return _panelRegistry.TryGetValue(panel.Id, out var registered)
+            && ReferenceEquals(registered, panel)
+            && RemovePanel(panel.Id);
+    }
+
+    /// <summary>
     /// Removes a panel from the docking system by ID.
     /// </summary>
     /// <param name="panelId">The ID of the panel to remove.</param>
@@ -1571,7 +1610,7 @@ public class MGDockHost : MGSingleContentHost
 
         foreach (var panel in floatWin.GroupNode.Panels.ToList())
         {
-            if (RaisePanelClosingVetoed(panel))
+            if (RaisePanelClosingVetoed(panel, floatWin))
             {
                 e.Cancel = true;
                 return;
