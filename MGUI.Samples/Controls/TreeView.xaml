@@ -40,6 +40,7 @@
                 <TreeViewItem Header="Root Item 3">
                     <TreeViewItem Header="Child 3.1" />
                 </TreeViewItem>
+                <TreeViewItem Header="Root Item 4" />
             </TreeView>
             <TextBlock Name="SelectionStatus" Text="Selected item: none" />
 

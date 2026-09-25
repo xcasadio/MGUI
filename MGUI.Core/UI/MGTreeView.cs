@@ -46,6 +46,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
     private MGTreeViewItem _SelectedItem;
     private readonly List<MGTreeViewItem> _VisibleItemsCache;
     private int _IndentSize = MGControlTemplateCatalog.DefaultTreeViewIndentSize;
+    private int _ExpanderButtonSize = MGControlTemplateCatalog.DefaultTreeViewExpanderButtonSize;
     private VisualStateFillBrush _SelectionBackgroundBrush;
     private Color _SelectionForeground;
     private ScrollBarVisibility _VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
@@ -147,6 +148,29 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
                     RegisterItemRecursive(item);
                 }
                 NotifyPropertyChanged(nameof(IndentSize));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the width, in pixels, reserved for the expand/collapse triangle column of every <see cref="MGTreeViewItem"/>
+    /// in this tree. This width is reserved even on items without children (which draw no triangle), so that a leaf's header
+    /// starts at the same X as a sibling that has children. A value less than or equal to 0 falls back to
+    /// <see cref="MGControlTemplateCatalog.DefaultTreeViewExpanderButtonSize"/> instead of collapsing the column to 0 width.
+    /// </summary>
+    public int ExpanderButtonSize
+    {
+        get => _ExpanderButtonSize;
+        set
+        {
+            if (_ExpanderButtonSize != value)
+            {
+                _ExpanderButtonSize = value;
+                foreach (var item in Items)
+                {
+                    RegisterItemRecursive(item);
+                }
+                NotifyPropertyChanged(nameof(ExpanderButtonSize));
             }
         }
     }
@@ -630,6 +654,7 @@ public class MGTreeView : MGSingleContentHost, INavigationTargetVisibilityHandle
         item._OwnerTreeView = this;
         item.Level = item.ParentItem == null ? 0 : item.ParentItem.Level + 1;
         item.UpdateIndentation();
+        item.UpdateExpanderButtonWidth();
         item.Expanded -= OnItemExpanded;
         item.Expanded += OnItemExpanded;
         item.Collapsed -= OnItemCollapsed;

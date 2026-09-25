@@ -273,6 +273,7 @@ public class ThemeLayoutInvalidationTests
         AssertLayoutStamp(comboBox, "ComboBox.DropdownItemsSpacing");
         AssertLayoutStamp(treeView, "TreeView.ItemsPanelSpacing");
         AssertLayoutStamp(treeView, "TreeView.IndentSize");
+        AssertLayoutStamp(treeView, "TreeView.ExpanderButtonSize");
         AssertLayoutStamp(tabControl, "TabControl.HeadersSpacing");
 
         // The dropdown items panel lives in the dropdown window, outside the tree of the combo box: only the stamp reaches the combo box.
@@ -289,6 +290,13 @@ public class ThemeLayoutInvalidationTests
         indented.TreeViewIndentSize += 5;
         harness.SwitchTheme(indented);
         Assert.Equal(indented.TreeViewIndentSize, treeView.IndentSize);
+        Assert.False(treeView.IsLayoutValid);
+        harness.Settle();
+
+        MGTheme widerExpander = harness.Window.GetTheme().Copy();
+        widerExpander.TreeViewExpanderButtonSize = widerExpander.TreeViewExpanderButtonSize > 0 ? widerExpander.TreeViewExpanderButtonSize + 5 : MGControlTemplateCatalog.DefaultTreeViewExpanderButtonSize + 5;
+        harness.SwitchTheme(widerExpander);
+        Assert.Equal(widerExpander.TreeViewExpanderButtonSize, treeView.ExpanderButtonSize);
         Assert.False(treeView.IsLayoutValid);
         harness.Settle();
 
@@ -359,7 +367,7 @@ public class ThemeLayoutInvalidationTests
         {
             "Window.CloseButtonMinWidth", "ToolTip.MinWidth", "ToolTip.DrawOffset", "ListBox.ItemsPanelVerticalAlignment", "ListView.HeaderGridLinesVisibility",
             "ListView.DataGridSpacing", "ListView.DataGridLineMargin", "ComboBox.DropdownItemsSpacing", "ComboBox.DropdownItem.HorizontalAlignment",
-            "TreeView.ItemsPanelSpacing", "TreeView.IndentSize", "PropertyGrid.CategoriesSpacing", "PropertyGrid.CategoriesPanelVerticalAlignment",
+            "TreeView.ItemsPanelSpacing", "TreeView.IndentSize", "TreeView.ExpanderButtonSize", "PropertyGrid.CategoriesSpacing", "PropertyGrid.CategoriesPanelVerticalAlignment",
             "NumericUpDown.SpinnerWidth", "NumericUpDown.SpinnerMinWidth", "TabControl.HeadersSpacing", "TabControl.SelectedHeaderTemplate",
             "TextBox.HorizontalContentAlignment", "TextBox.CharacterCount.Margin", "TextBox.CharacterCount.FontSize", "TextBox.CharacterCount.VerticalAlignment",
             "TextBox.LimitedCharacterCountFormatString",

@@ -54,7 +54,7 @@ public static class UIThemeValueInvalidation
             ["TreeViewBorderBrush"] = RenderOnly,
             ["TreeViewBorderThickness"] = LayoutAffecting,
             ["TreeViewIndentSize"] = LayoutAffecting,
-            ["TreeViewExpanderButtonSize"] = LayoutAffecting, // not read by any control yet
+            ["TreeViewExpanderButtonSize"] = LayoutAffecting,
             ["ProgressButtonForeground"] = RenderOnly,
             ["ProgressBarCompletedBrush"] = RenderOnly,
             ["ProgressBarIncompleteBrush"] = RenderOnly,

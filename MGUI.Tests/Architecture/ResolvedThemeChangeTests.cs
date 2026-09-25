@@ -86,7 +86,7 @@ public class ResolvedThemeChangeTests
         Assert.True(expander.TryGetResolvedPilotValue(UIPilotProperty.Padding, UIValueSlot.Whole, out UIResolvedValue<Thickness> padding));
         Assert.Equal(UIValueSourceKind.Theme, padding.Source.Kind);
 
-        Assert.Equal(new Thickness(0, 0, 4, 0), expander.Margin);
+        Assert.Equal(new Thickness(0), expander.Margin);
         Assert.True(expander.TryGetResolvedPilotValue(UIPilotProperty.Margin, UIValueSlot.Whole, out UIResolvedValue<Thickness> margin));
         Assert.Equal(UIValueSourceKind.Theme, margin.Source.Kind);
 
