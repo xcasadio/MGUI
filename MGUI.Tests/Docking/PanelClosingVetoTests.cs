@@ -824,6 +824,70 @@ public class PanelClosingVetoTests
         Assert.Equal(0, closingCount);
     }
 
+    /// <summary>Docks <c>document</c> the way CasaEngine's editor opens a document: straight into the host's
+    /// <see cref="MGDockHost.LayoutModel"/> with <see cref="DockOperation.DockAsTab"/>, never through
+    /// <see cref="MGDockHost.RegisterPanel"/>.</summary>
+    private static Harness CreateHarnessWithUnregisteredDocument(out DockPanelNode document, out DockPanelNode registered)
+    {
+        DockPanelNode registeredPanel = null;
+        Harness h = CreateHarness(window =>
+        {
+            registeredPanel = Panel(window, "Registered");
+            DockTabGroupNode g = new();
+            g.AddPanel(registeredPanel, -1);
+            return g;
+        });
+
+        document = Panel(h.MainWindow, "Document");
+        DockTabGroupNode group = h.Host.GetAllTabGroups().Single();
+        DockOperation.DockAsTab(h.Host.LayoutModel, document, group);
+        h.Frame();
+        h.Frame();
+
+        Assert.Null(h.Host.FindPanel(document.Id)); // not in the registry, as in the editor
+        registered = registeredPanel;
+        return h;
+    }
+
+    /// <summary>Regression (author's click on "Don't Save", 2026-09-25): a document docked without <see cref="MGDockHost.RegisterPanel"/>
+    /// could not be closed by code - <see cref="MGDockHost.ClosePanel"/> looked it up in the registry and returned false.</summary>
+    [Fact]
+    public void ClosePanel_ADocumentDockedWithoutRegisterPanel_ClosesIt()
+    {
+        Harness h = CreateHarnessWithUnregisteredDocument(out DockPanelNode document, out DockPanelNode registered);
+        var removed = new System.Collections.Generic.List<DockPanelNode>();
+        h.Host.PanelRemoved += (_, removedPanel) => removed.Add(removedPanel);
+
+        bool closed = h.Host.ClosePanel(document);
+        h.Frame();
+
+        Assert.True(closed);
+        Assert.Null(h.Host.LayoutModel.FindPanelById(document.Id));
+        Assert.NotNull(h.Host.LayoutModel.FindPanelById(registered.Id));
+        Assert.Equal(new[] { document }, removed);
+    }
+
+    /// <summary>The editor's exact sequence: the user clicks the document tab's close button, the subscriber refuses to ask
+    /// its question, then closes the panel by code once the answer lets it go.</summary>
+    [Fact]
+    public void RefusedTabClose_ThenClosePanel_ClosesADocumentDockedWithoutRegisterPanel()
+    {
+        Harness h = CreateHarnessWithUnregisteredDocument(out DockPanelNode document, out _);
+        bool refuse = true;
+        h.Host.PanelClosing += (_, args) => args.Cancel = refuse && args.Data == document;
+        MGDockTabGroup groupControl = h.Host.TraverseVisualTree<MGDockTabGroup>(IncludeSelf: false).Single();
+
+        ClickCloseButton(h, GetTabItem(groupControl, document));
+        Assert.NotNull(h.Host.LayoutModel.FindPanelById(document.Id)); // refused: still there
+
+        refuse = false;
+        Assert.True(h.Host.ClosePanel(document)); // the answer ("Don't Save") closes it by code
+        h.Frame();
+
+        Assert.Null(h.Host.LayoutModel.FindPanelById(document.Id));
+        Assert.DoesNotContain(document, groupControl.GroupNode?.Panels ?? (System.Collections.Generic.IReadOnlyList<DockPanelNode>)Array.Empty<DockPanelNode>());
+    }
+
     [Fact]
     public void ClosePanel_ReturnsFalse_ForAPanelTheHostDoesNotHold()
     {

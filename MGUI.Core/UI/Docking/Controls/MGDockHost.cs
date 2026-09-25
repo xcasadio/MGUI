@@ -1123,8 +1123,10 @@ public class MGDockHost : MGSingleContentHost
     /// once <see cref="PanelClosing"/> lets it through, and without raising <see cref="PanelClosing"/> (ADR-0018). Meant for
     /// a subscriber that refused a close to ask a question asynchronously and now has an answer that lets the panel close.
     /// <see cref="PanelRemoved"/> is raised as on the user path; a floating window left empty closes.<para/>
-    /// Unlike <see cref="RemovePanel"/>, this finds floating panels: a panel detached to a floating window leaves the host's
-    /// panel registry, so <see cref="RemovePanel"/> does not see it.
+    /// The panel is found through <see cref="LayoutModel"/> and the tracked floating windows, never through the panel registry,
+    /// exactly as the user close paths do: unlike <see cref="RemovePanel"/>, this closes a floating panel (detaching it takes
+    /// it out of the registry) and a panel application code docked straight into the model with <see cref="DockOperation"/>
+    /// without <see cref="RegisterPanel"/> (CasaEngine's editor opens its documents that way).
     /// </summary>
     /// <returns><see langword="false"/> when the host does not hold <paramref name="panel"/> (a floating window created by
     /// application code and never tracked by the host is not searched).</returns>
@@ -1145,9 +1147,54 @@ public class MGDockHost : MGSingleContentHost
             }
         }
 
-        return _panelRegistry.TryGetValue(panel.Id, out var registered)
-            && ReferenceEquals(registered, panel)
-            && RemovePanel(panel.Id);
+        //  The layout model, not the registry, says where the panel is: application code may dock panels straight into the
+        //  model (DockOperation.DockAsTab) without RegisterPanel, and the user close paths do not need the registry either.
+        if (LayoutModel == null)
+        {
+            return false;
+        }
+
+        foreach (DockPanelNode autoHidden in LayoutModel.GetAllAutoHidePanels())
+        {
+            if (ReferenceEquals(autoHidden, panel))
+            {
+                CloseAutoHidePanel(panel);
+                return true;
+            }
+        }
+
+        if (ReferenceEquals(LayoutModel.FindPanelById(panel.Id), panel))
+        {
+            CloseDockedPanelWithoutVeto(panel);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Closes a panel docked in the layout tree as a tab group's close does once <see cref="PanelClosing"/> let it through:
+    /// shared by that user path and <see cref="ClosePanel"/>.
+    /// </summary>
+    private void CloseDockedPanelWithoutVeto(DockPanelNode panel)
+    {
+        MutateModelSuspended(() =>
+        {
+            // Remove from panel registry BEFORE removing from model,
+            // otherwise the registry becomes stale for any caller that
+            // inspects it synchronously in a LayoutChanged handler.
+            _panelRegistry.Remove(panel.Id);
+
+            // Remove panel from layout model, remembering its place when the
+            // DockableRegistry can recreate it later (P4).
+            DockOperation.ClosePanel(LayoutModel, panel, rememberPlacement: ShouldRememberPlace(panel.Id));
+
+            // Notify event subscribers
+            PanelRemoved?.Invoke(this, panel);
+            _dockableRegistry?.NotifyClosed(panel.Id);
+        });
+
+        SyncRegistryVisibility();
     }
 
     /// <summary>
@@ -2547,23 +2594,7 @@ public class MGDockHost : MGSingleContentHost
                     return;
                 }
 
-                MutateModelSuspended(() =>
-                {
-                    // Remove from panel registry BEFORE removing from model,
-                    // otherwise the registry becomes stale for any caller that
-                    // inspects it synchronously in a LayoutChanged handler.
-                    _panelRegistry.Remove(panelToClose.Id);
-
-                    // Remove panel from layout model, remembering its place when the
-                    // DockableRegistry can recreate it later (P4).
-                    DockOperation.ClosePanel(LayoutModel, panelToClose, rememberPlacement: ShouldRememberPlace(panelToClose.Id));
-
-                    // Notify event subscribers
-                    PanelRemoved?.Invoke(this, panelToClose);
-                    _dockableRegistry?.NotifyClosed(panelToClose.Id);
-                });
-
-                SyncRegistryVisibility();
+                CloseDockedPanelWithoutVeto(panelToClose);
             }
         };
 
