@@ -941,44 +941,28 @@ public class LayoutTransitionTests
         // Forced layout passes, direct (bypassing Update's mouse/hover bookkeeping, which is out of scope here):
         // one push/pop of the ambient stack per element per pass when optIn is true, nothing but a flag read otherwise.
         Rectangle bounds = new(window.Left, window.Top, window.WindowWidth, window.WindowHeight);
-        // Warm-up: caches populated, the ambient stack's backing array grown to its final size, so the loops below run at rest.
+        // Warm-up: caches populated, the ambient stack's backing array grown to its final size, so the loop below runs at rest.
         for (int i = 0; i < 50; i++)
         {
             window.UpdateLayout(bounds);
         }
 
-        // The measurement is the MINIMUM over several identical loops, not the value of a single one.
-        //
-        // Why a single loop was once not enough: this assertion failed intermittently, only ever under the full suite's parallel
-        // load and never in isolation. The cause was not the layout pass, nor tiered JIT compilation: a background GC started by
-        // another test thread voided this thread's allocation context, and GC.GetAllocatedBytesForCurrentThread then counted the
-        // context's unused tail as allocated (see AllocationWindow). Each loop now opens with AllocationWindow.Start(), which
-        // leaves nothing to void, so that charge can no longer land in a loop; the minimum is kept because it costs nothing when
-        // the first loop is clean and cannot hide a per-pass allocation.
-        //
-        // Why the minimum is exactly as strict: a layout pass that allocated k > 0 bytes at rest would charge every loop at least
-        // PassesPerLoop * k, so every loop, and therefore the minimum, would be non-zero. Only a cost that is NOT paid per pass can
-        // land in one loop and leave another at 0. Nothing is weakened: the test still fails on any per-pass allocation.
-        const int PassesPerLoop = 200;
-        const int MeasurementLoops = 5;
-        long[] perLoopBytes = new long[MeasurementLoops]; // allocated up front, never inside a measured window
-        long fewestBytes = long.MaxValue;
-        for (int loop = 0; loop < MeasurementLoops && fewestBytes != 0; loop++)
+        // One window, opened with AllocationWindow.Start(). This test used to keep the minimum over several loops because it failed
+        // intermittently under the full suite's parallel load, never in isolation. The mechanism documented in AllocationWindow
+        // accounts for that: a background GC started by another test thread voids this thread's allocation context, and the counter
+        // then includes the context's unused tail although nothing was allocated. Start() leaves no context to void, which removes the
+        // reason for the minimum, and the minimum had a blind spot of its own: an allocation that is real but not paid on every pass,
+        // such as the ambient stack growing by doubling after a push without its pop, can leave one loop clean and bring the minimum
+        // to 0, while one window of this length after the warm-up spans at least one growth step.
+        const int Passes = 200;
+        long before = AllocationWindow.Start();
+        for (int i = 0; i < Passes; i++)
         {
-            long before = AllocationWindow.Start();
-            for (int i = 0; i < PassesPerLoop; i++)
-            {
-                window.UpdateLayout(bounds);
-            }
-            perLoopBytes[loop] = GC.GetAllocatedBytesForCurrentThread() - before;
-            fewestBytes = Math.Min(fewestBytes, perLoopBytes[loop]);
+            window.UpdateLayout(bounds);
         }
+        long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        // A clean first loop stops the run there, so the common case costs what it always did. Reaching the assertion with a
-        // non-zero minimum means every loop ran, so the report below is complete: all loops dirty is a real per-pass regression,
-        // while a single dirty loop among clean ones would mean the minimum caught a one-off after all.
-        Assert.True(fewestBytes == 0,
-            $"optIn={optIn}: no loop of {PassesPerLoop} layout passes at rest was allocation-free; bytes per loop = [{string.Join(", ", perLoopBytes)}]");
+        Assert.True(allocatedBytes == 0, $"optIn={optIn}: {Passes} layout passes at rest allocated {allocatedBytes} bytes");
     }
 
     [Fact]
