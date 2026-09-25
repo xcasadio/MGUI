@@ -31,3 +31,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0015 | Containers announce their children through the content-host chain | Accepted | 2026-09-19 |
 | ADR-0016 | Host-resolved and animated image sources, bindable canvas coordinates, and allocation-free binding pushes | Accepted | 2026-09-24 |
 | ADR-0017 | Reserve the TreeView expander column at a fixed width on every item | Accepted | 2026-09-24 |
+| ADR-0018 | A modal message box hosted in the desktop overlay, and the floating-window cause of a panel close | Accepted | 2026-09-25 |
