@@ -107,6 +107,18 @@ Environ 40 fichiers dans `MGUI.Core/UI/Color/`. Utilisation : `Docs/mgui_colorpi
 - **Palettes** : `MGColorPalette` + `MGColorPaletteStore` (palette Recent dedupliquee, remontee en tete, plafonnee par `MaxRecentColors` ; `ProjectPalettes` + `AddProjectPalette` / `ExportPalette` / `TryImportProjectPalette` ; aucun acces filesystem dans MGUI.Core). `MGColorPaletteSerializer` : JSON avec regles de tolerance a l'import (nom de palette manquant -> `Palette`, swatch sans nom -> `Color n`, noms dupliques -> `Name (2)`, color space inconnu -> diagnostic + repli sRGB, swatches invalides ignores avec diagnostics).
 - **Performance** : gradients caches par cle taille/canal/couleur de base (`MGColorSlider`) et taille/espace/plage (Hue + Kelvin du picker), regeneres au resize ou au changement de parametre, jamais par draw.
 
+## MessageBox
+
+`MGUI.Core/UI/MGMessageBox.cs` (ADR-0018) : question modale sur tout le bureau — un titre, un message, 1 a 3 boutons libelles.
+
+- **Usage** : `MGMessageBox.Show(desktop, title, message, buttonLabels, defaultButtonIndex, cancelButtonIndex, closed)` ; `closed(int)` recoit l'indice du bouton choisi, **exactement une fois**, apres que la boite a quitte l'hote. Titre et message sont du texte brut (jamais de mise en forme inline), le message passe a la ligne (largeur 280 a 520).
+- **Hote** : la boite est une `MGOverlay` de `MGDesktop.OverlayHost`, qui doit etre modal (`IsModal`, sinon `InvalidOperationException`). Tant qu'elle est ouverte, aucune autre fenetre du bureau ne recoit la souris ni le clavier (fenetres imbriquees et flottantes comprises : seule la fenetre de la surcouche traite les entrees, `FocusInputPolicy.ShouldProcessWindowInputs`), et `MGDesktop.ShouldCaptureGameplayInput()` est vrai. A l'inverse, `MGWindow.PushModalWindow` ne bloque que la fenetre proprietaire.
+- **Clavier** : chemin de navigation du bureau (`UINavigationAction`), brut ou semantique. Entree / Espace activent le bouton qui a le focus, le bouton par defaut a l'ouverture ; Tab passe d'un bouton a l'autre ; Echap choisit le bouton d'annulation. Le focus est ramene sur le bouton par defaut s'il quitte les boutons (un clic sur le texte, par exemple) tant que la boite est la surcouche active.
+- **Enchainement** : ouvrir une autre boite depuis `closed` est permis ; elle devient la surcouche active et l'entree qui a ferme la precedente ne l'atteint pas (un bouton ne se declenche qu'au relachement d'un appui recu par lui-meme ; une touche n'est envoyee qu'une fois, a un seul element). Une boite ouverte par-dessus une autre surcouche passe devant elle (`ZIndex`), et lui rend la main a sa fermeture.
+- **Pas de file** : MGUI ne met pas les boites en attente ; un hote qui peut poser plusieurs questions a la fois tient sa propre file.
+- **Fermeture** : `MGOverlayHost.TryRemoveOverlay` seul laisse une surcouche ouverte dans `OpenOverlays` ; la boite appelle `TryClose` puis `TryRemoveOverlay`.
+- Tests : `MGUI.Tests/MessageBox/MGMessageBoxTests.cs`. Sample : page `MessageBox` du Compendium (`MGUI.Samples/Controls/MessageBox.xaml`).
+
 ## Docking (vue d'ensemble)
 
 `MGUI.Core/UI/Docking/` : modele dans `DockLayout/`, controles dans `Controls/`.
@@ -142,6 +154,7 @@ Environ 40 fichiers dans `MGUI.Core/UI/Color/`. Utilisation : `Docs/mgui_colorpi
 - ColorPicker : pas de surfaces de preview avancees, d'outils d'authoring (gradient editor, harmonies), de simulations de daltonisme ni de formats `.mgpalette` / `.gpl` (voir le fichier de taches).
 - Docking : composition en code uniquement, pas de wrapper XAML.
 - WrapPanel : pas d'alignement par ligne. Canvas : pas de ZIndex.
+- MessageBox : pas d'icone, pas de wrapper XAML, pas de file de boites (a la charge de l'hote).
 
 ## Reste a faire
 

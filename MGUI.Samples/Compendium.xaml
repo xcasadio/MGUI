@@ -59,6 +59,7 @@
                         <ToggleButton Content="ListBox" IsChecked="{dataBinding:MGBinding Path=ListBoxSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="ListView" IsChecked="{dataBinding:MGBinding Path=ListViewSamples.IsVisible, Mode=TwoWay}" />
 						<ToggleButton Content="MenuBar" IsChecked="{dataBinding:MGBinding Path=MenuBarSamples.IsVisible, Mode=TwoWay}" />
+                        <ToggleButton Content="MessageBox" IsChecked="{dataBinding:MGBinding Path=MessageBoxSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="NumericUpDown" IsChecked="{dataBinding:MGBinding Path=NumericUpDownSamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="Overlays" IsChecked="{dataBinding:MGBinding Path=OverlaySamples.IsVisible, Mode=TwoWay}" />
                         <ToggleButton Content="PasswordBox" IsChecked="{dataBinding:MGBinding Path=PasswordBoxSamples.IsVisible, Mode=TwoWay}" Opacity="0.25" />
