@@ -136,6 +136,14 @@ public class HostImageResolutionTests
 
         Toggle(50); // Warm-up: JIT the setter path, populate the cached PropertyChangedEventArgs.
 
+        // Start the measured window with an empty allocation context. GetAllocatedBytesForCurrentThread reports the bytes
+        // handed to this thread minus the unused tail of its current allocation context, and a background GC voids every
+        // thread's allocation context at the end of its mark phase without taking that tail back (.NET 9 gc.cpp,
+        // void_allocation). Under the full suite's parallel load such a GC could land in the window and add up to ~8 KB
+        // that were never allocated. A blocking GC empties the context with exact accounting, so from here the counter
+        // only moves if the setter path allocates.
+        GC.Collect(0, GCCollectionMode.Forced, blocking: true);
+
         long before = GC.GetAllocatedBytesForCurrentThread();
         Toggle(1000);
         long after = GC.GetAllocatedBytesForCurrentThread();
