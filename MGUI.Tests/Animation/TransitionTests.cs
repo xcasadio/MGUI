@@ -415,7 +415,7 @@ public class TransitionTests
             manager.Update(frame);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             manager.Update(frame);

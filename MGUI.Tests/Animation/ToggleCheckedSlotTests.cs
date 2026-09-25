@@ -286,7 +286,7 @@ public class ToggleCheckedSlotTests
             _ = brush.GetValue(PrimaryVisualState.Normal, true);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             _ = brush.GetValue(PrimaryVisualState.Normal, true);

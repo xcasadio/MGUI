@@ -498,7 +498,7 @@ public class SeekTests
             preview.Seek(TimeSpan.FromMilliseconds(i * 37));
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             preview.Seek(TimeSpan.FromMilliseconds(i * 37));
@@ -520,7 +520,7 @@ public class SeekTests
             storyboard.Seek(TimeSpan.FromMilliseconds(i * 41));
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             storyboard.Seek(TimeSpan.FromMilliseconds(i * 41));

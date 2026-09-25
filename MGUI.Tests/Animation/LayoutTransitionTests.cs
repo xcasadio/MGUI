@@ -756,7 +756,7 @@ public class LayoutTransitionTests
             manager.Update(frame);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             manager.Update(frame);
@@ -949,13 +949,12 @@ public class LayoutTransitionTests
 
         // The measurement is the MINIMUM over several identical loops, not the value of a single one.
         //
-        // Why a single loop was not enough: this assertion failed intermittently, only ever under the full suite's parallel load
-        // and never in isolation. What lands in the measured window then is a ONE-OFF charge on this thread -- a cost the process
-        // pays once, not one the layout pass pays per call. The note this replaces blamed tiered JIT compilation and raised the
-        // warm-up from 10 to 50; that is not the cause, and a longer warm-up only moves the window instead of closing it. Pinning
-        // the whole test to tier-0 (DOTNET_TC_CallCountThreshold / DOTNET_TC_OnStackReplacement_InitialCounter) reproduces
-        // nothing, and 1440 consecutive measured loops -- under three concurrent suites and under a fully saturated CPU, including
-        // loops spanning gen2 collections -- each came back at exactly 0.
+        // Why a single loop was once not enough: this assertion failed intermittently, only ever under the full suite's parallel
+        // load and never in isolation. The cause was not the layout pass, nor tiered JIT compilation: a background GC started by
+        // another test thread voided this thread's allocation context, and GC.GetAllocatedBytesForCurrentThread then counted the
+        // context's unused tail as allocated (see AllocationWindow). Each loop now opens with AllocationWindow.Start(), which
+        // leaves nothing to void, so that charge can no longer land in a loop; the minimum is kept because it costs nothing when
+        // the first loop is clean and cannot hide a per-pass allocation.
         //
         // Why the minimum is exactly as strict: a layout pass that allocated k > 0 bytes at rest would charge every loop at least
         // PassesPerLoop * k, so every loop, and therefore the minimum, would be non-zero. Only a cost that is NOT paid per pass can
@@ -966,7 +965,7 @@ public class LayoutTransitionTests
         long fewestBytes = long.MaxValue;
         for (int loop = 0; loop < MeasurementLoops && fewestBytes != 0; loop++)
         {
-            long before = GC.GetAllocatedBytesForCurrentThread();
+            long before = AllocationWindow.Start();
             for (int i = 0; i < PassesPerLoop; i++)
             {
                 window.UpdateLayout(bounds);
@@ -1002,7 +1001,7 @@ public class LayoutTransitionTests
             manager.Update(frame);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             manager.Update(frame);

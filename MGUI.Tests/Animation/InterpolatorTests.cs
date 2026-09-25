@@ -205,7 +205,7 @@ public class InterpolatorTests
             thickness = thicknesses.Lerp(thickness, new Thickness(i), 0.5f);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 1000; i++)
         {
             sink += floats.Lerp(0f, 1f, 0.5f) + colors.Lerp(Color.Black, Color.White, 0.5f).R;

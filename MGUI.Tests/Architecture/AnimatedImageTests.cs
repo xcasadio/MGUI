@@ -371,7 +371,7 @@ public class AnimatedImageTests
             Tick(); // warm-up: JIT the update/advance/ActualSource-copy path
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 1000; i++)
         {
             Tick();

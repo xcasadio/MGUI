@@ -136,7 +136,7 @@ public class HostImageResolutionTests
 
         Toggle(50); // Warm-up: JIT the setter path, populate the cached PropertyChangedEventArgs.
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         Toggle(1000);
         long after = GC.GetAllocatedBytesForCurrentThread();
 
