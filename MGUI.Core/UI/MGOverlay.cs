@@ -37,6 +37,9 @@ public class MGOverlayHost : MGSingleContentHost
         return Overlay;
     }
 
+    /// <summary>Removes <paramref name="Overlay"/> from this host. An open overlay is closed first, exactly as <see cref="TryClose(MGOverlay)"/>
+    /// does (<see cref="MGOverlay.OnClosing"/>, then <see cref="MGOverlay.OnClosed"/>), so it leaves <see cref="OpenOverlays"/> and stops being the
+    /// <see cref="ActiveOverlay"/>.</summary>
     /// <returns><see langword="true"/> if the given <paramref name="Overlay"/> was successfully removed.<para/>
     /// <see langword="false"/> if it could not be removed, either because it was not a valid <see cref="MGOverlay"/> belonging to this <see cref="MGOverlayHost"/>,
     /// or because it was already opened and closing it was cancelled by <see cref="MGOverlay.OnClosing"/>.</returns>
@@ -61,6 +64,8 @@ public class MGOverlayHost : MGSingleContentHost
 
             if (WasOpen)
             {
+                //  Without this, a removed overlay stayed in OpenOverlays and remained the ActiveOverlay, still shown and still modal.
+                _OpenOverlays.Remove(Overlay);
                 Overlay.InvokeOnClosed();
                 Overlay.NotifyPropertyChanged(nameof(MGOverlay.IsOpen));
                 UpdateActiveOverlay();
