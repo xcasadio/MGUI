@@ -47,7 +47,7 @@ Commit : `test(animation): pay process-wide one-off costs before the brush alloc
 
 Note de validation (25 septembre 2026) : l'aide prend un `Action<AnimationTestScene>` ; `RunToEnd` tourne la scene jetable comme la chauffe, puis par secondes entieres jusqu'a `ActiveCount == 0`, 1000 pas au plus, sinon `Assert.True` echoue avec un message. Les six tests passent lances seuls (6/6, processus neufs), la classe passe (12/12). Mutation par tick (`GC.KeepAlive(new object())` en tete de `UIAnimationManager.Update`) : les six echouent, 4800 octets. Mutation par execution (la meme allocation en tete de `UIAnimation.Complete`) : echouent les deux tests dont l'animation finit dans la fenetre (`BackgroundGradient`, `BackgroundDiagonalGradient`, 24 octets), preuve que la scene jetable n'absorbe que l'etat statique du processus. Suite complete : 3088/3088, deux fois.
 
-### ⏳ T2. `DataBindingAllocationTests` dans une collection non parallele (D2, M2)
+### ✅ T2. `DataBindingAllocationTests` dans une collection non parallele (D2, M2)
 
 Fichiers : `MGUI.Tests/Architecture/DataBindingAllocationTests.cs`.
 
@@ -56,6 +56,8 @@ Etapes : definir la collection et y placer la classe, doc XML qui dit pourquoi, 
 Validation : demonstration A/B de la course (une classe temporaire qui lie de nouveaux types en parallele fait echouer le test avant, plus apres) ; suite complete verte.
 
 Commit : `test(binding): run the TypedAccessorCache growth test outside parallel collections`.
+
+Note de validation (25 septembre 2026) : collection `TypedAccessorCacheCollection` (`DisableParallelization = true`) definie dans le meme fichier, classe marquee `[Collection]`. Demonstration A/B avec une classe temporaire, non commitee, qui appelle `TypedAccessorCache.GetProperty` sur un type nouveau toutes les 0,2 ms pendant 4 s, lancee avec `DataBindingAllocationTests` seulement : avant, 4 echecs sur 5 (`Expected: 1690`, `Actual: 1691`, soit une entree ajoutee par l'autre classe pendant les 50 liaisons) ; apres, 5 sur 5 verts, la classe ne demarrant plus qu'apres la phase parallele. Suite complete : 3088/3088, deux fois.
 
 ### ⏳ T3. Verification independante et validation finale
 

@@ -14,6 +14,16 @@ using Xunit;
 
 namespace MGUI.Tests.Architecture;
 
+/// <summary><see cref="DataBindingAllocationTests.TypedAccessorCache_Does_Not_Grow_For_Repeated_Instances_Of_An_Already_Seen_Type"/>
+/// counts the entries of <see cref="TypedAccessorCache"/>'s process-wide caches, which every test class that builds a binding fills
+/// too, so the class must not run while other test classes run in parallel (xunit runs collections concurrently by default): a single
+/// entry added meanwhile by another class failed it. The collection below is executed on its own.</summary>
+[CollectionDefinition(TypedAccessorCacheCollection.Name, DisableParallelization = true)]
+public sealed class TypedAccessorCacheCollection
+{
+    public const string Name = "TypedAccessorCache global caches";
+}
+
 /// <summary>ADR-0016 coverage: a binding push reads the source and writes the target through compiled, cached,
 /// allocation-free accessors instead of <see cref="System.Reflection.PropertyInfo.GetValue(object)"/>/<see
 /// cref="System.Reflection.PropertyInfo.SetValue(object, object)"/>, except when a converter, a string format or a
@@ -28,6 +38,7 @@ namespace MGUI.Tests.Architecture;
 /// binding subscribes through, not to the reflection/boxing push path ADR-0016 targets, so it would swamp the very
 /// thing these tests exist to measure if left in the loop. The view model's "quiet" setters below mutate the
 /// backing field without notifying, so the measured loop exercises only the push.</summary>
+[Collection(TypedAccessorCacheCollection.Name)]
 public class DataBindingAllocationTests
 {
     private const int WarmupIterations = 5000;
