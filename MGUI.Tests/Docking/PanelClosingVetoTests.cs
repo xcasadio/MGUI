@@ -680,7 +680,7 @@ public class PanelClosingVetoTests
     }
 
     /// <summary>
-    /// The chain an asynchronous subscriber runs (CasaEngine's editor, ADR-0039): it refuses every modified panel, asks its
+    /// The chain an asynchronous subscriber runs (CasaEngine's editor, ADR-0041): it refuses every modified panel, asks its
     /// question, then on an answer that lets the panel close closes it with <see cref="MGDockHost.ClosePanel"/> and retries
     /// the whole-window close through <see cref="DockPanelClosingEventArgs.ClosingFloatingWindow"/>, which asks the next
     /// panel. Also pins that closing the last panel of a floating window by code closes the window.
