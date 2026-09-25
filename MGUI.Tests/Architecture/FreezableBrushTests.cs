@@ -106,7 +106,7 @@ public class FreezableBrushTests
             brush.Color = i % 2 == 0 ? Color.Red : Color.Blue;
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 10_000; i++)
         {
             brush.Color = i % 2 == 0 ? Color.Red : Color.Blue;
@@ -286,7 +286,7 @@ public class FreezableBrushTests
     {
         _ = UIBrushEquality.ForGuards<IFillBrush>(); // warm-up: force the static generic cache to build
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 1000; i++)
         {
             _ = UIBrushEquality.ForGuards<IFillBrush>();

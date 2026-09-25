@@ -704,7 +704,7 @@ public class VisualStatesTests
             toggle.VisualStates.Refresh();
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (var i = 0; i < 200; i++)
         {
             toggle.VisualStates.Refresh();

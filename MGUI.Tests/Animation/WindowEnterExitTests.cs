@@ -624,7 +624,7 @@ public class WindowEnterExitTests
             desktop.DetectRootWindowEntries(); // warm up (list capacities settle)
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             desktop.DetectRootWindowEntries();
@@ -647,7 +647,7 @@ public class WindowEnterExitTests
             desktop.DetectRootWindowEntries();
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             desktop.DetectRootWindowEntries();

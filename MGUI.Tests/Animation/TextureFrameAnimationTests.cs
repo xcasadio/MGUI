@@ -245,7 +245,7 @@ public class TextureFrameAnimationTests
             manager.Update(frame);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < probeTicks; i++)
         {
             manager.Update(frame);

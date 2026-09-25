@@ -170,7 +170,7 @@ public class EasingTests
         }
 
         IUIEasingFunction[] functions = BuiltInNames.Select(Get).ToArray();
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             foreach (IUIEasingFunction function in functions)
@@ -434,7 +434,7 @@ public class EasingTests
             sink += easing.Ease(0.3f);
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             sink += easing.Ease(0.1f);

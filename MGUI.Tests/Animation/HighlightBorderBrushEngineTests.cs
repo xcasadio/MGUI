@@ -253,7 +253,7 @@ public class HighlightBorderBrushEngineTests
         TimeSpan frame = TimeSpan.FromMilliseconds(AnimationTestScene.FrameMilliseconds);
         UIAnimationManager manager = scene.Desktop.Animations;
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
+        long before = AllocationWindow.Start();
         for (int i = 0; i < 200; i++)
         {
             manager.Update(frame);
