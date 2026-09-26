@@ -295,6 +295,13 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 
     public readonly string SourcePropertyName;
 
+    /// <summary>The <see cref="IObservableDataContext"/> whose data context this binding follows, or <see langword="null"/> if it
+    /// follows none. Kept, with <see cref="ObservedDataContextProperty"/>, so <see cref="Dispose"/> can detach
+    /// <see cref="DataContextHost_DataContextChanged"/>: otherwise the host keeps the disposed binding reachable, and its next data
+    /// context change resolves the new source again and pushes its value into the target.</summary>
+    private readonly IObservableDataContext ObservedDataContextHost;
+    private readonly PropertyInfo ObservedDataContextProperty;
+
     public static object ResolvePath(object Root, IList<string> PropertyNames, bool ExcludeLast = false)
     {
         var Current = Root;
@@ -376,7 +383,9 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
                     var DataContextPropertyName = DataContextHost.DataContextPropertyName;
                     var DataContextProperty = GetPublicProperty(InitialSourceRoot, DataContextPropertyName);
                     SourceRoot = DataContextProperty?.GetValue(InitialSourceRoot);
-                    DataContextHost.DataContextChanged += (sender, e) => { SourceRoot = DataContextProperty.GetValue(InitialSourceRoot); };
+                    ObservedDataContextHost = DataContextHost;
+                    ObservedDataContextProperty = DataContextProperty;
+                    DataContextHost.DataContextChanged += DataContextHost_DataContextChanged;
                 }
                 else
                 {
@@ -928,6 +937,17 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 #endif
     }
 
+    private void DataContextHost_DataContextChanged(object sender, object e)
+    {
+        //  A binding disposed while this event is being raised is still called: the event copied its handlers before invoking them.
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        SourceRoot = ObservedDataContextProperty.GetValue(ObservedDataContextHost);
+    }
+
     private void SourcePropertyValueChanged()
     {
         //  Propagate the new value to the TargetProperty
@@ -955,6 +975,11 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         if (!IsDisposed)
         {
             IsDisposed = true;
+
+            if (ObservedDataContextHost != null)
+            {
+                ObservedDataContextHost.DataContextChanged -= DataContextHost_DataContextChanged;
+            }
 
             //  Unsubscribe from PropertyChanged events
             if (IsSubscribedToTargetObjectPropertyChanged && TargetObject is INotifyPropertyChanged ObservableTargetObject)

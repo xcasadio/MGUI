@@ -157,6 +157,13 @@ about per-frame allocation.
 the same `TargetPath`. The check runs before the binding is built, so a refused binding leaves nothing behind: it is
 not in `DataBindingManager.Bindings`, does not listen to its source or target, and never writes into the target.
 
+## Removing a binding
+
+`DataBindingManager.RemoveBinding` and `RemoveBindings` dispose the bindings they remove. A disposed binding stops
+listening to its source, its target, and the `DataContextChanged` event of the object it reads its data context
+from. A later data context change therefore neither writes into the target nor keeps the disposed binding reachable
+from that object, even when the binding is removed by another handler of that same `DataContextChanged` event.
+
 ## Threading
 
 `DataBindingManager` is not thread-safe: create, remove and read bindings on the UI thread only (ADR-0019). This
