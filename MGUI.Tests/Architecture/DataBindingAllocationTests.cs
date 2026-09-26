@@ -1,5 +1,7 @@
 using System;
-using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using MGUI.Core.UI;
 using MGUI.Core.UI.DataBinding;
@@ -372,40 +374,78 @@ public class DataBindingAllocationTests
     }
 
     //  (5) The type-keyed cache does not grow when binding new instances of an already-seen type.
+    //  TypedAccessorCache's dictionaries are process-wide and xunit runs the other test classes in parallel in the
+    //  same process, so their bindings add entries for their own types at any moment: comparing global counts was
+    //  flaky. This test only inspects the entries built for AllocationViewModel and PlainTarget, which are private to
+    //  this class, whose tests xunit runs one at a time, so no concurrently running test adds or replaces them.
 
     [Fact]
     public void TypedAccessorCache_Does_Not_Grow_For_Repeated_Instances_Of_An_Already_Seen_Type()
     {
-        static int CacheCount(string FieldName)
+        static TCache GetCache<TCache>(string FieldName)
+            => (TCache)typeof(TypedAccessorCache).GetField(FieldName, BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+
+        static Dictionary<(Type, string), TValue> OwnEntries<TValue>(string FieldName)
+            => GetCache<ConcurrentDictionary<(Type, string), TValue>>(FieldName)
+                .Where(Entry => Entry.Key.Item1 == typeof(AllocationViewModel) || Entry.Key.Item1 == typeof(PlainTarget))
+                .ToDictionary(Entry => Entry.Key, Entry => Entry.Value);
+
+        //  CopyCache is keyed by (getter, setter): its own entries are those built from one of this test's own
+        //  getters or setters.
+        static Dictionary<(Delegate, Delegate), Action<object, object>> OwnCopyEntries(
+            Dictionary<(Type, string), Delegate> OwnGetters, Dictionary<(Type, string), Delegate> OwnSetters)
+            => GetCache<ConcurrentDictionary<(Delegate, Delegate), Action<object, object>>>("CopyCache")
+                .Where(Entry => OwnGetters.ContainsValue(Entry.Key.Item1) || OwnSetters.ContainsValue(Entry.Key.Item2))
+                .ToDictionary(Entry => Entry.Key, Entry => Entry.Value);
+
+        //  No entry added, and every existing entry still holds the very same instance.
+        static void AssertUnchanged<TKey, TValue>(Dictionary<TKey, TValue> Before, Dictionary<TKey, TValue> After)
+            where TValue : class
         {
-            FieldInfo Field = typeof(TypedAccessorCache).GetField(FieldName, BindingFlags.NonPublic | BindingFlags.Static);
-            var Dictionary = (ICollection)Field.GetValue(null);
-            return Dictionary.Count;
+            Assert.Empty(After.Keys.Except(Before.Keys));
+            foreach (KeyValuePair<TKey, TValue> Entry in Before)
+            {
+                Assert.Same(Entry.Value, Assert.Contains(Entry.Key, After));
+            }
         }
+
+        static Action<object, object> GetTypedCopyDelegate(DataBinding Binding)
+            => (Action<object, object>)typeof(DataBinding).GetField("TypedCopyDelegate", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(Binding);
 
         //  Seed the cache once.
         AllocationViewModel SeedVm = new();
-        PlainTarget SeedTarget = BindPlainTarget(SeedVm, nameof(AllocationViewModel.Count), out _);
+        PlainTarget SeedTarget = BindPlainTarget(SeedVm, nameof(AllocationViewModel.Count), out DataBinding SeedBinding);
         SeedVm.Count = 1;
         Assert.Equal(1, SeedTarget.Count);
 
-        int GetterCountBefore = CacheCount("GetterCache");
-        int SetterCountBefore = CacheCount("SetterCache");
-        int PropertyCountBefore = CacheCount("PropertyCache");
-        int CopyCountBefore = CacheCount("CopyCache");
+        Dictionary<(Type, string), PropertyInfo> PropertiesBefore = OwnEntries<PropertyInfo>("PropertyCache");
+        Dictionary<(Type, string), Delegate> GettersBefore = OwnEntries<Delegate>("GetterCache");
+        Dictionary<(Type, string), Delegate> SettersBefore = OwnEntries<Delegate>("SetterCache");
+        Dictionary<(Delegate, Delegate), Action<object, object>> CopiesBefore = OwnCopyEntries(GettersBefore, SettersBefore);
+
+        //  The seed binding pushes through the copy delegate cached for its (getter, setter) pair, so the entries
+        //  inspected below are the ones these bindings actually use.
+        Action<object, object> SeedCopy = GetTypedCopyDelegate(SeedBinding);
+        Assert.NotNull(SeedCopy);
+        Delegate SeedGetter = Assert.Contains((typeof(AllocationViewModel), nameof(AllocationViewModel.Count)), GettersBefore);
+        Delegate SeedSetter = Assert.Contains((typeof(PlainTarget), nameof(PlainTarget.Count)), SettersBefore);
+        Assert.Same(SeedCopy, Assert.Contains((SeedGetter, SeedSetter), CopiesBefore));
 
         for (var i = 0; i < 50; i++)
         {
             AllocationViewModel Vm = new();
-            PlainTarget Target = BindPlainTarget(Vm, nameof(AllocationViewModel.Count), out _);
+            PlainTarget Target = BindPlainTarget(Vm, nameof(AllocationViewModel.Count), out DataBinding Binding);
             Vm.Count = i;
             Assert.Equal(i, Target.Count);
+            Assert.Same(SeedCopy, GetTypedCopyDelegate(Binding));
         }
 
-        Assert.Equal(GetterCountBefore, CacheCount("GetterCache"));
-        Assert.Equal(SetterCountBefore, CacheCount("SetterCache"));
-        Assert.Equal(PropertyCountBefore, CacheCount("PropertyCache"));
-        Assert.Equal(CopyCountBefore, CacheCount("CopyCache"));
+        Dictionary<(Type, string), Delegate> GettersAfter = OwnEntries<Delegate>("GetterCache");
+        Dictionary<(Type, string), Delegate> SettersAfter = OwnEntries<Delegate>("SetterCache");
+        AssertUnchanged(PropertiesBefore, OwnEntries<PropertyInfo>("PropertyCache"));
+        AssertUnchanged(GettersBefore, GettersAfter);
+        AssertUnchanged(SettersBefore, SettersAfter);
+        AssertUnchanged(CopiesBefore, OwnCopyEntries(GettersAfter, SettersAfter));
     }
 
     //  (6) A binding with a converter or a string format gives the same result as before.
