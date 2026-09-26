@@ -23,6 +23,7 @@ namespace MGUI.Tests.Animation;
 /// <see cref="MGScrollViewer.ScrollTo"/>, the external-write cancellation rule, the mouse wheel and keyboard sites driven through
 /// <see cref="MGScrollViewer.PendingVerticalOffset"/>/<see cref="MGScrollViewer.PendingHorizontalOffset"/>, the cost budget and the XAML
 /// attributes.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class ScrollAnimationTests
 {
     private const int FrameMilliseconds = 16;

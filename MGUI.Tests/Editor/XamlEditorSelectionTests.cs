@@ -21,6 +21,7 @@ namespace MGUI.Tests.Editor;
 /// <summary><see cref="XamlEditorSelection"/>: the single selection shared by the document tree, a click in the
 /// non-interactive preview, and the text caret (Docs/Tasks/xaml-editor-tasks.md, section X4;
 /// Docs/editor-architecture.md, "## Selection"). One test group per acceptance bullet of that section.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class XamlEditorSelectionTests
 {
     private const string Ns = "clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core";

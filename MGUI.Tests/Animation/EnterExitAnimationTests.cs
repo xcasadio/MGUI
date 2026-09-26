@@ -16,6 +16,7 @@ namespace MGUI.Tests.Animation;
 /// <summary>Slice Y6 (Docs/decisions/0011-animation-v5.md, "Entree et sortie d'un element"): <see cref="UIEnterExitSettings"/>,
 /// <see cref="UIEnterExitEffect"/>, <see cref="MGElement.EnterExit"/>, <see cref="MGElement.PendingVisibility"/>, the first-draw gate, the
 /// exit's internal hit-test removal, and the eight XAML <see cref="Element"/> DTO attributes.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class EnterExitAnimationTests
 {
     private static UIEnterExitSettings FadeSettings(int enterMs = 100, int exitMs = 80) => new()

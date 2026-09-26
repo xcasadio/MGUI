@@ -151,6 +151,15 @@ Paths 1 and 2 allocate nothing (no reflection, no boxing, no closure). Path 3 ma
 and returns `object`, and a format builds a `string`. Bind a value of the target's own type when a screen cares
 about per-frame allocation.
 
+## Threading
+
+`DataBindingManager` is not thread-safe: create, remove and read bindings on the UI thread only (ADR-0019). This
+includes `DataBindingManager.Bindings`, which is the registry's live list. One known exception is still open:
+`MGXAMLDesigner`'s auto-refresh reloads its file from a `FileSystemWatcher` event, on a thread-pool thread.
+
+A test class that reaches the registry, directly or by loading bound XAML or replacing templated item content,
+joins `DataBindingRegistryCollection` in `MGUI.Tests`, which never runs in parallel with other tests.
+
 ## Two known limits
 
 - **O3, weak-event dispatch allocation.** With `UseWPF`, a source's `PropertyChanged` is dispatched through

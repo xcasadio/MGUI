@@ -13,6 +13,7 @@ namespace MGUI.Tests.Xaml;
 /// <summary>The loader stamps a <see cref="XamlSourcePosition"/> (ordinal, line, column) on every <see cref="XamlElement"/> DTO it
 /// creates from an XML object element, and <see cref="UIToolingService.TryGetXamlSourcePosition(MGElement, out XamlSourcePosition)"/>
 /// relays it to the created <see cref="MGElement"/>. Covers the acceptance items of Docs/Tasks/xaml-editor-tasks.md's X1 section.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class XamlSourcePositionTests
 {
     private const string Ns = "clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core";

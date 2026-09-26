@@ -20,6 +20,7 @@ namespace MGUI.Tests.Editor;
 /// <summary><see cref="XamlNodePropertySource"/>: describes the selected XAML document node to <see cref="MGPropertyGrid"/>
 /// (Docs/Tasks/xaml-editor-tasks.md, section X5; Docs/editor-architecture.md, "## Grille de proprietes"). One test group per
 /// acceptance bullet of that section.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class XamlNodePropertySourceTests
 {
     private const string Ns = "clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core";

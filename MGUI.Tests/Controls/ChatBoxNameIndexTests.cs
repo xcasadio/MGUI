@@ -9,6 +9,7 @@ namespace MGUI.Tests.Controls;
 /// window's name index once the chat box is attached.<para/>
 /// Mutation proof (T1.3 step 6): reverting <see cref="MGChatBox"/> to derive from <c>MGElement</c> turns the "message added
 /// after attach is indexed" assertion red.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class ChatBoxNameIndexTests
 {
     private static (GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window) CreateHost()

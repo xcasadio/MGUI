@@ -15,6 +15,7 @@ using System.Linq;
 
 namespace MGUI.Tests.Integration;
 
+[Collection(DataBindingRegistryCollection.Name)]
 public class TextSurfaceLiteTests
 {
     [Fact]

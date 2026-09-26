@@ -24,6 +24,7 @@ namespace MGUI.Tests.Architecture;
 /// the densities the preset could not reach (tooltip, text boxes, item paddings, tab headers, docking sizes) theme settings; the few values that stay
 /// out of reach are pinned here, so that the list of limits documented by the task stays true.
 /// </summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class EditorCompactPresetTests
 {
     private static readonly string PresetPath = TestRepository.Combine("MGUI.Samples", "Features", "EditorCompact.Themes.xaml");

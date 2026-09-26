@@ -22,6 +22,7 @@ namespace MGUI.Tests.Architecture;
 /// default theme): that is the configuration that used to pin the popups to the theme captured at creation.
 /// Also pins the Dark selection highlights of combo box and context menu rows, the context menu icon column and the combo box dropdown highlight rules.
 /// </summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class PopupThemeInheritanceTests
 {
     private static readonly Color DarkSelection = new(68, 68, 68);

@@ -23,6 +23,7 @@ namespace MGUI.Tests.Xaml;
 /// a root that is not a <c>Window</c>, that moment is the host's own <c>SetContent</c> once the loaded tree is attached
 /// elsewhere; for a <c>Window</c> root, it is the loader itself, because an <see cref="MGWindow"/> indexes its own tree from
 /// construction and its own <c>SetContent</c> (called while the loader builds it) is that entry point.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class DuplicateElementNameTests
 {
     /// <summary>The author's exact reproduction of 2026-09-18.</summary>
