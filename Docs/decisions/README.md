@@ -33,3 +33,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0017 | Reserve the TreeView expander column at a fixed width on every item | Accepted | 2026-09-24 |
 | ADR-0018 | A modal message box hosted in the desktop overlay, and the floating-window cause of a panel close | Accepted | 2026-09-25 |
 | ADR-0019 | The data binding registry stays single-threaded, and the tests that reach it never run in parallel | Accepted | 2026-09-26 |
+| ADR-0020 | Bindable render transform, through two new attributes renamed onto the existing nested target path | Accepted | 2026-09-26 |
