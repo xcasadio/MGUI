@@ -15,21 +15,22 @@ public static class DataBindingManager
             throw new ArgumentNullException(nameof(TargetObject));
         }
 
+        //  Validate that there isn't already a binding for this TargetObject+TargetProperty tuple, before building the new binding:
+        //  its constructor already subscribes to the source and target objects and may push the source value into the target,
+        //  so a binding refused after being built would stay subscribed, never disposed, and would overwrite the existing binding's value.
+        //  (TODO: I guess we could instead remove the existing binding to replace it with the new one)
+        if (_BindingsByTargetObject.TryGetValue(TargetObject, out var ObjectBindings) &&
+            ObjectBindings.Any(x => x.Config.TargetPath == Config.TargetPath))
+        {
+            throw new InvalidOperationException(
+                $"Unable to bind to target property '{Config.TargetPath}' of target object '{TargetObject}' ({TargetObject.GetType().FullName}) " +
+                $"because a binding was already created for this target.");
+        }
+
         DataBinding Binding = new(Config, TargetObject);
         _Bindings.Add(Binding);
 
-        if (_BindingsByTargetObject.TryGetValue(TargetObject, out var ObjectBindings))
-        {
-            //  Validate that there isn't already a binding for this TargetObject+TargetProperty tuple
-            //  (TODO: I guess we could instead remove the existing binding to replace it with the new one)
-            if (ObjectBindings.Any(x => x.Config.TargetPath == Config.TargetPath))
-            {
-                throw new InvalidOperationException(
-                    $"Unable to bind to target property '{Config.TargetPath}' of target object '{TargetObject}' ({TargetObject.GetType().FullName}) " +
-                    $"because a binding was already created for this target.");
-            }
-        }
-        else
+        if (ObjectBindings == null)
         {
             ObjectBindings = new();
             _BindingsByTargetObject.Add(TargetObject, ObjectBindings);

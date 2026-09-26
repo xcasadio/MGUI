@@ -151,6 +151,12 @@ Paths 1 and 2 allocate nothing (no reflection, no boxing, no closure). Path 3 ma
 and returns `object`, and a format builds a `string`. Bind a value of the target's own type when a screen cares
 about per-frame allocation.
 
+## One binding per target property
+
+`DataBindingManager.AddBinding` throws `InvalidOperationException` when the target object already has a binding on
+the same `TargetPath`. The check runs before the binding is built, so a refused binding leaves nothing behind: it is
+not in `DataBindingManager.Bindings`, does not listen to its source or target, and never writes into the target.
+
 ## Threading
 
 `DataBindingManager` is not thread-safe: create, remove and read bindings on the UI thread only (ADR-0019). This
