@@ -24,9 +24,23 @@ public class BrushAnimationTargetsTests
     private static UIPropertyAnimation<Color> Fade(string path, Color to, int milliseconds, UIAnimationFillBehavior fill = UIAnimationFillBehavior.HoldEnd)
         => new(path) { To = to, Duration = TimeSpan.FromMilliseconds(milliseconds), FillBehavior = fill, Name = "fade" };
 
-    private static void AssertAllocatesNothingPerTick(AnimationTestScene scene, int warmUpTicks = 20, int probeTicks = 200)
+    /// <summary>Asserts that the animation <paramref name="arrange"/> sets up on a fresh scene allocates nothing per tick once warmed up.<para/>
+    /// Before the measured scene, the same arrangement runs to its end on a throwaway scene. That pays the costs the PROCESS pays only
+    /// once, whichever test gets there first: state created lazily, such as <c>EqualityComparer&lt;UIAnimation&gt;.Default</c> at the
+    /// first finished run (<see cref="UIAnimationManager"/> removes it from its active list), or the event args
+    /// <see cref="MGUI.Shared.Helpers.ViewModelBase"/> caches at the first notification of a property name. Left to the measured window,
+    /// they made this class's verdict depend on the tests run before it. The measured scene itself is not warmed by the throwaway one:
+    /// its own warm-up and window are unchanged, so a cost paid per tick, per run or per element still shows.</summary>
+    private static void AssertAllocatesNothingPerTick(Action<AnimationTestScene> arrange, int warmUpTicks = 20, int probeTicks = 200)
     {
         TimeSpan frame = TimeSpan.FromMilliseconds(AnimationTestScene.FrameMilliseconds);
+
+        AnimationTestScene throwaway = AnimationTestScene.Build();
+        arrange(throwaway);
+        RunToEnd(throwaway.Desktop.Animations, frame, warmUpTicks);
+
+        AnimationTestScene scene = AnimationTestScene.Build();
+        arrange(scene);
         UIAnimationManager manager = scene.Desktop.Animations;
         for (int i = 0; i < warmUpTicks; i++)
         {
@@ -43,82 +57,98 @@ public class BrushAnimationTargetsTests
         Assert.Equal(0, after - before);
     }
 
+    /// <summary>Ticks <paramref name="manager"/> like the measured warm-up, then by whole seconds until no animation is active.</summary>
+    private static void RunToEnd(UIAnimationManager manager, TimeSpan frame, int frames)
+    {
+        for (int i = 0; i < frames; i++)
+        {
+            manager.Update(frame);
+        }
+
+        for (int i = 0; i < 1000 && manager.ActiveCount > 0; i++)
+        {
+            manager.Update(TimeSpan.FromSeconds(1));
+        }
+
+        Assert.True(manager.ActiveCount == 0, "The throwaway arrangement never finished: a zero-allocation scenario of this class must end.");
+    }
+
     #region Zero allocation (ACCEPTANCE 2)
 
     [Fact]
     public void Background_ExplicitAnimation_AllocatesNothingPerTick_AfterWarmUp()
     {
-        AnimationTestScene scene = AnimationTestScene.Build();
-        scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Gray);
-        scene.Top.Animations.Start(Fade(UIColorAnimationTargets.Paths.Background, Color.Blue, 100000));
-
-        AssertAllocatesNothingPerTick(scene);
+        AssertAllocatesNothingPerTick(scene =>
+        {
+            scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Gray);
+            scene.Top.Animations.Start(Fade(UIColorAnimationTargets.Paths.Background, Color.Blue, 100000));
+        });
     }
 
     [Fact]
     public void Background_Transition_AllocatesNothingPerTick_AfterWarmUp()
     {
-        AnimationTestScene scene = AnimationTestScene.Build();
-        scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Gray);
-        scene.Top.Transitions.Add(new UITransition<Color>(UIColorAnimationTargets.Paths.Background, TimeSpan.FromMilliseconds(100000)));
-        scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Blue);
-
-        AssertAllocatesNothingPerTick(scene);
+        AssertAllocatesNothingPerTick(scene =>
+        {
+            scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Gray);
+            scene.Top.Transitions.Add(new UITransition<Color>(UIColorAnimationTargets.Paths.Background, TimeSpan.FromMilliseconds(100000)));
+            scene.Top.BackgroundBrush.NormalValue = new MGSolidFillBrush(Color.Blue);
+        });
     }
 
     [Fact]
     public void BackgroundSelected_ExplicitAnimation_AllocatesNothingPerTick_AfterWarmUp()
     {
-        AnimationTestScene scene = AnimationTestScene.Build();
-        scene.Top.BackgroundBrush.SelectedValue = new MGSolidFillBrush(Color.Black);
-        scene.Top.Animations.Start(Fade(UIColorAnimationTargets.Paths.BackgroundSelected, Color.White, 100000));
-
-        AssertAllocatesNothingPerTick(scene);
+        AssertAllocatesNothingPerTick(scene =>
+        {
+            scene.Top.BackgroundBrush.SelectedValue = new MGSolidFillBrush(Color.Black);
+            scene.Top.Animations.Start(Fade(UIColorAnimationTargets.Paths.BackgroundSelected, Color.White, 100000));
+        });
     }
 
     [Fact]
     public void BorderBrush_ExplicitAnimation_AllocatesNothingPerTick_AfterWarmUp()
     {
-        AnimationTestScene scene = AnimationTestScene.Build();
-        scene.Top.BorderBrush = new MGUniformBorderBrush(Color.Red);
-        scene.Top.Animations.Start(Fade(UIColorAnimationTargets.Paths.BorderBrush, Color.Green, 100000));
-
-        AssertAllocatesNothingPerTick(scene);
+        AssertAllocatesNothingPerTick(scene =>
+        {
+            scene.Top.BorderBrush = new MGUniformBorderBrush(Color.Red);
+            scene.Top.Animations.Start(Fade(UIColorAnimationTargets.Paths.BorderBrush, Color.Green, 100000));
+        });
     }
 
     [Fact]
     public void BackgroundGradient_KeyFrameAnimation_AllocatesNothingPerTick_AfterWarmUp()
     {
-        AnimationTestScene scene = AnimationTestScene.Build();
-        scene.Top.BackgroundBrush.NormalValue = new MGGradientFillBrush(Color.Red, Color.Green, Color.Blue, Color.White);
-        scene.Top.Animations.Start(new UIPropertyAnimation<UIGradientColors>(UIExtraAnimationTargets.Paths.BackgroundGradient)
+        AssertAllocatesNothingPerTick(scene =>
         {
-            To = new UIGradientColors(Color.White, Color.Red, Color.Green, Color.Blue),
-            // Short enough that every corner's byte value has already changed at least once during the warm-up below (a colour is
-            // byte-quantized: at 100000ms, as several other tests in this class use, the first visible step can take dozens of ticks
-            // to appear, landing the SetProperty notification that first happens to allocate -- not per tick, but the very first time
-            // -- inside the measured window instead of the warm-up).
-            Duration = TimeSpan.FromMilliseconds(2000),
+            scene.Top.BackgroundBrush.NormalValue = new MGGradientFillBrush(Color.Red, Color.Green, Color.Blue, Color.White);
+            scene.Top.Animations.Start(new UIPropertyAnimation<UIGradientColors>(UIExtraAnimationTargets.Paths.BackgroundGradient)
+            {
+                To = new UIGradientColors(Color.White, Color.Red, Color.Green, Color.Blue),
+                // Short enough that every corner's byte value has already changed at least once during the warm-up below (a colour is
+                // byte-quantized: at 100000ms, as several other tests in this class use, the first visible step can take dozens of ticks
+                // to appear, landing the SetProperty notification that first happens to allocate -- not per tick, but the very first time
+                // -- inside the measured window instead of the warm-up).
+                Duration = TimeSpan.FromMilliseconds(2000),
+            });
         });
-
-        AssertAllocatesNothingPerTick(scene);
     }
 
     [Fact]
     public void BackgroundDiagonalGradient_ExplicitAnimation_AllocatesNothingPerTick_AfterWarmUp()
     {
-        AnimationTestScene scene = AnimationTestScene.Build();
-        scene.Top.BackgroundBrush.NormalValue = new MGDiagonalGradientFillBrush(Color.Black, Color.White, CornerType.TopLeft);
-        scene.Top.Animations.Start(new UIPropertyAnimation<UIDiagonalGradientColors>(UIExtraAnimationTargets.Paths.BackgroundDiagonalGradient)
+        AssertAllocatesNothingPerTick(scene =>
         {
-            To = new UIDiagonalGradientColors(Color.White, Color.Black, CornerType.BottomLeft),
-            // Short for the colours (see BackgroundGradient_KeyFrameAnimation_AllocatesNothingPerTick_AfterWarmUp) AND short enough
-            // that Color1Position's one discrete flip at the interpolation's mid-point (Docs/animation-architecture.md, "Limites
-            // connues") also lands inside the warm-up below rather than the measured window.
-            Duration = TimeSpan.FromMilliseconds(400),
+            scene.Top.BackgroundBrush.NormalValue = new MGDiagonalGradientFillBrush(Color.Black, Color.White, CornerType.TopLeft);
+            scene.Top.Animations.Start(new UIPropertyAnimation<UIDiagonalGradientColors>(UIExtraAnimationTargets.Paths.BackgroundDiagonalGradient)
+            {
+                To = new UIDiagonalGradientColors(Color.White, Color.Black, CornerType.BottomLeft),
+                // Short for the colours (see BackgroundGradient_KeyFrameAnimation_AllocatesNothingPerTick_AfterWarmUp) AND short enough
+                // that Color1Position's one discrete flip at the interpolation's mid-point (Docs/animation-architecture.md, "Limites
+                // connues") also lands inside the warm-up below rather than the measured window.
+                Duration = TimeSpan.FromMilliseconds(400),
+            });
         });
-
-        AssertAllocatesNothingPerTick(scene);
     }
 
     #endregion
