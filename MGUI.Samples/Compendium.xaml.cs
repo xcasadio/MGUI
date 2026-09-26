@@ -210,6 +210,7 @@ namespace MGUI.Samples
         public EditorCompactPresetSample EditorCompactPresetSample { get; }
         public AnimationDemoSample AnimationDemoSample { get; }
         public BoundImagesSample BoundImagesSample { get; }
+        public RenderTransformBindingSample RenderTransformBindingSample { get; }
         public EditorRichTextBoxSample EditorRichTextBoxSample { get; }
         public GraphViewDialogueSample GraphViewDialogueSample { get; }
         #endregion Features
@@ -290,6 +291,7 @@ namespace MGUI.Samples
             EditorCompactPresetSample = new(Content, Desktop);
             AnimationDemoSample = new(Content, Desktop);
             BoundImagesSample = new(Content, Desktop);
+            RenderTransformBindingSample = new(Content, Desktop);
             EditorRichTextBoxSample = new(Content, Desktop);
             GraphViewDialogueSample = new(Content, Desktop);
             #endregion Features

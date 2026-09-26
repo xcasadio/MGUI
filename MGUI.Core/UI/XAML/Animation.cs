@@ -241,14 +241,14 @@ public class RenderTransform
     public string Translation
     {
         get => _translation;
-        set => _translation = AnimationXamlParser.ValidateVector2(value, nameof(Translation));
+        set => _translation = AnimationXamlParser.ValidateVector2(value, $"{nameof(RenderTransform)}.{nameof(Translation)}");
     }
 
     private string _scale;
     public string Scale
     {
         get => _scale;
-        set => _scale = AnimationXamlParser.ValidateVector2(value, nameof(Scale));
+        set => _scale = AnimationXamlParser.ValidateVector2(value, $"{nameof(RenderTransform)}.{nameof(Scale)}");
     }
 
     public float? Rotation { get; set; }
@@ -257,7 +257,7 @@ public class RenderTransform
     public string Origin
     {
         get => _origin;
-        set => _origin = AnimationXamlParser.ValidateVector2(value, nameof(Origin));
+        set => _origin = AnimationXamlParser.ValidateVector2(value, $"{nameof(RenderTransform)}.{nameof(Origin)}");
     }
 
     /// <summary>Writes the declared components onto <paramref name="target"/> (undeclared components are left alone).</summary>
@@ -436,11 +436,14 @@ public static class AnimationXamlParser
         return false;
     }
 
-    internal static string ValidateVector2(string value, string propertyName)
+    /// <summary>Validates a literal vector string (<c>"x,y"</c> or a single number) as it is assigned to a XAML string property, throwing
+    /// with <paramref name="qualifiedName"/> (e.g. <c>"RenderTransform.Translation"</c>) in the message when it isn't one. A null value (an
+    /// unset attribute, or an <c>{MGBinding}</c>'s placeholder) is left alone: it is validated, if at all, once the binding resolves.</summary>
+    internal static string ValidateVector2(string value, string qualifiedName)
     {
         if (value != null && !TryParseVector2(value, out _))
         {
-            throw new InvalidOperationException($"Cannot convert '{value}' to RenderTransform.{propertyName}: use 'x,y' or a single number.");
+            throw new InvalidOperationException($"Cannot convert '{value}' to {qualifiedName}: use 'x,y' or a single number.");
         }
 
         return value;

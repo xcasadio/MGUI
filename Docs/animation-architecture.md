@@ -311,6 +311,14 @@ DTO `MGUI.Core/UI/XAML/Animation.cs` :
 
 `Transition.Property` doit etre un chemin enregistre, `Duration` / `Delay` acceptent des secondes (`0.15`), des millisecondes (`150ms`) ou un `TimeSpan` (`0:0:0.15`), `Easing` un nom connu ou un litteral de Bezier ; chaque setter valide sa valeur, donc une erreur remonte comme diagnostic du loader strict (`InvalidValueConversion`, `SCN-MARKUP-001`). `RenderTransform` accepte `x,y` ou un nombre unique pour les vecteurs, `Rotation` en degres. Les transitions sont attachees apres les attributs de l'element (elles lisent la valeur courante en s'attachant).
 
+**Transform de rendu liable (ADR-0020)** : deux attributs de `Element`, `RenderTransformTranslation` et
+`RenderTransformScale` (chaines, meme syntaxe `x,y`/nombre unique que le DTO ci-dessus), s'appliquent APRES le DTO
+`RenderTransform` (donc un litteral sur l'un des deux l'emporte sur la composante correspondante du DTO) et se
+laissent lier : `RenderTransformTranslation="{MGBinding Path=Position}"` pousse un `Vector2` du view-model
+directement dans `RenderTransform.Translation` (chemin imbrique, `BindingPathMappings`, meme mecanisme que
+`Background`/`CanvasLeft`), en `PushStrategy.TypedCopy` (ADR-0016 : aucune allocation, aucune reflexion). Distincts
+de `RenderScale` (l'echelle par etat). Sample : `MGUI.Samples/Features/RenderTransformBinding.xaml`.
+
 Etats visuels nommes (`VisualStateDefinition`) :
 
 ```xaml

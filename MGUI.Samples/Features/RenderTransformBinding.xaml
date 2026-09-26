@@ -1,0 +1,40 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
+        Left="460" Top="580" Width="480" MinHeight="0" SizeToContent="Height" TitleText="Render Transform Binding" Padding="10">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Render Transform Binding:" HorizontalAlignment="Center" />
+            <TextBlock>
+                Demonstrates ADR-0020: RenderTransformTranslation and RenderTransformScale bind a Vector2 view-model
+                property straight onto the element's RenderTransform.Translation/Scale (ADR-0006), through the same
+                nested-target-path, allocation-free push ADR-0016 gave Background/CanvasLeft. The image below flies
+                from and grows from the canvas' top-left corner (its default Origin), then resets.
+            </TextBlock>
+            <Separator />
+
+            <Border Background="White * 0.08" Padding="6">
+                <Canvas Name="FlightCanvas" Width="420" Height="140" Background="Black * 0.25" BorderThickness="1" BorderBrush="White * 0.35">
+                    <Image Name="FlyingImage" SourceName="Wrench" Width="24" Height="24" Stretch="None"
+                           RenderTransformTranslation="{dataBinding:MGBinding Path=FlyingTranslation}"
+                           RenderTransformScale="{dataBinding:MGBinding Path=FlyingScale}" />
+                </Canvas>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

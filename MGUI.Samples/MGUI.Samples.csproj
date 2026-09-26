@@ -86,6 +86,7 @@
     <None Remove="Features\EditorCompact.Themes.xaml" />
     <None Remove="Features\TextSurfaceLite.xaml" />
     <None Remove="Features\BoundImages.xaml" />
+    <None Remove="Features\RenderTransformBinding.xaml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Compendium.xaml">
@@ -236,6 +237,7 @@
     <EmbeddedResource Include="Features\EditorCompact.Themes.xaml" />
     <EmbeddedResource Include="Features\TextSurfaceLite.xaml" />
     <EmbeddedResource Include="Features\BoundImages.xaml" />
+    <EmbeddedResource Include="Features\RenderTransformBinding.xaml" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="..\MGUI.Shared\Content\MGUI.Shared.Content.mgcb" Link="Content\MGUI.Shared.Content.mgcb" />

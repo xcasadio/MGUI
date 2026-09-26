@@ -295,6 +295,30 @@ public abstract class Element : XAMLBindableBase
     [Category("Appearance")]
     public RenderTransform RenderTransform { get; set; }
 
+    private string _renderTransformTranslation;
+    /// <summary>Bindable counterpart of <see cref="RenderTransform"/>'s <c>Translation</c> (ADR-0020 of MGUI): a literal <c>"x,y"</c> or a single
+    /// number, applied to <see cref="MGElement.RenderTransform"/> after the <see cref="RenderTransform"/> DTO, or an <c>{MGBinding}</c> that pushes
+    /// straight into <c>RenderTransform.Translation</c> (see <see cref="BindingPathMappings"/>). Distinct from <see cref="RenderScale"/>, which is
+    /// the state-driven scale.</summary>
+    [Category("Appearance")]
+    public string RenderTransformTranslation
+    {
+        get => _renderTransformTranslation;
+        set => _renderTransformTranslation = AnimationXamlParser.ValidateVector2(value, $"{nameof(Element)}.{nameof(RenderTransformTranslation)}");
+    }
+
+    private string _renderTransformScale;
+    /// <summary>Bindable counterpart of <see cref="RenderTransform"/>'s <c>Scale</c> (ADR-0020 of MGUI): a literal <c>"x,y"</c> or a single number,
+    /// applied to <see cref="MGElement.RenderTransform"/> after the <see cref="RenderTransform"/> DTO, or an <c>{MGBinding}</c> that pushes
+    /// straight into <c>RenderTransform.Scale</c> (see <see cref="BindingPathMappings"/>). Distinct from <see cref="RenderScale"/>, which is the
+    /// state-driven scale.</summary>
+    [Category("Appearance")]
+    public string RenderTransformScale
+    {
+        get => _renderTransformScale;
+        set => _renderTransformScale = AnimationXamlParser.ValidateVector2(value, $"{nameof(Element)}.{nameof(RenderTransformScale)}");
+    }
+
     /// <summary>The transitions attached to the element (ADR-0006): <c>&lt;Button.Transitions&gt;&lt;Transition Property="Opacity" Duration="0.2" Easing="CubicOut" /&gt;&lt;/Button.Transitions&gt;</c>.</summary>
     [Category("Appearance")]
     public List<Transition> Transitions { get; set; } = new();
@@ -824,6 +848,19 @@ public abstract class Element : XAMLBindableBase
                 RenderTransform.ApplyTo(Element.RenderTransform);
             }
 
+            //  Applied AFTER the RenderTransform DTO (ADR-0020 of MGUI), so a literal on either attribute overrides the DTO's matching
+            //  component; a null value (unset, or an {MGBinding}'s placeholder, MGBinding.ProvideValue) writes nothing here, and the
+            //  bound case is instead pushed straight into RenderTransform.Translation/.Scale via BindingPathMappings.
+            if (_renderTransformTranslation != null)
+            {
+                Element.RenderTransform.Translation = AnimationXamlParser.ParseVector2(_renderTransformTranslation);
+            }
+
+            if (_renderTransformScale != null)
+            {
+                Element.RenderTransform.Scale = AnimationXamlParser.ParseVector2(_renderTransformScale);
+            }
+
             //  Y5: a zero or absent duration leaves LayoutTransition null, exactly like never setting it (the easing or the size flag alone do nothing).
             if (AnimationXamlParser.TryParseDuration(LayoutTransitionDuration, out var LayoutTransitionDurationValue) && LayoutTransitionDurationValue > TimeSpan.Zero)
             {
@@ -1027,7 +1064,11 @@ public abstract class Element : XAMLBindableBase
         { nameof(DisabledTextForeground), $"{nameof(MGElement.DefaultTextForeground)}.{nameof(VisualStateSetting<XNAColor>.DisabledValue)}" },
         { nameof(Width), $"{nameof(MGElement.PreferredWidth)}" },
         { nameof(Height), $"{nameof(MGElement.PreferredHeight)}" },
-        { nameof(ListBox.Items), $"{nameof(MGListBox<object>.ItemsSource)}" }
+        { nameof(ListBox.Items), $"{nameof(MGListBox<object>.ItemsSource)}" },
+        //  ADR-0020 of MGUI (G9): a Vector2 view-model property binds straight onto the element's stable
+        //  MGElement.RenderTransform instance, through the nested target path DataBinding.ResolvePath already walks.
+        { nameof(RenderTransformTranslation), $"{nameof(MGElement.RenderTransform)}.{nameof(Animation.UIRenderTransform.Translation)}" },
+        { nameof(RenderTransformScale), $"{nameof(MGElement.RenderTransform)}.{nameof(Animation.UIRenderTransform.Scale)}" }
     };
 
     private const string BindingPathsMetadataKey = "TmpBindingPaths";
