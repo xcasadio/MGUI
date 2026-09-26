@@ -19,6 +19,7 @@ namespace MGUI.Tests.Architecture;
 /// names an animation (as decided by the host's <see cref="IUIAssetProvider.TryCreateAnimatedImage"/>) plays it -- one
 /// <see cref="IUIAnimatedImage"/> instance per image, advanced every frame by <c>UA.BA.FrameElapsed</c>, drawn at its
 /// current frame's image/source-rectangle/draw-offset, with a bindable start offset and playing flag.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class AnimatedImageTests
 {
     private static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(200);

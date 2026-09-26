@@ -28,6 +28,7 @@ namespace MGUI.Tests.Architecture;
 /// binding subscribes through, not to the reflection/boxing push path ADR-0016 targets, so it would swamp the very
 /// thing these tests exist to measure if left in the loop. The view model's "quiet" setters below mutate the
 /// backing field without notifying, so the measured loop exercises only the push.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class DataBindingAllocationTests
 {
     private const int WarmupIterations = 5000;

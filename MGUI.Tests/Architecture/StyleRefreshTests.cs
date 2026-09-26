@@ -29,6 +29,7 @@ namespace MGUI.Tests.Architecture;
 /// value or a binding, and stays within the refreshed subtree.<para/>
 /// ADR-0008 decision 9: the same refresh also re-transfers the style-owned transitions and named visual states.
 /// </summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class StyleRefreshTests
 {
     [Fact]

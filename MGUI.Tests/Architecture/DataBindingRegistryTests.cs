@@ -11,8 +11,9 @@ namespace MGUI.Tests.Architecture;
 
 /// <summary>A binding removed from <see cref="DataBindingManager"/> leaves its registry entirely: disposed, and gone
 /// from <see cref="DataBindingManager.Bindings"/> too, since a binding still listed there keeps its target element
-/// (and the tree above it) reachable. Other test classes add bindings in parallel, so these tests look for their
-/// own bindings only, never at the registry's count.</summary>
+/// (and the tree above it) reachable. Other test classes leave their bindings in this static registry, so these tests
+/// look for their own bindings only, never at the registry's count.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class DataBindingRegistryTests
 {
     private sealed class LabelViewModel : INotifyPropertyChanged

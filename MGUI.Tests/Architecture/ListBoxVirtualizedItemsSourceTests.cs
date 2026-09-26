@@ -13,6 +13,7 @@ namespace MGUI.Tests.Architecture;
 /// <summary>Covers incremental <see cref="MGListBox{TItemType}.ItemsSource"/> changes while UI virtualization is active.
 /// Before these were supported, the only way to reflect a new item was to reassign the whole items source, which
 /// re-measured the item height and discarded the recycling pool on every single append.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class ListBoxVirtualizedItemsSourceTests
 {
     /// <summary>A virtualized list box hosted in a laid-out window, with an item template that counts how many

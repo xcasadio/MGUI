@@ -19,6 +19,7 @@ namespace MGUI.Tests.Editor;
 /// <summary><see cref="XamlPreviewHost"/> renders a <see cref="XamlEditorSession"/>'s text into the "Preview" pane,
 /// debounced on the editor window's own update tick. One test group per acceptance bullet of the hot preview host
 /// section of Docs/Tasks/xaml-editor-tasks.md.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class XamlPreviewHostTests
 {
     private const string Ns = "clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core";

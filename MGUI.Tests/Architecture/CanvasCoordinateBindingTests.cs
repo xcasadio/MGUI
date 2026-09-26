@@ -21,6 +21,7 @@ namespace MGUI.Tests.Architecture;
 /// written on the <c>CanvasLeft</c>/<c>CanvasTop</c> XAML attribute reaches those properties directly (no
 /// <c>BindingPathMappings</c> entry needed, since the XAML DTO and runtime property share the same name) and moves
 /// the child live, through the same compiled, allocation-free typed accessors T1.1 gave every other OneWay push.</summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class CanvasCoordinateBindingTests
 {
     private sealed class PositionViewModel : INotifyPropertyChanged

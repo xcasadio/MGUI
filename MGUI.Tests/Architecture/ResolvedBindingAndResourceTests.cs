@@ -23,6 +23,7 @@ namespace MGUI.Tests.Architecture;
 /// and participates in the store's usual precedence instead of unconditionally overwriting whatever the CLR
 /// property currently holds.
 /// </summary>
+[Collection(DataBindingRegistryCollection.Name)]
 public class ResolvedBindingAndResourceTests
 {
     /// <summary>(1) A DynamicResource targeting a scalar pilot (<c>Border.Padding</c>): wins as

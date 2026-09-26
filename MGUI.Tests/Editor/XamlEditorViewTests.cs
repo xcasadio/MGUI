@@ -13,6 +13,7 @@ using Xunit;
 
 namespace MGUI.Tests.Editor;
 
+[Collection(DataBindingRegistryCollection.Name)]
 public class XamlEditorViewTests
 {
     private static (MGDesktop Desktop, MGWindow Window, XamlEditorView View) CreateUnhostedView(int width, int height)
