@@ -986,6 +986,16 @@ public class MGSlider : MGElement
     private Rectangle RecentStretchedNumberLineBounds = Rectangle.Empty;
     private Rectangle RecentThumbBounds = Rectangle.Empty;
 
+    /// <summary>Draws the focus overlay over one piece of the number line beside the thumb, unless that piece is empty.</summary>
+    private void DrawNumberLineOverlayChunk(ElementDrawArgs DA, Rectangle Bounds, IFillBrush OverlayFillBrush, IBorderBrush OverlayBorderBrush)
+    {
+        if (Bounds != Rectangle.Empty)
+        {
+            OverlayFillBrush?.Draw(DA, this, Bounds);
+            OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);
+        }
+    }
+
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
         var VisualState = this.VisualState.GetSecondaryState(IsDraggingThumb, false);
@@ -1071,13 +1081,8 @@ public class MGSlider : MGElement
                     RightNumberLine = new(ThumbBounds.Right, NumberLineBounds.Top, NumberLineBounds.Right - ThumbBounds.Right, NumberLineBounds.Height);
                 }
 
-                var NumberLineChunks = new List<Rectangle>() { LeftNumberLine, RightNumberLine }.Where(x => x != Rectangle.Empty).ToList();
-
-                foreach (var Bounds in NumberLineChunks)
-                {
-                    OverlayFillBrush?.Draw(DA, this, Bounds);
-                    OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);
-                }
+                DrawNumberLineOverlayChunk(DA, LeftNumberLine, OverlayFillBrush, OverlayBorderBrush);
+                DrawNumberLineOverlayChunk(DA, RightNumberLine, OverlayFillBrush, OverlayBorderBrush);
                 OverlayFillBrush?.Draw(DA, this, ThumbBounds);
                 OverlayBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
             }
@@ -1154,13 +1159,8 @@ public class MGSlider : MGElement
                     BottomNumberLine = new(NumberLineBounds.Left, ThumbBounds.Bottom, NumberLineBounds.Width, NumberLineBounds.Bottom - ThumbBounds.Bottom);
                 }
 
-                var NumberLineChunks = new List<Rectangle>() { TopNumberLine, BottomNumberLine }.Where(x => x != Rectangle.Empty).ToList();
-
-                foreach (var Bounds in NumberLineChunks)
-                {
-                    OverlayFillBrush?.Draw(DA, this, Bounds);
-                    OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);
-                }
+                DrawNumberLineOverlayChunk(DA, TopNumberLine, OverlayFillBrush, OverlayBorderBrush);
+                DrawNumberLineOverlayChunk(DA, BottomNumberLine, OverlayFillBrush, OverlayBorderBrush);
                 OverlayFillBrush?.Draw(DA, this, ThumbBounds);
                 OverlayBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
             }
