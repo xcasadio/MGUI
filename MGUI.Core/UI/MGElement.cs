@@ -3554,39 +3554,94 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     public virtual MGBorder GetBorder() => null;
     public bool HasBorder => GetBorder() != null;
 
-    /// <summary>Retrieves all <see cref="IBorderBrush"/>es that this <see cref="MGElement"/> uses, 
+    /// <summary>Adds to <paramref name="Brushes"/> all <see cref="IBorderBrush"/>es that this <see cref="MGElement"/> uses,
     /// excluding any brushes associated with its built-in <see cref="MGBorder"/> (See: <see cref="HasBorder"/>, <see cref="GetBorder"/>)<br/>
-    /// This method does not recursively return brushes nested within brushes, such as the <see cref="MGBandedBorderBrush.Bands"/> of an <see cref="MGBandedBorderBrush"/><para/>
-    /// May contain <see langword="null"/> entries.</summary>
-    protected virtual IEnumerable<IBorderBrush> GetBorderBrushes()
+    /// This method does not recursively add brushes nested within brushes, such as the <see cref="MGBandedBorderBrush.Bands"/> of an <see cref="MGBandedBorderBrush"/><para/>
+    /// Called once per frame from <see cref="Update(ElementUpdateArgs)"/> with a reused list, so that collecting allocates nothing.
+    /// May add <see langword="null"/> entries.</summary>
+    protected virtual void CollectBorderBrushes(List<IBorderBrush> Brushes)
     {
         if (HasBorder)
         {
-            yield return GetBorder().BorderBrush;
+            Brushes.Add(GetBorder().BorderBrush);
         }
     }
 
-    /// <summary>Retrieves the raw <see cref="IFillBrush"/> slots that this <see cref="MGElement"/> draws itself, excluding <see cref="BackgroundBrush"/>
-    /// (see <see cref="GetVisualStateFillBrushes"/>). By default only <see cref="OverlayBrush"/>.<para/>
-    /// Each brush returned here receives <see cref="IFillBrush.Update(UpdateBaseArgs)"/> once per frame from <see cref="Update(ElementUpdateArgs)"/>,
+    /// <summary>Adds to <paramref name="Brushes"/> the raw <see cref="IFillBrush"/> slots that this <see cref="MGElement"/> draws itself, excluding <see cref="BackgroundBrush"/>
+    /// (see <see cref="CollectVisualStateFillBrushes"/>). By default only <see cref="OverlayBrush"/>.<para/>
+    /// Each brush added here receives <see cref="IFillBrush.Update(UpdateBaseArgs)"/> once per frame from <see cref="Update(ElementUpdateArgs)"/>,
     /// so that stateful paints keep animating. Controls that own additional <see cref="IFillBrush"/> slots override this method (and call the base implementation).<para/>
-    /// Do not return a brush that belongs to a child element's <see cref="BackgroundBrush"/>/<see cref="OverlayBrush"/>, nor a "template" brush that is assigned
+    /// Do not add a brush that belongs to a child element's <see cref="BackgroundBrush"/>/<see cref="OverlayBrush"/>, nor a "template" brush that is assigned
     /// into other elements: those are already ticked by their consumer, and a brush ticked twice per frame animates twice as fast.<br/>
-    /// This method does not recursively return brushes nested within brushes.<para/>
-    /// May contain <see langword="null"/> entries.</summary>
-    protected virtual IEnumerable<IFillBrush> GetFillBrushes()
+    /// This method does not recursively add brushes nested within brushes.<para/>
+    /// Called once per frame with a reused list, so that collecting allocates nothing. May add <see langword="null"/> entries.</summary>
+    protected virtual void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        yield return OverlayBrush;
+        Brushes.Add(OverlayBrush);
     }
 
-    /// <summary>Retrieves the <see cref="VisualStateFillBrush"/> slots that this <see cref="MGElement"/> draws itself. By default only <see cref="BackgroundBrush"/>.<para/>
-    /// Each wrapper returned here receives <see cref="VisualStateFillBrush.Update(UpdateBaseArgs)"/> once per frame from <see cref="Update(ElementUpdateArgs)"/>.
+    /// <summary>Adds to <paramref name="Brushes"/> the <see cref="VisualStateFillBrush"/> slots that this <see cref="MGElement"/> draws itself. By default only <see cref="BackgroundBrush"/>.<para/>
+    /// Each wrapper added here receives <see cref="VisualStateFillBrush.Update(UpdateBaseArgs)"/> once per frame from <see cref="Update(ElementUpdateArgs)"/>.
     /// Controls that own additional <see cref="VisualStateFillBrush"/> slots override this method (and call the base implementation).
-    /// The same rules as <see cref="GetFillBrushes"/> apply: never return a slot that proxies a child element's background, nor a template brush consumed by other elements.<para/>
-    /// May contain <see langword="null"/> entries.</summary>
-    protected virtual IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+    /// The same rules as <see cref="CollectFillBrushes"/> apply: never add a slot that proxies a child element's background, nor a template brush consumed by other elements.<para/>
+    /// Called once per frame with a reused list, so that collecting allocates nothing. May add <see langword="null"/> entries.</summary>
+    protected virtual void CollectVisualStateFillBrushes(List<VisualStateFillBrush> Brushes)
     {
-        yield return BackgroundBrush;
+        Brushes.Add(BackgroundBrush);
+    }
+
+    //  Lists reused by TickOwnBrushes, one set per thread (MGUI.Tests runs desktops on parallel threads). A nested update that would reach
+    //  TickOwnBrushes while they are in use gets temporary lists instead, so an in-use list is never cleared under its reader.
+    [ThreadStatic]
+    private static List<IBorderBrush> BorderBrushesToTick;
+    [ThreadStatic]
+    private static List<VisualStateFillBrush> VisualStateFillBrushesToTick;
+    [ThreadStatic]
+    private static List<IFillBrush> FillBrushesToTick;
+    [ThreadStatic]
+    private static bool AreBrushListsInUse;
+
+    /// <summary>Ticks, once per frame, the border brushes, the background wrappers and the raw fill slots this element draws itself
+    /// (see <see cref="CollectBorderBrushes"/>, <see cref="CollectVisualStateFillBrushes"/> and <see cref="CollectFillBrushes"/>), in that order.</summary>
+    private void TickOwnBrushes(UpdateBaseArgs BA)
+    {
+        var UseSharedLists = !AreBrushListsInUse;
+        var BorderBrushes = UseSharedLists ? (BorderBrushesToTick ??= new()) : new List<IBorderBrush>();
+        var VisualStateFillBrushes = UseSharedLists ? (VisualStateFillBrushesToTick ??= new()) : new List<VisualStateFillBrush>();
+        var FillBrushes = UseSharedLists ? (FillBrushesToTick ??= new()) : new List<IFillBrush>();
+        AreBrushListsInUse = true;
+        try
+        {
+            CollectBorderBrushes(BorderBrushes);
+            for (var i = 0; i < BorderBrushes.Count; i++)
+            {
+                PaintLifecycle.Update(BorderBrushes[i], BA);
+            }
+
+            //  Fill brush lifecycle: a stateful paint is ticked once per frame regardless of how many slots or elements reference it:
+            //  PaintLifecycle dedups by reference against BA.PaintRegistry (see Docs/drawing-architecture.md, Limites connues).
+            CollectVisualStateFillBrushes(VisualStateFillBrushes);
+            for (var i = 0; i < VisualStateFillBrushes.Count; i++)
+            {
+                VisualStateFillBrushes[i]?.Update(BA);
+            }
+
+            CollectFillBrushes(FillBrushes);
+            for (var i = 0; i < FillBrushes.Count; i++)
+            {
+                PaintLifecycle.Update(FillBrushes[i], BA);
+            }
+        }
+        finally
+        {
+            BorderBrushes.Clear();
+            VisualStateFillBrushes.Clear();
+            FillBrushes.Clear();
+            if (UseSharedLists)
+            {
+                AreBrushListsInUse = false;
+            }
+        }
     }
 
     /// <summary>Removes all <see cref="DataBinding"/>s that are associated with this <see cref="MGElement"/>.<para/>
@@ -3989,24 +4044,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         RaiseUpdateEvent(OnBeginUpdate, UA, ref UpdateEventArgs);
 
-        // Fix (Task 14): iterate directly instead of .ToList().ForEach() which allocates a temporary List<>
-        foreach (var brush in GetBorderBrushes())
-        {
-            PaintLifecycle.Update(brush, UA.BA);
-        }
-
-        //  Fill brush lifecycle: tick the background wrappers and the raw fill slots this element draws itself (see GetFillBrushes/GetVisualStateFillBrushes).
-        //  A stateful paint is ticked once per frame regardless of how many slots or elements reference it: PaintLifecycle
-        //  dedups by reference against UA.BA.PaintRegistry (see Docs/drawing-architecture.md, Limites connues).
-        foreach (var brush in GetVisualStateFillBrushes())
-        {
-            brush?.Update(UA.BA);
-        }
-
-        foreach (var brush in GetFillBrushes())
-        {
-            PaintLifecycle.Update(brush, UA.BA);
-        }
+        TickOwnBrushes(UA.BA);
 
         if (ComputedIsHitTestVisible && Visibility == Visibility.Visible &&
             (newSVS == SecondaryVisualState.Hovered || (IsHovered && newSVS == SecondaryVisualState.Pressed)))

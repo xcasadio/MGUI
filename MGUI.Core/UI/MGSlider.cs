@@ -833,42 +833,30 @@ public class MGSlider : MGElement
         };
     }
 
-    protected override IEnumerable<IBorderBrush> GetBorderBrushes()
+    protected override void CollectBorderBrushes(List<IBorderBrush> Brushes)
     {
-        foreach (var Brush in base.GetBorderBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return NumberLineBorderBrush;
-        yield return TickBorderBrush;
-        yield return ThumbBorderBrush;
+        base.CollectBorderBrushes(Brushes);
+        Brushes.Add(NumberLineBorderBrush);
+        Brushes.Add(TickBorderBrush);
+        Brushes.Add(ThumbBorderBrush);
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    protected override void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return NumberLineFillBrush;
-        yield return TickFillBrush;
-        yield return ThumbFillBrush;
-        //  Foreground is the fallback of the Actual* brushes; yield it once here, never through the Actual* wrappers, so it is ticked once per frame.
-        yield return Foreground;
+        base.CollectFillBrushes(Brushes);
+        Brushes.Add(NumberLineFillBrush);
+        Brushes.Add(TickFillBrush);
+        Brushes.Add(ThumbFillBrush);
+        //  Foreground is the fallback of the Actual* brushes; add it once here, never through the Actual* wrappers, so it is ticked once per frame.
+        Brushes.Add(Foreground);
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+    protected override void CollectVisualStateFillBrushes(List<VisualStateFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetVisualStateFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return FocusBrush;
+        base.CollectVisualStateFillBrushes(Brushes);
+        Brushes.Add(FocusBrush);
     }
 
     public override void UpdateSelf(ElementUpdateArgs UA)

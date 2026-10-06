@@ -915,15 +915,11 @@ public class MGScrollViewer : MGSingleContentHost
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+    protected override void CollectVisualStateFillBrushes(List<VisualStateFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetVisualStateFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return ScrollBarOuterBrush;
-        yield return ScrollBarInnerBrush;
+        base.CollectVisualStateFillBrushes(Brushes);
+        Brushes.Add(ScrollBarOuterBrush);
+        Brushes.Add(ScrollBarInnerBrush);
     }
 
     protected internal override void OnThemeChanged(MGTheme PreviousTheme, MGTheme CurrentTheme)

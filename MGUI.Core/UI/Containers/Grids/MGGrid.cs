@@ -1053,17 +1053,13 @@ public class MGGrid : MGMultiContentHost
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    protected override void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return SelectionBackground;
-        yield return SelectionOverlay;
-        yield return HorizontalGridLineBrush;
-        yield return VerticalGridLineBrush;
+        base.CollectFillBrushes(Brushes);
+        Brushes.Add(SelectionBackground);
+        Brushes.Add(SelectionOverlay);
+        Brushes.Add(HorizontalGridLineBrush);
+        Brushes.Add(VerticalGridLineBrush);
     }
 
     private void RowColumn_DimensionsChanged(object sender, EventArgs e)

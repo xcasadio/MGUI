@@ -297,14 +297,10 @@ public class MGGridSplitter : MGElement, IActiveMouseDragCapture
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+    protected override void CollectVisualStateFillBrushes(List<VisualStateFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetVisualStateFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return Foreground;
+        base.CollectVisualStateFillBrushes(Brushes);
+        Brushes.Add(Foreground);
     }
 
     /// <summary>Represents the order of precedence that resizing operations will be applied to rows/columns in.<para/>

@@ -284,14 +284,10 @@ public class MGOverlayHost : MGSingleContentHost
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    protected override void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return OverlayBackground;
+        base.CollectFillBrushes(Brushes);
+        Brushes.Add(OverlayBackground);
     }
 
     //Maybe an IsMutuallyExclusive property, which determines if multiple overlays can be active concurrently?
