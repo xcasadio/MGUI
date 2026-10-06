@@ -173,11 +173,13 @@ includes `DataBindingManager.Bindings`, which is the registry's live list. One k
 A test class that reaches the registry, directly or by loading bound XAML or replacing templated item content,
 joins `DataBindingRegistryCollection` in `MGUI.Tests`, which never runs in parallel with other tests.
 
-## Two known limits
+## Known limits
 
-- **O3, weak-event dispatch allocation.** With `UseWPF`, a source's `PropertyChanged` is dispatched through
-  `System.Windows.Data.PropertyChangedEventManager`, which allocates roughly 192 bytes per notification, before any
-  binding push runs. This is independent of which of the three paths above the push itself takes.
+- **O3, weak-event dispatch allocation: resolved by ADR-0021.** With `UseWPF`, a source's `PropertyChanged` used to be
+  dispatched through `System.Windows.Data.PropertyChangedEventManager`, 192 bytes per notification. A binding now
+  subscribes directly in every build, and a live notification on a typed path allocates nothing
+  (`MGUI.Tests/Architecture/DataBindingNotificationTests.cs`). A `PropertyChanged` raised with a null or empty name
+  no longer reaches a binding.
 - **A failed resolution is not refreshed across resource scopes.** `MGResources.OnTextureAdded` is not relayed
   between scopes: if an `MGImage`'s `SourceName` failed to resolve (through `TryGetTexture`'s own scope-chain
   walk, including the provider fallback) and the texture is only added later in a *different* scope than the one

@@ -14,9 +14,9 @@ namespace MGUI.Tests.Controls;
 /// list of the pieces every frame the slider is hovered, pressed or dragged.<para/>
 /// The allocation test isolates that overlay code. Its slider is not hit-test visible: the mouse is still over it, so
 /// <see cref="MGElement.IsHovered"/> is true and the overlay branch runs, but its <see cref="MGElement.VisualState"/> stays
-/// <see cref="SecondaryVisualState.None"/>, so the overlay brushes are null. The slider's own border brushes are removed as well:
-/// a border drawn by <see cref="MGUI.Core.UI.Brushes.BorderBrushes.MGUniformBorderBrush"/> allocates in <c>ThicknessUtils.IsEmpty</c>,
-/// outside this control.
+/// <see cref="SecondaryVisualState.None"/>, so the overlay brushes are null; its own border brushes are removed too, so that only the
+/// overlay code is measured. The whole draw of a dragged slider, borders and overlay included, is measured by
+/// <see cref="MGUI.Tests.Architecture.SliderDragFrameAllocationTests"/>.
 /// </summary>
 public class SliderDrawAllocationTests
 {

@@ -147,8 +147,13 @@ Environ 40 fichiers dans `MGUI.Core/UI/Color/`. Utilisation : `Docs/mgui_colorpi
 
 `MGUI.Core/UI/Containers/MGCanvas.cs` + `MGCanvasLayoutEngine.cs` : `MGMultiContentHost` avec API attachee statique `MGCanvas.SetLeft` / `SetTop` / `SetRight` / `SetBottom` (+ getters, `int?`). Precedence : Left gagne sur Right, Top gagne sur Bottom ; sans coordonnees, arrangement a l'origine. Coordonnees stockees dans des champs types de `MGElement`, exposees aussi par les proprietes liables `CanvasLeft` / `CanvasTop` / `CanvasRight` / `CanvasBottom` (`int?`, sans allocation), avec invalidation de layout automatique (ADR-0016). XAML : attributs `CanvasLeft` / `CanvasTop` / `CanvasRight` / `CanvasBottom` sur les noeuds enfants. Pas de `ZIndex` public : ordre de dessin et de hit-test = ordre naturel des enfants. Conteneur neutre pour l'input. C'est la surface hote du graphe (`MGGraphView.NodesCanvas`).
 
+## Slider
+
+`MGUI.Core/UI/MGSlider.cs` : un changement de valeur leve `ValueChanged` (un `EventArgs<float>` alloue par changement tant qu'il a des abonnes) puis `ValueChangedNonAlloc` (`EventHandler<(float PreviousValue, float NewValue)>`, sans allocation), avec les memes valeurs ; le label de valeur est deja a jour quand ils sont leves. Le label (`ShowValueLabel`, `ValueLabelFormat`) est formate par `float.TryFormat` dans un tampon prive, et une chaine n'est construite que si le texte affiche change. `DrawSelf` dessine la surcouche de survol et de glissement sans liste. `MGUI.Core/UI/Color/MGColorSlider.cs` suit le meme modele : `ValueChangedNonAlloc` et `ValueChangingNonAlloc`. Un glissement de slider n'alloue rien sur son propre chemin, de l'entree au dessin (ADR-0021) ; un texte de label qui change vraiment alloue encore (chaine et pipeline de `MGTextBlock`).
+
 ## Limites connues
 
+- Slider : un label dont le texte change vraiment alloue (voir la section Slider).
 - PropertyGrid : editeurs limites a `Bool` / `Int` / `Float` / `Double` / `String` / `Color` ; pas d'enum, de collections, d'objets imbriques, d'undo/redo, de multi-selection ni de recherche/filtrage (voir le fichier de taches).
 - Graphe : pas de cut/duplicate, recherche, minimap, blackboard, reroutes, sous-graphes, bookmarks, align/distribute, integration PropertyGrid, ni de couche compilation/debug (voir le fichier de taches).
 - ColorPicker : pas de surfaces de preview avancees, d'outils d'authoring (gradient editor, harmonies), de simulations de daltonisme ni de formats `.mgpalette` / `.gpl` (voir le fichier de taches).

@@ -22,13 +22,13 @@ A ne pas confondre : `UIViewInputRouter` (`MGUI.Core/UI/UIViewInputRouter.cs`) n
 
 Cable par `MGUI.MonoGame.Integration/Rendering/MainRenderer.cs` (c'est l'hote qui met a jour `InputTracker` avant `desktop.Update()` — voir `Docs/custom-render-backend-integration.md`) :
 
-1. **`Host.PreviewUpdate`** : `InputTracker.Update(UpdateArgs)` — snapshot + diff. Les event-args du tick sont crees **neufs** (le flag `IsHandled` est donc implicitement reinitialise chaque tick).
+1. **`Host.PreviewUpdate`** : `InputTracker.Update(UpdateArgs)` — snapshot + diff. Les event-args d'appui, de relachement, de clic, de debut et de fin de glissement, de defilement et de touche sont crees **neufs** a l'evenement (le flag `IsHandled` est donc implicitement reinitialise). Ceux de deplacement (`CurrentMoveEvent`) et de glissement (`CurrentDraggedEvents`) sont une meme instance re-remplie d'une frame a l'autre (ADR-0021) : les lire pendant le tick, ne pas les garder ; ces deux types n'ont pas d'etat handled. Hors de ces evenements, le tick des trackers et des handlers n'alloue rien (ADR-0021).
 2. **`MGDesktop.Update()`** :
    - handlers haute priorite du desktop (`HighPriorityMouseHandler`/`HighPriorityKeyboardHandler`) — le seul vrai hook "preview" global ; c'est ici que la navigation clavier/gamepad brute est dispatchee ;
    - `ActiveContextMenu` puis `ActiveToolTip` (premier acces a l'input, avant toute fenetre) ;
    - fenetres **de l'avant vers l'arriere** : `OrderedWindows = Windows.Reverse().OrderByDescending(IsTopmost)` avec l'`OverlayWindow` en tete. L'ordre d'update est le miroir exact de l'ordre de draw (arriere vers avant) ;
    - les changements de focus sont appliques a des points definis du tick (`ApplyQueuedFocusChange`), avec assainissement (`SanitizeKeyboardFocusState`).
-3. **`Host.EndUpdate`** : `Mouse.UpdateHandlers()`/`Keyboard.UpdateHandlers()` — n'invoque que les handlers "auto" crees avec une `UpdatePriority` non nulle, tries par priorite decroissante. **Tous les handlers de MGUI.Core sont crees avec priorite `null`** (manuels) : ce passage ne sert donc qu'aux abonnes applicatifs (couche jeu), qui voient l'input seulement apres l'UI, et seulement s'il n'est pas marque handled.
+3. **`Host.EndUpdate`** : `Mouse.UpdateHandlers()`/`Keyboard.UpdateHandlers()` — n'invoque que les handlers "auto" crees avec une `UpdatePriority` non nulle, tries par priorite decroissante puis ordre d'ajout (ordre mis en cache, reconstruit a l'ajout ou au retrait d'un handler, ADR-0021). **Tous les handlers de MGUI.Core sont crees avec priorite `null`** (manuels) : ce passage ne sert donc qu'aux abonnes applicatifs (couche jeu), qui voient l'input seulement apres l'UI, et seulement s'il n'est pas marque handled.
 
 A l'interieur d'un element (`MGElement.Update`) : enfants d'abord (en ordre **inverse** de la liste, donc le frere visuellement au-dessus en premier), puis les handlers propres de l'element. Effet net : **livraison la plus-profonde d'abord, frere du dessus d'abord, fenetre de devant d'abord** — un "bubbling par ordre d'update", sans phase de tunneling.
 
