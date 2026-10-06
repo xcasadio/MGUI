@@ -111,12 +111,22 @@ public class MGSlider : MGElement
             var Previous = Value;
             _Value = ActualValue;
             NotifyPropertyChanged(nameof(Value));
-            ValueChanged?.Invoke(this, new(Previous, Value));
+            UpdateValueLabelText();
+            var Current = Value;
+            ValueChanged?.Invoke(this, new(Previous, Current));
+            ValueChangedNonAlloc?.Invoke(this, (Previous, Current));
         }
         return ActualValue;
     }
 
+    /// <summary>Invoked when <see cref="Value"/> changes, after the value label is updated.<para/>
+    /// Allocates one <see cref="EventArgs{TProperty}"/> per change while it has subscribers: a subscriber that runs every frame
+    /// (for example while the thumb is dragged) should use <see cref="ValueChangedNonAlloc"/> instead.</summary>
     public event EventHandler<EventArgs<float>> ValueChanged;
+
+    /// <summary>Allocation-free counterpart of <see cref="ValueChanged"/>: invoked right after it, with the same previous and new values
+    /// passed by value.</summary>
+    public event EventHandler<(float PreviousValue, float NewValue)> ValueChangedNonAlloc;
 
     /// <summary>Returns a valid value for <see cref="Value"/>.<para/>
     /// The given <paramref name="DesiredValue"/> will be clamped to the range [<see cref="Minimum"/>, <see cref="Maximum"/>],<br/>
@@ -647,11 +657,27 @@ public class MGSlider : MGElement
         }
     }
 
+    /// <summary>Reused by <see cref="UpdateValueLabelText"/> to format <see cref="Value"/> without allocating, so that a change which
+    /// leaves the displayed text as it was (for example "F0" from 3.2 to 3.4) builds no string.</summary>
+    private readonly char[] ValueLabelFormatBuffer = new char[64];
+
     private void UpdateValueLabelText()
     {
         if (ShowValueLabel)
         {
-            ValueLabelElement.Text = Value.ToString(ValueLabelFormat ?? "F0");
+            var Format = ValueLabelFormat ?? "F0";
+            if (Value.TryFormat(ValueLabelFormatBuffer, out var CharsWritten, Format))
+            {
+                var Formatted = ValueLabelFormatBuffer.AsSpan(0, CharsWritten);
+                if (!Formatted.SequenceEqual(ValueLabelElement.Text))
+                {
+                    ValueLabelElement.Text = new string(Formatted);
+                }
+            }
+            else
+            {
+                ValueLabelElement.Text = Value.ToString(Format);
+            }
         }
     }
     #endregion Show Value Label
@@ -719,8 +745,6 @@ public class MGSlider : MGElement
 
             ValueLabelFormat = "F0";
             ShowValueLabel = false;
-
-            ValueChanged += (sender, e) => UpdateValueLabelText();
 
             MouseHandler.LMBReleasedInside += (sender, e) =>
             {
