@@ -78,27 +78,19 @@ public class MGProgressButton : MGSingleContentHost
         set => BorderElement.CornerRadius = value;
     }
 
-    protected override IEnumerable<IBorderBrush> GetBorderBrushes()
+    protected override void CollectBorderBrushes(List<IBorderBrush> Brushes)
     {
-        foreach (var Brush in base.GetBorderBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return ProgressBarBorderBrush;
+        base.CollectBorderBrushes(Brushes);
+        Brushes.Add(ProgressBarBorderBrush);
     }
     #endregion Border
 
     /// <inheritdoc/>
-    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    protected override void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return ProgressBarBackground;
-        yield return ProgressBarForeground;
+        base.CollectFillBrushes(Brushes);
+        Brushes.Add(ProgressBarBackground);
+        Brushes.Add(ProgressBarForeground);
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]

@@ -91,14 +91,10 @@ public abstract class MGShapeElementBase : MGElement
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    protected override void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return FillBrush;
+        base.CollectFillBrushes(Brushes);
+        Brushes.Add(FillBrush);
     }
 
     protected bool TryGetSolidFillColor(float opacity, out Color fillColor)

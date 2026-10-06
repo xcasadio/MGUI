@@ -31,12 +31,14 @@ namespace MGUI.Shared.Input.Mouse
         }
     }
 
+    /// <summary>Raised for a mouse move. <see cref="MouseTracker"/> reuses one instance from one move to the next (see
+    /// <see cref="MouseTracker.CurrentMoveEvent"/>): read it during the event, do not keep it.</summary>
     public class BaseMouseMovedEventArgs : EventArgs
     {
         public MouseTracker Tracker { get; }
 
-        public Point PreviousPosition { get; }
-        public Point CurrentPosition { get; }
+        public Point PreviousPosition { get; private set; }
+        public Point CurrentPosition { get; private set; }
         public Point PositionDelta => CurrentPosition - PreviousPosition;
 
         public Vector2 AdjustedPreviousPosition(IMouseHandlerHost Handler) => PreviousPosition.ToVector2() + Handler.GetOffset();
@@ -45,6 +47,13 @@ namespace MGUI.Shared.Input.Mouse
         public BaseMouseMovedEventArgs(MouseTracker Tracker, Point PreviousPosition, Point CurrentPosition)
         {
             this.Tracker = Tracker;
+            this.PreviousPosition = PreviousPosition;
+            this.CurrentPosition = CurrentPosition;
+        }
+
+        /// <summary>Refills this reused instance for a new move.</summary>
+        internal void SetPositions(Point PreviousPosition, Point CurrentPosition)
+        {
             this.PreviousPosition = PreviousPosition;
             this.CurrentPosition = CurrentPosition;
         }
@@ -254,15 +263,17 @@ namespace MGUI.Shared.Input.Mouse
         }
     }
 
+    /// <summary>Raised for each move of a drag. <see cref="MouseTracker"/> reuses one instance per drag start condition and per button from one
+    /// drag frame to the next (see <see cref="MouseTracker.CurrentDraggedEvents"/>): read it during the event, do not keep it.</summary>
     public class BaseMouseDraggedEventArgs// : HandledByEventArgs<IMouseHandler>
     {
         public MouseTracker Tracker { get; }
 
-        public BaseMouseDragStartEventArgs DragStartArgs { get; }
+        public BaseMouseDragStartEventArgs DragStartArgs { get; private set; }
 
-        public TimeSpan Timestamp { get; }
+        public TimeSpan Timestamp { get; private set; }
         public MouseButton Button { get; }
-        public Point Position { get; }
+        public Point Position { get; private set; }
 
         public Point StartPosition => DragStartArgs.Position;
 
@@ -283,6 +294,14 @@ namespace MGUI.Shared.Input.Mouse
             this.Timestamp = Timestamp;
             this.Button = Button;
             this.Position = Position;
+        }
+
+        /// <summary>Refills this reused instance for a new drag frame of the same button and drag start condition.</summary>
+        internal void Set(BaseMouseDragStartEventArgs DragStartArgs, Point Position, TimeSpan Timestamp)
+        {
+            this.DragStartArgs = DragStartArgs;
+            this.Position = Position;
+            this.Timestamp = Timestamp;
         }
 
         /// <summary>Returns the distance the mouse has moved from the original position that the drag originated from, to its current position.</summary>

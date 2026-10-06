@@ -67,8 +67,8 @@ namespace MGUI.Samples.Controls
             PopupField.ValueChanged += (sender, e) => ApplyColor(e.NewValue, "Popup field");
             LightPicker.ValueChanging += (sender, e) => UpdateLightPresetLabel(e.PreviewValue, "Light picker drag");
             LightPicker.ValueChanged += (sender, e) => UpdateLightPresetLabel(e.NewValue, "Light picker commit");
-            RedSlider.ValueChanging += (sender, e) => ApplyRed(e.NewValue, "Red slider drag");
-            RedSlider.ValueChanged += (sender, e) => ApplyRed(e.NewValue, "Red slider commit");
+            RedSlider.ValueChangingNonAlloc += (sender, e) => ApplyRed(e.NewValue, "Red slider drag");
+            RedSlider.ValueChangedNonAlloc += (sender, e) => ApplyRed(e.NewValue, "Red slider commit");
             Window.GetElementByName<MGButton>("OpenPopupButton").OnLeftClicked += (sender, e) => PopupField.OpenPopup();
             Window.GetElementByName<MGButton>("UseDarkBlueThemeButton").OnLeftClicked += (sender, e) => ApplyTheme(DarkBlueTheme, "Dark_Blue");
             Window.GetElementByName<MGButton>("UseDarkThemeButton").OnLeftClicked += (sender, e) => ApplyTheme(DarkTheme, "Dark");

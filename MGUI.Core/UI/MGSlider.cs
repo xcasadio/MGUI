@@ -111,12 +111,22 @@ public class MGSlider : MGElement
             var Previous = Value;
             _Value = ActualValue;
             NotifyPropertyChanged(nameof(Value));
-            ValueChanged?.Invoke(this, new(Previous, Value));
+            UpdateValueLabelText();
+            var Current = Value;
+            ValueChanged?.Invoke(this, new(Previous, Current));
+            ValueChangedNonAlloc?.Invoke(this, (Previous, Current));
         }
         return ActualValue;
     }
 
+    /// <summary>Invoked when <see cref="Value"/> changes, after the value label is updated.<para/>
+    /// Allocates one <see cref="EventArgs{TProperty}"/> per change while it has subscribers: a subscriber that runs every frame
+    /// (for example while the thumb is dragged) should use <see cref="ValueChangedNonAlloc"/> instead.</summary>
     public event EventHandler<EventArgs<float>> ValueChanged;
+
+    /// <summary>Allocation-free counterpart of <see cref="ValueChanged"/>: invoked right after it, with the same previous and new values
+    /// passed by value.</summary>
+    public event EventHandler<(float PreviousValue, float NewValue)> ValueChangedNonAlloc;
 
     /// <summary>Returns a valid value for <see cref="Value"/>.<para/>
     /// The given <paramref name="DesiredValue"/> will be clamped to the range [<see cref="Minimum"/>, <see cref="Maximum"/>],<br/>
@@ -647,11 +657,27 @@ public class MGSlider : MGElement
         }
     }
 
+    /// <summary>Reused by <see cref="UpdateValueLabelText"/> to format <see cref="Value"/> without allocating, so that a change which
+    /// leaves the displayed text as it was (for example "F0" from 3.2 to 3.4) builds no string.</summary>
+    private readonly char[] ValueLabelFormatBuffer = new char[64];
+
     private void UpdateValueLabelText()
     {
         if (ShowValueLabel)
         {
-            ValueLabelElement.Text = Value.ToString(ValueLabelFormat ?? "F0");
+            var Format = ValueLabelFormat ?? "F0";
+            if (Value.TryFormat(ValueLabelFormatBuffer, out var CharsWritten, Format))
+            {
+                var Formatted = ValueLabelFormatBuffer.AsSpan(0, CharsWritten);
+                if (!Formatted.SequenceEqual(ValueLabelElement.Text))
+                {
+                    ValueLabelElement.Text = new string(Formatted);
+                }
+            }
+            else
+            {
+                ValueLabelElement.Text = Value.ToString(Format);
+            }
         }
     }
     #endregion Show Value Label
@@ -719,8 +745,6 @@ public class MGSlider : MGElement
 
             ValueLabelFormat = "F0";
             ShowValueLabel = false;
-
-            ValueChanged += (sender, e) => UpdateValueLabelText();
 
             MouseHandler.LMBReleasedInside += (sender, e) =>
             {
@@ -809,42 +833,30 @@ public class MGSlider : MGElement
         };
     }
 
-    protected override IEnumerable<IBorderBrush> GetBorderBrushes()
+    protected override void CollectBorderBrushes(List<IBorderBrush> Brushes)
     {
-        foreach (var Brush in base.GetBorderBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return NumberLineBorderBrush;
-        yield return TickBorderBrush;
-        yield return ThumbBorderBrush;
+        base.CollectBorderBrushes(Brushes);
+        Brushes.Add(NumberLineBorderBrush);
+        Brushes.Add(TickBorderBrush);
+        Brushes.Add(ThumbBorderBrush);
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    protected override void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return NumberLineFillBrush;
-        yield return TickFillBrush;
-        yield return ThumbFillBrush;
-        //  Foreground is the fallback of the Actual* brushes; yield it once here, never through the Actual* wrappers, so it is ticked once per frame.
-        yield return Foreground;
+        base.CollectFillBrushes(Brushes);
+        Brushes.Add(NumberLineFillBrush);
+        Brushes.Add(TickFillBrush);
+        Brushes.Add(ThumbFillBrush);
+        //  Foreground is the fallback of the Actual* brushes; add it once here, never through the Actual* wrappers, so it is ticked once per frame.
+        Brushes.Add(Foreground);
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+    protected override void CollectVisualStateFillBrushes(List<VisualStateFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetVisualStateFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return FocusBrush;
+        base.CollectVisualStateFillBrushes(Brushes);
+        Brushes.Add(FocusBrush);
     }
 
     public override void UpdateSelf(ElementUpdateArgs UA)
@@ -962,6 +974,16 @@ public class MGSlider : MGElement
     private Rectangle RecentStretchedNumberLineBounds = Rectangle.Empty;
     private Rectangle RecentThumbBounds = Rectangle.Empty;
 
+    /// <summary>Draws the focus overlay over one piece of the number line beside the thumb, unless that piece is empty.</summary>
+    private void DrawNumberLineOverlayChunk(ElementDrawArgs DA, Rectangle Bounds, IFillBrush OverlayFillBrush, IBorderBrush OverlayBorderBrush)
+    {
+        if (Bounds != Rectangle.Empty)
+        {
+            OverlayFillBrush?.Draw(DA, this, Bounds);
+            OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);
+        }
+    }
+
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
         var VisualState = this.VisualState.GetSecondaryState(IsDraggingThumb, false);
@@ -1047,13 +1069,8 @@ public class MGSlider : MGElement
                     RightNumberLine = new(ThumbBounds.Right, NumberLineBounds.Top, NumberLineBounds.Right - ThumbBounds.Right, NumberLineBounds.Height);
                 }
 
-                var NumberLineChunks = new List<Rectangle>() { LeftNumberLine, RightNumberLine }.Where(x => x != Rectangle.Empty).ToList();
-
-                foreach (var Bounds in NumberLineChunks)
-                {
-                    OverlayFillBrush?.Draw(DA, this, Bounds);
-                    OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);
-                }
+                DrawNumberLineOverlayChunk(DA, LeftNumberLine, OverlayFillBrush, OverlayBorderBrush);
+                DrawNumberLineOverlayChunk(DA, RightNumberLine, OverlayFillBrush, OverlayBorderBrush);
                 OverlayFillBrush?.Draw(DA, this, ThumbBounds);
                 OverlayBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
             }
@@ -1130,13 +1147,8 @@ public class MGSlider : MGElement
                     BottomNumberLine = new(NumberLineBounds.Left, ThumbBounds.Bottom, NumberLineBounds.Width, NumberLineBounds.Bottom - ThumbBounds.Bottom);
                 }
 
-                var NumberLineChunks = new List<Rectangle>() { TopNumberLine, BottomNumberLine }.Where(x => x != Rectangle.Empty).ToList();
-
-                foreach (var Bounds in NumberLineChunks)
-                {
-                    OverlayFillBrush?.Draw(DA, this, Bounds);
-                    OverlayBorderBrush?.Draw(DA, this, Bounds, NumberLineBorderThickness);
-                }
+                DrawNumberLineOverlayChunk(DA, TopNumberLine, OverlayFillBrush, OverlayBorderBrush);
+                DrawNumberLineOverlayChunk(DA, BottomNumberLine, OverlayFillBrush, OverlayBorderBrush);
                 OverlayFillBrush?.Draw(DA, this, ThumbBounds);
                 OverlayBorderBrush?.Draw(DA, this, ThumbBounds, ThumbBorderThickness);
             }

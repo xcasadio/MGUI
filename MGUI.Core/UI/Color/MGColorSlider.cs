@@ -123,8 +123,18 @@ public class MGColorSlider : MGElement
     public Color ThumbBorderColor { get; set; } = Color.Black;
     public int ThumbThickness { get; set; } = 3;
 
+    /// <summary>Invoked when <see cref="Value"/> changes. Allocates one <see cref="EventArgs{TProperty}"/> per change while it has subscribers:
+    /// a subscriber that runs every frame should use <see cref="ValueChangedNonAlloc"/> instead.</summary>
     public event EventHandler<EventArgs<float>> ValueChanged;
+    /// <summary>Allocation-free counterpart of <see cref="ValueChanged"/>: invoked right after it, with the same previous and new values
+    /// passed by value.</summary>
+    public event EventHandler<(float PreviousValue, float NewValue)> ValueChangedNonAlloc;
+    /// <summary>Invoked while the slider is dragged, after <see cref="ValueChanged"/>, for each change of <see cref="Value"/>. Allocates one
+    /// <see cref="EventArgs{TProperty}"/> per change while it has subscribers: prefer <see cref="ValueChangingNonAlloc"/>.</summary>
     public event EventHandler<EventArgs<float>> ValueChanging;
+    /// <summary>Allocation-free counterpart of <see cref="ValueChanging"/>: invoked right after it, with the same previous and new values
+    /// passed by value.</summary>
+    public event EventHandler<(float PreviousValue, float NewValue)> ValueChangingNonAlloc;
     public event EventHandler DragStarted;
     public event EventHandler DragCompleted;
 
@@ -223,7 +233,9 @@ public class MGColorSlider : MGElement
             var previous = _value;
             _value = actual;
             NotifyPropertyChanged(nameof(Value));
-            ValueChanged?.Invoke(this, new EventArgs<float>(previous, _value));
+            var current = _value;
+            ValueChanged?.Invoke(this, new EventArgs<float>(previous, current));
+            ValueChangedNonAlloc?.Invoke(this, (previous, current));
         }
 
         return actual;
@@ -354,6 +366,7 @@ public class MGColorSlider : MGElement
         if (preview && !previous.Equals(actual))
         {
             ValueChanging?.Invoke(this, new EventArgs<float>(previous, actual));
+            ValueChangingNonAlloc?.Invoke(this, (previous, actual));
         }
     }
 

@@ -23,17 +23,17 @@ namespace MGUI.Samples.Controls
             Slider1 = Window.GetElementByName<MGSlider>("Slider1");
             TextBlock1 = Window.GetElementByName<MGTextBlock>("TextBlock1");
             UpdateTextBlock1Text();
-            Slider1.ValueChanged += (sender, e) => { UpdateTextBlock1Text(); };
+            Slider1.ValueChangedNonAlloc += (sender, e) => { UpdateTextBlock1Text(); };
 
             Slider2 = Window.GetElementByName<MGSlider>("Slider2");
             TextBlock2 = Window.GetElementByName<MGTextBlock>("TextBlock2");
             UpdateTextBlock2Text();
-            Slider2.ValueChanged += (sender, e) => { UpdateTextBlock2Text(); };
+            Slider2.ValueChangedNonAlloc += (sender, e) => { UpdateTextBlock2Text(); };
 
             Slider3 = Window.GetElementByName<MGSlider>("Slider3");
             TextBlock3 = Window.GetElementByName<MGTextBlock>("TextBlock3");
             UpdateTextBlock3Text();
-            Slider3.ValueChanged += (sender, e) => { UpdateTextBlock3Text(); };
+            Slider3.ValueChangedNonAlloc += (sender, e) => { UpdateTextBlock3Text(); };
         }
 
         private void UpdateTextBlock1Text() => TextBlock1.SetText(Slider1.Value.ToString("#.00"));

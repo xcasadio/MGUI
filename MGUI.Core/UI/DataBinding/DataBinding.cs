@@ -55,9 +55,9 @@ public interface IObservableDataContext
 /// <summary>To instantiate a binding, use <see cref="DataBindingManager.AddBinding"/></summary>
 public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 {
-    //"Weak event pattern" information to avoid memory leaks with the event listeners:
-    //https://learn.microsoft.com/en-us/dotnet/desktop/wpf/events/weak-event-patterns?view=netdesktop-7.0&redirectedfrom=MSDN
-    //https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.propertychangedeventmanager?redirectedfrom=MSDN&view=windowsdesktop-7.0
+    //  A binding subscribes directly to PropertyChanged (+= and PropertyNameHandler), in every build. DataBindingManager keeps each binding
+    //  until RemoveBinding, which disposes it and so unsubscribes it: WPF's weak PropertyChangedEventManager, used before in the UseWPF
+    //  build, changed nothing to that lifetime and allocated on every notification (ADR-0022).
 
     public readonly BindingConfig Config;
 
@@ -182,22 +182,12 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
 
     private readonly record struct PropertyChangedSourceMetadata(INotifyPropertyChanged Object, string PropertyName);
 
-#if UseWPF
-    private readonly List<PropertyChangedSourceMetadata> PathChangeHandlers = new();
-#else
-        private readonly List<PropertyNameHandler> PathChangeHandlers = new();
-#endif
+    private readonly List<PropertyNameHandler> PathChangeHandlers = new();
 
     private void UpdateSourceObjectWhenPropertyChanges(PropertyChangedSourceMetadata Item)
     {
-#if UseWPF
-        PropertyChangedEventManager.AddHandler(Item.Object, UpdateSourceObject, Item.PropertyName);
-        PathChangeHandlers.Add(Item);
-#else
-            //  Maybe use this: https://github.com/davidmilligan/WeakEventListener/blob/master/WeakEventListener/WeakEventManager.cs
-            PropertyNameHandler Handler = new(Item.Object, Item.PropertyName, UpdateSourceObject);
-            PathChangeHandlers.Add(Handler);
-#endif
+        PropertyNameHandler Handler = new(Item.Object, Item.PropertyName, UpdateSourceObject);
+        PathChangeHandlers.Add(Handler);
     }
     private void ClearPathChangeListeners()
     {
@@ -205,15 +195,10 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         {
             try
             {
-#if UseWPF
-                foreach (PropertyChangedSourceMetadata Item in PathChangeHandlers)
+                foreach (PropertyNameHandler Handler in PathChangeHandlers)
                 {
-                    PropertyChangedEventManager.RemoveHandler(Item.Object, UpdateSourceObject, Item.PropertyName);
+                    Handler.Detach();
                 }
-#else
-                    foreach (PropertyNameHandler Handler in PathChangeHandlers)
-                        Handler.Detach();
-#endif
             }
             finally { PathChangeHandlers.Clear(); }
         }
@@ -231,11 +216,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             {
                 if (IsSubscribedToSourceObjectPropertyChanged && SourceObject is INotifyPropertyChanged PreviousObservableSourceObject)
                 {
-#if UseWPF
-                    PropertyChangedEventManager.RemoveHandler(PreviousObservableSourceObject, ObservableSourceObject_PropertyChanged, SourcePropertyName);
-#else
-                        PreviousObservableSourceObject.PropertyChanged -= ObservableSourceObject_PropertyChanged;
-#endif
+                    PreviousObservableSourceObject.PropertyChanged -= ObservableSourceObject_PropertyChanged;
                     IsSubscribedToSourceObjectPropertyChanged = false;
                 }
 
@@ -265,11 +246,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
                 if (SourceProperty != null && Config.BindingMode is DataBindingMode.OneWay or DataBindingMode.TwoWay &&
                     SourceObject is INotifyPropertyChanged ObservableSourceObject)
                 {
-#if UseWPF
-                    PropertyChangedEventManager.AddHandler(ObservableSourceObject, ObservableSourceObject_PropertyChanged, SourcePropertyName);
-#else
-                        ObservableSourceObject.PropertyChanged += ObservableSourceObject_PropertyChanged;
-#endif
+                    ObservableSourceObject.PropertyChanged += ObservableSourceObject_PropertyChanged;
                     IsSubscribedToSourceObjectPropertyChanged = true;
                 }
             }
@@ -404,11 +381,7 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         if (TargetProperty != null && Config.BindingMode is DataBindingMode.OneWayToSource or DataBindingMode.TwoWay &&
             TargetObject is INotifyPropertyChanged ObservableTargetObject)
         {
-#if UseWPF
-            PropertyChangedEventManager.AddHandler(ObservableTargetObject, ObservableTargetObject_PropertyChanged, TargetPropertyName);
-#else
-                ObservableTargetObject.PropertyChanged += ObservableTargetObject_PropertyChanged;
-#endif
+            ObservableTargetObject.PropertyChanged += ObservableTargetObject_PropertyChanged;
             IsSubscribedToTargetObjectPropertyChanged = true;
         }
         else
@@ -911,12 +884,6 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         {
             SourcePropertyValueChanged();
         }
-#if UseWPF
-        else
-        {
-            throw new InvalidOperationException($"{nameof(DataBinding)}.{nameof(ObservableSourceObject_PropertyChanged)}: Expected PropertyName={SourcePropertyName}. Actual PropertyName={e.PropertyName}");
-        }
-#endif
     }
 
     /// <summary>True if this binding subscribed to the <see cref="TargetObject"/>'s PropertyChanged event during initialization.<para/>
@@ -929,12 +896,6 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
         {
             TargetPropertyValueChanged();
         }
-#if UseWPF
-        else
-        {
-            throw new InvalidOperationException($"{nameof(DataBinding)}.{nameof(ObservableTargetObject_PropertyChanged)}: Expected PropertyName={TargetPropertyName}. Actual PropertyName={e.PropertyName}");
-        }
-#endif
     }
 
     private void DataContextHost_DataContextChanged(object sender, object e)
@@ -984,19 +945,11 @@ public sealed class DataBinding : IDisposable, ITypeDescriptorContext
             //  Unsubscribe from PropertyChanged events
             if (IsSubscribedToTargetObjectPropertyChanged && TargetObject is INotifyPropertyChanged ObservableTargetObject)
             {
-#if UseWPF
-                PropertyChangedEventManager.RemoveHandler(ObservableTargetObject, ObservableTargetObject_PropertyChanged, TargetPropertyName);
-#else
-                    ObservableTargetObject.PropertyChanged -= ObservableTargetObject_PropertyChanged;
-#endif
+                ObservableTargetObject.PropertyChanged -= ObservableTargetObject_PropertyChanged;
             }
             if (IsSubscribedToSourceObjectPropertyChanged && SourceObject is INotifyPropertyChanged ObservableSourceObject)
             {
-#if UseWPF
-                PropertyChangedEventManager.RemoveHandler(ObservableSourceObject, ObservableSourceObject_PropertyChanged, SourcePropertyName);
-#else
-                    ObservableSourceObject.PropertyChanged -= ObservableSourceObject_PropertyChanged;
-#endif
+                ObservableSourceObject.PropertyChanged -= ObservableSourceObject_PropertyChanged;
                 IsSubscribedToSourceObjectPropertyChanged = false;
             }
             ClearPathChangeListeners();

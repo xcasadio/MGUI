@@ -355,15 +355,11 @@ public class MGProgressBar : MGElement
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<VisualStateFillBrush> GetVisualStateFillBrushes()
+    protected override void CollectVisualStateFillBrushes(List<VisualStateFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetVisualStateFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return CompletedBrush;
-        yield return IncompleteBrush;
+        base.CollectVisualStateFillBrushes(Brushes);
+        Brushes.Add(CompletedBrush);
+        Brushes.Add(IncompleteBrush);
     }
 
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)

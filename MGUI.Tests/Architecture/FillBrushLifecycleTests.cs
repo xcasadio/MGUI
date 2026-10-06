@@ -348,7 +348,7 @@ public class FillBrushLifecycleTests
     }
 
     [Fact]
-    public void Element_GetFillBrushes_DefaultYieldsOverlayBrush()
+    public void Element_CollectFillBrushes_DefaultAddsOverlayBrush()
     {
         Harness harness = Harness.Create();
         RecordingFillBrush overlay = new();
@@ -358,7 +358,7 @@ public class FillBrushLifecycleTests
     }
 
     [Fact]
-    public void Element_GetVisualStateFillBrushes_DefaultYieldsBackgroundBrush()
+    public void Element_CollectVisualStateFillBrushes_DefaultAddsBackgroundBrush()
     {
         Harness harness = Harness.Create();
         VisualStateFillBrush background = new(new RecordingFillBrush());
@@ -428,7 +428,7 @@ public class FillBrushLifecycleTests
             }
         }
 
-        Assert.True(unclassified.Count == 0, "Unclassified fill brush slots (add them to DirectSlotRegistry and the control's GetFillBrushes/GetVisualStateFillBrushes override, or to DocumentedExclusions with a reason): " + string.Join(", ", unclassified));
+        Assert.True(unclassified.Count == 0, "Unclassified fill brush slots (add them to DirectSlotRegistry and the control's CollectFillBrushes/CollectVisualStateFillBrushes override, or to DocumentedExclusions with a reason): " + string.Join(", ", unclassified));
         Assert.All(ticked, key => Assert.Contains(key, discovered));
         Assert.All(excluded, key => Assert.Contains(key, discovered));
     }
@@ -588,7 +588,7 @@ public class FillBrushLifecycleTests
         ["MGExpander.ExpanderButtonBackgroundBrush"] = "proxy of ExpanderToggleButton.BackgroundBrush (MGExpander.cs)",
         ["MGToggleButton.CheckedBackgroundBrush"] = "proxy of BackgroundBrush.SelectedValue (MGToggleButton.cs)",
         //  TEMPLATE consumed by other elements: assigned into the BackgroundBrush of several consumer elements, so the slot itself is excluded here
-        //  (it is ticked through each consumer's own GetVisualStateFillBrushes()/BackgroundBrush, not through this property). Since ADR-0005/S5
+        //  (it is ticked through each consumer's own CollectVisualStateFillBrushes/BackgroundBrush, not through this property). Since ADR-0005/S5
         //  (SetBackground subscribes the holder to its container's PropertyChanged, so a long-lived shared container would root every holder), the two
         //  VisualStateFillBrush templates below are handed to each consumer as a Copy(): each consumer ticks its own copy, the template instance itself
         //  is never ticked. The AlternatingRowBackgrounds brushes are still shared by reference into each row's NormalValue slot, where PaintLifecycle
@@ -649,8 +649,25 @@ public class FillBrushLifecycleTests
     private sealed class HookProbeBorder : MGBorder
     {
         public HookProbeBorder(MGWindow window) : base(window) { }
-        public IEnumerable<IFillBrush> FillBrushes => GetFillBrushes();
-        public IEnumerable<VisualStateFillBrush> VisualStateFillBrushes => GetVisualStateFillBrushes();
+        public IEnumerable<IFillBrush> FillBrushes
+        {
+            get
+            {
+                List<IFillBrush> brushes = new();
+                CollectFillBrushes(brushes);
+                return brushes;
+            }
+        }
+
+        public IEnumerable<VisualStateFillBrush> VisualStateFillBrushes
+        {
+            get
+            {
+                List<VisualStateFillBrush> brushes = new();
+                CollectVisualStateFillBrushes(brushes);
+                return brushes;
+            }
+        }
     }
 
     private readonly record struct Harness(GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window)

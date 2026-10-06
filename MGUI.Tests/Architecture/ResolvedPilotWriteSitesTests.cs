@@ -81,13 +81,13 @@ public class ResolvedPilotWriteSitesTests
     private static readonly (string File, int Line, string Reason)[] AllowedLines =
     {
         (@"MGUI.Core\UI\MGContextMenu.cs", 559, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y8 inserted the exiting-submenu handling above it)"),
-        (@"MGUI.Core\UI\MGDesktop.cs", 966, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling, Y9 shrank the ActiveToolTip setter's slot-release block, then the focus-navigation single rule deleted the duplicated private GetFocusableElements and shrank ResolveAutoFocusTarget to a delegation)"),
+        (@"MGUI.Core\UI\MGDesktop.cs", 980, "local variable `var MinHeight`, not the MGElement.MinHeight pilot (Y7 inserted the root window entry detection above it, Y8 the popup exiting-slot handling, Y9 shrank the ActiveToolTip setter's slot-release block, then the focus-navigation single rule deleted the duplicated private GetFocusableElements and shrank ResolveAutoFocusTarget to a delegation, then the allocation-free HasKeyboardActivity loop)"),
         (@"MGUI.Core\UI\MGWindow.cs", 358, "method parameter default value (`int MinHeight = 100`), not a pilot write"),
         (@"MGUI.Core\UI\MGWindow.cs", 376, "method parameter default value (`int MinHeight = 50`), not a pilot write"),
         (@"MGUI.Core\UI\MGChatBox.cs", 143, "commented-out code (shifted by the content-host overrides added above it, ADR-0015 decision 6)"),
         (@"MGUI.Core\UI\MGScrollViewer.cs", 748, "commented-out code"),
         (@"MGUI.Core\UI\MGXAMLDesigner.cs", 66, "inside a verbatim string literal (sample XAML shown in the designer UI), not code (shifted by the explicit AcceptsTab opt-in added above it when text boxes became navigation targets)"),
-        (@"MGUI.Core\UI\MGSlider.cs", 675, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
+        (@"MGUI.Core\UI\MGSlider.cs", 701, "`Foreground` is this control's own fill-brush property, not the text foreground pilot (shifted by the allocation-free value change event and the value label format buffer added above it)"),
         (@"MGUI.Core\UI\MGResizeGrip.cs", 180, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),
         (@"MGUI.Core\UI\Containers\MGContentHost.cs", 338, "method parameter (`Color? Foreground = null`), not a pilot write (shifted by the RemoveComponent override and the EnumerateHostedSubtree helper added above it, ADR-0015)"),
         (@"MGUI.Core\UI\Containers\Grids\MGGridSplitter.cs", 263, "`Foreground` is this control's own fill-brush property, not the text foreground pilot"),

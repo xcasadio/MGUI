@@ -10,8 +10,8 @@ namespace MGUI.Shared.Helpers
 {
     public static class ThicknessUtils
     {
-        /// <summary>Returns true if all sides are 0</summary>
-        public static bool IsEmpty(this Thickness @this) => @this.Sides().All(x => x == 0);
+        /// <summary>Returns true if all sides are 0. Reads the four sides directly: it runs for every uniform border drawn, every frame.</summary>
+        public static bool IsEmpty(this Thickness @this) => @this.Left == 0 && @this.Top == 0 && @this.Right == 0 && @this.Bottom == 0;
 
         [DebuggerStepThrough]
         public static Thickness ChangeLeft(this Thickness @this, int NewValue) => new(NewValue, @this.Top, @this.Right, @this.Bottom);

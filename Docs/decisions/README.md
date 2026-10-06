@@ -35,3 +35,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0019 | The data binding registry stays single-threaded, and the tests that reach it never run in parallel | Accepted | 2026-09-26 |
 | ADR-0020 | Bindable render transform, through two new attributes renamed onto the existing nested target path | Accepted | 2026-09-26 |
 | ADR-0021 | Image brightness above 1, drawn as the image plus an additive pass | Accepted | 2026-10-06 |
+| ADR-0022 | An allocation-free slider drag, from the input trackers to the value subscriber | Accepted | 2026-10-06 |

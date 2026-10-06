@@ -488,28 +488,20 @@ public class MGGridColorPicker : MGElement
         }
     }
 
-    protected override IEnumerable<IBorderBrush> GetBorderBrushes()
+    protected override void CollectBorderBrushes(List<IBorderBrush> Brushes)
     {
-        foreach (var Brush in base.GetBorderBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return SelectedColorBorderBrush;
-        yield return UnselectedColorBorderBrush;
+        base.CollectBorderBrushes(Brushes);
+        Brushes.Add(SelectedColorBorderBrush);
+        Brushes.Add(UnselectedColorBorderBrush);
     }
     #endregion Borders
 
     /// <inheritdoc/>
-    protected override IEnumerable<IFillBrush> GetFillBrushes()
+    protected override void CollectFillBrushes(List<IFillBrush> Brushes)
     {
-        foreach (var Brush in base.GetFillBrushes())
-        {
-            yield return Brush;
-        }
-
-        yield return HoveredColorOverlay;
-        yield return SelectedColorOverlay;
+        base.CollectFillBrushes(Brushes);
+        Brushes.Add(HoveredColorOverlay);
+        Brushes.Add(SelectedColorOverlay);
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]

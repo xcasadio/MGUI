@@ -163,10 +163,24 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         Runtime.RegisterView(View);
     }
 
+    /// <summary>True if any key was pressed, released or clicked this tick. Looks the keys up by index instead of enumerating the read-only
+    /// dictionaries, which would allocate an enumerator every frame.</summary>
     internal static bool HasKeyboardActivity(KeyboardTracker keyboard)
-        => keyboard.CurrentKeyPressedEvents.Values.Any(x => x != null)
-           || keyboard.CurrentKeyReleasedEvents.Values.Any(x => x != null)
-           || keyboard.CurrentKeyClickedEvents.Values.Any(x => x != null);
+    {
+        var allKeys = KeyboardTracker.AllKeys;
+        for (var i = 0; i < allKeys.Count; i++)
+        {
+            var key = allKeys[i];
+            if (keyboard.CurrentKeyPressedEvents[key] != null
+                || keyboard.CurrentKeyReleasedEvents[key] != null
+                || keyboard.CurrentKeyClickedEvents[key] != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     internal const int PointerModeMouseMovementThreshold = 2;
 

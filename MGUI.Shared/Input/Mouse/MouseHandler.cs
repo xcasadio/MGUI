@@ -59,6 +59,10 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>Only includes distinct values. Does not include combined values such as <see cref="DragStartCondition.Both"/></summary>
         public static readonly IReadOnlyList<DragStartCondition> DragStartConditions = Enum.GetValues(typeof(DragStartCondition)).Cast<DragStartCondition>().Where(x => x != DragStartCondition.Both).ToList();
         public static readonly ReadOnlyCollection<MouseButton> MouseButtons = Enum.GetValues(typeof(MouseButton)).Cast<MouseButton>().ToList().AsReadOnly();
+        /// <summary>Same values as <see cref="DragStartConditions"/>, in an array: a <c>foreach</c> over it allocates no enumerator.</summary>
+        internal static readonly DragStartCondition[] DragStartConditionValues = DragStartConditions.ToArray();
+        /// <summary>Same values as <see cref="MouseButtons"/>, in an array: a <c>foreach</c> over it allocates no enumerator.</summary>
+        private static readonly MouseButton[] MouseButtonValues = MouseButtons.ToArray();
 
         public MouseTracker Tracker { get; }
         public IMouseHandlerHost Owner { get; }
@@ -486,7 +490,7 @@ namespace MGUI.Shared.Input.Mouse
                         //  Invoke mouse pressed events
                         if (Tracker.HasCurrentButtonPressedEvents && _isMonitoringPressed)
                         {
-                            foreach (MouseButton Button in MouseButtons)
+                            foreach (MouseButton Button in MouseButtonValues)
                             {
                                 BaseMousePressedEventArgs Args = Tracker.CurrentButtonPressedEvents[Button];
                                 if (Args != null)
@@ -558,7 +562,7 @@ namespace MGUI.Shared.Input.Mouse
                         //  Invoke mouse released events
                         if (Tracker.HasCurrentButtonReleasedEvents && _isMonitoringReleased)
                         {
-                            foreach (MouseButton Button in MouseButtons)
+                            foreach (MouseButton Button in MouseButtonValues)
                             {
                                 BaseMouseReleasedEventArgs Args = Tracker.CurrentButtonReleasedEvents[Button];
                                 if (Args != null)
@@ -630,7 +634,7 @@ namespace MGUI.Shared.Input.Mouse
                         //  Invoke mouse clicked events
                         if (Tracker.HasCurrentButtonClickedEvents && _isMonitoringClicked)
                         {
-                            foreach (MouseButton Button in MouseButtons)
+                            foreach (MouseButton Button in MouseButtonValues)
                             {
                                 BaseMouseClickedEventArgs Args = Tracker.CurrentButtonClickedEvents[Button];
                                 if (Args != null)
@@ -703,7 +707,7 @@ namespace MGUI.Shared.Input.Mouse
 
                         if (Tracker.HasCurrentButtonDoubleClickedEvents && _isMonitoringClicked)
                         {
-                            foreach (MouseButton Button in MouseButtons)
+                            foreach (MouseButton Button in MouseButtonValues)
                             {
                                 BaseMouseClickedEventArgs Args = Tracker.CurrentButtonDoubleClickedEvents[Button];
                                 if (Args != null)
@@ -780,20 +784,14 @@ namespace MGUI.Shared.Input.Mouse
                 //  (because Owner.CanReceiveMouseInputs conditions could have changed during the drag, which could result in unexpected behavior)
                 if (Tracker.HasCurrentDragEvents && _isMonitoringDrag)
                 {
-                    List<DragStartCondition> Conditions = new();
-                    if (DragStartCondition == DragStartCondition.Both)
+                    //  Both: MouseMovedAfterPress then MousePressed; otherwise the single condition. Read once, before the walk.
+                    var HandledCondition = DragStartCondition;
+                    var ConditionCount = HandledCondition == DragStartCondition.Both ? 2 : 1;
+                    for (var ConditionIndex = 0; ConditionIndex < ConditionCount; ConditionIndex++)
                     {
-                        Conditions.Add(DragStartCondition.MouseMovedAfterPress);
-                        Conditions.Add(DragStartCondition.MousePressed);
-                    }
-                    else
-                    {
-                        Conditions.Add(DragStartCondition);
-                    }
-
-                    foreach (DragStartCondition Condition in Conditions)
-                    {
-                        foreach (MouseButton Button in MouseButtons)
+                        var Condition = HandledCondition != DragStartCondition.Both ? HandledCondition
+                            : ConditionIndex == 0 ? DragStartCondition.MouseMovedAfterPress : DragStartCondition.MousePressed;
+                        foreach (MouseButton Button in MouseButtonValues)
                         {
                             //  Drag started
                             if (CanReceiveInputs && (_dragStart != null || _dragStartOutside != null))

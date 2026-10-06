@@ -118,8 +118,8 @@ namespace MGUI.Samples.Features
         private void WireTransform()
         {
             MGBorder target = Window.GetElementByName<MGBorder>("TransformTarget");
-            Window.GetElementByName<MGSlider>("TransformRotationSlider").ValueChanged += (sender, e) => target.RenderTransform.Rotation = e.NewValue;
-            Window.GetElementByName<MGSlider>("TransformScaleSlider").ValueChanged += (sender, e) => target.RenderTransform.Scale = new Vector2(e.NewValue);
+            Window.GetElementByName<MGSlider>("TransformRotationSlider").ValueChangedNonAlloc += (sender, e) => target.RenderTransform.Rotation = e.NewValue;
+            Window.GetElementByName<MGSlider>("TransformScaleSlider").ValueChangedNonAlloc += (sender, e) => target.RenderTransform.Scale = new Vector2(e.NewValue);
         }
 
         /// <summary>4. Clock: <c>ClockPauseToggle</c> and <c>ClockTimeScaleSlider</c> write <see cref="UIAnimationClock.IsPaused"/> and
@@ -129,7 +129,7 @@ namespace MGUI.Samples.Features
         {
             MGToggleButton pauseToggle = Window.GetElementByName<MGToggleButton>("ClockPauseToggle");
             pauseToggle.OnCheckStateChanged += (sender, e) => Desktop.Animations.Clock.IsPaused = pauseToggle.IsChecked;
-            Window.GetElementByName<MGSlider>("ClockTimeScaleSlider").ValueChanged += (sender, e) => Desktop.Animations.Clock.TimeScale = e.NewValue;
+            Window.GetElementByName<MGSlider>("ClockTimeScaleSlider").ValueChangedNonAlloc += (sender, e) => Desktop.Animations.Clock.TimeScale = e.NewValue;
 
             MGTextBlock activeCount = Window.GetElementByName<MGTextBlock>("ClockActiveCountText");
             Window.OnEndUpdate += (sender, e) => activeCount.SetText($"Active animations: {Desktop.Animations.ActiveCount}");
@@ -252,7 +252,7 @@ namespace MGUI.Samples.Features
             MGBorder inlineTarget = Window.GetElementByName<MGBorder>("BrushesInlineTarget");
             MGSolidFillBrush inlineBrush = new(Color.DimGray);
             inlineTarget.BackgroundBrush.NormalValue = inlineBrush;
-            Window.GetElementByName<MGSlider>("BrushesInlineSlider").ValueChanged += (sender, e) => inlineBrush.Color = Color.Lerp(Color.DimGray, Color.LightGreen, e.NewValue);
+            Window.GetElementByName<MGSlider>("BrushesInlineSlider").ValueChangedNonAlloc += (sender, e) => inlineBrush.Color = Color.Lerp(Color.DimGray, Color.LightGreen, e.NewValue);
 
             MGBorder gradientTarget = Window.GetElementByName<MGBorder>("BrushesGradientTarget");
             gradientTarget.BackgroundBrush.NormalValue = new MGGradientFillBrush(Color.DarkRed, Color.DarkOrange, Color.DarkRed, Color.DarkOrange);
@@ -303,7 +303,7 @@ namespace MGUI.Samples.Features
             MGBorder previewTarget = Window.GetElementByName<MGBorder>("PreviewTarget");
             _previewAnimation = UIAnimationPreview.Attach(previewTarget, UIKeyFrameClipSerializer.Deserialize(AnimationDemoAssets.ClipJson));
             TimeSpan previewDuration = TimeSpan.FromSeconds(1);
-            Window.GetElementByName<MGSlider>("PreviewSlider").ValueChanged += (sender, e) =>
+            Window.GetElementByName<MGSlider>("PreviewSlider").ValueChangedNonAlloc += (sender, e) =>
             {
                 // Once "Detach" has cancelled the preview, it is no longer active (Seek would throw): the slider becomes a no-op
                 // until a fresh preview is attached again.

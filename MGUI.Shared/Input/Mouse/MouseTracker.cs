@@ -75,6 +75,8 @@ namespace MGUI.Shared.Input.Mouse
     public class MouseTracker
     {
         public static readonly ReadOnlyCollection<MouseButton> MouseButtons = Enum.GetValues(typeof(MouseButton)).Cast<MouseButton>().ToList().AsReadOnly();
+        /// <summary>Same values as <see cref="MouseButtons"/>, in an array: a <c>foreach</c> over it allocates no enumerator.</summary>
+        private static readonly MouseButton[] MouseButtonValues = MouseButtons.ToArray();
 
         /// <summary>The maximum number of pixels that the mouse can move by (in either the X or Y direction) while pressed before releasing for a Click event to be invoked.</summary>
         public int ClickPositionThreshold { get; set; } = 2;
@@ -95,7 +97,18 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>To create a <see cref="MouseHandler"/>, use <see cref="CreateHandler{T}(T, double?, bool, bool, bool)"/> or <see cref="CreateHandler{T}(T, InputUpdatePriority, bool, bool)"/></summary>
         public IReadOnlyList<MouseHandler> Handlers => _Handlers;
 
-        internal void RemoveHandler(MouseHandler Handler) => _Handlers.Remove(Handler);
+        internal void RemoveHandler(MouseHandler Handler)
+        {
+            if (_Handlers.Remove(Handler))
+            {
+                _OrderedHandlers = null;
+            }
+        }
+
+        /// <summary>The auto-updated <see cref="Handlers"/> in <see cref="UpdateHandlers"/> order (see <see cref="InputHandlerOrder.Build{T}"/>).
+        /// Null after a handler is added or removed, rebuilt into a new array by the next <see cref="UpdateHandlers"/>, so a walk in progress
+        /// keeps the handlers it started with.</summary>
+        private MouseHandler[] _OrderedHandlers;
 
         public MouseState PreviousState { get; private set; }
         public MouseState CurrentState { get; private set; }
@@ -170,6 +183,7 @@ namespace MGUI.Shared.Input.Mouse
             if (UpdatePriority.HasValue)
             {
                 _Handlers.Add(Handler);
+                _OrderedHandlers = null;
             }
             return Handler;
         }
@@ -185,8 +199,11 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>The mouse scroll event that occurred on the current Update tick, or null if the mouse wheel didn't change between the previous Update tick and the current Update tick.</summary>
         public BaseMouseScrolledEventArgs CurrentScrollEvent { get; private set; } = null;
 
-        /// <summary>The mouse move event that occurred on the current Update tick, or null if the mouse position didn't change between the previous Update tick and the current Update tick.</summary>
+        /// <summary>The mouse move event that occurred on the current Update tick, or null if the mouse position didn't change between the previous Update tick and the current Update tick.<para/>
+        /// The same instance is refilled from one move to the next, so that a move allocates nothing: read it during the current tick, do not keep it.</summary>
         public BaseMouseMovedEventArgs CurrentMoveEvent { get; private set; } = null;
+        /// <summary>The instance behind <see cref="CurrentMoveEvent"/>, created at the first move.</summary>
+        private BaseMouseMovedEventArgs _ReusedMoveEvent;
 
         /// <summary>The most recent MouseButton Press events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the button is released.</summary>
         private readonly Dictionary<MouseButton, BaseMousePressedEventArgs> _RecentButtonPressedEvents = new()
@@ -318,8 +335,32 @@ namespace MGUI.Shared.Input.Mouse
                 }
             }
         };
-        /// <summary>The Mouse Dragged events that occurred on the current Update tick, or null if a Dragged event didn't just occur the current Update tick.</summary>
+        /// <summary>The Mouse Dragged events that occurred on the current Update tick, or null if a Dragged event didn't just occur the current Update tick.<para/>
+        /// The instance of a given condition and button is refilled from one drag frame to the next, so that a drag allocates nothing: read it during
+        /// the current tick, do not keep it.</summary>
         public IReadOnlyDictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDraggedEventArgs>> CurrentDraggedEvents => _CurrentDraggedEvents;
+        /// <summary>The instances behind <see cref="CurrentDraggedEvents"/>, one per condition and button, created at their first drag frame.</summary>
+        private readonly Dictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDraggedEventArgs>> _ReusedDraggedEvents = new()
+        {
+            {
+                DragStartCondition.MouseMovedAfterPress,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            },
+            {
+                DragStartCondition.MousePressed,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            }
+        };
         internal bool HasCurrentDraggedEvents;
 
         private readonly Dictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDragEndEventArgs>> _CurrentDragEndEvents = new()
@@ -373,12 +414,21 @@ namespace MGUI.Shared.Input.Mouse
             CurrentMoveEvent = null;
             if (PreviousState.Position != CurrentState.Position)
             {
-                CurrentMoveEvent = new(this, PreviousState.Position, CurrentState.Position);
+                if (_ReusedMoveEvent == null)
+                {
+                    _ReusedMoveEvent = new(this, PreviousState.Position, CurrentState.Position);
+                }
+                else
+                {
+                    _ReusedMoveEvent.SetPositions(PreviousState.Position, CurrentState.Position);
+                }
+
+                CurrentMoveEvent = _ReusedMoveEvent;
                 //Debug.WriteLine($"Moved: {PreviousState.Position} - {CurrentState.Position}");
             }
 
             //  Detect button press/release/click events
-            foreach (MouseButton Button in MouseButtons)
+            foreach (MouseButton Button in MouseButtonValues)
             {
                 _CurrentButtonPressedEvents[Button] = null;
                 _CurrentButtonReleasedEvents[Button] = null;
@@ -435,9 +485,9 @@ namespace MGUI.Shared.Input.Mouse
             }
 
             //  Detect mouse drag events
-            foreach (DragStartCondition Condition in MouseHandler.DragStartConditions)
+            foreach (DragStartCondition Condition in MouseHandler.DragStartConditionValues)
             {
-                foreach (MouseButton Button in MouseButtons)
+                foreach (MouseButton Button in MouseButtonValues)
                 {
                     if (Condition != DragStartCondition.MousePressed)
                     {
@@ -470,7 +520,17 @@ namespace MGUI.Shared.Input.Mouse
                         {
                             BaseMouseDragStartEventArgs StartArgs = RecentDragStartEvents[Condition][Button];
                             //Debug.WriteLine($"Dragged: {Button} - {StartArgs.Position} - {CurrentPosition}");
-                            BaseMouseDraggedEventArgs DraggedArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
+                            BaseMouseDraggedEventArgs DraggedArgs = _ReusedDraggedEvents[Condition][Button];
+                            if (DraggedArgs == null)
+                            {
+                                DraggedArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
+                                _ReusedDraggedEvents[Condition][Button] = DraggedArgs;
+                            }
+                            else
+                            {
+                                DraggedArgs.Set(StartArgs, CurrentPosition, BA.TotalElapsed);
+                            }
+
                             _CurrentDraggedEvents[Condition][Button] = DraggedArgs;
                         }
 
@@ -488,14 +548,14 @@ namespace MGUI.Shared.Input.Mouse
                 }
             }
 
-            HasCurrentButtonPressedEvents = _CurrentButtonPressedEvents.Any(x => x.Value != null);
-            HasCurrentButtonReleasedEvents = _CurrentButtonReleasedEvents.Any(x => x.Value != null);
-            HasCurrentButtonClickedEvents = _CurrentButtonClickedEvents.Any(x => x.Value != null);
-            HasCurrentButtonDoubleClickedEvents = _CurrentButtonDoubleClickedEvents.Any(x => x.Value != null);
+            HasCurrentButtonPressedEvents = HasAnyEvent(_CurrentButtonPressedEvents);
+            HasCurrentButtonReleasedEvents = HasAnyEvent(_CurrentButtonReleasedEvents);
+            HasCurrentButtonClickedEvents = HasAnyEvent(_CurrentButtonClickedEvents);
+            HasCurrentButtonDoubleClickedEvents = HasAnyEvent(_CurrentButtonDoubleClickedEvents);
             HasCurrentButtonEvents = HasCurrentButtonPressedEvents || HasCurrentButtonReleasedEvents || HasCurrentButtonClickedEvents || HasCurrentButtonDoubleClickedEvents;
-            HasCurrentDragStartEvents = _CurrentDragStartEvents.Any(x => x.Value.Values.Any(v => v != null));
-            HasCurrentDraggedEvents = _CurrentDraggedEvents.Any(x => x.Value.Values.Any(v => v != null));
-            HasCurrentDragEndEvents = _CurrentDragEndEvents.Any(x => x.Value.Values.Any(v => v != null));
+            HasCurrentDragStartEvents = HasAnyEvent(_CurrentDragStartEvents);
+            HasCurrentDraggedEvents = HasAnyEvent(_CurrentDraggedEvents);
+            HasCurrentDragEndEvents = HasAnyEvent(_CurrentDragEndEvents);
             HasCurrentDragEvents = HasCurrentDragStartEvents || HasCurrentDraggedEvents || HasCurrentDragEndEvents;
         }
 
@@ -513,6 +573,36 @@ namespace MGUI.Shared.Input.Mouse
             return isWithinTime && isWithinPosition ? PreviousClickedArgs.ClickCount + 1 : 1;
         }
 
+        /// <summary>True if any button has an event. Walks the dictionary with its struct enumerator, so it allocates nothing.</summary>
+        private static bool HasAnyEvent<TEventArgs>(Dictionary<MouseButton, TEventArgs> EventsByButton)
+            where TEventArgs : class
+        {
+            foreach (KeyValuePair<MouseButton, TEventArgs> Entry in EventsByButton)
+            {
+                if (Entry.Value != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>True if any button has an event for any drag start condition. Allocates nothing.</summary>
+        private static bool HasAnyEvent<TEventArgs>(Dictionary<DragStartCondition, Dictionary<MouseButton, TEventArgs>> EventsByCondition)
+            where TEventArgs : class
+        {
+            foreach (KeyValuePair<DragStartCondition, Dictionary<MouseButton, TEventArgs>> Entry in EventsByCondition)
+            {
+                if (HasAnyEvent(Entry.Value))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public static bool IsDoubleClickCount(int ClickCount)
             => ClickCount > 1 && ClickCount % 2 == 0;
 
@@ -520,13 +610,10 @@ namespace MGUI.Shared.Input.Mouse
         /// This method will invoke any pending mouse events on its <see cref="Handlers"/> where <see cref="MouseHandler.IsManualUpdate"/> is false.</summary>
         public void UpdateHandlers()
         {
-            IOrderedEnumerable<MouseHandler> SortedHandlers = Handlers.Where(x => !x.IsManualUpdate).OrderByDescending(x => x.UpdatePriority.Value);
-            foreach (IGrouping<double, MouseHandler> Group in SortedHandlers.GroupBy(x => x.UpdatePriority.Value).OrderByDescending(x => x.Key))
+            MouseHandler[] OrderedHandlers = _OrderedHandlers ??= InputHandlerOrder.Build(_Handlers, static x => x.UpdatePriority);
+            for (var i = 0; i < OrderedHandlers.Length; i++)
             {
-                foreach (MouseHandler Handler in Group)
-                {
-                    Handler.AutoUpdate();
-                }
+                OrderedHandlers[i].AutoUpdate();
             }
         }
 
