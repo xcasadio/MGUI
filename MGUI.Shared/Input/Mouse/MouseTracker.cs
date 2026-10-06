@@ -75,6 +75,8 @@ namespace MGUI.Shared.Input.Mouse
     public class MouseTracker
     {
         public static readonly ReadOnlyCollection<MouseButton> MouseButtons = Enum.GetValues(typeof(MouseButton)).Cast<MouseButton>().ToList().AsReadOnly();
+        /// <summary>Same values as <see cref="MouseButtons"/>, in an array: a <c>foreach</c> over it allocates no enumerator.</summary>
+        private static readonly MouseButton[] MouseButtonValues = MouseButtons.ToArray();
 
         /// <summary>The maximum number of pixels that the mouse can move by (in either the X or Y direction) while pressed before releasing for a Click event to be invoked.</summary>
         public int ClickPositionThreshold { get; set; } = 2;
@@ -390,7 +392,7 @@ namespace MGUI.Shared.Input.Mouse
             }
 
             //  Detect button press/release/click events
-            foreach (MouseButton Button in MouseButtons)
+            foreach (MouseButton Button in MouseButtonValues)
             {
                 _CurrentButtonPressedEvents[Button] = null;
                 _CurrentButtonReleasedEvents[Button] = null;
@@ -447,9 +449,9 @@ namespace MGUI.Shared.Input.Mouse
             }
 
             //  Detect mouse drag events
-            foreach (DragStartCondition Condition in MouseHandler.DragStartConditions)
+            foreach (DragStartCondition Condition in MouseHandler.DragStartConditionValues)
             {
-                foreach (MouseButton Button in MouseButtons)
+                foreach (MouseButton Button in MouseButtonValues)
                 {
                     if (Condition != DragStartCondition.MousePressed)
                     {
@@ -500,14 +502,14 @@ namespace MGUI.Shared.Input.Mouse
                 }
             }
 
-            HasCurrentButtonPressedEvents = _CurrentButtonPressedEvents.Any(x => x.Value != null);
-            HasCurrentButtonReleasedEvents = _CurrentButtonReleasedEvents.Any(x => x.Value != null);
-            HasCurrentButtonClickedEvents = _CurrentButtonClickedEvents.Any(x => x.Value != null);
-            HasCurrentButtonDoubleClickedEvents = _CurrentButtonDoubleClickedEvents.Any(x => x.Value != null);
+            HasCurrentButtonPressedEvents = HasAnyEvent(_CurrentButtonPressedEvents);
+            HasCurrentButtonReleasedEvents = HasAnyEvent(_CurrentButtonReleasedEvents);
+            HasCurrentButtonClickedEvents = HasAnyEvent(_CurrentButtonClickedEvents);
+            HasCurrentButtonDoubleClickedEvents = HasAnyEvent(_CurrentButtonDoubleClickedEvents);
             HasCurrentButtonEvents = HasCurrentButtonPressedEvents || HasCurrentButtonReleasedEvents || HasCurrentButtonClickedEvents || HasCurrentButtonDoubleClickedEvents;
-            HasCurrentDragStartEvents = _CurrentDragStartEvents.Any(x => x.Value.Values.Any(v => v != null));
-            HasCurrentDraggedEvents = _CurrentDraggedEvents.Any(x => x.Value.Values.Any(v => v != null));
-            HasCurrentDragEndEvents = _CurrentDragEndEvents.Any(x => x.Value.Values.Any(v => v != null));
+            HasCurrentDragStartEvents = HasAnyEvent(_CurrentDragStartEvents);
+            HasCurrentDraggedEvents = HasAnyEvent(_CurrentDraggedEvents);
+            HasCurrentDragEndEvents = HasAnyEvent(_CurrentDragEndEvents);
             HasCurrentDragEvents = HasCurrentDragStartEvents || HasCurrentDraggedEvents || HasCurrentDragEndEvents;
         }
 
@@ -523,6 +525,36 @@ namespace MGUI.Shared.Input.Mouse
                 && Math.Abs(PreviousClickedArgs.Position.Y - ReleasedArgs.Position.Y) <= multiClickPositionThreshold;
 
             return isWithinTime && isWithinPosition ? PreviousClickedArgs.ClickCount + 1 : 1;
+        }
+
+        /// <summary>True if any button has an event. Walks the dictionary with its struct enumerator, so it allocates nothing.</summary>
+        private static bool HasAnyEvent<TEventArgs>(Dictionary<MouseButton, TEventArgs> EventsByButton)
+            where TEventArgs : class
+        {
+            foreach (KeyValuePair<MouseButton, TEventArgs> Entry in EventsByButton)
+            {
+                if (Entry.Value != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>True if any button has an event for any drag start condition. Allocates nothing.</summary>
+        private static bool HasAnyEvent<TEventArgs>(Dictionary<DragStartCondition, Dictionary<MouseButton, TEventArgs>> EventsByCondition)
+            where TEventArgs : class
+        {
+            foreach (KeyValuePair<DragStartCondition, Dictionary<MouseButton, TEventArgs>> Entry in EventsByCondition)
+            {
+                if (HasAnyEvent(Entry.Value))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public static bool IsDoubleClickCount(int ClickCount)

@@ -42,6 +42,8 @@ namespace MGUI.Shared.Input.Keyboard
         }
 
         public static readonly ReadOnlyCollection<Keys> AllKeys = Enum.GetValues(typeof(Keys)).Cast<Keys>().ToList().AsReadOnly();
+        /// <summary>Same values as <see cref="AllKeys"/>, in an array: a <c>foreach</c> over it allocates no enumerator.</summary>
+        private static readonly Keys[] AllKeyValues = AllKeys.ToArray();
         private static readonly HashSet<Keys> TrackedKeys = AllKeys.ToHashSet();
 
         /// <summary>The maximum amount of time that can pass between a key press and key release 
@@ -171,15 +173,15 @@ namespace MGUI.Shared.Input.Keyboard
 
             PendingTextInputEvents.Clear();
 
-            foreach (Keys Key in AllKeys)
+            foreach (Keys Key in AllKeyValues)
             {
                 _CurrentKeyPressedEvents[Key] = null;
                 _CurrentKeyReleasedEvents[Key] = null;
                 _CurrentKeyClickedEvents[Key] = null;
             }
 
-            List<Keys> PreviousKeys = PreviousState.GetPressedKeys().Where(IsTrackedKey).ToList();
-            List<Keys> CurrentKeys = CurrentState.GetPressedKeys().Where(IsTrackedKey).ToList();
+            List<Keys> PreviousKeys = FillTrackedPressedKeys(PreviousState, _PreviousPressedKeys);
+            List<Keys> CurrentKeys = FillTrackedPressedKeys(CurrentState, _CurrentPressedKeys);
 
             //  Detect keys that were just pressed
             foreach (Keys Key in CurrentKeys)
@@ -225,6 +227,36 @@ namespace MGUI.Shared.Input.Keyboard
             }
 
             CreateTextInputOnlyPressedEvents(BA);
+        }
+
+        /// <summary>The tracked keys pressed in the previous and in the current state, refilled by every <see cref="Update"/>.</summary>
+        private readonly List<Keys> _PreviousPressedKeys = new();
+        private readonly List<Keys> _CurrentPressedKeys = new();
+        /// <summary>Filled by <see cref="KeyboardState.GetPressedKeys(Keys[])"/>; grows only when more keys are pressed at once than ever before.</summary>
+        private Keys[] _PressedKeysBuffer = new Keys[16];
+
+        /// <summary>Refills <paramref name="PressedKeys"/> with the tracked keys pressed in <paramref name="State"/>, in the order MonoGame reports
+        /// them, without allocating once <see cref="_PressedKeysBuffer"/> is large enough. Returns <paramref name="PressedKeys"/>.</summary>
+        private List<Keys> FillTrackedPressedKeys(KeyboardState State, List<Keys> PressedKeys)
+        {
+            PressedKeys.Clear();
+            var Count = State.GetPressedKeyCount();
+            if (_PressedKeysBuffer.Length < Count)
+            {
+                _PressedKeysBuffer = new Keys[Math.Max(Count, _PressedKeysBuffer.Length * 2)];
+            }
+
+            State.GetPressedKeys(_PressedKeysBuffer);
+            for (var i = 0; i < Count; i++)
+            {
+                var Key = _PressedKeysBuffer[i];
+                if (IsTrackedKey(Key))
+                {
+                    PressedKeys.Add(Key);
+                }
+            }
+
+            return PressedKeys;
         }
 
         private void CreateTextInputOnlyPressedEvents(UpdateBaseArgs BA)

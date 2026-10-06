@@ -33,6 +33,8 @@ namespace MGUI.Shared.Input.GamePad
     public class GamePadTracker
     {
         public static readonly ReadOnlyCollection<GamePadButton> AllButtons = Enum.GetValues(typeof(GamePadButton)).Cast<GamePadButton>().ToList().AsReadOnly();
+        /// <summary>Same values as <see cref="AllButtons"/>, in an array: a <c>foreach</c> over it allocates no enumerator.</summary>
+        private static readonly GamePadButton[] AllButtonValues = AllButtons.ToArray();
 
         public InputTracker InputTracker { get; }
 
@@ -63,7 +65,19 @@ namespace MGUI.Shared.Input.GamePad
         public bool WasPressed(GamePadButton button) => IsPressed(button) && !IsPressed(PreviousState, button, ThumbstickThreshold, TriggerThreshold);
         public bool WasReleased(GamePadButton button) => !IsPressed(button) && IsPressed(PreviousState, button, ThumbstickThreshold, TriggerThreshold);
         public bool WasTriggered(GamePadButton button) => _CurrentTriggeredButtons[button];
-        public bool HasActivity() => _CurrentTriggeredButtons.Values.Any(x => x);
+        public bool HasActivity()
+        {
+            //  The dictionary's struct enumerator: no allocation, unlike LINQ over its Values.
+            foreach (KeyValuePair<GamePadButton, bool> Entry in _CurrentTriggeredButtons)
+            {
+                if (Entry.Value)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         internal void Update(UpdateBaseArgs BA)
         {
@@ -72,7 +86,7 @@ namespace MGUI.Shared.Input.GamePad
                 PreviousState = default;
                 CurrentState = default;
 
-                foreach (GamePadButton button in AllButtons)
+                foreach (GamePadButton button in AllButtonValues)
                 {
                     _CurrentTriggeredButtons[button] = false;
                     _HeldSince[button] = null;
@@ -85,14 +99,14 @@ namespace MGUI.Shared.Input.GamePad
             PreviousState = CurrentState;
             CurrentState = Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex, DeadZone);
 
-            foreach (GamePadButton button in AllButtons)
+            foreach (GamePadButton button in AllButtonValues)
             {
                 _CurrentTriggeredButtons[button] = false;
             }
 
             if (!CurrentState.IsConnected)
             {
-                foreach (GamePadButton button in AllButtons)
+                foreach (GamePadButton button in AllButtonValues)
                 {
                     _HeldSince[button] = null;
                     _LastRepeatAt[button] = null;
@@ -101,7 +115,7 @@ namespace MGUI.Shared.Input.GamePad
                 return;
             }
 
-            foreach (GamePadButton button in AllButtons)
+            foreach (GamePadButton button in AllButtonValues)
             {
                 bool isPressed = IsPressed(CurrentState, button, ThumbstickThreshold, TriggerThreshold);
                 bool wasPressed = IsPressed(PreviousState, button, ThumbstickThreshold, TriggerThreshold);

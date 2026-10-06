@@ -21,6 +21,8 @@ namespace MGUI.Shared.Input.Keyboard
     public class KeyboardHandler
     {
         public static readonly ReadOnlyCollection<Keys> AllKeys = Enum.GetValues(typeof(Keys)).Cast<Keys>().ToList().AsReadOnly();
+        /// <summary>Same values as <see cref="AllKeys"/>, in an array: a <c>foreach</c> over it allocates no enumerator.</summary>
+        private static readonly Keys[] AllKeyValues = AllKeys.ToArray();
 
         public KeyboardTracker Tracker { get; }
         public IKeyboardHandlerHost Owner { get; }
@@ -148,7 +150,7 @@ namespace MGUI.Shared.Input.Keyboard
             {
                 if (KeyboardInputProbe.IsEnabled)
                 {
-                    foreach (Keys Key in AllKeys)
+                    foreach (Keys Key in AllKeyValues)
                     {
                         if (Tracker.CurrentKeyPressedEvents[Key] != null)
                         {
@@ -161,7 +163,7 @@ namespace MGUI.Shared.Input.Keyboard
                 return;
             }
 
-            foreach (Keys Key in AllKeys)
+            foreach (Keys Key in AllKeyValues)
             {
                 bool hasKeyboardFocus = Owner.HasKeyboardFocus();
 
