@@ -1272,6 +1272,8 @@ public class Image : Element
 
     [Category("Appearance")]
     public XAMLColor? TextureColor { get; set; }
+    [Category("Appearance")]
+    public float? Brightness { get; set; }
     [Category("Layout")]
     public Stretch? Stretch { get; set; }
 
@@ -1290,6 +1292,11 @@ public class Image : Element
         if (TextureColor.HasValue)
         {
             Image.TextureColor = TextureColor.Value.ToXNAColor();
+        }
+
+        if (Brightness.HasValue)
+        {
+            Image.Brightness = Brightness.Value;
         }
 
         if (Stretch.HasValue)

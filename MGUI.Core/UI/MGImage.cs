@@ -232,6 +232,26 @@ public class MGImage : MGElement
         }
     }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private float _Brightness = 1f;
+    /// <summary>A multiplier applied to the texture's colors when drawing, on top of <see cref="TextureColor"/> (ADR-0021).<para/>
+    /// 1 draws the texture unchanged. Below 1 darkens it with a single draw. Above 1 brightens it: the texture is drawn once unchanged,
+    /// then a second time with <see cref="BlendType.Additive"/> and a mask of (<see cref="Brightness"/> - 1), so each channel saturates at 255,
+    /// as a modulate-and-saturate color unit does (a multiplier cannot exceed 1 in a plain color mask).<para/>
+    /// Default value: 1</summary>
+    public float Brightness
+    {
+        get => _Brightness;
+        set
+        {
+            if (_Brightness != value)
+            {
+                _Brightness = value;
+                NotifyPropertyChanged(nameof(Brightness));
+            }
+        }
+    }
+
     private int UnstretchedWidth => ActualSource?.RenderSize.Width ?? 0;
     private int UnstretchedHeight => ActualSource?.RenderSize.Height ?? 0;
     private double UnstretchedAspectRatio => UnstretchedHeight == 0 ? 1.0 : UnstretchedWidth * 1.0 / UnstretchedHeight;
@@ -265,6 +285,42 @@ public class MGImage : MGElement
         }
 
         return _CachedLinearFilteringSettings;
+    }
+
+    private DrawSettings _CachedAdditiveBaseSettings;
+    private DrawSettings _CachedAdditiveSettings;
+
+    private DrawSettings GetAdditiveSettings(DrawSettings baseSettings)
+    {
+        ArgumentNullException.ThrowIfNull(baseSettings);
+
+        if (!ReferenceEquals(_CachedAdditiveBaseSettings, baseSettings))
+        {
+            _CachedAdditiveBaseSettings = baseSettings;
+            _CachedAdditiveSettings = baseSettings with { BlendType = BlendType.Additive };
+        }
+
+        return _CachedAdditiveSettings;
+    }
+
+    /// <summary>An opaque gray mask of <c>round(255 * Amount)</c> per RGB channel, clamped to 0..255.</summary>
+    private static Color GetBrightnessMask(float Amount)
+    {
+        byte Channel = (byte)Math.Clamp((int)Math.Round(255f * Amount, MidpointRounding.AwayFromZero), 0, 255);
+        return new Color(Channel, Channel, Channel, (byte)255);
+    }
+
+    private static byte MultiplyChannels(byte A, byte B) => (byte)((A * B + 127) / 255);
+
+    private static Color Multiply(Color? TextureColor, Color Mask)
+    {
+        if (!TextureColor.HasValue)
+        {
+            return Mask;
+        }
+
+        Color Value = TextureColor.Value;
+        return new Color(MultiplyChannels(Value.R, Mask.R), MultiplyChannels(Value.G, Mask.G), MultiplyChannels(Value.B, Mask.B), MultiplyChannels(Value.A, Mask.A));
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -498,22 +554,38 @@ public class MGImage : MGElement
                                        && isDownscaling
                                        && (DA.Context.CurrentSettings.SamplerType == SamplerType.PointClamp || DA.Context.CurrentSettings.SamplerType == SamplerType.PointWrap);
 
-        if (shouldUseLinearFiltering)
+        var previousSettings = DA.Context.CurrentSettings;
+        var baseSettings = shouldUseLinearFiltering ? GetLinearFilteringSettings(previousSettings) : previousSettings;
+
+        //  Brightness (ADR-0021): below 1 the texture is darkened by the mask of a single draw. Above 1 a color mask cannot exceed 1,
+        //  so the texture is drawn unchanged, then a second time additively with a mask of (Brightness - 1): each channel saturates at 255.
+        var firstColor = Brightness < 1f ? Multiply(TextureColor, GetBrightnessMask(Brightness)) : TextureColor;
+        DrawSource(DA, destinationBounds, firstColor, baseSettings, previousSettings);
+
+        if (Brightness > 1f)
         {
-            var previousSettings = DA.Context.CurrentSettings;
-            DA.Context.SetDrawSettings(GetLinearFilteringSettings(previousSettings));
-            try
-            {
-                ActualSource.Value.Draw(DA.Context, destinationBounds, TextureColor, DA.Opacity);
-            }
-            finally
-            {
-                DA.Context.SetDrawSettings(previousSettings);
-            }
+            DrawSource(DA, destinationBounds, Multiply(TextureColor, GetBrightnessMask(Brightness - 1f)), GetAdditiveSettings(baseSettings), previousSettings);
         }
-        else
+    }
+
+    /// <summary>Draws <see cref="ActualSource"/> with <paramref name="Settings"/>, then restores <paramref name="PreviousSettings"/>.
+    /// The settings are only touched when they differ.</summary>
+    private void DrawSource(ElementDrawArgs DA, Rectangle DestinationBounds, Color? Mask, DrawSettings Settings, DrawSettings PreviousSettings)
+    {
+        if (ReferenceEquals(Settings, PreviousSettings))
         {
-            ActualSource.Value.Draw(DA.Context, destinationBounds, TextureColor, DA.Opacity);
+            ActualSource.Value.Draw(DA.Context, DestinationBounds, Mask, DA.Opacity);
+            return;
+        }
+
+        DA.Context.SetDrawSettings(Settings);
+        try
+        {
+            ActualSource.Value.Draw(DA.Context, DestinationBounds, Mask, DA.Opacity);
+        }
+        finally
+        {
+            DA.Context.SetDrawSettings(PreviousSettings);
         }
     }
 }

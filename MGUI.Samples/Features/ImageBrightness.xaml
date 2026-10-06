@@ -1,0 +1,45 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        xmlns:dataBinding="clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"
+        Left="460" Top="80" Width="480" MinHeight="0" SizeToContent="Height" TitleText="Image Brightness" Padding="10">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Image Brightness:" HorizontalAlignment="Center" />
+            <TextBlock>
+                Demonstrates ADR-0021: Image.Brightness multiplies the texture's colors. Below 1 the image darkens; above 1 it is drawn
+                once unchanged, then a second time additively with a mask of (Brightness - 1), so each channel saturates at 255 instead
+                of stopping at the texture's own value (a plain color mask cannot exceed 1). The slider below is bound two ways to a
+                view model property, which is bound to the image on the left; the same image, left at 1, is drawn on the right.
+            </TextBlock>
+            <Separator />
+
+            <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
+                <Image Name="BrightImage" SourceName="Wrench" Width="96" Height="96" Stretch="Uniform"
+                       Brightness="{dataBinding:MGBinding Path=Brightness}" />
+                <Image Name="ReferenceImage" SourceName="Wrench" Width="96" Height="96" Stretch="Uniform" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                <TextBlock Text="Brightness" />
+                <Slider Name="BrightnessSlider" Minimum="0.5" Maximum="2" Width="200"
+                        Value="{dataBinding:MGBinding Path=Brightness, Mode=TwoWay}" />
+                <TextBlock Text="{dataBinding:MGBinding Path=BrightnessText}" Width="40" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

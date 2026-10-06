@@ -87,6 +87,7 @@
     <None Remove="Features\TextSurfaceLite.xaml" />
     <None Remove="Features\BoundImages.xaml" />
     <None Remove="Features\RenderTransformBinding.xaml" />
+    <None Remove="Features\ImageBrightness.xaml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Compendium.xaml">
@@ -238,6 +239,7 @@
     <EmbeddedResource Include="Features\TextSurfaceLite.xaml" />
     <EmbeddedResource Include="Features\BoundImages.xaml" />
     <EmbeddedResource Include="Features\RenderTransformBinding.xaml" />
+    <EmbeddedResource Include="Features\ImageBrightness.xaml" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="..\MGUI.Shared\Content\MGUI.Shared.Content.mgcb" Link="Content\MGUI.Shared.Content.mgcb" />
