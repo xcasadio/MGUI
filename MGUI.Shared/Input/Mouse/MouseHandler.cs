@@ -780,19 +780,13 @@ namespace MGUI.Shared.Input.Mouse
                 //  (because Owner.CanReceiveMouseInputs conditions could have changed during the drag, which could result in unexpected behavior)
                 if (Tracker.HasCurrentDragEvents && _isMonitoringDrag)
                 {
-                    List<DragStartCondition> Conditions = new();
-                    if (DragStartCondition == DragStartCondition.Both)
+                    //  Both: MouseMovedAfterPress then MousePressed; otherwise the single condition. Read once, before the walk.
+                    var HandledCondition = DragStartCondition;
+                    var ConditionCount = HandledCondition == DragStartCondition.Both ? 2 : 1;
+                    for (var ConditionIndex = 0; ConditionIndex < ConditionCount; ConditionIndex++)
                     {
-                        Conditions.Add(DragStartCondition.MouseMovedAfterPress);
-                        Conditions.Add(DragStartCondition.MousePressed);
-                    }
-                    else
-                    {
-                        Conditions.Add(DragStartCondition);
-                    }
-
-                    foreach (DragStartCondition Condition in Conditions)
-                    {
+                        var Condition = HandledCondition != DragStartCondition.Both ? HandledCondition
+                            : ConditionIndex == 0 ? DragStartCondition.MouseMovedAfterPress : DragStartCondition.MousePressed;
                         foreach (MouseButton Button in MouseButtons)
                         {
                             //  Drag started

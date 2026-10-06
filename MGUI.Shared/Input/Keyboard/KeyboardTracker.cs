@@ -57,7 +57,18 @@ namespace MGUI.Shared.Input.Keyboard
         /// so registering them would only be a dead GC root keeping their <see cref="KeyboardHandler.Owner"/> alive.</summary>
         public IReadOnlyList<KeyboardHandler> Handlers => _Handlers;
 
-        internal void RemoveHandler(KeyboardHandler Handler) => _Handlers.Remove(Handler);
+        internal void RemoveHandler(KeyboardHandler Handler)
+        {
+            if (_Handlers.Remove(Handler))
+            {
+                _OrderedHandlers = null;
+            }
+        }
+
+        /// <summary>The auto-updated <see cref="Handlers"/> in <see cref="UpdateHandlers"/> order (see <see cref="InputHandlerOrder.Build{T}"/>).
+        /// Null after a handler is added or removed, rebuilt into a new array by the next <see cref="UpdateHandlers"/>, so a walk in progress
+        /// keeps the handlers it started with.</summary>
+        private KeyboardHandler[] _OrderedHandlers;
 
         public KeyboardState PreviousState { get; private set; }
         public KeyboardState CurrentState { get; private set; }
@@ -89,6 +100,7 @@ namespace MGUI.Shared.Input.Keyboard
             if (UpdatePriority.HasValue)
             {
                 _Handlers.Add(Handler);
+                _OrderedHandlers = null;
             }
             return Handler;
         }
@@ -312,13 +324,10 @@ namespace MGUI.Shared.Input.Keyboard
         /// This method will invoke any pending keyboard events on its <see cref="Handlers"/> where <see cref="KeyboardHandler.IsManualUpdate"/> is false.</summary>
         public void UpdateHandlers()
         {
-            IOrderedEnumerable<KeyboardHandler> SortedHandlers = Handlers.Where(x => !x.IsManualUpdate).OrderByDescending(x => x.UpdatePriority.Value);
-            foreach (IGrouping<double, KeyboardHandler> Group in SortedHandlers.GroupBy(x => x.UpdatePriority.Value).OrderByDescending(x => x.Key))
+            KeyboardHandler[] OrderedHandlers = _OrderedHandlers ??= InputHandlerOrder.Build(_Handlers, static x => x.UpdatePriority);
+            for (var i = 0; i < OrderedHandlers.Length; i++)
             {
-                foreach (KeyboardHandler Handler in Group)
-                {
-                    Handler.AutoUpdate();
-                }
+                OrderedHandlers[i].AutoUpdate();
             }
         }
 

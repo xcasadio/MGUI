@@ -95,7 +95,18 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>To create a <see cref="MouseHandler"/>, use <see cref="CreateHandler{T}(T, double?, bool, bool, bool)"/> or <see cref="CreateHandler{T}(T, InputUpdatePriority, bool, bool)"/></summary>
         public IReadOnlyList<MouseHandler> Handlers => _Handlers;
 
-        internal void RemoveHandler(MouseHandler Handler) => _Handlers.Remove(Handler);
+        internal void RemoveHandler(MouseHandler Handler)
+        {
+            if (_Handlers.Remove(Handler))
+            {
+                _OrderedHandlers = null;
+            }
+        }
+
+        /// <summary>The auto-updated <see cref="Handlers"/> in <see cref="UpdateHandlers"/> order (see <see cref="InputHandlerOrder.Build{T}"/>).
+        /// Null after a handler is added or removed, rebuilt into a new array by the next <see cref="UpdateHandlers"/>, so a walk in progress
+        /// keeps the handlers it started with.</summary>
+        private MouseHandler[] _OrderedHandlers;
 
         public MouseState PreviousState { get; private set; }
         public MouseState CurrentState { get; private set; }
@@ -170,6 +181,7 @@ namespace MGUI.Shared.Input.Mouse
             if (UpdatePriority.HasValue)
             {
                 _Handlers.Add(Handler);
+                _OrderedHandlers = null;
             }
             return Handler;
         }
@@ -520,13 +532,10 @@ namespace MGUI.Shared.Input.Mouse
         /// This method will invoke any pending mouse events on its <see cref="Handlers"/> where <see cref="MouseHandler.IsManualUpdate"/> is false.</summary>
         public void UpdateHandlers()
         {
-            IOrderedEnumerable<MouseHandler> SortedHandlers = Handlers.Where(x => !x.IsManualUpdate).OrderByDescending(x => x.UpdatePriority.Value);
-            foreach (IGrouping<double, MouseHandler> Group in SortedHandlers.GroupBy(x => x.UpdatePriority.Value).OrderByDescending(x => x.Key))
+            MouseHandler[] OrderedHandlers = _OrderedHandlers ??= InputHandlerOrder.Build(_Handlers, static x => x.UpdatePriority);
+            for (var i = 0; i < OrderedHandlers.Length; i++)
             {
-                foreach (MouseHandler Handler in Group)
-                {
-                    Handler.AutoUpdate();
-                }
+                OrderedHandlers[i].AutoUpdate();
             }
         }
 
