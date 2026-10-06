@@ -3985,9 +3985,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         _animationSlot?.VisualStatesOrNull?.Refresh();
         SyncBorderHighlightRun();
 
-        ElementUpdateEventArgs UpdateEventArgs = new(this, UA);
+        ElementUpdateEventArgs UpdateEventArgs = null;
 
-        OnBeginUpdate?.Invoke(this, UpdateEventArgs);
+        RaiseUpdateEvent(OnBeginUpdate, UA, ref UpdateEventArgs);
 
         // Fix (Task 14): iterate directly instead of .ToList().ForEach() which allocates a temporary List<>
         foreach (var brush in GetBorderBrushes())
@@ -4061,7 +4061,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             _cachedHasModalWindow        = hasModalWindow;
         }
 
-        OnBeginUpdateContents?.Invoke(this, UpdateEventArgs);
+        RaiseUpdateEvent(OnBeginUpdateContents, UA, ref UpdateEventArgs);
 
         // Compute the content-area bounds: ActualLayoutBounds shrunk by this element's Padding.
         // Content children (visual-tree children) are clipped to the content area so their
@@ -4090,7 +4090,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             Component.Update(UA);              // components get the full (unpadded) bounds
         }
 
-        OnEndUpdateContents?.Invoke(this, UpdateEventArgs);
+        RaiseUpdateEvent(OnEndUpdateContents, UA, ref UpdateEventArgs);
 
         if (ComputedIsHitTestVisible)
         {
@@ -4118,7 +4118,18 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
         UpdateSelf(UA);
 
-        OnEndUpdate?.Invoke(this, UpdateEventArgs);
+        RaiseUpdateEvent(OnEndUpdate, UA, ref UpdateEventArgs);
+    }
+
+    /// <summary>Raises one of the four update events. <paramref name="Args"/> is created at the first of them that has a subscriber and shared
+    /// by the later ones of the same update, so an element whose update events have no subscriber allocates nothing per frame.</summary>
+    private void RaiseUpdateEvent(EventHandler<ElementUpdateEventArgs> Handler, ElementUpdateArgs UA, ref ElementUpdateEventArgs Args)
+    {
+        if (Handler != null)
+        {
+            Args ??= new(this, UA);
+            Handler(this, Args);
+        }
     }
 
     protected virtual bool TryGetToolTip(out MGToolTip ToolTip)
