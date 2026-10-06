@@ -22,14 +22,11 @@ namespace MGUI.Tests.Architecture;
 /// type conversion is involved.<para/>
 /// The zero-allocation tests below drive <see cref="DataBinding"/>'s private <c>SourcePropertyValueChanged</c>
 /// (i.e. the push itself, <see cref="PushSourceToTargetMethod"/>'s target) directly instead of raising
-/// <see cref="System.ComponentModel.INotifyPropertyChanged.PropertyChanged"/> on the view model. This codebase
-/// builds with <c>UseWPF=true</c> (see <c>MGUI.Core.csproj</c>/<c>MGUI.Tests.csproj</c>), so a live OneWay update is
-/// actually delivered through <see cref="System.Windows.Data.PropertyChangedEventManager"/>'s weak-event dispatch --
-/// a real, ~192-byte-per-notification allocation confirmed by an isolated probe with no <see cref="DataBinding"/>
-/// involved at all, present before and unrelated to this task. That cost belongs to the WPF weak-event plumbing this
-/// binding subscribes through, not to the reflection/boxing push path ADR-0016 targets, so it would swamp the very
-/// thing these tests exist to measure if left in the loop. The view model's "quiet" setters below mutate the
-/// backing field without notifying, so the measured loop exercises only the push.</summary>
+/// <see cref="System.ComponentModel.INotifyPropertyChanged.PropertyChanged"/> on the view model: the view model's
+/// "quiet" setters below mutate the backing field without notifying, so the measured loop exercises only the push.
+/// When these tests were written, a live update was delivered through WPF's weak
+/// <c>System.Windows.Data.PropertyChangedEventManager</c> (192 bytes per notification). Since ADR-0021 a binding
+/// subscribes directly, and <see cref="DataBindingNotificationTests"/> measures a live notification end to end.</summary>
 [Collection(DataBindingRegistryCollection.Name)]
 public class DataBindingAllocationTests
 {
