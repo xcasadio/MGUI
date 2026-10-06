@@ -199,8 +199,11 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>The mouse scroll event that occurred on the current Update tick, or null if the mouse wheel didn't change between the previous Update tick and the current Update tick.</summary>
         public BaseMouseScrolledEventArgs CurrentScrollEvent { get; private set; } = null;
 
-        /// <summary>The mouse move event that occurred on the current Update tick, or null if the mouse position didn't change between the previous Update tick and the current Update tick.</summary>
+        /// <summary>The mouse move event that occurred on the current Update tick, or null if the mouse position didn't change between the previous Update tick and the current Update tick.<para/>
+        /// The same instance is refilled from one move to the next, so that a move allocates nothing: read it during the current tick, do not keep it.</summary>
         public BaseMouseMovedEventArgs CurrentMoveEvent { get; private set; } = null;
+        /// <summary>The instance behind <see cref="CurrentMoveEvent"/>, created at the first move.</summary>
+        private BaseMouseMovedEventArgs _ReusedMoveEvent;
 
         /// <summary>The most recent MouseButton Press events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the button is released.</summary>
         private readonly Dictionary<MouseButton, BaseMousePressedEventArgs> _RecentButtonPressedEvents = new()
@@ -332,8 +335,32 @@ namespace MGUI.Shared.Input.Mouse
                 }
             }
         };
-        /// <summary>The Mouse Dragged events that occurred on the current Update tick, or null if a Dragged event didn't just occur the current Update tick.</summary>
+        /// <summary>The Mouse Dragged events that occurred on the current Update tick, or null if a Dragged event didn't just occur the current Update tick.<para/>
+        /// The instance of a given condition and button is refilled from one drag frame to the next, so that a drag allocates nothing: read it during
+        /// the current tick, do not keep it.</summary>
         public IReadOnlyDictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDraggedEventArgs>> CurrentDraggedEvents => _CurrentDraggedEvents;
+        /// <summary>The instances behind <see cref="CurrentDraggedEvents"/>, one per condition and button, created at their first drag frame.</summary>
+        private readonly Dictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDraggedEventArgs>> _ReusedDraggedEvents = new()
+        {
+            {
+                DragStartCondition.MouseMovedAfterPress,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            },
+            {
+                DragStartCondition.MousePressed,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            }
+        };
         internal bool HasCurrentDraggedEvents;
 
         private readonly Dictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDragEndEventArgs>> _CurrentDragEndEvents = new()
@@ -387,7 +414,16 @@ namespace MGUI.Shared.Input.Mouse
             CurrentMoveEvent = null;
             if (PreviousState.Position != CurrentState.Position)
             {
-                CurrentMoveEvent = new(this, PreviousState.Position, CurrentState.Position);
+                if (_ReusedMoveEvent == null)
+                {
+                    _ReusedMoveEvent = new(this, PreviousState.Position, CurrentState.Position);
+                }
+                else
+                {
+                    _ReusedMoveEvent.SetPositions(PreviousState.Position, CurrentState.Position);
+                }
+
+                CurrentMoveEvent = _ReusedMoveEvent;
                 //Debug.WriteLine($"Moved: {PreviousState.Position} - {CurrentState.Position}");
             }
 
@@ -484,7 +520,17 @@ namespace MGUI.Shared.Input.Mouse
                         {
                             BaseMouseDragStartEventArgs StartArgs = RecentDragStartEvents[Condition][Button];
                             //Debug.WriteLine($"Dragged: {Button} - {StartArgs.Position} - {CurrentPosition}");
-                            BaseMouseDraggedEventArgs DraggedArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
+                            BaseMouseDraggedEventArgs DraggedArgs = _ReusedDraggedEvents[Condition][Button];
+                            if (DraggedArgs == null)
+                            {
+                                DraggedArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
+                                _ReusedDraggedEvents[Condition][Button] = DraggedArgs;
+                            }
+                            else
+                            {
+                                DraggedArgs.Set(StartArgs, CurrentPosition, BA.TotalElapsed);
+                            }
+
                             _CurrentDraggedEvents[Condition][Button] = DraggedArgs;
                         }
 
