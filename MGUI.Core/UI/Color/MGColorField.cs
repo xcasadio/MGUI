@@ -417,17 +417,14 @@ public class MGColorField : MGElement
             return;
         }
 
-        var drawScale = GetTheme().FontSettings.UseExactScale ? resolved.ExactScale : resolved.SuggestedScale;
+        // Text is drawn at the scale it is measured with; LineHeight is already at that scale (ADR-0023).
+        var drawScale = resolved.ExactScale;
         if (Math.Abs(drawScale) <= float.Epsilon)
         {
-            drawScale = resolved.SuggestedScale;
-            if (Math.Abs(drawScale) <= float.Epsilon)
-            {
-                return;
-            }
+            return;
         }
 
-        var textHeight = Math.Max(0f, resolved.LineHeight * drawScale);
+        var textHeight = Math.Max(0f, resolved.LineHeight);
         float visualX = bounds.X + TextStripPadding;
         var visualY = bounds.Y + Math.Max(0f, (bounds.Height - textHeight) / 2f);
         var drawPosition = new Vector2(visualX, visualY) + (resolved.DrawOrigin * drawScale) + DA.Offset.ToVector2();

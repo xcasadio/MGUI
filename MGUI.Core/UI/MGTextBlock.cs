@@ -1587,9 +1587,8 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     var IsBold   = TextRun.Settings.IsBold;
                     var IsItalic = TextRun.Settings.IsItalic;
                     var resolved   = GetResolvedFont(IsBold, IsItalic);
-                    var drawScale = GetTheme().FontSettings.UseExactScale
-                        ? resolved.ExactScale
-                        : resolved.SuggestedScale;
+                    // Text is drawn at the scale it is measured with (ADR-0023).
+                    var drawScale = resolved.ExactScale;
 
                     var ActualOpacity = Opacity * TextRun.Settings.Opacity;
                     var Foreground = (TextRun.Settings.Foreground ?? DefaultForeground) * ActualOpacity;

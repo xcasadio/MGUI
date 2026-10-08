@@ -18,13 +18,15 @@ namespace MGUI.Shared.Text
 
         /// <summary>
         /// Scale that produces the exact requested point size: DesiredSize / ActualSize.
+        /// Text is measured and drawn at this scale (ADR-0023).
         /// May yield slightly blurred text when non-integer.
         /// </summary>
         public float ExactScale { get; }
 
         /// <summary>
         /// Rounded / snapped scale that yields sharper text, at the cost of a slightly
-        /// different visual size.
+        /// different visual size. Text is not drawn at this scale: it is drawn at
+        /// <see cref="ExactScale"/>, the scale it is measured with (ADR-0023).
         /// </summary>
         public float SuggestedScale { get; }
 

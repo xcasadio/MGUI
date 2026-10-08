@@ -263,8 +263,6 @@ public static class ThemeDefinitionBuilder
             Theme.FontSettings.LargeFontSize = Definition.LargeFontSize.Value;
         if (Definition.DefaultFontSize.HasValue)
             Theme.FontSettings.DefaultFontSize = Definition.DefaultFontSize.Value;
-        if (Definition.UseExactScale.HasValue)
-            Theme.FontSettings.UseExactScale = Definition.UseExactScale.Value;
 
         var FontFamily = Definition.DefaultFontFamily ?? DefaultFontFamily;
         if (!string.IsNullOrWhiteSpace(FontFamily))
