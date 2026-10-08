@@ -331,14 +331,6 @@ public class ThemeFontSettings
         DefaultFontSize += Offset;
     }
 
-    /// <summary>If true, <see cref="MGTextBlock"/> will attempt to draw text with a scale that most closely results in the desired font size.<br/>
-    /// If false, <see cref="MGTextBlock"/> may choose a slightly different font size that approximates the exact size, but results in better scaling results.<para/>
-    /// For example, if you have SpriteFonts for these font sizes: 8, 10, 12, and you wanted to use font size = 19<br/>
-    /// If <see cref="UseExactScale"/> is true: <see cref="MGTextBlock"/> would choose size=10, scale=1.9<br/>
-    /// If <see cref="UseExactScale"/> is false: <see cref="MGTextBlock"/> would choose size=10, scale=2.0, preferring to scale by values such as 0.25, 0.5, 1.0, 2.0 etc<para/>
-    /// Default value: false</summary>
-    public bool UseExactScale { get; set; } = false;
-
     /// <summary>The name of the font that should be used by default in <see cref="MGTextBlock"/>s when no font family is explicitly specified.<para/>
     /// If null, uses <see cref="FontManager.DefaultFontFamily"/> instead.<para/>
     /// EX: "Arial". If not null, the <see cref="FontManager"/> must contain a <see cref="FontSet"/> with <see cref="FontSet.Name"/> that matches this value.</summary>
@@ -974,7 +966,6 @@ public class MGTheme
         FontSettings.MediumFontSize = Source.FontSettings.MediumFontSize;
         FontSettings.LargeFontSize = Source.FontSettings.LargeFontSize;
         FontSettings.DefaultFontSize = Source.FontSettings.DefaultFontSize;
-        FontSettings.UseExactScale = Source.FontSettings.UseExactScale;
         FontSettings.DefaultFontFamily = Source.FontSettings.DefaultFontFamily;
         FontSettings.DefaultFontShadowOffset = Source.FontSettings.DefaultFontShadowOffset;
         FontSettings.DefaultFontShadowColor = Source.FontSettings.DefaultFontShadowColor;

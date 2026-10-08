@@ -116,7 +116,6 @@ public static class UIThemeValueInvalidation
             ["FontSettings.MediumFontSize"] = LayoutAffecting,
             ["FontSettings.LargeFontSize"] = LayoutAffecting,
             ["FontSettings.DefaultFontSize"] = LayoutAffecting,
-            ["FontSettings.UseExactScale"] = RenderOnly, // the scale text is drawn with; text measurement does not read it
             ["FontSettings.DefaultFontFamily"] = LayoutAffecting,
             ["FontSettings.DefaultFontShadowOffset"] = RenderOnly, // a shadow does not affect a text block's layout bounds
             ["FontSettings.DefaultFontShadowColor"] = RenderOnly,

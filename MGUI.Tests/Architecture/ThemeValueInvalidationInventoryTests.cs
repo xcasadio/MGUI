@@ -87,7 +87,6 @@ public class ThemeValueInvalidationInventoryTests
             ["DefaultButtonAutoWidthFromContent"] = UIThemeValueInvalidation.LayoutAffecting,
             ["DefaultComboBoxAutoWidthFromContent"] = UIThemeValueInvalidation.LayoutAffecting,
             ["ToolTipOffset"] = UIThemeValueInvalidation.RenderOnly,
-            ["FontSettings.UseExactScale"] = UIThemeValueInvalidation.RenderOnly,
             ["FontSettings.DefaultFontFamily"] = UIThemeValueInvalidation.LayoutAffecting,
             ["FontSettings.DefaultFontShadowOffset"] = UIThemeValueInvalidation.RenderOnly,
             ["Animation.Enabled"] = UIThemeValueInvalidation.RenderOnly,

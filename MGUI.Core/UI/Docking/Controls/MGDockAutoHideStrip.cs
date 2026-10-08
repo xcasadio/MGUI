@@ -275,12 +275,9 @@ public class MGDockAutoHideStrip : MGElement
             return ButtonMinSize;
         }
 
+        // The button's title (a text block, or a rotated label on a vertical strip) draws at the measurement scale
+        // (ADR-0023): the measured width is the drawn width.
         var textWidth = textEngine.MeasureText(resolved, title).X;
-        if (!resolved.ExactScale.IsAlmostZero())
-        {
-            textWidth = textWidth / resolved.ExactScale * resolved.SuggestedScale;
-        }
-
         var textPx = (int)Math.Ceiling(textWidth);
         return Math.Max(ButtonMinSize, textPx + ButtonPadding);
     }

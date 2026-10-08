@@ -18,26 +18,33 @@ namespace MGUI.Shared.Text
 
         /// <summary>
         /// Scale that produces the exact requested point size: DesiredSize / ActualSize.
+        /// Text is measured and drawn at this scale (ADR-0023).
         /// May yield slightly blurred text when non-integer.
         /// </summary>
         public float ExactScale { get; }
 
         /// <summary>
         /// Rounded / snapped scale that yields sharper text, at the cost of a slightly
-        /// different visual size.
+        /// different visual size. Text is not drawn at this scale: it is drawn at
+        /// <see cref="ExactScale"/>, the scale it is measured with (ADR-0023).
         /// </summary>
         public float SuggestedScale { get; }
 
-        /// <summary>Line height in scaled pixels (already multiplied by <see cref="SuggestedScale"/>).</summary>
+        /// <summary>
+        /// Height of the line box, in screen pixels at <see cref="ExactScale"/> (ADR-0023). The box spans the ink of
+        /// every <see cref="LineBoxRepertoire"/> character, from the highest to the lowest, and the engine draws the
+        /// top of the box at the draw point: a line of these characters never draws outside its line height.
+        /// </summary>
         public float LineHeight { get; }
 
         /// <summary>Width of a space character in scaled pixels.</summary>
         public float SpaceWidth { get; }
 
         /// <summary>
-        /// Y origin offset used for drawing (e.g. from <c>FontSet.Origins[size]</c> in the
-        /// SpriteFont backend). Already in the native (un-scaled) font coordinate space —
-        /// backends pass it directly to <c>SpriteBatch.DrawString</c> as the origin.
+        /// Native (un-scaled) point that lands on the visual top-left of a line. Drawers pass it as the origin of
+        /// the draw call and add <c>DrawOrigin × scale</c> to the visual position, so the top of the line box lands
+        /// on that position. The built-in engines return zero: they already draw the top of their line box at the
+        /// draw point (ADR-0023).
         /// </summary>
         public Vector2 DrawOrigin { get; }
 

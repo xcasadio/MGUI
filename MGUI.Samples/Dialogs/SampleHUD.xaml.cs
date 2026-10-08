@@ -320,11 +320,12 @@ namespace MGUI.Samples.Dialogs
                         }
 
                         Vector2 TextSize = Desktop.TextEngine.MeasureText(resolved, Text);
-                        Vector2 Position = ActualCellBounds.GetCompressed(SlotBorderSize).BottomRight().ToVector2().Translate(-TextSize.X - 1, -TextSize.Y + 1);
+                        Vector2 Position = ActualCellBounds.GetCompressed(SlotBorderSize).BottomRight().ToVector2().Translate(-TextSize.X - 1, -TextSize.Y + 1)
+                            + (resolved.DrawOrigin * resolved.ExactScale);
 
                         e.DrawArgs.DT.DrawTextViaEngine(resolved, Text, Position + Vector2.One, new Color(40, 40, 40) * e.DrawArgs.Opacity,
-                            resolved.DrawOrigin, resolved.SuggestedScale);
-                        e.DrawArgs.DT.DrawTextViaEngine(resolved, Text, Position, Color.White, resolved.DrawOrigin, resolved.SuggestedScale);
+                            resolved.DrawOrigin, resolved.ExactScale);
+                        e.DrawArgs.DT.DrawTextViaEngine(resolved, Text, Position, Color.White, resolved.DrawOrigin, resolved.ExactScale);
                     }
                 }
 

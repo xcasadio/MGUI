@@ -98,9 +98,16 @@ public class MGRotatedTextLabel : MGElement
             return;
         }
 
-        var scale = resolved.SuggestedScale;
+        // Drawn at the measurement scale (ADR-0023). The origin is in native units: the centre of the
+        // measured line box, offset by the engine's DrawOrigin like every other text drawer.
+        var scale = resolved.ExactScale;
+        if (Math.Abs(scale) <= float.Epsilon)
+        {
+            return;
+        }
+
         var textSize = textEngine.MeasureText(resolved, Text);
-        var origin = textSize / 2.0f;
+        var origin = resolved.DrawOrigin + (textSize / (2.0f * scale));
         var position = new Vector2(
             layoutBounds.X + layoutBounds.Width / 2.0f,
             layoutBounds.Y + layoutBounds.Height / 2.0f) + DA.Offset.ToVector2();

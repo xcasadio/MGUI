@@ -165,7 +165,6 @@ public class ThemeFontSettingsDefinition : XAMLBindableBase
     public int? MediumFontSize { get; set; }
     public int? LargeFontSize { get; set; }
     public int? DefaultFontSize { get; set; }
-    public bool? UseExactScale { get; set; }
     public string DefaultFontFamily { get; set; }
     public ThemePointDefinition DefaultFontShadowOffset { get; set; }
     public XAMLColor? DefaultFontShadowColor { get; set; }
