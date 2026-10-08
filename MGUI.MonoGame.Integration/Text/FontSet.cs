@@ -18,6 +18,16 @@ namespace MGUI.Shared.Text
 {
     public readonly record struct FontMetadata(int Size, bool IsBold, bool IsItalic);
 
+    /// <summary>The line box of one baked SpriteFont size (ADR-0023), in native pixels relative to the top of the SpriteFont line,
+    /// the row <c>SpriteBatch.DrawString</c> puts at its position: <see cref="Top"/> is the highest ink row of the
+    /// <see cref="LineBoxRepertoire"/> glyphs (negative when accented capitals rise above the line), and <see cref="Bottom"/> is one
+    /// row past their lowest ink row.</summary>
+    public readonly record struct FontLineBox(int Top, int Bottom)
+    {
+        /// <summary>The height of the box, in native pixels.</summary>
+        public int Height => Bottom - Top;
+    }
+
     internal readonly record struct FontParseResult(int Size, CustomFontStyles Styles, string RelativeFilePath);
 
     /// <summary>Represents a collection of fonts belonging to the same family. This is usually several different sizes and FontStyles (Bold, Italics etc) of the same font.</summary>
@@ -49,6 +59,12 @@ namespace MGUI.Shared.Text
         private Dictionary<int, int> _Heights { get; }
         public IReadOnlyDictionary<int, int> Heights => _Heights;
 
+        private Dictionary<int, FontLineBox> _LineBoxes { get; }
+        /// <summary>The line box of each supported size, spanning the ink of every <see cref="LineBoxRepertoire"/> glyph of every style
+        /// of that size (ADR-0023). Unlike <see cref="Heights"/> and <see cref="Origins"/>, which only cover a set of ASCII characters,
+        /// no glyph of the repertoire draws outside this box.</summary>
+        public IReadOnlyDictionary<int, FontLineBox> LineBoxes => _LineBoxes;
+
         /// <summary>Generates a <see cref="FontSet"/> from all .xnb files found in:<br/>
         /// <code>{ExeFolder}\{Content.RootDirectory}\Fonts\{FontName}\</code><para/>
         /// where the .xnb's filename is in the following format:<br/>
@@ -79,6 +95,7 @@ namespace MGUI.Shared.Text
                 MaxSize = 0;
                 _Origins = new();
                 _Heights = new();
+                _LineBoxes = new();
                 IsValid = false;
             }
             else
@@ -107,6 +124,7 @@ namespace MGUI.Shared.Text
                 //  and is then used to precisely position and measure my text
                 _Origins = new();
                 _Heights = new();
+                _LineBoxes = new();
                 foreach (var KVP in Fonts)
                 {
                     int FontSize = KVP.Key;
@@ -118,6 +136,7 @@ namespace MGUI.Shared.Text
 
                     _Origins[FontSize] = new(0, MinY);
                     _Heights[FontSize] = MaxY - MinY + 1;
+                    _LineBoxes[FontSize] = ComputeLineBox(KVP.Value.Values);
                 }
 
                 SupportedStyles = Fonts.Values.SelectMany(x => x.Keys).Distinct()
@@ -153,6 +172,7 @@ namespace MGUI.Shared.Text
                 MaxSize = 0;
                 _Origins = new();
                 _Heights = new();
+                _LineBoxes = new();
                 IsValid = false;
             }
             else
@@ -195,6 +215,7 @@ namespace MGUI.Shared.Text
                 //  and is then used to precisely position and measure my text
                 _Origins = new();
                 _Heights = new();
+                _LineBoxes = new();
                 foreach (var KVP in Fonts)
                 {
                     int FontSize = KVP.Key;
@@ -205,6 +226,7 @@ namespace MGUI.Shared.Text
 
                     _Origins[FontSize] = new(0, MinY);
                     _Heights[FontSize] = MaxY - MinY + 1;
+                    _LineBoxes[FontSize] = ComputeLineBox(KVP.Value.Values);
                 }
 
                 SupportedStyles = Fonts.Values.SelectMany(x => x.Keys).Distinct()
@@ -225,6 +247,34 @@ namespace MGUI.Shared.Text
                     QuickSizeLookup[Size.ToString("0.0")] = Size;
                 }
             }
+        }
+
+        /// <summary>Spans the ink of every <see cref="LineBoxRepertoire"/> glyph of <paramref name="SpriteFonts"/> (ADR-0023). The ink of a glyph
+        /// starts <c>Cropping.Y</c> rows below the top of the line, which is negative for accented capitals, and is
+        /// <c>BoundsInTexture.Height</c> rows tall. Whitespace glyphs are skipped: the content pipeline gives them 1x1 texture bounds at the
+        /// bottom of the cell, which is not ink. When no glyph of the repertoire has ink, the box falls back to the line spacing of the fonts.</summary>
+        private static FontLineBox ComputeLineBox(IEnumerable<SpriteFont> SpriteFonts)
+        {
+            int Top = int.MaxValue;
+            int Bottom = int.MinValue;
+            int LineSpacing = 0;
+            foreach (SpriteFont SF in SpriteFonts)
+            {
+                LineSpacing = Math.Max(LineSpacing, SF.LineSpacing);
+                foreach (KeyValuePair<char, SpriteFont.Glyph> KVP in SF.GetGlyphs())
+                {
+                    SpriteFont.Glyph Glyph = KVP.Value;
+                    if (!LineBoxRepertoire.Contains(KVP.Key) || Glyph.BoundsInTexture.Height <= 0)
+                    {
+                        continue;
+                    }
+
+                    Top = Math.Min(Top, Glyph.Cropping.Y);
+                    Bottom = Math.Max(Bottom, Glyph.Cropping.Y + Glyph.BoundsInTexture.Height);
+                }
+            }
+
+            return Top <= Bottom ? new FontLineBox(Top, Bottom) : new FontLineBox(0, LineSpacing);
         }
 
         private static readonly string FontSizePattern = @"(?<Size>\d{1,3})";

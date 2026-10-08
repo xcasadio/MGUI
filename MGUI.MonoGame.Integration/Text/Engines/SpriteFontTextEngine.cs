@@ -10,8 +10,9 @@ namespace MGUI.Shared.Text.Engines
     /// <summary>
     /// <see cref="ITextEngine"/> implementation backed by MonoGame <see cref="SpriteFont"/> via
     /// the existing <see cref="FontManager"/> / <see cref="FontSet"/> infrastructure.
-    /// Behaviour is bit-for-bit identical to the original hard-coded path in
-    /// <c>DrawTransaction</c> and <c>MGTextBlock</c>.
+    /// Lines follow the line box contract (ADR-0023): <see cref="ResolvedFont.LineHeight"/> is the
+    /// <see cref="FontSet.LineBoxes"/> height of the baked size at <see cref="ResolvedFont.ExactScale"/>, and
+    /// <see cref="DrawText"/> puts the top of that box at the draw point.
     /// </summary>
     public sealed class SpriteFontTextEngine : ITextEngine
     {
@@ -24,19 +25,17 @@ namespace MGUI.Shared.Text.Engines
             public float      Scale       { get; }   // SuggestedScale
             public float      ExactScale  { get; }
             public int        Size        { get; }
-            public int        FontHeight  { get; }   // Heights[size]
-            public Vector2    Origin      { get; }   // Origins[size]
+            public FontLineBox LineBox    { get; }   // LineBoxes[size], native pixels
             public Dictionary<char, SpriteFont.Glyph> Glyphs { get; }
 
             public SpriteFontHandle(SpriteFont sf, float scale, float exactScale,
-                int size, int fontHeight, Vector2 origin)
+                int size, FontLineBox lineBox)
             {
                 SF         = sf;
                 Scale      = scale;
                 ExactScale = exactScale;
                 Size       = size;
-                FontHeight = fontHeight;
-                Origin     = origin;
+                LineBox    = lineBox;
                 Glyphs     = sf.GetGlyphs();
             }
         }
@@ -105,12 +104,11 @@ namespace MGUI.Shared.Text.Engines
             }
 
             var handle = new SpriteFontHandle(sf, suggestedScale, exactScale, actualSize,
-                fs.Heights[actualSize], fs.Origins[actualSize]);
+                fs.LineBoxes[actualSize]);
 
-            // Use exactScale for all measurements so that layout/wrapping matches the original
-            // MGTextBlock.MeasureText behaviour (which multiplied by FontScale = exactScale).
-            // Drawing still uses suggestedScale for sharp rendering (see DrawText / DrawTransaction).
-            float lineHeight  = handle.FontHeight * handle.ExactScale;
+            // All measurements use exactScale. The line box spans the ink of every glyph of the
+            // LineBoxRepertoire (ADR-0023), so a line drawn at exactScale never draws outside LineHeight.
+            float lineHeight  = handle.LineBox.Height * handle.ExactScale;
             float spaceWidth  = (sf.MeasureString(" ") * exactScale).X;
 
             var resolved = new ResolvedFont(
@@ -120,7 +118,7 @@ namespace MGUI.Shared.Text.Engines
                 suggestedScale,
                 lineHeight,
                 spaceWidth,
-                handle.Origin,
+                Vector2.Zero,
                 isFallback,
                 handle);
 
@@ -161,11 +159,9 @@ namespace MGUI.Shared.Text.Engines
                 return Vector2.Zero;
             }
 
-            // Use exactScale so measurement matches the original MGTextBlock.MeasureText
-            // (which applied FontScale = exactScale).  Drawing still happens at suggestedScale
-            // via DrawTransaction, so layouts designed for the original engine remain correct.
+            // Measured at exactScale; the height is the line box (ADR-0023), whatever the text.
             float width = h.SF.MeasureString(text).X * h.ExactScale;
-            return new Vector2(width, h.FontHeight * h.ExactScale);
+            return new Vector2(width, h.LineBox.Height * h.ExactScale);
         }
 
         /// <inheritdoc/>
@@ -187,7 +183,7 @@ namespace MGUI.Shared.Text.Engines
 
             // Use exactScale to stay consistent with MeasureText and the original codebase.
             float scale  = h.ExactScale;
-            float height = h.FontHeight * scale;
+            float height = h.LineBox.Height * scale;
             return new GlyphMetrics(
                 glyph.LeftSideBearing  * scale,
                 glyph.Width            * scale,
@@ -230,7 +226,10 @@ namespace MGUI.Shared.Text.Engines
                 throw new InvalidOperationException($"{nameof(SpriteFontTextEngine)} requires a {nameof(IMonoGameDrawContext)} for the MonoGame backend.");
             }
 
-            monoGameContext.SpriteBatch.DrawString(h.SF, text, position, color, rotation, origin, scale, MonoGameRenderInterop.ToSpriteEffects(flip), depth);
+            // The top of the line box (native row LineBox.Top, negative when accented capitals rise above the
+            // SpriteFont line) lands where the caller's origin lands, so the box top is the draw point (ADR-0023).
+            Vector2 nativeOrigin = new(origin.X, origin.Y + h.LineBox.Top);
+            monoGameContext.SpriteBatch.DrawString(h.SF, text, position, color, rotation, nativeOrigin, scale, MonoGameRenderInterop.ToSpriteEffects(flip), depth);
         }
 
         /// <inheritdoc/>
