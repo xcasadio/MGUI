@@ -38,3 +38,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0022 | An allocation-free slider drag, from the input trackers to the value subscriber | Accepted | 2026-10-06 |
 | ADR-0023 | Text lines are sized by the ink of a shared repertoire, and drawn at the scale they are measured with | Accepted | 2026-10-08 |
 | ADR-0024 | An image picks its blend mode, and the subtractive mode joins BlendType | Accepted | 2026-10-31 |
+| ADR-0025 | A host can pause the raw navigation path, and what was held stays silent afterwards | Accepted | 2026-11-01 |

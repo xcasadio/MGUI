@@ -153,6 +153,8 @@ InputRouteDecision decision = router.Route(actionEvent);
 
 Quand un routeur externe alimente `TryHandleInputAction`, mettre `MGDesktop.UseRawNavigationInput = false` pour couper le double dispatch de la navigation brute. Integration de reference : `MGUI.MiniGame/MiniGame.cs` (contexte UI 100, contexte HUD selectif local 50, gameplay 0).
 
+Pour une pause de la navigation brute, et non un changement de lecteur, utiliser `MGDesktop.IsNavigationInputSuspended` (ADR-0025) : rien n'est dispatche, le focus reste en place, `UseRawNavigationInput` n'est pas touche, et une touche ou un bouton tenu pendant la pause ne declenche rien a la fin tant qu'il n'est pas relache. A poser entre deux `MGDesktop.Update`.
+
 ### Principes de partage UI/gameplay
 
 - **L'UI possede la mecanique d'interaction** : hover, focus, ordre de tabulation, navigation d-pad/fleches, hit-testing, capture pointeur, ouverture/fermeture de menus, submit/cancel local au widget.
