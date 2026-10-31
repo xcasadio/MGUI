@@ -714,6 +714,27 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     /// Set this to false when an external <see cref="MGUI.Shared.Input.Semantic.InputRouter"/> is routing UI actions into <see cref="TryHandleInputAction(MGUI.Shared.Input.Semantic.InputActionEvent)"/>.</summary>
     public bool UseRawNavigationInput { get; set; } = true;
 
+    private bool _IsNavigationInputSuspended;
+    /// <summary>While true, the built-in raw keyboard/gamepad navigation path dispatches nothing and the focus stays where it is, whatever <see cref="UseRawNavigationInput"/> says.
+    /// Unlike that property, this says nothing about who reads the inputs: it is a pause, for a host that stops navigation for a while (ADR-0025).<para/>
+    /// An input held when this turns false fires nothing until it is released. Set it between two calls to <see cref="Update()"/>.</summary>
+    public bool IsNavigationInputSuspended
+    {
+        get => _IsNavigationInputSuspended;
+        set
+        {
+            //  The keyboard needs nothing: raw navigation only reads its press edges. The gamepad tracker repeats a held button whoever is looking.
+            if (_IsNavigationInputSuspended && !value)
+            {
+                InputTracker.GamePad.ForgetHeldButtons();
+            }
+
+            _IsNavigationInputSuspended = value;
+        }
+    }
+
+    private bool ReadsRawNavigationInput => UseRawNavigationInput && !IsNavigationInputSuspended;
+
     /// <summary>Manages drag-and-drop operations for all elements on this desktop.
     /// Call <see cref="DragDropManager.DoDragDrop"/> from a mouse-pressed handler to initiate a drag.</summary>
     public DragDropManager DragDropManager { get; private set; }
@@ -1436,7 +1457,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         HighPriorityMouseHandler.PressedOutside += (sender, e) => { ClearQueuedFocusedKeyboardHandler(); };
         HighPriorityKeyboardHandler.Pressed += (sender, e) =>
         {
-            if (UseRawNavigationInput)
+            if (ReadsRawNavigationInput)
             {
                 _ = TryDispatchNavigationAction(e);
             }
@@ -1577,7 +1598,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
             HighPriorityMouseHandler.ManualUpdate();
             HighPriorityKeyboardHandler.ManualUpdate();
             ApplyQueuedFocusChange();
-            if (UseRawNavigationInput)
+            if (ReadsRawNavigationInput)
             {
                 _ = TryDispatchGamePadNavigationActions();
             }

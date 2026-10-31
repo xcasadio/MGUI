@@ -53,6 +53,9 @@ namespace MGUI.Shared.Input.GamePad
         private readonly Dictionary<GamePadButton, bool> _CurrentTriggeredButtons = AllButtons.ToDictionary(x => x, _ => false);
         public IReadOnlyDictionary<GamePadButton, bool> CurrentTriggeredButtons => _CurrentTriggeredButtons;
 
+        /// <summary>What <see cref="Update"/> reads in place of the device, null to read the device: a test cannot feed MonoGame's <see cref="Microsoft.Xna.Framework.Input.GamePad"/>.</summary>
+        internal GamePadState? StateOverride { get; set; }
+
         private readonly Dictionary<GamePadButton, TimeSpan?> _HeldSince = AllButtons.ToDictionary(x => x, _ => (TimeSpan?)null);
         private readonly Dictionary<GamePadButton, TimeSpan?> _LastRepeatAt = AllButtons.ToDictionary(x => x, _ => (TimeSpan?)null);
 
@@ -79,25 +82,33 @@ namespace MGUI.Shared.Input.GamePad
             return false;
         }
 
+        /// <summary>
+        /// What is held now fires nothing more: it does not repeat, and <see cref="WasTriggered"/> stays false for it until it is released
+        /// and pressed again. For a reader that stopped looking at the buttons and comes back: without this, a button held meanwhile
+        /// reaches it on the next repeat as if it had just been pressed (ADR-0025).
+        /// </summary>
+        public void ForgetHeldButtons()
+        {
+            foreach (GamePadButton button in AllButtonValues)
+            {
+                _CurrentTriggeredButtons[button] = false;
+                _HeldSince[button] = null;
+                _LastRepeatAt[button] = null;
+            }
+        }
+
         internal void Update(UpdateBaseArgs BA)
         {
             if (!Enabled)
             {
                 PreviousState = default;
                 CurrentState = default;
-
-                foreach (GamePadButton button in AllButtonValues)
-                {
-                    _CurrentTriggeredButtons[button] = false;
-                    _HeldSince[button] = null;
-                    _LastRepeatAt[button] = null;
-                }
-
+                ForgetHeldButtons();
                 return;
             }
 
             PreviousState = CurrentState;
-            CurrentState = Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex, DeadZone);
+            CurrentState = StateOverride ?? Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex, DeadZone);
 
             foreach (GamePadButton button in AllButtonValues)
             {
