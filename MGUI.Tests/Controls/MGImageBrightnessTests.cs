@@ -318,4 +318,210 @@ public class MGImageBrightnessTests
         Assert.Equal(new Color(127, 127, 127, 127), transaction.Draws[0].Mask);
         Assert.Equal(new Color(64, 64, 64, 127), transaction.Draws[1].Mask);
     }
+
+    // ADR-0024: MGImage.BlendMode.
+
+    private sealed class BlendModeViewModel : INotifyPropertyChanged
+    {
+        private BlendType _blendMode = BlendType.Subtractive;
+        public BlendType BlendMode
+        {
+            get => _blendMode;
+            set
+            {
+                if (_blendMode != value)
+                {
+                    _blendMode = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BlendMode)));
+                }
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+    }
+
+    [Fact]
+    public void BlendMode_DefaultsToAlphaBlend_AndNotifiesOnlyOnChange()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage();
+        List<string?> notified = new();
+        image.PropertyChanged += (_, e) => notified.Add(e.PropertyName);
+
+        Assert.Equal(BlendType.AlphaBlend, image.BlendMode);
+
+        image.BlendMode = BlendType.AlphaBlend;
+        Assert.Empty(notified);
+
+        image.BlendMode = BlendType.Subtractive;
+        Assert.Equal(BlendType.Subtractive, image.BlendMode);
+        Assert.Equal(new[] { nameof(MGImage.BlendMode) }, notified);
+    }
+
+    [Fact]
+    public void BlendMode_DoesNotInvalidateTheLayout()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage();
+        ((MGStackPanel)harness.Window.Content).TryAddChild(image);
+        harness.Desktop.Update();
+        harness.Desktop.Update();
+
+        Assert.True(image.IsLayoutValid);
+
+        image.BlendMode = BlendType.Subtractive;
+
+        Assert.True(image.IsLayoutValid);
+        Assert.True(harness.Window.IsLayoutValid);
+    }
+
+    [Fact]
+    public void BlendType_IsReadFromXaml_AndAbsentMeansAlphaBlend()
+    {
+        Harness harness = Harness.Create();
+        string xaml = @"<Window xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"" Width=""200"" Height=""150"" Padding=""0"">
+    <StackPanel Orientation=""Vertical"">
+        <Image Name=""Dark"" SourceName=""a"" BlendType=""Subtractive"" />
+        <Image Name=""Plain"" SourceName=""b"" />
+    </StackPanel>
+</Window>";
+
+        MGWindow window = MGUIXamlParser.LoadRootWindow(harness.Desktop, xaml, false, true);
+        harness.Desktop.Windows.Add(window);
+        harness.Desktop.Update();
+
+        Assert.Equal(BlendType.Subtractive, window.GetElementByName<MGImage>("Dark").BlendMode);
+        Assert.Equal(BlendType.AlphaBlend, window.GetElementByName<MGImage>("Plain").BlendMode);
+
+        harness.Desktop.Windows.Remove(window);
+    }
+
+    [Fact]
+    public void BlendType_IsBindable_OntoBlendMode()
+    {
+        Harness harness = Harness.Create();
+        string xaml = @"<Window xmlns=""clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core""
+        xmlns:dataBinding=""clr-namespace:MGUI.Core.UI.DataBinding;assembly=MGUI.Core"" Width=""200"" Height=""150"" Padding=""0"">
+    <Image Name=""Img"" SourceName=""a"" BlendType=""{dataBinding:MGBinding Path=BlendMode}"" />
+</Window>";
+
+        MGWindow window = MGUIXamlParser.LoadRootWindow(harness.Desktop, xaml, false, true);
+        BlendModeViewModel vm = new();
+        window.WindowDataContext = vm;
+        harness.Desktop.Windows.Add(window);
+        harness.Desktop.Update();
+        harness.Desktop.Update();
+
+        MGImage image = window.GetElementByName<MGImage>("Img");
+        Assert.Equal(BlendType.Subtractive, image.BlendMode);
+
+        vm.BlendMode = BlendType.Additive;
+        harness.Desktop.Update();
+        Assert.Equal(BlendType.Additive, image.BlendMode);
+
+        harness.Desktop.Windows.Remove(window);
+    }
+
+    [Theory]
+    [InlineData(BlendType.AlphaBlend)]
+    [InlineData(BlendType.Default)]
+    public void BlendMode_AtTheDefault_NeverTouchesTheDrawSettings(BlendType blendMode)
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage();
+        image.BlendMode = blendMode;
+
+        RecordingTransaction transaction = harness.Draw(image);
+
+        Assert.Equal(BlendType.AlphaBlend, Assert.Single(transaction.Draws).Blend);
+        Assert.Equal(0, transaction.SetDrawSettingsCount);
+    }
+
+    [Fact]
+    public void BlendMode_AtTheDefault_KeepsTheSecondBrightnessPass()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage(1.5f);
+        image.BlendMode = BlendType.Default;
+
+        RecordingTransaction transaction = harness.Draw(image);
+
+        Assert.Equal(2, transaction.Draws.Count);
+        Assert.Equal(BlendType.Additive, transaction.Draws[1].Blend);
+    }
+
+    [Fact]
+    public void BlendMode_DrawsOnceInThatMode_AndRestoresTheSettings()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage();
+        image.BlendMode = BlendType.Subtractive;
+
+        RecordingTransaction transaction = harness.Draw(image);
+
+        TextureDraw draw = Assert.Single(transaction.Draws);
+        Assert.Equal(BlendType.Subtractive, draw.Blend);
+        Assert.Equal(new Color(255, 255, 255, 255), draw.Mask);
+        Assert.Equal(BlendType.AlphaBlend, transaction.CurrentSettings.BlendType);
+    }
+
+    [Fact]
+    public void BlendMode_SkipsTheAdditivePassAboveOne()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage(1.5f);
+        image.BlendMode = BlendType.Subtractive;
+
+        RecordingTransaction transaction = harness.Draw(image);
+
+        TextureDraw draw = Assert.Single(transaction.Draws);
+        Assert.Equal(BlendType.Subtractive, draw.Blend);
+        Assert.Equal(new Color(255, 255, 255, 255), draw.Mask);
+    }
+
+    [Fact]
+    public void BlendMode_KeepsTheDarkeningMaskBelowOne_AndTheOpacity()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage(0.5f);
+        image.BlendMode = BlendType.Subtractive;
+
+        RecordingTransaction transaction = harness.Draw(image, opacity: 0.5f);
+
+        TextureDraw draw = Assert.Single(transaction.Draws);
+        Assert.Equal(BlendType.Subtractive, draw.Blend);
+        Assert.Equal(new Color(64, 64, 64, 127), draw.Mask);
+    }
+
+    [Fact]
+    public void BlendMode_KeepsTheLinearFilter_WhenDownscaling()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = new(harness.Window, new MGTextureData(new FakeImageResource(32, 32)), null, Stretch.Fill);
+        image.BlendMode = BlendType.Subtractive;
+
+        RecordingTransaction transaction = harness.Draw(image);
+
+        TextureDraw draw = Assert.Single(transaction.Draws);
+        Assert.Equal(BlendType.Subtractive, draw.Blend);
+        Assert.Equal(SamplerType.LinearClamp, draw.Sampler);
+    }
+
+    [Fact]
+    public void BlendMode_ChangedBetweenTwoDraws_IsNotServedFromTheCache()
+    {
+        Harness harness = Harness.Create();
+        MGImage image = harness.CreateImage();
+        RecordingTransaction transaction = new(harness.Runtime, DrawSettings.Default);
+        DrawBaseArgs ba = new(TimeSpan.Zero, transaction, 1f);
+        ElementDrawArgs da = new(ba, new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
+
+        image.BlendMode = BlendType.Subtractive;
+        image.DrawSelf(da, new Rectangle(10, 20, 16, 16));
+        image.BlendMode = BlendType.NonPremultiplied;
+        image.DrawSelf(da, new Rectangle(10, 20, 16, 16));
+
+        Assert.Equal(BlendType.Subtractive, transaction.Draws[0].Blend);
+        Assert.Equal(BlendType.NonPremultiplied, transaction.Draws[1].Blend);
+    }
 }

@@ -1068,7 +1068,9 @@ public abstract class Element : XAMLBindableBase
         //  ADR-0020 of MGUI (G9): a Vector2 view-model property binds straight onto the element's stable
         //  MGElement.RenderTransform instance, through the nested target path DataBinding.ResolvePath already walks.
         { nameof(RenderTransformTranslation), $"{nameof(MGElement.RenderTransform)}.{nameof(Animation.UIRenderTransform.Translation)}" },
-        { nameof(RenderTransformScale), $"{nameof(MGElement.RenderTransform)}.{nameof(Animation.UIRenderTransform.Scale)}" }
+        { nameof(RenderTransformScale), $"{nameof(MGElement.RenderTransform)}.{nameof(Animation.UIRenderTransform.Scale)}" },
+        //  ADR-0024 of MGUI: the XAML attribute is named after the enum it takes, the property after what it does.
+        { nameof(Image.BlendType), nameof(MGImage.BlendMode) }
     };
 
     private const string BindingPathsMetadataKey = "TmpBindingPaths";

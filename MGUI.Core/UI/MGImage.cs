@@ -237,7 +237,8 @@ public class MGImage : MGElement
     /// <summary>A multiplier applied to the texture's colors when drawing, on top of <see cref="TextureColor"/> (ADR-0021).<para/>
     /// 1 draws the texture unchanged. Below 1 darkens it with a single draw. Above 1 brightens it: the texture is drawn once unchanged,
     /// then a second time with <see cref="BlendType.Additive"/> and a mask of (<see cref="Brightness"/> - 1), so each channel saturates at 255,
-    /// as a modulate-and-saturate color unit does (a multiplier cannot exceed 1 in a plain color mask).<para/>
+    /// as a modulate-and-saturate color unit does (a multiplier cannot exceed 1 in a plain color mask).
+    /// With a <see cref="BlendMode"/> of its own, there is no second draw, so above 1 the image draws as at 1 (ADR-0024).<para/>
     /// Default value: 1</summary>
     public float Brightness
     {
@@ -251,6 +252,29 @@ public class MGImage : MGElement
             }
         }
     }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private BlendType _BlendMode = BlendType.AlphaBlend;
+    /// <summary>How the texture combines with what is already drawn (ADR-0024). It changes no size, so it does not invalidate the layout.<para/>
+    /// At the default the image keeps the blend of the surrounding draw settings and never touches them. Any other mode costs a flush of the sprite batch
+    /// around the image, and <see cref="Brightness"/> above 1 then draws once, as at 1: a second, additive draw would mix two modes.<para/>
+    /// <see cref="BlendType.Subtractive"/> ignores the alpha of the source, so a texel that must not subtract has to be black.<para/>
+    /// Default value: <see cref="BlendType.AlphaBlend"/></summary>
+    public BlendType BlendMode
+    {
+        get => _BlendMode;
+        set
+        {
+            if (_BlendMode != value)
+            {
+                _BlendMode = value;
+                NotifyPropertyChanged(nameof(BlendMode));
+            }
+        }
+    }
+
+    /// <summary><see cref="BlendType.Default"/> is <see cref="BlendType.AlphaBlend"/> by another name.</summary>
+    private bool HasBlendMode => BlendMode != BlendType.AlphaBlend && BlendMode != BlendType.Default;
 
     private int UnstretchedWidth => ActualSource?.RenderSize.Width ?? 0;
     private int UnstretchedHeight => ActualSource?.RenderSize.Height ?? 0;
@@ -301,6 +325,22 @@ public class MGImage : MGElement
         }
 
         return _CachedAdditiveSettings;
+    }
+
+    private DrawSettings _CachedBlendModeBaseSettings;
+    private DrawSettings _CachedBlendModeSettings;
+
+    private DrawSettings GetBlendModeSettings(DrawSettings baseSettings)
+    {
+        ArgumentNullException.ThrowIfNull(baseSettings);
+
+        if (!ReferenceEquals(_CachedBlendModeBaseSettings, baseSettings) || _CachedBlendModeSettings.BlendType != BlendMode)
+        {
+            _CachedBlendModeBaseSettings = baseSettings;
+            _CachedBlendModeSettings = baseSettings with { BlendType = BlendMode };
+        }
+
+        return _CachedBlendModeSettings;
     }
 
     /// <summary>An opaque gray mask of <c>round(255 * Amount)</c> per RGB channel, clamped to 0..255.</summary>
@@ -557,12 +597,19 @@ public class MGImage : MGElement
         var previousSettings = DA.Context.CurrentSettings;
         var baseSettings = shouldUseLinearFiltering ? GetLinearFilteringSettings(previousSettings) : previousSettings;
 
+        var hasBlendMode = HasBlendMode;
+        if (hasBlendMode)
+        {
+            baseSettings = GetBlendModeSettings(baseSettings);
+        }
+
         //  Brightness (ADR-0021): below 1 the texture is darkened by the mask of a single draw. Above 1 a color mask cannot exceed 1,
         //  so the texture is drawn unchanged, then a second time additively with a mask of (Brightness - 1): each channel saturates at 255.
+        //  An image with its own blend mode stays one draw (ADR-0024).
         var firstColor = Brightness < 1f ? Multiply(TextureColor, GetBrightnessMask(Brightness)) : TextureColor;
         DrawSource(DA, destinationBounds, firstColor, baseSettings, previousSettings);
 
-        if (Brightness > 1f)
+        if (Brightness > 1f && !hasBlendMode)
         {
             DrawSource(DA, destinationBounds, Multiply(TextureColor, GetBrightnessMask(Brightness - 1f)), GetAdditiveSettings(baseSettings), previousSettings);
         }

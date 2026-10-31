@@ -10,6 +10,7 @@ using MGUI.Core.UI.DataBinding;
 using MGUI.Core.UI.Graph;
 using MGUI.Core.UI.Styling;
 using MGUI.Core.UI.Animation.Easing;
+using MGUI.Shared.Rendering;
 
 #if UseWPF
 using System.Windows.Markup;
@@ -1274,6 +1275,9 @@ public class Image : Element
     public XAMLColor? TextureColor { get; set; }
     [Category("Appearance")]
     public float? Brightness { get; set; }
+    /// <summary>Sets <see cref="MGImage.BlendMode"/> (ADR-0024). Absent, the image draws as it always did.</summary>
+    [Category("Appearance")]
+    public BlendType? BlendType { get; set; }
     [Category("Layout")]
     public Stretch? Stretch { get; set; }
 
@@ -1297,6 +1301,11 @@ public class Image : Element
         if (Brightness.HasValue)
         {
             Image.Brightness = Brightness.Value;
+        }
+
+        if (BlendType.HasValue)
+        {
+            Image.BlendMode = BlendType.Value;
         }
 
         if (Stretch.HasValue)

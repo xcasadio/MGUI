@@ -1,0 +1,43 @@
+<Window xmlns="clr-namespace:MGUI.Core.UI.XAML;assembly=MGUI.Core"
+        Left="460" Top="80" Width="520" MinHeight="0" SizeToContent="Height" TitleText="Image Blend Mode" Padding="10">
+    <Window.Styles>
+        <Style Name="Header1" TargetType="TextBlock">
+            <Setter Property="IsBold" Value="True" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="rgb(64,64,64)" Padding="6,3">
+        <StackPanel Orientation="Vertical" Spacing="10">
+            <TextBlock StyleNames="Header1" Text="Image Blend Mode:" HorizontalAlignment="Center" />
+            <TextBlock>
+                Demonstrates ADR-0024: Image.BlendType picks how the texture combines with what is below it. The same image is drawn three
+                times over the same background: with no attribute, then Additive, then Subtractive, which takes the color of each texel
+                away from the background (destination minus source) and ignores its alpha. An image that must mix opaque and subtractive
+                texels is two images stacked in an OverlayPanel, the second one Subtractive, its other texels being black.
+            </TextBlock>
+            <Separator />
+
+            <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
+                <Border Background="rgb(200,170,120)">
+                    <Image Name="PlainImage" SourceName="Wrench" Width="96" Height="96" Stretch="Uniform" />
+                </Border>
+                <Border Background="rgb(200,170,120)">
+                    <Image Name="AdditiveImage" SourceName="Wrench" Width="96" Height="96" Stretch="Uniform" BlendType="Additive" />
+                </Border>
+                <Border Background="rgb(200,170,120)">
+                    <Image Name="SubtractiveImage" SourceName="Wrench" Width="96" Height="96" Stretch="Uniform" BlendType="Subtractive" />
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

@@ -212,6 +212,7 @@ namespace MGUI.Samples
         public BoundImagesSample BoundImagesSample { get; }
         public RenderTransformBindingSample RenderTransformBindingSample { get; }
         public ImageBrightnessSample ImageBrightnessSample { get; }
+        public ImageBlendModeSample ImageBlendModeSample { get; }
         public EditorRichTextBoxSample EditorRichTextBoxSample { get; }
         public GraphViewDialogueSample GraphViewDialogueSample { get; }
         #endregion Features
@@ -294,6 +295,7 @@ namespace MGUI.Samples
             BoundImagesSample = new(Content, Desktop);
             RenderTransformBindingSample = new(Content, Desktop);
             ImageBrightnessSample = new(Content, Desktop);
+            ImageBlendModeSample = new(Content, Desktop);
             EditorRichTextBoxSample = new(Content, Desktop);
             GraphViewDialogueSample = new(Content, Desktop);
             #endregion Features

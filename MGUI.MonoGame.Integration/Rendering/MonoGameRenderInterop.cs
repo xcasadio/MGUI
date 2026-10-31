@@ -32,6 +32,16 @@ namespace MGUI.Shared.Rendering
                     AlphaDestinationBlend = Blend.InverseSourceAlpha,
                     AlphaBlendFunction = BlendFunction.Add,
                 }
+            },
+            { BlendType.Subtractive, new BlendState
+                {
+                    ColorSourceBlend = Blend.One,
+                    ColorDestinationBlend = Blend.One,
+                    ColorBlendFunction = BlendFunction.ReverseSubtract,
+                    AlphaSourceBlend = Blend.Zero,
+                    AlphaDestinationBlend = Blend.One,
+                    AlphaBlendFunction = BlendFunction.Add,
+                }
             }
         };
 

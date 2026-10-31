@@ -31,7 +31,10 @@ namespace MGUI.Shared.Rendering
         /// <summary>Disables color writes while allowing depth/stencil side effects.</summary>
         ColorWriteDisable,
         /// <summary>Uses the destination alpha channel as a mask while preserving ordinary alpha compositing.</summary>
-        DestinationAlphaMask
+        DestinationAlphaMask,
+        /// <summary>Subtracts the source color from the destination (destination - source, saturating at 0) and leaves the destination alpha unchanged.
+        /// The source alpha is ignored, so a texel with a color subtracts whatever its alpha, and a texel that must not subtract has to be black.</summary>
+        Subtractive
     }
 
     public enum SamplerType
