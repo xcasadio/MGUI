@@ -70,6 +70,26 @@ public class NavigationInputSuspensionTests
     }
 
     [Fact]
+    public void FalseWrittenEveryFrame_LeavesAHeldButtonRepeating()
+    {
+        Frames(HoldingA, FramesPastTheFirstRepeat);
+        int submitsWithNoWrite = _submits;
+        Assert.True(submitsWithNoWrite > 1, $"{submitsWithNoWrite} submits");
+        Frame(NoButton);
+        _submits = 0;
+
+        for (int i = 0; i < FramesPastTheFirstRepeat; i++)
+        {
+            Frame(HoldingA);
+
+            //  Where a host that works the value out each frame writes it, between two calls to Update. Only the end of a suspension forgets a button.
+            _desktop.IsNavigationInputSuspended = false;
+        }
+
+        Assert.Equal(submitsWithNoWrite, _submits);
+    }
+
+    [Fact]
     public void WhileSuspended_NoButtonReachesTheFocus_AndTheFocusStays()
     {
         _desktop.IsNavigationInputSuspended = true;
