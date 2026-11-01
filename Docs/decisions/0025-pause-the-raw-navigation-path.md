@@ -21,8 +21,8 @@
 ## Decision
 
 - `MGDesktop` gains `IsNavigationInputSuspended` (`bool`, default false). While true, the raw path dispatches nothing, on the
-  keyboard and on the gamepad, whatever `UseRawNavigationInput` says. It touches neither that property nor the focus, so there is
-  no previous value to keep. It does not gate `TryHandleInputAction`: a host that routes actions stops its own router.
+  keyboard and on the gamepad, whatever `UseRawNavigationInput` says. It leaves that property alone, so there is no previous value
+  to keep, and it moves no focus by itself. It does not gate `TryHandleInputAction`: a host that routes actions stops its own router.
 - When it turns from true to false, the desktop calls `GamePadTracker.ForgetHeldButtons`.
 - `GamePadTracker` gains `ForgetHeldButtons`: what is held now fires nothing more until it is released and pressed again. It clears
   the triggered flags and the held and repeat times of every button. The tracker skips a held button with no `_HeldSince`, so no
@@ -42,6 +42,10 @@
   frame is forgotten with the rest.
 - The default is false, so a host that never sets it sees no change.
 - A focused control that reads keys itself still sees them during a pause: only navigation stops. This comes from reading the code.
+- The pause stops the dispatch and nothing else. `MGDesktop.Update` still resolves the input mode and queues the auto-focus, and
+  neither reads this property, so a focus that exists stays, but with nothing focused a key or a button gives the focus during a
+  pause. Measured with a key in CasaEngine, on a headless desktop, with the raw path paused and with a host that routes its actions.
+  A gamepad button takes the same lines of `MGDesktop.Update`, which comes from reading the code.
 - A real gamepad has not been tried. `MGUI.Tests/Focus/NavigationInputSuspensionTests.cs` proves this on injected states, including
   that those states reproduce the repeat the decision silences.
 - No sample: nothing here draws, and CasaEngine's chantier runs it in its Launcher.

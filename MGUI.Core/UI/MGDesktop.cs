@@ -715,7 +715,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     public bool UseRawNavigationInput { get; set; } = true;
 
     private bool _IsNavigationInputSuspended;
-    /// <summary>While true, the built-in raw keyboard/gamepad navigation path dispatches nothing and the focus stays where it is, whatever <see cref="UseRawNavigationInput"/> says.
+    /// <summary>While true, the built-in raw keyboard/gamepad navigation path dispatches nothing, whatever <see cref="UseRawNavigationInput"/> says, so a focus that exists stays where it is. The input mode and auto-focus still run: with nothing focused, a key or a button gives the focus.
     /// Unlike that property, this says nothing about who reads the inputs: it is a pause, for a host that stops navigation for a while (ADR-0025).<para/>
     /// An input held when this turns false fires nothing until it is released. Set it between two calls to <see cref="Update()"/>.</summary>
     public bool IsNavigationInputSuspended
