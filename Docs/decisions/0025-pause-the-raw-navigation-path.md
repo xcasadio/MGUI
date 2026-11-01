@@ -15,7 +15,7 @@
   once `InitialRepeatDelay` has passed. `TryDispatchGamePadNavigationActions` reads `WasTriggered`, which is true on a repeat as
   well as on a press, and A is in `GamePadNavigationButtons` and maps to Submit. So a button held through a pause fired within
   one interval of its end, with no new press. `_HeldSince` is private, so a host cannot stop that.
-- The raw keyboard path has no such problem: it subscribes to `Pressed`, a press edge, and `Repeated` is a separate event.
+- The raw keyboard path has no such problem: it subscribes to `Pressed`, a press edge, and `KeyRepeat` is a separate event.
 - A test could not reach any of this: `GamePadTracker.Update` calls MonoGame's static `GamePad.GetState`.
 
 ## Decision
