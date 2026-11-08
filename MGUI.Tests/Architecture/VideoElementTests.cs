@@ -503,4 +503,23 @@ public class VideoElementTests
         Assert.Null(video.SkippedCommandName);
         Assert.Equal(Stretch.Uniform, video.Stretch);
     }
+
+    [Fact]
+    public void TheXamlTag_LoadsThroughTheSanitizedPath_WithNoNamespaceDeclared()
+    {
+        GraphTestRuntime runtime = new(new Rectangle(0, 0, 960, 540), new FakeVideoProvider());
+        MGDesktop desktop = new(runtime);
+        desktop.LoadDefaultResources();
+
+        const string markup = """
+            <Window Left="0" Top="0" Width="400" Height="200">
+              <Video Name="vid" SourceName="clip" IsSkippable="True" />
+            </Window>
+            """;
+
+        MGWindow window = MGUIXamlParser.LoadRootWindow(desktop, XamlDocumentSource.FromString(markup, "video-test"), XamlLoaderMode.Strict, SanitizeXAMLString: true);
+        Assert.True(window.TryGetElementByName("vid", out MGVideo video));
+        Assert.Equal("clip", video.SourceName);
+        Assert.True(video.IsSkippable);
+    }
 }

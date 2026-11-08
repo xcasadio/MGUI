@@ -55,6 +55,7 @@ public class XAMLParser
         { "GraphPort", nameof(GraphPort) },
         { "GraphCommentBox", nameof(GraphCommentBox) },
         { "Image", nameof(Image) },
+        { "Video", nameof(Video) },
         { "ListBox", nameof(ListBox) },
         { "ListView", nameof(ListView) },
         { "ListViewColumn", nameof(ListViewColumn) },
