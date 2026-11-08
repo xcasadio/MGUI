@@ -8,7 +8,7 @@ namespace MGUI.Core.UI;
 /// The video advances in <see cref="UpdateSelf(ElementUpdateArgs)"/>, so a collapsed element does not advance it. Reaching the end raises
 /// <see cref="Ended"/> once and runs <see cref="EndedCommandName"/>. <see cref="Skip"/> raises <see cref="Skipped"/> once and runs
 /// <see cref="SkippedCommandName"/>, only when <see cref="IsSkippable"/>. Reading an input to skip is the host's job.<para/>
-/// <see cref="MGImage.Source"/> and the animation properties of <see cref="MGImage"/> have no effect on a video.
+/// <see cref="MGImage.Source"/> (it is stored but never replaces the video) and the animation properties of <see cref="MGImage"/> have no effect on a video.
 /// The video is disposed when <see cref="MGImage.SourceName"/> changes and by <see cref="Dispose"/>.</summary>
 public class MGVideo : MGImage, IDisposable
 {
@@ -92,6 +92,8 @@ public class MGVideo : MGImage, IDisposable
     }
 
     protected override bool ResolvesTextureNames => false;
+
+    protected override bool UsesSource => false;
 
     protected override void UpdateActualSource()
     {

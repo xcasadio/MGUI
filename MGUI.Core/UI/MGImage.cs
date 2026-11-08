@@ -77,6 +77,9 @@ public class MGImage : MGElement
     /// to a derived element (<see cref="MGVideo"/>), which then does not follow the additions and removals of named textures.</summary>
     protected virtual bool ResolvesTextureNames => true;
 
+    /// <summary>Whether <see cref="Source"/> feeds <see cref="ActualSource"/> (true), or is ignored by a derived element that supplies its own image (<see cref="MGVideo"/>).</summary>
+    protected virtual bool UsesSource => true;
+
     private void Resources_OnTextureAddedRemoved(object sender, (string Name, MGTextureData Data) e)
     {
         if (e.Name == SourceName)
@@ -99,7 +102,10 @@ public class MGImage : MGElement
             {
                 _Source = value;
                 NotifyPropertyChanged(nameof(Source));
-                UpdateActualSource();
+                if (UsesSource)
+                {
+                    UpdateActualSource();
+                }
             }
         }
     }

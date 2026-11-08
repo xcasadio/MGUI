@@ -375,6 +375,22 @@ public class VideoElementTests
     }
 
     [Fact]
+    public void SettingSource_HasNoEffect_AndDoesNotReplaceOrRestartTheVideo()
+    {
+        var (harness, provider, video, fake) = CreatePlayingVideo();
+        harness.Frame(FramePeriod);
+        TimeSpan elapsed = fake.Elapsed;
+
+        video.Source = new MGTextureData(new FakeImageResource(4, 4), null);
+
+        Assert.Single(provider.Created);
+        Assert.False(fake.IsDisposed);
+        Assert.Equal(elapsed, fake.Elapsed);
+        Assert.Same(FakeVideo.Image, video.ActualSource!.Value.Image);
+        Assert.True(video.IsPlaying);
+    }
+
+    [Fact]
     public void ANameTheHostDoesNotKnow_PlaysNothing()
     {
         FakeVideoProvider provider = new();
