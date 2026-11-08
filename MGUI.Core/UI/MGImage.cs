@@ -65,13 +65,17 @@ public class MGImage : MGElement
     /// for this element's lifetime, instead of on every change of <see cref="SourceName"/> (ADR-0016, "SourceName without event churn").</summary>
     private void SubscribeToTextureEventsOnce()
     {
-        if (_SubscribedTextureResources == null)
+        if (_SubscribedTextureResources == null && ResolvesTextureNames)
         {
             _SubscribedTextureResources = GetResources();
             _SubscribedTextureResources.OnTextureAdded += Resources_OnTextureAddedRemoved;
             _SubscribedTextureResources.OnTextureRemoved += Resources_OnTextureAddedRemoved;
         }
     }
+
+    /// <summary>Whether <see cref="SourceName"/> is looked up among the named textures of <see cref="MGResources"/> (true), or means something else
+    /// to a derived element (<see cref="MGVideo"/>), which then does not follow the additions and removals of named textures.</summary>
+    protected virtual bool ResolvesTextureNames => true;
 
     private void Resources_OnTextureAddedRemoved(object sender, (string Name, MGTextureData Data) e)
     {
@@ -105,7 +109,9 @@ public class MGImage : MGElement
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Point _AnimatedDrawOffset;
 
-    private void UpdateActualSource()
+    /// <summary>Resolves <see cref="ActualSource"/> from <see cref="Source"/> and <see cref="SourceName"/>. A derived element that gives
+    /// <see cref="SourceName"/> another meaning overrides it, and feeds <see cref="ActualSource"/> through <see cref="SetActualSource(MGTextureData?)"/>.</summary>
+    protected virtual void UpdateActualSource()
     {
         if (_AnimatedSource != null)
         {
@@ -276,6 +282,9 @@ public class MGImage : MGElement
     /// <summary><see cref="BlendType.Default"/> is <see cref="BlendType.AlphaBlend"/> by another name.</summary>
     private bool HasBlendMode => BlendMode != BlendType.AlphaBlend && BlendMode != BlendType.Default;
 
+    /// <summary>Sets <see cref="ActualSource"/> for a derived element that supplies its own image. It relays out only when the render size changes.</summary>
+    protected void SetActualSource(MGTextureData? Value) => ActualSource = Value;
+
     private int UnstretchedWidth => ActualSource?.RenderSize.Width ?? 0;
     private int UnstretchedHeight => ActualSource?.RenderSize.Height ?? 0;
     private double UnstretchedAspectRatio => UnstretchedHeight == 0 ? 1.0 : UnstretchedWidth * 1.0 / UnstretchedHeight;
@@ -414,6 +423,17 @@ public class MGImage : MGElement
 
     public MGImage(MGWindow Window, IUIImageResource Image, Rectangle? SourceRect = null, Color? TextureColor = null, Stretch Stretch = Stretch.Uniform)
         : this(Window, new MGTextureData(Image, SourceRect), TextureColor, Stretch) { }
+
+    /// <summary>For a derived element that draws like an image but supplies its own source: it sets nothing but the element type and the centered content alignment.</summary>
+    protected MGImage(MGWindow Window, MGElementType ElementType)
+        : base(Window, ElementType)
+    {
+        using (BeginInitializing())
+        {
+            HorizontalContentAlignment = HorizontalAlignment.Center;
+            VerticalContentAlignment = VerticalAlignment.Center;
+        }
+    }
 
     public MGImage(MGWindow Window, MGTextureData Source, Color? TextureColor = null, Stretch Stretch = Stretch.Uniform)
         : base(Window, MGElementType.Image)

@@ -98,6 +98,7 @@ public enum MGElementType
 
     //  Media
     Image,
+    Video,
 
     //  Other
     Rectangle,

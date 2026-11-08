@@ -1327,6 +1327,60 @@ public class Image : Element
     protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
 }
 
+/// <summary>An <see cref="MGVideo"/> (ADR-0026): plays the video that the host resolves from <see cref="SourceName"/>.</summary>
+public class Video : Element
+{
+    public override MGElementType ElementType => MGElementType.Video;
+
+    /// <summary>The name the host resolves into a video through <c>IUIAssetProvider.TryCreateVideo</c>.</summary>
+    [Category("Data")]
+    public string SourceName { get; set; }
+
+    [Category("Layout")]
+    public Stretch? Stretch { get; set; }
+
+    /// <summary>Sets <see cref="MGVideo.IsSkippable"/>. Absent, the video cannot be skipped.</summary>
+    [Category("Behavior")]
+    public bool? IsSkippable { get; set; }
+
+    /// <summary>The name of the command to execute when the video ends. It should exist in <see cref="MGResources.Commands"/>, otherwise nothing is invoked.</summary>
+    [Category("Behavior")]
+    public string EndedCommandName { get; set; }
+
+    /// <summary>The name of the command to execute when the video is skipped. It should exist in <see cref="MGResources.Commands"/>, otherwise nothing is invoked.</summary>
+    [Category("Behavior")]
+    public string SkippedCommandName { get; set; }
+
+    protected override MGElement CreateElementInstance(MGWindow Window, MGElement Parent) => new MGVideo(Window, SourceName);
+
+    protected internal override void ApplyDerivedSettings(MGElement Parent, MGElement Element, bool IncludeContent)
+    {
+        var Video = Element as MGVideo;
+
+        if (Stretch.HasValue)
+        {
+            Video.Stretch = Stretch.Value;
+        }
+
+        if (IsSkippable.HasValue)
+        {
+            Video.IsSkippable = IsSkippable.Value;
+        }
+
+        if (EndedCommandName != null)
+        {
+            Video.EndedCommandName = EndedCommandName;
+        }
+
+        if (SkippedCommandName != null)
+        {
+            Video.SkippedCommandName = SkippedCommandName;
+        }
+    }
+
+    protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
+}
+
 public class ImageStringConverter : TypeConverter
 {
     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)

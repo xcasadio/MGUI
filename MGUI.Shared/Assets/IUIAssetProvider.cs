@@ -34,6 +34,18 @@ namespace MGUI.Shared.Assets
             animatedImage = null;
             return false;
         }
+
+        /// <summary>Creates a new, independent video instance for a name the host recognizes as a video (ADR-0026), so each
+        /// <c>MGUI.Core.UI.MGVideo</c> whose <c>SourceName</c> names it can play its own copy.<para/>
+        /// The default implementation creates nothing, so existing implementers of <see cref="IUIAssetProvider"/> keep compiling
+        /// unchanged.</summary>
+        /// <param name="name">The name, as referenced by <c>MGVideo.SourceName</c>. Never null.</param>
+        /// <param name="video">A new, independent video instance that the caller disposes, or null if <paramref name="name"/> does not name a video.</param>
+        bool TryCreateVideo(string name, out IUIVideo video)
+        {
+            video = null;
+            return false;
+        }
     }
 
 }

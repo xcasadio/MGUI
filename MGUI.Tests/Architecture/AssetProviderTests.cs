@@ -40,7 +40,8 @@ public class AssetProviderTests
             new[]
             {
                 nameof(IUIAssetProvider.LoadImage), nameof(IUIAssetProvider.TryLoadImage),
-                nameof(IUIAssetProvider.TryResolveImage), nameof(IUIAssetProvider.TryCreateAnimatedImage)
+                nameof(IUIAssetProvider.TryResolveImage), nameof(IUIAssetProvider.TryCreateAnimatedImage),
+                nameof(IUIAssetProvider.TryCreateVideo) // ADR-0026
             }.OrderBy(x => x),
             methodNames);
     }
