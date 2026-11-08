@@ -22,7 +22,7 @@
   `IsEnded`. The host returns the same image on every frame if it updates one texture in place.
 - `IUIAssetProvider.TryCreateVideo(string name, out IUIVideo video)` is a default-implemented member that creates nothing, as `TryCreateAnimatedImage` is.
 - `MGVideo` inherits `MGImage`, so it draws exactly like an image. `MGImage` gains, additively: a protected constructor that takes the element type, a
-  `protected virtual UpdateActualSource`, a `protected virtual ResolvesTextureNames`, and `protected SetActualSource`. The draw is not duplicated.
+  `protected virtual UpdateActualSource`, a `protected virtual ResolvesTextureNames`, a `protected virtual UsesSource` (which `MGVideo` overrides to false, so that setting `Source` has no effect on a video), and `protected SetActualSource`. The draw is not duplicated.
   `MGElementType.Video` is added after `Image`. `MGImage.Source` and the animation properties have no effect on an `MGVideo`.
 - `MGVideo` resolves `SourceName` only through `TryCreateVideo`. It advances the video in `UpdateSelf` and copies the frame into `ActualSource`, which
   relays out only when the render size changes. It disposes the video when `SourceName` changes and in `Dispose`.
