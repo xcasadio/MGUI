@@ -963,7 +963,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// buffer, and requests a layout of the parent like the <see cref="Text"/> setter does.<para/>
     /// The characters are copied into a buffer of this text block, so the span is free to be reused as soon as the call returns. When
     /// <see cref="AllowsInlineFormatting"/> is false and there are no <see cref="ExplicitRuns"/>, nothing is allocated once the buffers have grown, provided nothing listens to
-    /// <see cref="PropertyChanged"/>: <see cref="Text"/>, <see cref="Runs"/> and <see cref="Lines"/> are only built when read.
+    /// <c>PropertyChanged</c>: <see cref="Text"/>, <see cref="Runs"/> and <see cref="Lines"/> are only built when read.
     /// Setting the characters the text block already shows does nothing.</summary>
     public void SetText(ReadOnlySpan<char> Value)
         => SetTextCore(Value, MGTextInvalidationMode.RelayoutParent, false);
@@ -1095,7 +1095,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     }
 
     private bool HasKnownTextLayoutWidth()
-        => LayoutBounds.Width > 0 && Lines != null && LastLineParseWidth == GetTextLineParseWidth();
+        => LayoutBounds.Width > 0 && HasLines && LastLineParseWidth == GetTextLineParseWidth();
 
     private bool TryGetCurrentLayoutDesiredTextSize(out Thickness DesiredSize)
     {
@@ -1105,7 +1105,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return false;
         }
 
-        DesiredSize = MeasureDesiredTextSize(Lines);
+        DesiredSize = _ArePlainLinesKnown ? MeasureDesiredTextSize(PlainLines) : MeasureDesiredTextSize(Lines);
         return true;
     }
 
@@ -1125,6 +1125,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     private bool TryMeasureDesiredTextSize(Size TextContentSize, out Thickness DesiredSize)
     {
+        if (_ArePlainRunsKnown)
+        {
+            //  Plain text: the lines go into a reused layout and nothing else is built (no runs, no MGTextLine).
+            PlainMeasureLines.Build(this, CurrentTextSpan, TextContentSize.Width, WrapText, IgnoreEmptySpaceLines, _PlainSettings, false);
+            DesiredSize = MeasureDesiredTextSize(PlainMeasureLines);
+            return true;
+        }
+
         return TryMeasureDesiredTextSize(TextContentSize, Runs, out DesiredSize);
     }
 
@@ -1140,6 +1148,37 @@ public class MGTextBlock : MGElement, ITextMeasurer
         var ParsedLines = MGTextLine.ParseLines(this, TextContentSize.Width, WrapText, TextRuns, IgnoreEmptySpaceLines).ToList();
         DesiredSize = MeasureDesiredTextSize(ParsedLines);
         return true;
+    }
+
+    /// <summary>Same computation as <see cref="MeasureDesiredTextSize(IReadOnlyList{MGTextLine})"/>, over the lines of a plain text.</summary>
+    private Thickness MeasureDesiredTextSize(PlainTextLayout TextLines)
+    {
+        var MeasuredLineCount = TextLines.LineCount;
+        if (MaxLines.HasValue && MeasuredLineCount > MaxLines.Value)
+        {
+            MeasuredLineCount = Math.Max(0, MaxLines.Value);
+        }
+
+        float Width = 0;
+        float Height = 0;
+        for (var i = 0; i < MeasuredLineCount; i++)
+        {
+            var Line = TextLines.GetLine(i);
+            Width = Math.Max(Width, Line.Width);
+            Height += Line.TotalHeight;
+        }
+
+        if (MeasuredLineCount > 1)
+        {
+            Height += EffectiveLinePadding * (MeasuredLineCount - 1);
+        }
+
+        if (MinLines > MeasuredLineCount)
+        {
+            Height += (MinLines - MeasuredLineCount) * (RF_Regular.LineHeight + EffectiveLinePadding);
+        }
+
+        return new Thickness((int)Math.Ceiling(Width), (int)Math.Ceiling(Height), 0, 0);
     }
 
     private Thickness MeasureDesiredTextSize(IReadOnlyList<MGTextLine> TextLines)
@@ -1251,8 +1290,25 @@ public class MGTextBlock : MGElement, ITextMeasurer
         return Temp.AsReadOnly();
     }
 
-    /// <summary>True for a plain text (no inline formatting, no explicit runs): its runs are not built by <see cref="UpdateRuns"/> but when <see cref="Runs"/> is read.</summary>
-    private bool UsesPlainTextPath => !_AllowsInlineFormatting && !HasExplicitRuns;
+    /// <summary>True when the text is laid out by <see cref="PlainTextLayout"/> instead of runs and <see cref="MGTextLine"/>s: plain text (no inline formatting) and no explicit runs.</summary>
+    private bool UsesPlainTextPath => !_AllowsInlineFormatting && !HasExplicitRuns && !_ForceLegacyTextPath;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _ForceLegacyTextPath;
+    /// <summary>Test seam: when true, plain text goes through the runs and <see cref="MGTextLine.ParseLines(ITextMeasurer, double, bool, IEnumerable{MGTextRun}, bool)"/>
+    /// like formatted text does, so a test can compare both implementations on the same text.</summary>
+    internal bool ForceLegacyTextPath
+    {
+        get => _ForceLegacyTextPath;
+        set
+        {
+            if (_ForceLegacyTextPath != value)
+            {
+                _ForceLegacyTextPath = value;
+                UpdateRuns();
+            }
+        }
+    }
 
     private void UpdateRuns()
     {
@@ -1329,14 +1385,39 @@ public class MGTextBlock : MGElement, ITextMeasurer
         private set => _Runs = value;
     }
 
-    public ReadOnlyCollection<MGTextLine> Lines { get; private set; }
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private ReadOnlyCollection<MGTextLine> _Lines;
+    /// <summary>The lines of the text, or null until they are computed. For a plain text they are built when read, from the text they were computed for, then the same instances are returned until the lines are computed again.</summary>
+    public ReadOnlyCollection<MGTextLine> Lines
+    {
+        get
+        {
+            if (_Lines == null && _ArePlainLinesKnown)
+            {
+                var Tokens = FTTokenizer.TokenizeLineBreaks(new string(PlainLines.Source), true).ToList();
+                var LineRuns = MGTextRun.ParseRuns(Tokens, PlainLines.Settings).ToList();
+                _Lines = MGTextLine.ParseLines(this, PlainLines.ParseWidth, PlainLines.WrapText, LineRuns, IgnoreEmptySpaceLines).ToList().AsReadOnly();
+            }
 
-    //  The plain text path (see UsesPlainTextPath): the runs are known (they are not null) without being built.
+            return _Lines;
+        }
+        private set => _Lines = value;
+    }
+
+    //  The plain text path (see UsesPlainTextPath). Runs and lines are two independent states: each one is in the representation of the path in effect when it was computed.
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _ArePlainRunsKnown;
-    /// <summary>The settings the runs of a plain text carry: the ones <see cref="UpdateRuns"/> took from the font style properties when the text last changed.</summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _ArePlainLinesKnown;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private MGTextRunConfig _PlainSettings;
+    /// <summary>The lines of the plain text, computed by <see cref="UpdateLines"/> for the layout width: what <see cref="Lines"/> are when the plain lines are known.</summary>
+    private readonly PlainTextLayout PlainLines = new();
+    /// <summary>Scratch layout of the measure steps, which must not change <see cref="PlainLines"/>.</summary>
+    private readonly PlainTextLayout PlainMeasureLines = new();
+
+    /// <summary>True once lines were computed, whatever their representation (<see cref="Lines"/> is not null).</summary>
+    private bool HasLines => _ArePlainLinesKnown || _Lines != null;
 
     private int NumCharacters { get; set; }
     private bool AreLinesDirty { get; set; } = true;
@@ -1345,12 +1426,23 @@ public class MGTextBlock : MGElement, ITextMeasurer
     internal void UpdateLines()
     {
         var LineParseWidth = GetTextLineParseWidth();
-        if (!AreLinesDirty && Lines != null && LineParseWidth == LastLineParseWidth)
+        if (!AreLinesDirty && HasLines && LineParseWidth == LastLineParseWidth)
         {
             return;
         }
 
-        Lines = MGTextLine.ParseLines(this, LineParseWidth, WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
+        if (_ArePlainRunsKnown)
+        {
+            PlainLines.Build(this, CurrentTextSpan, LineParseWidth, WrapText, IgnoreEmptySpaceLines, _PlainSettings, true);
+            _Lines = null;
+            _ArePlainLinesKnown = true;
+        }
+        else
+        {
+            Lines = MGTextLine.ParseLines(this, LineParseWidth, WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
+            _ArePlainLinesKnown = false;
+        }
+
         LastLineParseWidth = LineParseWidth;
         AreLinesDirty = false;
         NotifyPropertyChanged(nameof(Lines));
@@ -1531,7 +1623,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     /// <summary>
     /// Measures the rendered size of <paramref name="Text"/> using the active <see cref="ITextMeasurementEngine"/>.
-    /// Delegates to <see cref="ITextMeasurementEngine.MeasureText"/> (whole-string) so that kerning is accounted
+    /// Delegates to <see cref="ITextMeasurementEngine.MeasureText(ResolvedFont, string)"/> (whole-string) so that kerning is accounted
     /// for correctly.
     /// </summary>
     public Vector2 MeasureText(string Text, bool IsBold, bool IsItalic)
@@ -1549,6 +1641,24 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
         var measured = TextEngine.MeasureText(resolved, Text);
         // LineHeight from the engine may be 0 for some backends; fall back to resolved value.
+        return new Vector2(measured.X, measured.Y > 0 ? measured.Y : resolved.LineHeight);
+    }
+
+    /// <summary>Same measure as <see cref="MeasureText(string, bool, bool)"/> for characters that are not in a string: the result is the one the string overload gives for the same characters.</summary>
+    internal Vector2 MeasureText(ReadOnlySpan<char> Text, bool IsBold, bool IsItalic)
+    {
+        if (Text.IsEmpty)
+        {
+            return Vector2.Zero;
+        }
+
+        var resolved = GetResolvedFont(IsBold, IsItalic);
+        if (resolved?.NativeFont == null)
+        {
+            return Vector2.Zero;
+        }
+
+        var measured = TextEngine.MeasureText(resolved, Text);
         return new Vector2(measured.X, measured.Y > 0 ? measured.Y : resolved.LineHeight);
     }
 

@@ -107,6 +107,11 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
         => DrawTextCalls.Add(new(Font, Text, Position, Origin, Scale, Rotation));
 
+    /// <summary>A recording transaction: the span is turned into a string to be recorded. Never use it in a zero allocation test.</summary>
+    public void DrawTextViaEngine(ResolvedFont Font, ReadOnlySpan<char> Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
+        float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
+        => DrawTextCalls.Add(new(Font, Text.ToString(), Position, Origin, Scale, Rotation));
+
     public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color)
         => FillRectangleCalls.Add(new(Origin, Destination, Color));
 
@@ -274,6 +279,12 @@ internal sealed class GraphTestTextEngine : ITextMeasurementEngine
     public Vector2 MeasureText(ResolvedFont font, string text)
     {
         float width = (text?.Length ?? 0) * Math.Max(font.SpaceWidth, 1.0f);
+        return new(width, font.LineHeight);
+    }
+
+    public Vector2 MeasureText(ResolvedFont font, ReadOnlySpan<char> text)
+    {
+        float width = text.Length * Math.Max(font.SpaceWidth, 1.0f);
         return new(width, font.LineHeight);
     }
 
