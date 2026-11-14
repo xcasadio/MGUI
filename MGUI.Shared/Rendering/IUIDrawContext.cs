@@ -21,6 +21,12 @@ namespace MGUI.Shared.Rendering
         public void DrawTextViaEngine(ResolvedFont Font, string Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
             float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None);
 
+        /// <summary>Draws <paramref name="Text"/> without requiring a <see cref="string"/>, for text kept in a reused buffer.<para/>
+        /// The default implementation builds a string and calls the string overload: a draw context overrides it to draw without allocating.</summary>
+        public void DrawTextViaEngine(ResolvedFont Font, ReadOnlySpan<char> Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
+            float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
+            => DrawTextViaEngine(Font, Text.ToString(), Position, Color, Origin, Scale, Rotation, Depth, Flip);
+
         public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color);
         public void FillPoint(Vector2 Center, Color Color, float Width);
         public void StrokeRectangle(Vector2 Origin, RectangleF Destination, Color Color, Thickness Thickness);

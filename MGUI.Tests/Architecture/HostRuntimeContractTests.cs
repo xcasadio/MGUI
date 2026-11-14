@@ -192,7 +192,8 @@ public class HostRuntimeContractTests
         Assert.Contains(nameof(ITextMeasurementEngine.ResolveFont), measurementMethodNames);
         Assert.Contains(nameof(ITextMeasurementEngine.MeasureText), measurementMethodNames);
         Assert.Contains(nameof(ITextMeasurementEngine.MeasureGlyph), measurementMethodNames);
-        Assert.Equal(new[] { nameof(ITextDrawEngine.DrawText) }, drawMethodNames);
+        //  Two overloads of the one draw method: a string and a span of characters (ADR-0026).
+        Assert.Equal(new[] { nameof(ITextDrawEngine.DrawText), nameof(ITextDrawEngine.DrawText) }, drawMethodNames);
     }
 
     [Fact]

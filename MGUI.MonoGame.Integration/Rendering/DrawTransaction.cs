@@ -257,6 +257,27 @@ namespace MGUI.Shared.Rendering
             TextRenderer.DrawText(this, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Flip);
         }
 
+        /// <summary>Draws a span of characters through the active text engine, without building a string.</summary>
+        public void DrawTextViaEngine(
+            MGUI.Shared.Text.ResolvedFont Font,
+            ReadOnlySpan<char> Text,
+            Vector2 Position,
+            Color Color,
+            Vector2 Origin,
+            float Scale,
+            float Rotation = 0f,
+            float Depth    = 0f,
+            UIDrawFlip Flip = UIDrawFlip.None)
+        {
+            if (Text.IsEmpty || Font?.IsAvailable != true)
+            {
+                return;
+            }
+
+            BeginDraw(DrawContext.Sprites);
+            TextRenderer.DrawText(this, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Flip);
+        }
+
         /// <param name="Family">The font to use</param>
         /// <param name="DesiredFontSize">The desired size of the text, in points. The text is drawn at the scale it is measured with (ADR-0023).</param>
         public Vector2 DrawShadowedText(string Family, string Text, Vector2 Position, Color TextColor, Color ShadowColor,
