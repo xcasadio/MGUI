@@ -222,7 +222,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_IsBold != value)
             {
                 _IsBold = value;
-                if (!string.IsNullOrEmpty(Text))
+                if (!IsTextNullOrEmpty)
                 {
                     UpdateRuns();
                     InvokeLayoutChanged();
@@ -242,7 +242,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_IsItalic != value)
             {
                 _IsItalic = value;
-                if (!string.IsNullOrEmpty(Text))
+                if (!IsTextNullOrEmpty)
                 {
                     UpdateRuns();
                     InvokeLayoutChanged();
@@ -262,7 +262,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_IsUnderlined != value)
             {
                 _IsUnderlined = value;
-                if (!string.IsNullOrEmpty(Text))
+                if (!IsTextNullOrEmpty)
                 {
                     UpdateRuns();
                     UpdateLines();
@@ -290,7 +290,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_IsShadowed != value)
             {
                 _IsShadowed = value;
-                if (!string.IsNullOrEmpty(Text))
+                if (!IsTextNullOrEmpty)
                 {
                     UpdateRuns();
                     UpdateLines();
@@ -315,7 +315,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_ShadowOffset != value)
             {
                 _ShadowOffset = value;
-                if (!string.IsNullOrEmpty(Text))
+                if (!IsTextNullOrEmpty)
                 {
                     UpdateRuns();
                     UpdateLines();
@@ -337,7 +337,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (_ShadowColor != value)
             {
                 _ShadowColor = value;
-                if (!string.IsNullOrEmpty(Text))
+                if (!IsTextNullOrEmpty)
                 {
                     UpdateRuns();
                     UpdateLines();
@@ -894,10 +894,59 @@ public class MGTextBlock : MGElement, ITextMeasurer
         }
     }
 
+    //  The characters of the text live in one of two places. A string setter keeps its string in _Text. A span setter copies the characters into
+    //  _TextBuffer (a buffer that grows by doubling and is never shrunk) and _Text then only caches the string that the Text getter built from them.
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private char[] _TextBuffer;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private int _TextLength;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _IsTextBuffered;
+
+    /// <summary>The text. Reading it builds a string when the text was set from a span (<see cref="SetText(ReadOnlySpan{char})"/>), then keeps that string until the text changes:
+    /// code that draws or measures the text does not read it, so a text that is never read never allocates a string.</summary>
     public string Text
     {
-        get => _Text;
+        get
+        {
+            if (_IsTextBuffered && _Text == null)
+            {
+                _Text = new string(_TextBuffer, 0, _TextLength);
+            }
+
+            return _Text;
+        }
         set => SetText(value, MGTextInvalidationMode.RelayoutParent);
+    }
+
+    private bool IsTextNullOrEmpty => _IsTextBuffered ? _TextLength == 0 : string.IsNullOrEmpty(_Text);
+
+    /// <summary>The characters of <see cref="Text"/> (empty if it is null), without building a string.</summary>
+    private ReadOnlySpan<char> CurrentTextSpan => _IsTextBuffered ? new ReadOnlySpan<char>(_TextBuffer, 0, _TextLength) : _Text.AsSpan();
+
+    private bool IsCurrentText(string Value)
+        => _IsTextBuffered ? Value != null && CurrentTextSpan.SequenceEqual(Value) : _Text == Value;
+
+    private bool IsCurrentText(ReadOnlySpan<char> Value)
+        => _IsTextBuffered ? CurrentTextSpan.SequenceEqual(Value) : _Text != null && Value.SequenceEqual(_Text);
+
+    private void StoreText(ReadOnlySpan<char> Value)
+    {
+        if (_TextBuffer == null || _TextBuffer.Length < Value.Length)
+        {
+            var Length = Math.Max(_TextBuffer?.Length ?? 0, 16);
+            while (Length < Value.Length)
+            {
+                Length *= 2;
+            }
+
+            _TextBuffer = new char[Length];
+        }
+
+        Value.CopyTo(_TextBuffer);
+        _TextLength = Value.Length;
+        _IsTextBuffered = true;
+        _Text = null;
     }
 
     /// <param name="SuppressLayoutChanged">If true, <see cref="Text"/> will be set without calling <see cref="InvokeLayoutChanged"/><para/>
@@ -910,29 +959,61 @@ public class MGTextBlock : MGElement, ITextMeasurer
     public void SetText(string Value, MGTextInvalidationMode InvalidationMode)
         => SetTextCore(Value, InvalidationMode, false);
 
+    /// <summary>Sets <see cref="Text"/> from characters that are not in a <see cref="string"/>, such as a number formatted with <c>float.TryFormat</c> into a reused
+    /// buffer, and requests a layout of the parent like the <see cref="Text"/> setter does.<para/>
+    /// The characters are copied into a buffer of this text block, so the span is free to be reused as soon as the call returns. When
+    /// <see cref="AllowsInlineFormatting"/> is false and there are no <see cref="ExplicitRuns"/>, nothing is allocated once the buffers have grown, provided nothing listens to
+    /// <see cref="PropertyChanged"/>: <see cref="Text"/>, <see cref="Runs"/> and <see cref="Lines"/> are only built when read.
+    /// Setting the characters the text block already shows does nothing.</summary>
+    public void SetText(ReadOnlySpan<char> Value)
+        => SetTextCore(Value, MGTextInvalidationMode.RelayoutParent, false);
+
+    /// <summary>Sets <see cref="Text"/> from characters that are not in a <see cref="string"/> (see <see cref="SetText(ReadOnlySpan{char})"/>) and applies the requested text
+    /// invalidation contract, which resolves like <see cref="SetText(string, MGTextInvalidationMode)"/>: <see cref="MGTextInvalidationMode.ContentOnly"/> and
+    /// <see cref="MGTextInvalidationMode.ReflowLocal"/> keep the layout of the parent only when <see cref="HasStableTextFootprint"/> is true, the layout width is known
+    /// and the new text measures the same.</summary>
+    public void SetText(ReadOnlySpan<char> Value, MGTextInvalidationMode InvalidationMode)
+        => SetTextCore(Value, InvalidationMode, false);
+
     private void SetTextCore(string Value, MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
     {
         var HadExplicitRuns = HasExplicitRuns;
-        if (_Text != Value || HadExplicitRuns)
+        if (!IsCurrentText(Value) || HadExplicitRuns)
         {
             _Text = Value;
-            if (HadExplicitRuns)
-            {
-                ExplicitRuns = null;
-            }
-
-            ApplyTextMutation(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
-
-            NotifyPropertyChanged(nameof(Text));
-
-            //  An actual Text change restarts the reveal at 0 with the new length (ApplyTextMutation already refreshed
-            //  NumCharacters via UpdateRuns); setting the identical string does not reach this branch, so it never restarts.
-            if (TextCharactersPerSecond.HasValue)
-            {
-                TextProgress = 0.0;
-            }
-            SyncTextProgressAnimation();
+            _IsTextBuffered = false;
+            CommitTextChange(HadExplicitRuns, RequestedInvalidationMode, AllowLegacyLocalInvalidation);
         }
+    }
+
+    private void SetTextCore(ReadOnlySpan<char> Value, MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
+    {
+        var HadExplicitRuns = HasExplicitRuns;
+        if (!IsCurrentText(Value) || HadExplicitRuns)
+        {
+            StoreText(Value);
+            CommitTextChange(HadExplicitRuns, RequestedInvalidationMode, AllowLegacyLocalInvalidation);
+        }
+    }
+
+    private void CommitTextChange(bool HadExplicitRuns, MGTextInvalidationMode RequestedInvalidationMode, bool AllowLegacyLocalInvalidation)
+    {
+        if (HadExplicitRuns)
+        {
+            ExplicitRuns = null;
+        }
+
+        ApplyTextMutation(RequestedInvalidationMode, AllowLegacyLocalInvalidation);
+
+        NotifyPropertyChanged(nameof(Text));
+
+        //  An actual Text change restarts the reveal at 0 with the new length (ApplyTextMutation already refreshed
+        //  NumCharacters via UpdateRuns); setting the identical string does not reach this branch, so it never restarts.
+        if (TextCharactersPerSecond.HasValue)
+        {
+            TextProgress = 0.0;
+        }
+        SyncTextProgressAnimation();
     }
 
     /// <summary>Replaces parsed <see cref="Text"/> content with explicit runs.
@@ -1032,7 +1113,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     {
         foreach (var Measurement in RecentSelfMeasurements)
         {
-            if (!TryMeasureDesiredTextSize(Measurement.AvailableSize, Runs, out var CurrentDesiredSize) ||
+            if (!TryMeasureDesiredTextSize(Measurement.AvailableSize, out var CurrentDesiredSize) ||
                 !AreTextDesiredSizesEqual(Measurement.RequestedSize, CurrentDesiredSize))
             {
                 return false;
@@ -1042,7 +1123,13 @@ public class MGTextBlock : MGElement, ITextMeasurer
         return true;
     }
 
-    private bool TryMeasureDesiredTextSize(Size TextContentSize, IReadOnlyList<MGTextRun> TextRuns, out Thickness DesiredSize)
+    private bool TryMeasureDesiredTextSize(Size TextContentSize, out Thickness DesiredSize)
+    {
+        return TryMeasureDesiredTextSize(TextContentSize, Runs, out DesiredSize);
+    }
+
+    /// <summary>The legacy measure, kept callable as is: it builds the runs' lines with <see cref="MGTextLine.ParseLines(ITextMeasurer, double, bool, IEnumerable{MGTextRun}, bool)"/>.</summary>
+    internal bool TryMeasureDesiredTextSize(Size TextContentSize, IReadOnlyList<MGTextRun> TextRuns, out Thickness DesiredSize)
     {
         if (TextRuns == null)
         {
@@ -1164,8 +1251,17 @@ public class MGTextBlock : MGElement, ITextMeasurer
         return Temp.AsReadOnly();
     }
 
+    /// <summary>True for a plain text (no inline formatting, no explicit runs): its runs are not built by <see cref="UpdateRuns"/> but when <see cref="Runs"/> is read.</summary>
+    private bool UsesPlainTextPath => !_AllowsInlineFormatting && !HasExplicitRuns;
+
     private void UpdateRuns()
     {
+        if (UsesPlainTextPath)
+        {
+            UpdatePlainRuns();
+            return;
+        }
+
         if (HasExplicitRuns)
         {
             Runs = SanitizeRuns(ExplicitRuns);
@@ -1181,6 +1277,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             Runs = MGTextRun.ParseRuns(Tokens, DefaultTextRunSettings).ToList().AsReadOnly();
         }
 
+        _ArePlainRunsKnown = false;
         IsTrackingMouseClicks = Runs.Any(x => x.HasAction);
         AreLinesDirty = true;
 
@@ -1188,8 +1285,59 @@ public class MGTextBlock : MGElement, ITextMeasurer
         NumCharacters = Runs.Where(x => x is MGTextRunText).Cast<MGTextRunText>().Sum(x => x.Text.Length);
     }
 
-    public ReadOnlyCollection<MGTextRun> Runs { get; private set; }
+    /// <summary>The plain text counterpart of <see cref="UpdateRuns"/>: the runs are not built, only what the layout needs (the settings the runs would carry and the
+    /// number of characters); <see cref="Runs"/> builds them if somebody reads them.</summary>
+    private void UpdatePlainRuns()
+    {
+        _PlainSettings = DefaultTextRunSettings;
+        _Runs = null;
+        _ArePlainRunsKnown = true;
+        IsTrackingMouseClicks = false; // plain runs have no action
+        AreLinesDirty = true;
+
+        NotifyPropertyChanged(nameof(Runs));
+
+        //  The characters of the text runs: every character but the ones of the line breaks
+        var Characters = CurrentTextSpan;
+        var Count = 0;
+        for (var i = 0; i < Characters.Length; i++)
+        {
+            if (Characters[i] != '\r' && Characters[i] != '\n')
+            {
+                Count++;
+            }
+        }
+
+        NumCharacters = Count;
+    }
+
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private ReadOnlyCollection<MGTextRun> _Runs;
+    /// <summary>The runs of <see cref="Text"/>. For a plain text (see <see cref="AllowsInlineFormatting"/>) they are built when read, then the same instances are returned until the text changes.</summary>
+    public ReadOnlyCollection<MGTextRun> Runs
+    {
+        get
+        {
+            if (_Runs == null && _ArePlainRunsKnown)
+            {
+                var Tokens = FTTokenizer.TokenizeLineBreaks(Text, true).ToList();
+                _Runs = MGTextRun.ParseRuns(Tokens, _PlainSettings).ToList().AsReadOnly();
+            }
+
+            return _Runs;
+        }
+        private set => _Runs = value;
+    }
+
     public ReadOnlyCollection<MGTextLine> Lines { get; private set; }
+
+    //  The plain text path (see UsesPlainTextPath): the runs are known (they are not null) without being built.
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _ArePlainRunsKnown;
+    /// <summary>The settings the runs of a plain text carry: the ones <see cref="UpdateRuns"/> took from the font style properties when the text last changed.</summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private MGTextRunConfig _PlainSettings;
+
     private int NumCharacters { get; set; }
     private bool AreLinesDirty { get; set; } = true;
     private int LastLineParseWidth { get; set; } = -1;
@@ -1475,7 +1623,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return CachedMeasurement.Value;
         }
 
-        var Measurement = TryMeasureDesiredTextSize(RemainingSize, Runs, out var DesiredSize) ? DesiredSize : new(0);
+        var Measurement = TryMeasureDesiredTextSize(RemainingSize, out var DesiredSize) ? DesiredSize : new(0);
 
         ElementMeasurement SelfMeasurement = new(RemainingSize, Measurement, SharedSize, new(0));
         CacheSelfMeasurement(SelfMeasurement);
@@ -1560,6 +1708,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
         var padding = ResolvedPadding;
         var paddedBounds = GetPaddedLayoutBounds(LayoutBounds);
+
         var CurrentY = GetRenderedTextStartY(LayoutBounds, Lines);
 
         foreach (var Line in Lines)
