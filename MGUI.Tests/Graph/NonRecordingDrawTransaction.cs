@@ -45,6 +45,9 @@ internal sealed class NonRecordingDrawTransaction : IUIDrawTransaction
     public void DrawTextViaEngine(ResolvedFont Font, string Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
         float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None) => CallCount++;
 
+    public void DrawTextViaEngine(ResolvedFont Font, ReadOnlySpan<char> Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
+        float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None) => CallCount++;
+
     public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color) => CallCount++;
 
     public void FillPoint(Vector2 Center, Color Color, float Width) => CallCount++;

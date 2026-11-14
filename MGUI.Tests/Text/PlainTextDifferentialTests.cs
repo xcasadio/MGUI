@@ -122,7 +122,7 @@ public class PlainTextDifferentialTests
         public MGTextBlock TextBlock { get; }
         public int Width { get; }
 
-        public Fixture(int width, bool wrap, int? maxLines, int minLines, bool bold, bool legacy, bool stableFootprint = false)
+        public Fixture(int width, bool wrap, int? maxLines, int minLines, bool bold, bool legacy, bool stableFootprint = false, Action<MGTextBlock> configure = null)
         {
             Width = width;
             Runtime = new GraphTestRuntime(new Rectangle(0, 0, 1200, 600)) { TextEngine = new FractionalTestTextEngine() };
@@ -137,6 +137,7 @@ public class PlainTextDifferentialTests
                 HasStableTextFootprint = stableFootprint,
                 ForceLegacyTextPath = legacy
             };
+            configure?.Invoke(TextBlock);
             Window.SetContent(TextBlock);
             Desktop.Windows.Add(Window);
             Frame();
@@ -341,6 +342,83 @@ public class PlainTextDifferentialTests
                 AssertSamePublicLines(legacy.Block, plain.Block, $"text=\"{Escape(text)}\" wrap={wrap} mode={mode}");
             }
         }
+    }
+
+    /// <summary>What <see cref="MGTextBlock.DrawSelf"/> asks the transaction to draw, with the fonts compared by what they are (each text block resolves its own).</summary>
+    private static List<(string Text, Vector2 Position, Vector2 Origin, float Scale, Color Color, int Size, CustomFontStyles Style)> Draw(Fixture fixture, float opacity)
+    {
+        GraphNoOpDrawTransaction transaction = new(fixture.Runtime, DrawSettings.Default);
+        ElementDrawArgs drawArgs = new(new DrawBaseArgs(TimeSpan.Zero, transaction, opacity), new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
+        fixture.TextBlock.DrawSelf(drawArgs, fixture.TextBlock.LayoutBounds);
+        return transaction.DrawTextCalls.Select(x => (x.Text, x.Position, x.Origin, x.Scale, x.Color, x.Font.ActualSize, x.Font.Spec.Style)).ToList();
+    }
+
+    [Fact]
+    public void ADrawnPlainText_MakesTheDrawCallsOfTheLegacyPipeline()
+    {
+        List<string> corpus = BuildCorpus();
+        int configurations = 0;
+        int draws = 0;
+        int nonEmptyDraws = 0;
+        double?[] progresses = { null, 0.0, 0.3, 0.77, 1.0 };
+        HorizontalAlignment[] horizontals = { HorizontalAlignment.Left, HorizontalAlignment.Center, HorizontalAlignment.Right };
+        VerticalAlignment[] verticals = { VerticalAlignment.Top, VerticalAlignment.Center, VerticalAlignment.Bottom };
+
+        foreach (bool wrap in new[] { false, true })
+        foreach (bool bold in new[] { false, true })
+        foreach (bool shadow in new[] { false, true })
+        foreach (bool underline in new[] { false, true })
+        foreach (int width in new[] { 40, 400 })
+        foreach (int alignment in new[] { 0, 1, 2 })
+        {
+            int configuration = configurations++;
+            HorizontalAlignment horizontal = horizontals[alignment];
+            VerticalAlignment vertical = verticals[(alignment + configuration) % verticals.Length];
+
+            void Configure(MGTextBlock block)
+            {
+                block.IsShadowed = shadow;
+                block.ShadowOffset = new Point(2, 1);
+                block.IsUnderlined = underline;
+                block.TextAlignment = horizontal;
+                block.VerticalContentAlignment = vertical;
+                block.LinePadding = 3.5f;
+            }
+
+            Fixture plain = new(width, wrap, null, 0, bold, false, configure: Configure);
+            Fixture legacy = new(width, wrap, null, 0, bold, true, configure: Configure);
+
+            //  A few texts of the corpus per configuration and per progress, a different few each time, so the whole corpus is drawn over the configurations.
+            foreach (double? progress in progresses)
+            {
+                plain.TextBlock.TextProgress = progress;
+                legacy.TextBlock.TextProgress = progress;
+                for (int t = 0; t < 5; t++)
+                {
+                    string text = corpus[(configuration * 11 + t * 53 + (progress.HasValue ? (int)(progress.Value * 10) * 17 : 0)) % corpus.Count];
+                    plain.TextBlock.Text = text;
+                    legacy.TextBlock.Text = text;
+                    plain.Frame();
+                    plain.Frame();
+                    legacy.Frame();
+                    legacy.Frame();
+
+                    var expected = Draw(legacy, 0.8f);
+                    var actual = Draw(plain, 0.8f);
+                    string context = $"text=\"{Escape(text)}\" wrap={wrap} bold={bold} shadow={shadow} underline={underline} width={width} h={horizontal} v={vertical} progress={progress}";
+                    Assert.True(expected.Count == actual.Count, $"{context}: {expected.Count} draw calls, got {actual.Count}");
+                    for (int i = 0; i < expected.Count; i++)
+                    {
+                        Assert.True(expected[i].Equals(actual[i]), $"{context}: draw call {i} is {actual[i]}, expected {expected[i]}");
+                    }
+
+                    draws += expected.Count;
+                    nonEmptyDraws += expected.Count(x => x.Text.Length > 0);
+                }
+            }
+        }
+
+        Assert.True(configurations >= 96 && draws > 2500 && nonEmptyDraws > 1500, $"{configurations} configurations, {draws} draw calls, {nonEmptyDraws} non empty");
     }
 
     private static void AssertSamePublicLines(MGTextBlock expectedBlock, MGTextBlock actualBlock, string context)

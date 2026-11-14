@@ -1461,6 +1461,23 @@ public class MGTextBlock : MGElement, ITextMeasurer
         return lines.Sum(x => x.LineTotalHeight) + EffectiveLinePadding * Math.Max(0, lines.Count - 1);
     }
 
+    /// <summary>Same computation as <see cref="GetRenderedTextHeight(IReadOnlyList{MGTextLine})"/> over the lines of a plain text (<c>Enumerable.Sum</c> over floats adds in a double).</summary>
+    private float GetRenderedTextHeight(PlainTextLayout lines)
+    {
+        if (lines.LineCount == 0)
+        {
+            return 0;
+        }
+
+        double Sum = 0;
+        for (var i = 0; i < lines.LineCount; i++)
+        {
+            Sum += lines.GetLine(i).TotalHeight;
+        }
+
+        return (float)Sum + EffectiveLinePadding * Math.Max(0, lines.LineCount - 1);
+    }
+
     internal Rectangle GetPaddedLayoutBounds(Rectangle layoutBounds)
     {
         var padding = ResolvedPadding;
@@ -1819,6 +1836,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
         var padding = ResolvedPadding;
         var paddedBounds = GetPaddedLayoutBounds(LayoutBounds);
 
+        //  Plain text is drawn from its plain lines, without building the public Lines. A text that has a background or an underline
+        //  is not modeled there: it takes the loop below, which allocates (the allocation-free formatted text path is a later step).
+        if (_ArePlainLinesKnown && !PlainLines.Settings.HasBackground && !PlainLines.Settings.Underline.IsEnabled)
+        {
+            DrawPlainLines(DA, LayoutBounds, paddedBounds, DefaultForeground, Transform, RemainingCharacters);
+            return;
+        }
+
         var CurrentY = GetRenderedTextStartY(LayoutBounds, Lines);
 
         foreach (var Line in Lines)
@@ -1948,6 +1973,83 @@ public class MGTextBlock : MGElement, ITextMeasurer
             }
 
             CurrentY += Line.LineTotalHeight + EffectiveLinePadding;
+
+            if (TextProgress.HasValue && RemainingCharacters <= 0)
+            {
+                break;
+            }
+        }
+    }
+
+    /// <summary>The settings of the empty run that <see cref="MGTextLine.ParseLines(ITextMeasurer, double, bool, IEnumerable{MGTextRun}, bool)"/> puts in an empty line.</summary>
+    private static readonly MGTextRunConfig EmptyLineRunSettings = new(false);
+
+    /// <summary>The body of <see cref="DrawSelf"/> for a plain text, from <see cref="PlainLines"/>: the same positions, colors, scale, shadow and <see cref="TextProgress"/> truncation as
+    /// the loop over <see cref="Lines"/>, without building any object. A plain run has no image, no action, no tooltip, no background and no underline (the caller checked), so
+    /// there is nothing to track in <see cref="ActionBounds"/> and <see cref="ToolTipBounds"/>.</summary>
+    private void DrawPlainLines(ElementDrawArgs DA, Rectangle LayoutBounds, Rectangle paddedBounds, Color DefaultForeground, Matrix Transform, int RemainingCharacters)
+    {
+        IUIDrawContext DT = DA.DT;
+        var Opacity = DA.Opacity;
+        var Settings = PlainLines.Settings;
+        var CurrentY = GetRenderedTextStartY(LayoutBounds, GetRenderedTextHeight(PlainLines));
+
+        for (var LineIndex = 0; LineIndex < PlainLines.LineCount; LineIndex++)
+        {
+            var Line = PlainLines.GetLine(LineIndex);
+            Rectangle LineBounds = new(paddedBounds.Left, (int)CurrentY, paddedBounds.Width, (int)Line.TotalHeight);
+            float CurrentX = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.Width, (int)Line.TotalHeight)).Left;
+            float TextYPosition = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.Width, (int)Line.TextHeight)).Y;
+
+            for (var PieceIndex = 0; PieceIndex < Line.PieceCount; PieceIndex++)
+            {
+                var Piece = PlainLines.GetPiece(Line.FirstPiece + PieceIndex);
+                var RunSettings = Piece.Length == 0 ? EmptyLineRunSettings : Settings;
+
+                var IsBold = RunSettings.IsBold;
+                var IsItalic = RunSettings.IsItalic;
+                var resolved = GetResolvedFont(IsBold, IsItalic);
+                // Text is drawn at the scale it is measured with (ADR-0023).
+                var drawScale = resolved.ExactScale;
+
+                var ActualOpacity = Opacity * RunSettings.Opacity;
+                var Foreground = (RunSettings.Foreground ?? DefaultForeground) * ActualOpacity;
+
+                var ActualText = PlainLines.GetPieceText(Piece);
+                if (TextProgress.HasValue && RemainingCharacters < Piece.Length)
+                {
+                    ActualText = ActualText.Slice(0, RemainingCharacters);
+                }
+
+                var TextSize = MeasureText(ActualText, IsBold, IsItalic);
+                Vector2 visualDrawPosition = new(CurrentX, TextYPosition);
+                var engineAdjustedDrawPosition = visualDrawPosition + (resolved.DrawOrigin * drawScale);
+
+                var Position = engineAdjustedDrawPosition.TransformBy(Transform);
+                if (RunSettings.IsShadowed)
+                {
+                    //  Draw text twice, once for the shadow, then again for itself
+                    var ShadowColor = (RunSettings.Shadow.ShadowColor ?? DefaultForeground) * ActualOpacity;
+                    var ShadowOffset = RunSettings.Shadow.ShadowOffset ?? new(1, 1);
+
+                    DT.DrawTextViaEngine(resolved, ActualText, Position + ShadowOffset, ShadowColor, resolved.DrawOrigin, drawScale);
+                    DT.DrawTextViaEngine(resolved, ActualText, Position,               Foreground,  resolved.DrawOrigin, drawScale);
+                }
+                else
+                {
+                    DT.DrawTextViaEngine(resolved, ActualText, Position, Foreground, resolved.DrawOrigin, drawScale);
+                }
+
+                CurrentX += TextSize.X;
+
+                RemainingCharacters -= ActualText.Length;
+                if (TextProgress.HasValue && RemainingCharacters <= 0)
+                {
+                    break;
+                }
+            }
+
+            CurrentY += Line.TotalHeight + EffectiveLinePadding;
 
             if (TextProgress.HasValue && RemainingCharacters <= 0)
             {

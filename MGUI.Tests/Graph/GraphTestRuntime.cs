@@ -105,12 +105,12 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
 
     public void DrawTextViaEngine(ResolvedFont Font, string Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
         float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
-        => DrawTextCalls.Add(new(Font, Text, Position, Origin, Scale, Rotation));
+        => DrawTextCalls.Add(new(Font, Text, Position, Origin, Scale, Rotation, Color));
 
     /// <summary>A recording transaction: the span is turned into a string to be recorded. Never use it in a zero allocation test.</summary>
     public void DrawTextViaEngine(ResolvedFont Font, ReadOnlySpan<char> Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
         float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
-        => DrawTextCalls.Add(new(Font, Text.ToString(), Position, Origin, Scale, Rotation));
+        => DrawTextCalls.Add(new(Font, Text.ToString(), Position, Origin, Scale, Rotation, Color));
 
     public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color)
         => FillRectangleCalls.Add(new(Origin, Destination, Color));
@@ -322,7 +322,7 @@ internal sealed class GraphDisposableAction : IDisposable
 
 internal readonly record struct GraphStrokeLineCall(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness);
 internal readonly record struct GraphFillRectangleCall(Vector2 Origin, RectangleF Destination, Color Color);
-internal readonly record struct GraphDrawTextCall(ResolvedFont Font, string Text, Vector2 Position, Vector2 Origin, float Scale, float Rotation);
+internal readonly record struct GraphDrawTextCall(ResolvedFont Font, string Text, Vector2 Position, Vector2 Origin, float Scale, float Rotation, Color Color = default);
 internal readonly record struct GraphStrokeAndFillRectangleCall(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, Thickness StrokeThickness);
 internal readonly record struct GraphFillTriangleCall(Vector2 Origin, Vector2 V0, Color C0, Vector2 V1, Color C1, Vector2 V2, Color C2);
 internal readonly record struct GraphStrokeAndFillCircleCall(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness, int NumSides);

@@ -2,6 +2,7 @@ using MGUI.Core.UI;
 using MGUI.Core.UI.Text;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
+using System.Globalization;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using Xunit.Abstractions;
@@ -230,5 +231,151 @@ public class PlainTextAllocationTests
         harness.TextBlock.SetText("a much longer text now".AsSpan(), MGTextInvalidationMode.ContentOnly);
 
         Assert.True(harness.TextBlock.LayoutChangedCallCount > 0);
+    }
+
+    public static IEnumerable<object[]> DrawCases()
+    {
+        foreach (TextBlockCorpusId id in new[] { TextBlockCorpusId.ShortNumber, TextBlockCorpusId.OneLineSentence, TextBlockCorpusId.MultiLine, TextBlockCorpusId.WrappedSentence })
+        {
+            foreach (bool changesEachFrame in new[] { false, true })
+            {
+                foreach (bool shadowed in new[] { false, true })
+                {
+                    yield return new object[] { id, changesEachFrame, shadowed, false };
+                }
+            }
+        }
+
+        //  A text being revealed (TextProgress) is truncated by slicing.
+        yield return new object[] { TextBlockCorpusId.OneLineSentence, true, true, true };
+        yield return new object[] { TextBlockCorpusId.MultiLine, false, false, true };
+    }
+
+    private static long DrawLoop(Harness harness, bool changesEachFrame, bool shadowed, bool revealing)
+    {
+        MGTextBlock textBlock = harness.TextBlock;
+        if (shadowed)
+        {
+            textBlock.IsShadowed = true;
+            textBlock.ShadowOffset = new Point(2, 1);
+        }
+
+        if (revealing)
+        {
+            textBlock.TextProgress = 0.5;
+        }
+
+        (char[] first, char[] second) = Alternation(harness.Entry, false);
+        ElementDrawArgs drawArgs = harness.CreateDrawArgs();
+        Size available = harness.AvailableSize;
+        int index = 0;
+
+        void Step()
+        {
+            if (changesEachFrame)
+            {
+                textBlock.SetText((index++ & 1) == 0 ? first : second);
+                textBlock.MeasureSelfOverride(available, out _);
+                textBlock.UpdateLines();
+            }
+
+            textBlock.DrawSelf(drawArgs, textBlock.LayoutBounds);
+        }
+
+        for (int i = 0; i < WarmupIterations; i++)
+        {
+            Step();
+        }
+
+        long calls = harness.Transaction.CallCount;
+        long before = AllocationWindow.Start();
+        for (int i = 0; i < MeasuredIterations; i++)
+        {
+            Step();
+        }
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(harness.Transaction.CallCount - calls >= MeasuredIterations, "the measured loop did draw");
+        return allocated;
+    }
+
+    [Theory]
+    [MemberData(nameof(DrawCases))]
+    public void DrawSelf_OfAPlainText_AllocatesNothing(TextBlockCorpusId id, bool changesEachFrame, bool shadowed, bool revealing)
+    {
+        Harness harness = new(id, false);
+
+        long allocated = DrawLoop(harness, changesEachFrame, shadowed, revealing);
+
+        Assert.Equal(0, allocated);
+    }
+
+    [Fact]
+    public void DrawSelf_OfALegacyPlainText_Allocates()
+    {
+        //  Counter-test: the same draw on the legacy pipeline (a Lines loop that substrings and measures strings).
+        Harness harness = new(TextBlockCorpusId.WrappedSentence, false, legacy: true);
+
+        long allocated = DrawLoop(harness, false, false, false);
+
+        Output.WriteLine($"legacy pipeline: {allocated} B over {MeasuredIterations} DrawSelf ({allocated / MeasuredIterations} B per draw)");
+        Assert.True(allocated > 0, $"allocated {allocated} bytes");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AFormattedNumber_IsSet_Measured_AndDrawn_WithoutAllocating(bool inStackMemory)
+    {
+        //  End to end, as a value label does it every frame: format a float with "F2" into a reused buffer (or stack memory), set it, measure and cut it in
+        //  lines as the layout would, draw it.
+        Harness harness = new(TextBlockCorpusId.ShortNumber, false);
+        MGTextBlock textBlock = harness.TextBlock;
+        ElementDrawArgs drawArgs = harness.CreateDrawArgs();
+        Size available = harness.AvailableSize;
+        char[] reused = new char[32];
+        float value = 0.5f;
+
+        void Step()
+        {
+            value += 0.37f;
+            if (value > 1000f)
+            {
+                value = 0.5f;
+            }
+
+            if (inStackMemory)
+            {
+                Span<char> buffer = stackalloc char[32];
+                Assert.True(value.TryFormat(buffer, out int written, "F2", CultureInfo.InvariantCulture));
+                textBlock.SetText(buffer.Slice(0, written));
+            }
+            else
+            {
+                Assert.True(value.TryFormat(reused, out int written, "F2", CultureInfo.InvariantCulture));
+                textBlock.SetText(reused.AsSpan(0, written));
+            }
+
+            textBlock.MeasureSelfOverride(available, out _);
+            textBlock.UpdateLines();
+            textBlock.DrawSelf(drawArgs, textBlock.LayoutBounds);
+        }
+
+        for (int i = 0; i < WarmupIterations * 2; i++)
+        {
+            Step();
+        }
+
+        long calls = harness.Transaction.CallCount;
+        long before = AllocationWindow.Start();
+        for (int i = 0; i < MeasuredIterations * 2; i++)
+        {
+            Step();
+        }
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, allocated);
+        Assert.True(harness.Transaction.CallCount - calls >= MeasuredIterations * 2);
+        Assert.Equal(value.ToString("F2", CultureInfo.InvariantCulture), textBlock.Text);
     }
 }
