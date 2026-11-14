@@ -121,6 +121,8 @@ public class MGTextBlock : MGElement, ITextMeasurer
                 return false;
             }
 
+            KeepLinesOfTheCurrentFont();
+
             _FontFamily = FontFamily;
             _FontSize = FontSize;
 
@@ -202,6 +204,8 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// </summary>
     internal void RefreshTextEngine()
     {
+        KeepLinesOfTheCurrentFont();
+
         var engine = TextEngine;
         RF_Regular    = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Normal));
         RF_Bold       = engine.ResolveFont(new FontSpec(_FontFamily, EffectiveFontSize, CustomFontStyles.Bold));
@@ -1402,6 +1406,19 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return _Lines;
         }
         private set => _Lines = value;
+    }
+
+    /// <summary>Builds the lines of a plain text that nobody has read yet, before the fonts change: <see cref="Lines"/> keeps the lines that were
+    /// computed, measured with the fonts they were computed with, until the next <see cref="UpdateLines"/>. Building them on a later read would
+    /// measure them with the new fonts. It allocates, once per font change.<para/>
+    /// After a switch of text engine the previous engine is already gone when this runs: lines read between the switch and the next layout are
+    /// then measured by the new engine.</summary>
+    private void KeepLinesOfTheCurrentFont()
+    {
+        if (_Lines == null && _ArePlainLinesKnown)
+        {
+            _ = Lines;
+        }
     }
 
     //  The plain text path (see UsesPlainTextPath). Runs and lines are two independent states: each one is in the representation of the path in effect when it was computed.

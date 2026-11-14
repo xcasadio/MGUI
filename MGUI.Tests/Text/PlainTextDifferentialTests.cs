@@ -353,6 +353,40 @@ public class PlainTextDifferentialTests
         return transaction.DrawTextCalls.Select(x => (x.Text, x.Position, x.Origin, x.Scale, x.Color, x.Font.ActualSize, x.Font.Spec.Style)).ToList();
     }
 
+    /// <summary>The lines of a plain text are built when they are read. A font change between the layout and the read must not show in them: like the
+    /// legacy pipeline, <see cref="MGTextBlock.Lines"/> keeps the lines of the last layout, measured with the font of that layout.</summary>
+    [Theory]
+    [InlineData(400)]
+    [InlineData(60)]
+    public void TheLines_ReadAfterAFontChange_AreTheLinesOfTheLastLayout_LikeTheLegacyPipeline(int width)
+    {
+        const string text = "hello world foo aaaaaaaaaaaaaaaaaaaa bar";
+        Fixture legacy = new(width, true, null, 0, false, legacy: true);
+        Fixture plain = new(width, true, null, 0, false, legacy: false);
+        legacy.TextBlock.Text = text;
+        plain.TextBlock.SetText(text.AsSpan());
+        legacy.Frame();
+        legacy.Frame();
+        plain.Frame();
+        plain.Frame();
+
+        Assert.True(legacy.TextBlock.TrySetFontSize(20));
+        Assert.True(plain.TextBlock.TrySetFontSize(20));
+
+        var expected = legacy.TextBlock.Lines;
+        var actual = plain.TextBlock.Lines;
+        Assert.NotNull(expected);
+        Assert.NotNull(actual);
+        Assert.Equal(expected.Count, actual.Count);
+        for (int i = 0; i < expected.Count; i++)
+        {
+            Assert.Equal(expected[i].LineWidth, actual[i].LineWidth);
+            Assert.Equal(expected[i].LineTextHeight, actual[i].LineTextHeight);
+            Assert.Equal(expected[i].LineTotalHeight, actual[i].LineTotalHeight);
+            Assert.Equal(expected[i].Runs.Count, actual[i].Runs.Count);
+        }
+    }
+
     [Fact]
     public void ADrawnPlainText_MakesTheDrawCallsOfTheLegacyPipeline()
     {
