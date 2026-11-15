@@ -82,7 +82,7 @@ namespace MGUI.Shared.Rendering
 
     /// <summary>Stores backend-neutral draw settings that a concrete renderer maps to its own batching and GPU state model.<para/>
     /// Holds nothing but its parameters, so two settings with the same values are equal whatever was read from them (ADR-0029).</summary>
-    public record class DrawSettings(Matrix Transform, RasterizerType RasterizerType = RasterizerType.SolidScissorTest, DrawSortMode Sort = DrawSortMode.Deferred,
+    public sealed record class DrawSettings(Matrix Transform, RasterizerType RasterizerType = RasterizerType.SolidScissorTest, DrawSortMode Sort = DrawSortMode.Deferred,
         BlendType BlendType = BlendType.AlphaBlend, SamplerType SamplerType = SamplerType.PointClamp, DepthStencilType DepthStencilType = DepthStencilType.None,
         object BackendEffect = null, int StencilReference = 0, int StencilReadMask = 0xFF, int StencilWriteMask = 0xFF)
     {

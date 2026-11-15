@@ -19,6 +19,7 @@ Read in the code on 2026-11-15: no file of MGUI or of CasaEngine reads `InverseT
 
 - `DrawSettings.InverseTransform`, its private cache and `DrawSettings.IsIdentityTransform` are removed. `DrawSettings` keeps its ten parameters and `UsesScissorTest`, which is computed at each read.
 - Public API break, requested by the author on 2026-11-15: no `[Obsolete]` alias. A caller that needs the inverse computes it from `Transform` (`Matrix.Invert`) and keeps it where it is used.
+- `DrawSettings` is `sealed`: a derived record could add state that changes after construction, and a backend that keeps a settings object relies on it never changing. No type derived from it in MGUI or CasaEngine.
 - The equality stays the one the record generates. It is now an equality of values: two settings with the same parameters are equal whatever happened to either object.
 
 ## Consequences
