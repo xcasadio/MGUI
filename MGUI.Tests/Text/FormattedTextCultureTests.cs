@@ -4,8 +4,8 @@ using MGUI.Core.UI.Text;
 namespace MGUI.Tests.Text;
 
 /// <summary>
-/// The legacy tokenizer ignores the case of a tag type by the rules of the culture that was current when it was created. Under a Turkish or an Azerbaijani culture an uppercase <c>I</c> is not
-/// the letter <c>i</c>: <c>[I]</c> is a literal. <see cref="FormattedTextScanner"/> folds case by ASCII, so it has to hand such a text to the legacy code.
+/// What is a tag does not depend on the culture of the process. Under a Turkish or an Azerbaijani culture an uppercase <c>I</c> is not the letter <c>i</c> for a
+/// culture-sensitive comparison: the patterns of the tokenizer used to ignore case by the culture that was current when it was created, so <c>[I]</c> was a literal there.
 /// </summary>
 public class FormattedTextCultureTests
 {
@@ -26,15 +26,45 @@ public class FormattedTextCultureTests
         }
     }
 
-    [Theory]
-    [InlineData("", true)]
-    [InlineData("en-US", true)]
-    [InlineData("fr-FR", true)]
-    [InlineData("tr-TR", false)]
-    [InlineData("az-Latn-AZ", false)]
-    public void LegacyFoldsUpperI_AnswersWhatTheTokenizerOfTheCultureDoes(string culture, bool expected)
+    private static List<FTTokenType> TokenTypes(FTTokenizer tokenizer, string text)
     {
-        Assert.Equal(expected, FormattedTextScanner.LegacyFoldsUpperI(CreateTokenizerUnder(culture)));
+        Assert.True(tokenizer.TryTokenize(text, false, out var tokens));
+        List<FTTokenType> types = new();
+        foreach (var token in tokens)
+        {
+            types.Add(token.TokenType);
+        }
+
+        return types;
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("en-US")]
+    [InlineData("fr-FR")]
+    [InlineData("tr-TR")]
+    [InlineData("az-Latn-AZ")]
+    public void ATokenizerOfAnyCulture_ReadsAnUpperIAsTheItalicTag(string culture)
+    {
+        Assert.Contains(FTTokenType.ItalicOpenTagType, TokenTypes(CreateTokenizerUnder(culture), "[I]x"));
+    }
+
+    [Theory]
+    [InlineData("[I]x[/I]")]
+    [InlineData("[ITALIC]x[/ITALIC] y")]
+    [InlineData("[IMG=Icon 16x16]")]
+    [InlineData("[Image=Icon 16x16]")]
+    [InlineData("[OPACITY=0.5]x")]
+    [InlineData("[UNDERLINE]x")]
+    [InlineData("[TOOLTIP=a]x")]
+    [InlineData("[ACTION=a]x")]
+    [InlineData("[b]I[/b] I")]
+    public void ATokenizerOfATurkishCulture_ReadsWhatTheOneOfTheInvariantCultureReads(string text)
+    {
+        List<FTTokenType> expected = TokenTypes(CreateTokenizerUnder(""), text);
+
+        Assert.Equal(expected, TokenTypes(CreateTokenizerUnder("tr-TR"), text));
+        Assert.Equal(expected, TokenTypes(CreateTokenizerUnder("az-Latn-AZ"), text));
     }
 
     [Theory]
@@ -49,28 +79,11 @@ public class FormattedTextCultureTests
     [InlineData("[UNDERLINE]x")]
     [InlineData("[TOOLTIP=a]x")]
     [InlineData("[ACTION=a]x")]
-    public void ATagTypeWithAnUpperI_IsLeftToTheLegacyCode_WhenItsTokenizerDoesNotFoldIt(string text)
+    public void ATagTypeWithAnUpperI_IsReadByTheScanner(string text)
     {
         FormattedTextHarness harness = new(400, legacy: false);
         FormattedTextRuns runs = new();
 
-        Assert.False(new FormattedTextScanner(FoldsUpperI: false).TryScan(text.AsSpan(), Settings(), harness.Desktop, runs));
-        Assert.True(new FormattedTextScanner(FoldsUpperI: true).TryScan(text.AsSpan(), Settings(), harness.Desktop, runs));
-    }
-
-    [Theory]
-    [InlineData("[i]x[/i]")]
-    [InlineData("[italic]x[/italic]")]
-    [InlineData("[img=Icon 16x16]")]
-    [InlineData("[b]I[/b] I")]
-    [InlineData("[BOLD]x[/BOLD]")]
-    [InlineData("[tooltip=I]x[/tooltip]")]
-    [InlineData("[color=Indigo]x")]
-    public void ATextWithoutAnUpperIInATagType_IsStillRead_WhenTheTokenizerDoesNotFoldIt(string text)
-    {
-        FormattedTextHarness harness = new(400, legacy: false);
-        FormattedTextRuns runs = new();
-
-        Assert.True(new FormattedTextScanner(FoldsUpperI: false).TryScan(text.AsSpan(), Settings(), harness.Desktop, runs));
+        Assert.True(new FormattedTextScanner().TryScan(text.AsSpan(), Settings(), harness.Desktop, runs));
     }
 }

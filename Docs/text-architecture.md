@@ -168,7 +168,7 @@ Limites (ces cas allouent) :
 
 - la premiere fois qu'un bloc voit une valeur de balise (couleur, brosse, soulignement, ombre, image, nom d'infobulle ou d'action) : la valeur est interpretee par le code historique puis gardee dans un cache du bloc ;
 - un bloc qui fait tourner plus de 128 valeurs distinctes d'une meme sorte, ou plus de 64 noms d'infobulles ou d'actions : le cache plein est vide puis rempli de nouveau ;
-- un balisage que le lecteur sans allocation ne lit pas, laisse au code historique : balisage invalide (le code historique leve la meme exception qu'avant), caractere non ASCII la ou la grammaire compare des lettres ou des chiffres, image sans taille quand le bloc n'a pas de bureau, et, si le processus a demarre sous une culture turque ou azerie, un type de balise ecrit avec un `I` majuscule (`[I]`, `[ITALIC]`, `[IMG=...]`) ;
+- un balisage que le lecteur sans allocation ne lit pas, laisse au code historique : balisage invalide (le code historique leve la meme exception qu'avant), caractere non ASCII la ou la grammaire compare des lettres ou des chiffres et image sans taille quand le bloc n'a pas de bureau (la casse d'un type de balise ne depend plus de la culture du processus : `[I]` est la balise italique sous une culture turque ou azerie comme ailleurs) ;
 - un bloc sans balise avec `IsUnderlined` ou un fond au niveau du bloc : il repasse par l'ancienne boucle de dessin ;
 - `TextCharactersPerSecond` : un `TextRevealRun` est recree a chaque changement de texte ;
 - un changement de police : environ 11,7 Ko une fois, donc un zoom qui change la police a chaque image alloue ;

@@ -68,7 +68,9 @@ public class FTTokenDefinition
 
     public FTTokenDefinition(FTTokenType Type, string Pattern, IEnumerable<FTTokenType?> PrecededBy, IEnumerable<FTTokenType?> NotPrecededBy)
     {
-        Regex = new Regex(Pattern);
+        //  CultureInvariant: the patterns ignore case, and under a Turkish or an Azerbaijani culture an uppercase I would not be the letter i,
+        //  so what is a tag would depend on the culture of the process.
+        Regex = new Regex(Pattern, RegexOptions.CultureInvariant);
         this.Type = Type;
         this.PrecededBy = PrecededBy.ToList().AsReadOnly();
         this.NotPrecededBy = NotPrecededBy.ToList().AsReadOnly();

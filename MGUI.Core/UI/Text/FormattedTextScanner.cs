@@ -26,42 +26,6 @@ internal sealed class FormattedTextScanner
     /// <summary>The number of entries of each cache. A cache that is full is emptied before it takes a new entry, so a text block that keeps showing new names does not grow without bound.</summary>
     internal const int CacheLimit = 128;
 
-    /// <summary>True if <paramref name="Tokenizer"/> reads <c>[I]</c> as the italic tag. The legacy patterns ignore case by the rules of the culture that was current when the tokenizer was
-    /// created: under a Turkish or an Azerbaijani culture an uppercase <c>I</c> is not the letter <c>i</c>, and <c>[I]</c>, <c>[ITALIC]</c> or <c>[IMG=...]</c> are literals.</summary>
-    internal static bool LegacyFoldsUpperI(FTTokenizer Tokenizer)
-    {
-        if (!Tokenizer.TryTokenize("[I]", false, out var Tokens))
-        {
-            return false;
-        }
-
-        foreach (var Token in Tokens)
-        {
-            if (Token.TokenType == FTTokenType.ItalicOpenTagType)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static readonly bool DefaultFoldsUpperI = LegacyFoldsUpperI(MGTextRun.Tokenizer);
-
-    /// <summary>False if an uppercase <c>I</c> in the type of a tag makes the text ambiguous (see <see cref="LegacyFoldsUpperI"/>).</summary>
-    private readonly bool FoldsUpperI;
-
-    public FormattedTextScanner()
-        : this(DefaultFoldsUpperI)
-    {
-    }
-
-    /// <param name="FoldsUpperI">What <see cref="LegacyFoldsUpperI"/> answers for the tokenizer of the legacy code.</param>
-    internal FormattedTextScanner(bool FoldsUpperI)
-    {
-        this.FoldsUpperI = FoldsUpperI;
-    }
-
 
     private enum TagKind : byte
     {
@@ -928,12 +892,6 @@ internal sealed class FormattedTextScanner
         for (var i = 0; i < Word.Length; i++)
         {
             var c = Source[At + i];
-            if (c == 'I' && Word[i] == 'i' && !FoldsUpperI)
-            {
-                IsAmbiguous = true;
-                return false;
-            }
-
             if (c >= 'A' && c <= 'Z')
             {
                 c = (char)(c + 32);
@@ -959,12 +917,6 @@ internal sealed class FormattedTextScanner
         }
 
         var c = Source[At];
-        if (c == 'I' && Letter == 'i' && !FoldsUpperI)
-        {
-            IsAmbiguous = true;
-            return false;
-        }
-
         if (c >= 'A' && c <= 'Z')
         {
             c = (char)(c + 32);
