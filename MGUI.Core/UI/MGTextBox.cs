@@ -1803,5 +1803,8 @@ public class MGTextBox : MGElement, ITextEntryHost
     }
 
     internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => CreateBorderBackedContentsClipDefinition(DA, layoutBounds, $"{ElementType}.Contents");
+        => CreateBorderBackedContentsClipDefinition(DA, layoutBounds, ContentsClipName ??= $"{ElementType}.Contents");
+
+    //  Kept: a name built at each draw would be a new string per frame, and the clip cache of the element is keyed by it.
+    private string ContentsClipName;
 }

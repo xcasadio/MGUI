@@ -666,6 +666,9 @@ public class MGGridColorPicker : MGElement
     private void RefreshSelectedColorLabelVisibility() =>
         SelectedColorPresenter.Visibility = IsSelectedColorLabelVisible ? Visibility.Visible : Visibility.Collapsed;
 
+    //  Kept: a name built at each draw would be a new string per frame, and the clip cache of the element is keyed by it.
+    private string SwatchesClipName;
+
     public MGGridColorPicker(MGWindow Window, int Columns, params Color[] Colors)
         : this(Window, Columns, new Size(16, 16), Colors) { }
 
@@ -877,7 +880,7 @@ public class MGGridColorPicker : MGElement
         // Clip own paint to the rounded host silhouette so the corners stay intact; hit testing is untouched
         // and stays rectangular (VisualShape != ContentClipShape invariant, Docs/rendering-architecture.md).
         var swatchClip = (HasBorder && !CornerRadius.IsZero)
-            ? CreateBorderBackedContentsClipDefinition(DA, LayoutBounds, $"{ElementType}.Swatches")
+            ? CreateBorderBackedContentsClipDefinition(DA, LayoutBounds, SwatchesClipName ??= $"{ElementType}.Swatches")
             : null;
 
         using var _ = swatchClip == null ? null : DA.Context.PushClipTemporary(swatchClip);
