@@ -56,6 +56,13 @@ public class DesktopFrameAllocationMeasurements
 
         Assert.True(fixture == Fixture.NoWindow || harness.Transaction.CallCount > 0);
         Output.WriteLine($"idle {fixture}: Update {update} B/frame, Draw {draw} B/frame");
+
+        //  The fixtures an earlier task made allocation free are asserted here (see DesktopFrameZeroAllocationTests for the other states).
+        if (fixture == Fixture.NoWindow)
+        {
+            Assert.Equal(0, update);
+            Assert.Equal(0, draw);
+        }
     }
 
     [Fact]
@@ -98,7 +105,7 @@ public class DesktopFrameAllocationMeasurements
         Output.WriteLine($"DrawSelf: MGStackPanel {panel} B, MGTextBlock {text} B, MGSlider {slider} B; MGWindow.Draw {window} B");
     }
 
-    private static long Measure(Action action)
+    internal static long Measure(Action action)
     {
         for (int i = 0; i < WarmupIterations; i++)
         {

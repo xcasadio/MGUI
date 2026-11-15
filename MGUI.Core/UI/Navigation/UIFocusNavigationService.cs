@@ -18,7 +18,7 @@ public class UIFocusNavigationService
         }
     }
 
-    private static readonly IReadOnlyList<GamePadButton> GamePadNavigationButtons = new[]
+    private static readonly GamePadButton[] GamePadNavigationButtons = new[]
     {
         GamePadButton.A,
         GamePadButton.B,
@@ -280,8 +280,8 @@ public class UIFocusNavigationService
             var focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
                 ? Desktop.FocusedKeyboardHandler
                 : null;
-            var tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
-            if (tryHandleFocusedAction?.Invoke(action) == true)
+            //  No delegate around the call: a closure over focusedElement would be created at the top of every iteration, handled button or not.
+            if (focusedElement != null && focusedElement.TryHandleNavigationAction(action))
             {
                 EnsureNavigationTargetVisible(focusedElement);
                 handledAny = true;

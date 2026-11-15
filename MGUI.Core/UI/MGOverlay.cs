@@ -238,41 +238,6 @@ public class MGOverlayHost : MGSingleContentHost
                 }
             };
 
-            //  Block keyboard inputs from falling through to content when an overlay is active.
-            //  If the focused keyboard handler belongs to the content behind the overlay (not the overlay itself),
-            //  clear focus so keyboard events do not reach hidden/blocked content.
-            OnBeginUpdate += (sender, e) =>
-            {
-                if (IsModal && ActiveOverlay != null)
-                {
-                    bool IsInsideActiveOverlay(MGElement element)
-                    {
-                        if (element == null)
-                        {
-                            return false;
-                        }
-
-                        return element == ActiveOverlayPresenter
-                               || ActiveOverlayPresenter.IsSelfOrAncestorOf(element)
-                               || ActiveOverlay.IsSelfOrAncestorOf(element)
-                               || ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(element);
-                    }
-
-                    var Queued = GetDesktop().QueuedFocusedKeyboardHandler;
-                    if (Queued != null && !IsInsideActiveOverlay(Queued))
-                    {
-                        GetDesktop().ClearQueuedFocusedKeyboardHandler();
-                    }
-
-                    var Focused = GetDesktop().FocusedKeyboardHandler;
-                    if (Focused != null && !IsInsideActiveOverlay(Focused))
-                    {
-                        Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
-                        GetDesktop().ClearFocusedKeyboardHandler();
-                    }
-                }
-            };
-
             void TryHandleInputs(Point pointerPosition, Action SetHandled)
             {
                 if (IsModal && ActiveOverlay != null && IsPointerOutsideActiveOverlay(pointerPosition))
@@ -367,11 +332,65 @@ public class MGOverlayHost : MGSingleContentHost
             yield return ActiveOverlay;
     }*/
 
+    //  Block keyboard inputs from falling through to content when an overlay is active.
+    //  If the focused keyboard handler belongs to the content behind the overlay (not the overlay itself),
+    //  clear focus so keyboard events do not reach hidden/blocked content.
+    internal override void BeginUpdateInternal(ElementUpdateArgs UA)
+    {
+        if (IsModal && ActiveOverlay != null)
+        {
+            bool IsInsideActiveOverlay(MGElement element)
+            {
+                if (element == null)
+                {
+                    return false;
+                }
+
+                return element == ActiveOverlayPresenter
+                       || ActiveOverlayPresenter.IsSelfOrAncestorOf(element)
+                       || ActiveOverlay.IsSelfOrAncestorOf(element)
+                       || ActiveOverlayPresenter.TraverseVisualTree(true, true, false, false, TreeTraversalMode.Preorder).Contains(element);
+            }
+
+            var Queued = GetDesktop().QueuedFocusedKeyboardHandler;
+            if (Queued != null && !IsInsideActiveOverlay(Queued))
+            {
+                GetDesktop().ClearQueuedFocusedKeyboardHandler();
+            }
+
+            var Focused = GetDesktop().FocusedKeyboardHandler;
+            if (Focused != null && !IsInsideActiveOverlay(Focused))
+            {
+                Debug.WriteLine("[MGOverlay] Keyboard input blocked — clearing focus from element behind active overlay");
+                GetDesktop().ClearFocusedKeyboardHandler();
+            }
+        }
+    }
+
+    private bool HasInactiveOverlay()
+    {
+        for (var i = 0; i < _Overlays.Count; i++)
+        {
+            if (_Overlays[i] != ActiveOverlay)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
     {
         var baseChildren = base.GetVisualTreeChildren(IncludeInactive, IncludeActive);
         if (!IncludeInactive)
         {
+            return baseChildren;
+        }
+
+        if (!IncludeActive && !HasInactiveOverlay())
+        {
+            //  Nothing to add to the (empty) list of the base: no copy of it. Update asks for exactly this, every frame, of every overlay host.
             return baseChildren;
         }
 

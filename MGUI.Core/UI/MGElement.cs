@@ -4042,6 +4042,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         ElementUpdateEventArgs UpdateEventArgs = null;
 
+        BeginUpdateInternal(UA);
         RaiseUpdateEvent(OnBeginUpdate, UA, ref UpdateEventArgs);
 
         TickOwnBrushes(UA.BA);
@@ -4099,6 +4100,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             _cachedHasModalWindow        = hasModalWindow;
         }
 
+        BeginUpdateContentsInternal(UA);
         RaiseUpdateEvent(OnBeginUpdateContents, UA, ref UpdateEventArgs);
 
         // Compute the content-area bounds: ActualLayoutBounds shrunk by this element's Padding.
@@ -4128,6 +4130,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             Component.Update(UA);              // components get the full (unpadded) bounds
         }
 
+        EndUpdateContentsInternal(UA);
         RaiseUpdateEvent(OnEndUpdateContents, UA, ref UpdateEventArgs);
 
         if (ComputedIsHitTestVisible)
@@ -4156,8 +4159,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
         UpdateSelf(UA);
 
+        EndUpdateInternal(UA);
         RaiseUpdateEvent(OnEndUpdate, UA, ref UpdateEventArgs);
     }
+
+    //  The four hooks below run what an element used to subscribe to its own update events for, at the same point of Update and before
+    //  the event is raised, so before any subscriber outside of the element (they subscribe after the constructor ran). An element that
+    //  subscribes to its own event makes every Update create an ElementUpdateEventArgs; a hook costs nothing.
+    internal virtual void BeginUpdateInternal(ElementUpdateArgs UA) { }
+    internal virtual void BeginUpdateContentsInternal(ElementUpdateArgs UA) { }
+    internal virtual void EndUpdateContentsInternal(ElementUpdateArgs UA) { }
+    internal virtual void EndUpdateInternal(ElementUpdateArgs UA) { }
 
     /// <summary>Raises one of the four update events. <paramref name="Args"/> is created at the first of them that has a subscriber and shared
     /// by the later ones of the same update, so an element whose update events have no subscriber allocates nothing per frame.</summary>
