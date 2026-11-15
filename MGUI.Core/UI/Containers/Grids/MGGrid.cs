@@ -1060,7 +1060,7 @@ public class MGGrid : MGMultiContentHost
         base.UpdateSelf(UA);
     }
 
-    private readonly record struct GridDimensions(Dictionary<ColumnDefinition, int> ColumnWidths, Dictionary<RowDefinition, int> RowHeights, int TotalWidth, int TotalHeight);
+    private readonly record struct GridDimensions(DimensionScratch Scratch, int TotalWidth, int TotalHeight);
 
     private static void UpdateChildLayoutIfNeeded(MGElement child, Rectangle bounds)
     {
@@ -1070,7 +1070,7 @@ public class MGGrid : MGMultiContentHost
         }
     }
 
-    private int GetSpannedColumnWidth(int columnIndex, int columnSpan, Dictionary<ColumnDefinition, int> columnWidths, int resolvedColumnSpacing)
+    private int GetSpannedColumnWidth(int columnIndex, int columnSpan, int[] columnWidths, int resolvedColumnSpacing)
     {
         var width = 0;
         for (var spanOffset = 0; spanOffset < columnSpan; spanOffset++)
@@ -1080,7 +1080,9 @@ public class MGGrid : MGMultiContentHost
                 width += resolvedColumnSpacing;
             }
 
-            width += columnWidths[_Columns[columnIndex + spanOffset]];
+            //  Reading the column keeps the exception of a span that goes past the last column (the widths array can be longer than the columns)
+            _ = _Columns[columnIndex + spanOffset];
+            width += columnWidths[columnIndex + spanOffset];
         }
 
         return width;
@@ -1114,8 +1116,33 @@ public class MGGrid : MGMultiContentHost
     private GridDimensions ComputeDimensions(Size AvailableSize, bool IsMeasuring,
         int resolvedRowSpacing, int resolvedColumnSpacing, int resolvedRowGridLineMargin, int resolvedColumnGridLineMargin)
     {
-        Dictionary<ColumnDefinition, int> ColumnWidths = new();
-        Dictionary<RowDefinition, int> RowHeights = new();
+        var Scratch = AcquireDimensionScratch();
+        var Completed = false;
+        try
+        {
+            var Dimensions = ComputeDimensions(Scratch, AvailableSize, IsMeasuring, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
+            Completed = true;
+            return Dimensions;
+        }
+        finally
+        {
+            if (!Completed)
+            {
+                ReleaseDimensions(Scratch);
+            }
+        }
+    }
+
+    private GridDimensions ComputeDimensions(DimensionScratch Scratch, Size AvailableSize, bool IsMeasuring,
+        int resolvedRowSpacing, int resolvedColumnSpacing, int resolvedRowGridLineMargin, int resolvedColumnGridLineMargin)
+    {
+        var ColumnCount = _Columns.Count;
+        var RowCount = _Rows.Count;
+        Scratch.Prepare(ColumnCount, RowCount);
+        var ColumnWidths = Scratch.ColumnWidths;
+        var ColumnKnown = Scratch.ColumnKnown;
+        var RowHeights = Scratch.RowHeights;
+        var RowKnown = Scratch.RowKnown;
 
         //  If Width or Height is arbitrarily large, this element is being measured within a ScrollViewer.
         //  Which means we can't just request all the AvailableSize, or we'd end up with infinitely-sized content inside the ScrollViewer.
@@ -1123,8 +1150,9 @@ public class MGGrid : MGMultiContentHost
         var IsPseduoInfiniteHeight = AvailableSize.Height >= 1000000;
 
         var TotalColumnWeight = 0.0;
-        foreach (var column in Columns)
+        for (var ColumnIndex = 0; ColumnIndex < ColumnCount; ColumnIndex++)
         {
+            var column = _Columns[ColumnIndex];
             if (column.Length.IsWeightedLength)
             {
                 TotalColumnWeight += column.Length.Weight;
@@ -1133,8 +1161,9 @@ public class MGGrid : MGMultiContentHost
 
         var RemainingColumnWeight = TotalColumnWeight;
         var TotalRowWeight = 0.0;
-        foreach (var row in Rows)
+        for (var RowIndex = 0; RowIndex < RowCount; RowIndex++)
         {
+            var row = _Rows[RowIndex];
             if (row.Length.IsWeightedLength)
             {
                 TotalRowWeight += row.Length.Weight;
@@ -1143,24 +1172,25 @@ public class MGGrid : MGMultiContentHost
 
         var RemainingRowWeight = TotalRowWeight;
 
-        var TotalColumnSpacingWidth = (Columns.Count - 1) * resolvedColumnSpacing;
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
+        //  (HasFlag boxes the enum when it is not inlined)
+        var TotalColumnSpacingWidth = (ColumnCount - 1) * resolvedColumnSpacing;
+        if ((GridLinesVisibility & GridLinesVisibility.LeftEdge) != 0)
         {
             TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
         }
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.RightEdge))
+        if ((GridLinesVisibility & GridLinesVisibility.RightEdge) != 0)
         {
             TotalColumnSpacingWidth += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
         }
 
-        var TotalRowSpacingHeight = (Rows.Count - 1) * resolvedRowSpacing;
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
+        var TotalRowSpacingHeight = (RowCount - 1) * resolvedRowSpacing;
+        if ((GridLinesVisibility & GridLinesVisibility.TopEdge) != 0)
         {
             TotalRowSpacingHeight += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
         }
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge))
+        if ((GridLinesVisibility & GridLinesVisibility.BottomEdge) != 0)
         {
             TotalRowSpacingHeight += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
         }
@@ -1168,8 +1198,9 @@ public class MGGrid : MGMultiContentHost
         //  Fill in the trivial column measurements where we know exactly how wide they are
         var TotalWidth = TotalColumnSpacingWidth;
         var RemainingColumnWidth = Math.Max(0, AvailableSize.Width - TotalColumnSpacingWidth);
-        foreach (var Column in Columns)
+        for (var ColumnIndex = 0; ColumnIndex < ColumnCount; ColumnIndex++)
         {
+            var Column = _Columns[ColumnIndex];
             int? ColumnWidth = null;
             if (Column.Length.IsPixelLength)
             {
@@ -1182,8 +1213,9 @@ public class MGGrid : MGMultiContentHost
 
             if (ColumnWidth.HasValue)
             {
-                var Width = GeneralUtils.Min(RemainingColumnWidth, ColumnWidth.Value, Column.MaxWidth ?? int.MaxValue);
-                ColumnWidths.Add(Column, Width);
+                var Width = Math.Min(RemainingColumnWidth, Math.Min(ColumnWidth.Value, Column.MaxWidth ?? int.MaxValue));
+                ColumnWidths[ColumnIndex] = Width;
+                ColumnKnown[ColumnIndex] = true;
                 TotalWidth += Width;
                 RemainingColumnWidth -= Width;
             }
@@ -1192,8 +1224,9 @@ public class MGGrid : MGMultiContentHost
         //  Fill in the trival row measurements where we know exactly how tall they are
         var TotalHeight = TotalRowSpacingHeight;
         var RemainingRowHeight = Math.Max(0, AvailableSize.Height - TotalRowSpacingHeight);
-        foreach (var Row in Rows)
+        for (var RowIndex = 0; RowIndex < RowCount; RowIndex++)
         {
+            var Row = _Rows[RowIndex];
             int? RowHeight = null;
             if (Row.Length.IsPixelLength)
             {
@@ -1206,21 +1239,30 @@ public class MGGrid : MGMultiContentHost
 
             if (RowHeight.HasValue)
             {
-                var Height = GeneralUtils.Min(RemainingRowHeight, RowHeight.Value, Row.MaxHeight ?? int.MaxValue);
-                RowHeights.Add(Row, Height);
+                var Height = Math.Min(RemainingRowHeight, Math.Min(RowHeight.Value, Row.MaxHeight ?? int.MaxValue));
+                RowHeights[RowIndex] = Height;
+                RowKnown[RowIndex] = true;
                 TotalHeight += Height;
                 RemainingRowHeight -= Height;
             }
         }
 
         //  Measure every remaining column, starting with Auto-length columns
-        IEnumerable<ColumnDefinition> RemainingColumns = Columns
-            .Where(x => !ColumnWidths.ContainsKey(x))
-            .OrderBy(x => x.Length.IsAutoLength || IsPseudoInfiniteWidth ? 0 : 1)
-            .ThenBy(x => x.MaxWidth ?? int.MaxValue) // Try to handle columns with a MaxWidth first because if the column's width gets truncated, it might free up more width for the next weighted column to use
-            .ThenByDescending(x => x.MinWidth.HasValue); // Try to handle columns with a MinWidth first because if the column's width gets increased upwards to the MinWidth, it consumes more space than usual, leaving less space for the next weighted column to use
-        foreach (var Column in RemainingColumns)
+        var RemainingColumnCount = 0;
+        var ColumnOrder = Scratch.ColumnOrder;
+        for (var ColumnIndex = 0; ColumnIndex < ColumnCount; ColumnIndex++)
         {
+            if (!ColumnKnown[ColumnIndex])
+            {
+                ColumnOrder[RemainingColumnCount++] = ColumnIndex;
+            }
+        }
+
+        SortColumns(ColumnOrder, RemainingColumnCount, IsPseudoInfiniteWidth);
+        for (var OrderIndex = 0; OrderIndex < RemainingColumnCount; OrderIndex++)
+        {
+            var CurrentColumnIndex = ColumnOrder[OrderIndex];
+            var Column = _Columns[CurrentColumnIndex];
             int ColumnWidth;
             if (RemainingColumnWidth <= 0)
             {
@@ -1258,15 +1300,13 @@ public class MGGrid : MGMultiContentHost
                     }
 
                     //  Measure every element in this column
-                    List<int> ColumnChildWidths = new();
-                    var CellAvailableWidth = GeneralUtils.Min(RemainingColumnWidth, WeightedWidth, Column.MaxWidth ?? int.MaxValue);
-                    foreach (var Row in Rows)
+                    var HasChildWidth = false;
+                    var MaxChildWidth = 0;
+                    var CellAvailableWidth = Math.Min(RemainingColumnWidth, Math.Min(WeightedWidth, Column.MaxWidth ?? int.MaxValue));
+                    for (var RowIndex = 0; RowIndex < RowCount; RowIndex++)
                     {
-                        GridCell Cell = new(Row, Column);
-                        if (!RowHeights.TryGetValue(Row, out var RowHeight))
-                        {
-                            RowHeight = RemainingRowHeight; // Lazy 'solution' because I'm too dumb to come up with the actual correct logic that avoids circular dependencies...
-                        }
+                        GridCell Cell = new(_Rows[RowIndex], Column);
+                        var RowHeight = RowKnown[RowIndex] ? RowHeights[RowIndex] : RemainingRowHeight; // Lazy 'solution' because I'm too dumb to come up with the actual correct logic that avoids circular dependencies...
 
                         Size CellAvailableSize = new(CellAvailableWidth, RowHeight);
                         if (!TryGetCellContentList(Cell, out var cellContent))
@@ -1283,29 +1323,40 @@ public class MGGrid : MGMultiContentHost
                             }
 
                             Element.UpdateMeasurement(CellAvailableSize, out _, out var ElementSize, out _, out _);
-                            ColumnChildWidths.Add(ElementSize.Size.Width);
+                            var ChildWidth = ElementSize.Size.Width;
+                            MaxChildWidth = HasChildWidth ? Math.Max(MaxChildWidth, ChildWidth) : ChildWidth;
+                            HasChildWidth = true;
                         }
                     }
 
                     //  Take the maximum width of the row items in this column
-                    ColumnWidth = Math.Max(Column.MinWidth ?? 0, ColumnChildWidths.DefaultIfEmpty(0).Max());
+                    ColumnWidth = Math.Max(Column.MinWidth ?? 0, HasChildWidth ? MaxChildWidth : 0);
                 }
             }
 
-            ColumnWidth = GeneralUtils.Min(RemainingColumnWidth, ColumnWidth, Column.MaxWidth ?? int.MaxValue);
-            ColumnWidths.Add(Column, ColumnWidth);
+            ColumnWidth = Math.Min(RemainingColumnWidth, Math.Min(ColumnWidth, Column.MaxWidth ?? int.MaxValue));
+            ColumnWidths[CurrentColumnIndex] = ColumnWidth;
+            ColumnKnown[CurrentColumnIndex] = true;
             TotalWidth += ColumnWidth;
             RemainingColumnWidth -= ColumnWidth;
         }
 
         //  Measure every remaining row, starting with Auto-length rows
-        IEnumerable<RowDefinition> RemainingRows = Rows
-            .Where(x => !RowHeights.ContainsKey(x))
-            .OrderBy(x => x.Length.IsAutoLength || IsPseduoInfiniteHeight ? 0 : 1)
-            .ThenBy(x => x.MaxHeight ?? int.MaxValue) // Try to handle rows with a MaxHeight first because if the row's height gets truncated, it might free up more height for the next weighted row to use
-            .ThenByDescending(x => x.MinHeight.HasValue); // Try to handle rows with a MinHeight first because if the row's height gets increased upwards to the MinHeight, it consumes more space than usual, leaving less space for the next weighted row to use
-        foreach (var Row in RemainingRows)
+        var RemainingRowCount = 0;
+        var RowOrder = Scratch.RowOrder;
+        for (var RowIndex = 0; RowIndex < RowCount; RowIndex++)
         {
+            if (!RowKnown[RowIndex])
+            {
+                RowOrder[RemainingRowCount++] = RowIndex;
+            }
+        }
+
+        SortRows(RowOrder, RemainingRowCount, IsPseduoInfiniteHeight);
+        for (var OrderIndex = 0; OrderIndex < RemainingRowCount; OrderIndex++)
+        {
+            var CurrentRowIndex = RowOrder[OrderIndex];
+            var Row = _Rows[CurrentRowIndex];
             int RowHeight;
             if (RemainingRowHeight <= 0)
             {
@@ -1343,13 +1394,14 @@ public class MGGrid : MGMultiContentHost
                     }
 
                     //  Measure every element in this row
-                    List<int> RowChildHeights = new();
-                    var CellAvailableHeight = GeneralUtils.Min(RemainingRowHeight, WeightedHeight, Row.MaxHeight ?? int.MaxValue);
-                    for (var ColumnIndex = 0; ColumnIndex < _Columns.Count; ColumnIndex++)
+                    var HasChildHeight = false;
+                    var MaxChildHeight = 0;
+                    var CellAvailableHeight = Math.Min(RemainingRowHeight, Math.Min(WeightedHeight, Row.MaxHeight ?? int.MaxValue));
+                    for (var ColumnIndex = 0; ColumnIndex < ColumnCount; ColumnIndex++)
                     {
                         var Column = _Columns[ColumnIndex];
                         GridCell Cell = new(Row, Column);
-                        var ColumnWidth = ColumnWidths[Column];
+                        var ColumnWidth = ColumnWidths[ColumnIndex];
 
                         Size CellAvailableSize = new(ColumnWidth, CellAvailableHeight);
                         if (!TryGetCellContentList(Cell, out var cellContent))
@@ -1375,22 +1427,167 @@ public class MGGrid : MGMultiContentHost
                             }
 
                             Element.UpdateMeasurement(new Size(AvailableWidth, CellAvailableSize.Height), out _, out var ElementSize, out _, out _);
-                            RowChildHeights.Add(ElementSize.Size.Height);
+                            var ChildHeight = ElementSize.Size.Height;
+                            MaxChildHeight = HasChildHeight ? Math.Max(MaxChildHeight, ChildHeight) : ChildHeight;
+                            HasChildHeight = true;
                         }
                     }
 
                     //  Take the maximum height of the items in this row
-                    RowHeight = Math.Max(Row.MinHeight ?? 0, RowChildHeights.DefaultIfEmpty(0).Max());
+                    RowHeight = Math.Max(Row.MinHeight ?? 0, HasChildHeight ? MaxChildHeight : 0);
                 }
             }
 
-            RowHeight = GeneralUtils.Min(RemainingRowHeight, RowHeight, Row.MaxHeight ?? int.MaxValue);
-            RowHeights.Add(Row, RowHeight);
+            RowHeight = Math.Min(RemainingRowHeight, Math.Min(RowHeight, Row.MaxHeight ?? int.MaxValue));
+            RowHeights[CurrentRowIndex] = RowHeight;
+            RowKnown[CurrentRowIndex] = true;
             TotalHeight += RowHeight;
             RemainingRowHeight -= RowHeight;
         }
 
-        return new GridDimensions(ColumnWidths, RowHeights, TotalWidth, TotalHeight);
+        return new GridDimensions(Scratch, TotalWidth, TotalHeight);
+    }
+
+    //  The measure and the arrange of the grid keep their column widths and row heights in arrays indexed like Columns and Rows, taken from the
+    //  grid once it has been laid out. A pass that starts while another one of the same grid is still reading its arrays gets arrays of its own.
+    private DimensionScratch _DimensionScratch;
+    private bool _IsDimensionScratchInUse;
+
+    private DimensionScratch AcquireDimensionScratch()
+    {
+        if (_IsDimensionScratchInUse)
+        {
+            return new DimensionScratch();
+        }
+
+        _IsDimensionScratchInUse = true;
+        return _DimensionScratch ??= new DimensionScratch();
+    }
+
+    private void ReleaseDimensions(DimensionScratch Scratch)
+    {
+        if (ReferenceEquals(Scratch, _DimensionScratch))
+        {
+            _IsDimensionScratchInUse = false;
+        }
+    }
+
+    private sealed class DimensionScratch
+    {
+        public int[] ColumnWidths = Array.Empty<int>();
+        public bool[] ColumnKnown = Array.Empty<bool>();
+        public int[] ColumnOrder = Array.Empty<int>();
+        public int[] RowHeights = Array.Empty<int>();
+        public bool[] RowKnown = Array.Empty<bool>();
+        public int[] RowOrder = Array.Empty<int>();
+
+        /// <summary>Sizes the arrays for the given numbers of columns and rows and marks every column and every row as not measured.</summary>
+        public void Prepare(int ColumnCount, int RowCount)
+        {
+            if (ColumnWidths.Length < ColumnCount)
+            {
+                ColumnWidths = new int[ColumnCount];
+                ColumnKnown = new bool[ColumnCount];
+                ColumnOrder = new int[ColumnCount];
+            }
+
+            if (RowHeights.Length < RowCount)
+            {
+                RowHeights = new int[RowCount];
+                RowKnown = new bool[RowCount];
+                RowOrder = new int[RowCount];
+            }
+
+            Array.Clear(ColumnKnown, 0, ColumnCount);
+            Array.Clear(RowKnown, 0, RowCount);
+        }
+    }
+
+    //  The order the remaining columns are measured in (what Where/OrderBy/ThenBy/ThenByDescending gave): Auto lengths first (every length when measured inside a scrollviewer),
+    //  then the smaller MaxWidth first because a truncated column might free up more width for the next weighted column to use, then the columns with a MinWidth first because a column
+    //  increased upwards to its MinWidth consumes more space than usual, leaving less for the next weighted column. Equal keys keep the order of the columns (a stable insertion sort).
+    private void SortColumns(int[] Order, int Count, bool IsPseudoInfiniteWidth)
+    {
+        for (var i = 1; i < Count; i++)
+        {
+            var Current = Order[i];
+            var j = i - 1;
+            while (j >= 0 && CompareColumns(Order[j], Current, IsPseudoInfiniteWidth) > 0)
+            {
+                Order[j + 1] = Order[j];
+                j--;
+            }
+
+            Order[j + 1] = Current;
+        }
+    }
+
+    private int CompareColumns(int FirstIndex, int SecondIndex, bool IsPseudoInfiniteWidth)
+    {
+        var First = _Columns[FirstIndex];
+        var Second = _Columns[SecondIndex];
+        var FirstKey = First.Length.IsAutoLength || IsPseudoInfiniteWidth ? 0 : 1;
+        var SecondKey = Second.Length.IsAutoLength || IsPseudoInfiniteWidth ? 0 : 1;
+        if (FirstKey != SecondKey)
+        {
+            return FirstKey < SecondKey ? -1 : 1;
+        }
+
+        var FirstMax = First.MaxWidth ?? int.MaxValue;
+        var SecondMax = Second.MaxWidth ?? int.MaxValue;
+        if (FirstMax != SecondMax)
+        {
+            return FirstMax < SecondMax ? -1 : 1;
+        }
+
+        if (First.MinWidth.HasValue != Second.MinWidth.HasValue)
+        {
+            return First.MinWidth.HasValue ? -1 : 1;
+        }
+
+        return 0;
+    }
+
+    private void SortRows(int[] Order, int Count, bool IsPseduoInfiniteHeight)
+    {
+        for (var i = 1; i < Count; i++)
+        {
+            var Current = Order[i];
+            var j = i - 1;
+            while (j >= 0 && CompareRows(Order[j], Current, IsPseduoInfiniteHeight) > 0)
+            {
+                Order[j + 1] = Order[j];
+                j--;
+            }
+
+            Order[j + 1] = Current;
+        }
+    }
+
+    private int CompareRows(int FirstIndex, int SecondIndex, bool IsPseduoInfiniteHeight)
+    {
+        var First = _Rows[FirstIndex];
+        var Second = _Rows[SecondIndex];
+        var FirstKey = First.Length.IsAutoLength || IsPseduoInfiniteHeight ? 0 : 1;
+        var SecondKey = Second.Length.IsAutoLength || IsPseduoInfiniteHeight ? 0 : 1;
+        if (FirstKey != SecondKey)
+        {
+            return FirstKey < SecondKey ? -1 : 1;
+        }
+
+        var FirstMax = First.MaxHeight ?? int.MaxValue;
+        var SecondMax = Second.MaxHeight ?? int.MaxValue;
+        if (FirstMax != SecondMax)
+        {
+            return FirstMax < SecondMax ? -1 : 1;
+        }
+
+        if (First.MinHeight.HasValue != Second.MinHeight.HasValue)
+        {
+            return First.MinHeight.HasValue ? -1 : 1;
+        }
+
+        return 0;
     }
 
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
@@ -1405,6 +1602,7 @@ public class MGGrid : MGMultiContentHost
         var resolvedRowGridLineMargin = ResolvedRowGridLineMargin;
         var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
         var Dimensions = ComputeDimensions(AvailableSize, true, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
+        ReleaseDimensions(Dimensions.Scratch);
         return new Thickness(Dimensions.TotalWidth, Dimensions.TotalHeight, 0, 0);
     }
 
@@ -1418,8 +1616,22 @@ public class MGGrid : MGMultiContentHost
         var resolvedColumnGridLineMargin = ResolvedColumnGridLineMargin;
 
         var Dimensions = ComputeDimensions(AvailableSize, false, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
-        var ColumnWidths = Dimensions.ColumnWidths;
-        var RowHeights = Dimensions.RowHeights;
+        try
+        {
+            ArrangeContent(Bounds, Dimensions, resolvedRowSpacing, resolvedColumnSpacing, resolvedRowGridLineMargin, resolvedColumnGridLineMargin);
+        }
+        finally
+        {
+            ReleaseDimensions(Dimensions.Scratch);
+        }
+    }
+
+    private void ArrangeContent(Rectangle Bounds, GridDimensions Dimensions,
+        int resolvedRowSpacing, int resolvedColumnSpacing, int resolvedRowGridLineMargin, int resolvedColumnGridLineMargin)
+    {
+        Size AvailableSize = new(Bounds.Width, Bounds.Height);
+        var ColumnWidths = Dimensions.Scratch.ColumnWidths;
+        var RowHeights = Dimensions.Scratch.RowHeights;
         Size TotalContentSize = new(Dimensions.TotalWidth, Dimensions.TotalHeight);
 
         //  Account for content alignment
@@ -1428,27 +1640,29 @@ public class MGGrid : MGMultiContentHost
         var AlignedBounds = ApplyAlignment(Bounds, HorizontalContentAlignment, VerticalContentAlignment, ConsumedContentSize);
 
         var CurrentX = AlignedBounds.Left;
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
+        if ((GridLinesVisibility & GridLinesVisibility.LeftEdge) != 0)
         {
             CurrentX += Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin);
         }
 
         //  Set the bounds of each cell
-        foreach (var Column in Columns)
+        for (var ColumnIndex = 0; ColumnIndex < _Columns.Count; ColumnIndex++)
         {
-            var ColumnWidth = ColumnWidths[Column];
+            var Column = _Columns[ColumnIndex];
+            var ColumnWidth = ColumnWidths[ColumnIndex];
             Column.Left = CurrentX;
             Column.Width = ColumnWidth;
 
             var CurrentY = AlignedBounds.Top;
-            if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
+            if ((GridLinesVisibility & GridLinesVisibility.TopEdge) != 0)
             {
                 CurrentY += Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin);
             }
 
-            foreach (var Row in Rows)
+            for (var RowIndex = 0; RowIndex < _Rows.Count; RowIndex++)
             {
-                var RowHeight = RowHeights[Row];
+                var Row = _Rows[RowIndex];
+                var RowHeight = RowHeights[RowIndex];
                 Row.Top = CurrentY;
                 Row.Height = RowHeight;
 
@@ -1458,7 +1672,11 @@ public class MGGrid : MGMultiContentHost
             CurrentX += ColumnWidth + resolvedColumnSpacing;
         }
 
-        _CellBounds = GetCellBounds(true);
+        //  The dictionary is replaced only when a cell moved or changed size (the same cells with the same bounds are the same dictionary)
+        if (!AreCellBoundsCurrent())
+        {
+            _CellBounds = GetCellBounds(true);
+        }
 
         //  Allocate space for each child
         for (var ColumnIndex = 0; ColumnIndex < Columns.Count; ColumnIndex++)
@@ -1484,6 +1702,31 @@ public class MGGrid : MGMultiContentHost
                 }
             }
         }
+    }
+
+    /// <summary>True if <see cref="_CellBounds"/> has exactly one entry per cell, each with the bounds of its column and its row.</summary>
+    private bool AreCellBoundsCurrent()
+    {
+        if (_CellBounds.Count != _Rows.Count * _Columns.Count)
+        {
+            return false;
+        }
+
+        for (var RowIndex = 0; RowIndex < _Rows.Count; RowIndex++)
+        {
+            var Row = _Rows[RowIndex];
+            for (var ColumnIndex = 0; ColumnIndex < _Columns.Count; ColumnIndex++)
+            {
+                var Column = _Columns[ColumnIndex];
+                if (!_CellBounds.TryGetValue(new GridCell(Row, Column), out var Bounds) ||
+                    Bounds != new Rectangle(Column.Left, Row.Top, Column.Width, Row.Height))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Draws the selection overlay, where the grid used to handle its own <see cref="MGElement.OnEndingDraw"/> (a subscriber makes every draw build the event arguments).</summary>

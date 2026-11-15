@@ -5256,14 +5256,61 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     internal string SelfClipDebugName => _SelfClipDebugName ??= $"{ElementType}.Self";
     internal string ContentsClipDebugName => _ContentsClipDebugName ??= $"{ElementType}.Contents";
 
+    //  The clips of the bounds an element had recently: an element that changes between a few sizes (a text block whose text wraps on one line, then two, then one again) gets the clip
+    //  of a size it already had instead of a new one. The array is made the first time the bounds of a clip change; an element whose clips never change does not pay for it.
+    private const int RecentRectangleClipDefinitionCount = 8;
+    private ClipDefinition[] _RecentRectangleClipDefinitions;
+    private int _NextRecentRectangleClipDefinition;
+
     private ClipDefinition ReuseRectangleClipDefinition(ref ClipDefinition cached, Rectangle targetBounds, string debugName)
     {
-        if (cached == null || cached.Shape.Bounds != targetBounds || !ReferenceEquals(cached.DebugName, debugName))
+        if (cached != null && cached.Shape.Bounds == targetBounds && ReferenceEquals(cached.DebugName, debugName))
+        {
+            return cached;
+        }
+
+        var recent = _RecentRectangleClipDefinitions;
+        if (recent != null)
+        {
+            for (var i = 0; i < recent.Length; i++)
+            {
+                var candidate = recent[i];
+                if (candidate != null && candidate.Shape.Bounds == targetBounds && ReferenceEquals(candidate.DebugName, debugName))
+                {
+                    cached = candidate;
+                    return candidate;
+                }
+            }
+        }
+
+        if (cached != null)
+        {
+            //  The bounds changed: the definition being replaced is kept too, so that coming back to its bounds is free
+            RememberRectangleClipDefinition(cached);
+            cached = CreateRectangleClipDefinition(targetBounds, debugName);
+            RememberRectangleClipDefinition(cached);
+        }
+        else
         {
             cached = CreateRectangleClipDefinition(targetBounds, debugName);
         }
 
         return cached;
+    }
+
+    private void RememberRectangleClipDefinition(ClipDefinition definition)
+    {
+        var recent = _RecentRectangleClipDefinitions ??= new ClipDefinition[RecentRectangleClipDefinitionCount];
+        for (var i = 0; i < recent.Length; i++)
+        {
+            if (ReferenceEquals(recent[i], definition))
+            {
+                return;
+            }
+        }
+
+        recent[_NextRecentRectangleClipDefinition] = definition;
+        _NextRecentRectangleClipDefinition = (_NextRecentRectangleClipDefinition + 1) % recent.Length;
     }
 
     protected ClipDefinition CreateRoundedClipDefinition(Rectangle targetBounds, MGCornerRadius cornerRadius, MGBoxGeometry geometry,
