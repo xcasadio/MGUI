@@ -15,6 +15,32 @@ public class ContentHostDrawContentsTests
 {
     private static readonly Point Outside = new(600, 340);
 
+    private sealed class ExtraChildStackPanel : MGStackPanel
+    {
+        private readonly MGElement Extra;
+
+        public ExtraChildStackPanel(MGWindow window, MGElement extra)
+            : base(window, Orientation.Vertical)
+        {
+            Extra = extra;
+        }
+
+        public override IEnumerable<MGElement> GetChildren()
+        {
+            yield return Extra;
+            foreach (MGElement child in Children.Reverse())
+            {
+                yield return child;
+            }
+        }
+    }
+
+    private sealed class PlainStackPanel : MGStackPanel
+    {
+        public PlainStackPanel(MGWindow window)
+            : base(window, Orientation.Vertical) { }
+    }
+
     private sealed class ExtraChildBorder : MGBorder
     {
         private readonly MGElement Extra;
@@ -77,6 +103,47 @@ public class ContentHostDrawContentsTests
     private static Harness NewHarness() => Harness.Create(Fixture.NoWindow);
 
     [Fact]
+    public void AMultiHostThatOverridesGetChildren_IsDrawnThroughIt()
+    {
+        Harness harness = NewHarness();
+        List<string> log = new();
+        MGWindow window = new(harness.GetDesktop(), 0, 0, 300, 200);
+        MGButton extra = Named(window, "X", log);
+        ExtraChildStackPanel panel = new(window, extra);
+        foreach (string name in new[] { "A", "B", "C" })
+        {
+            Assert.True(panel.TryAddChild(Named(window, name, log)));
+        }
+
+        window.SetContent(panel);
+        DrawOnce(harness, window);
+        log.Clear();
+        harness.Draw();
+
+        Assert.Equal(new[] { "X", "C", "B", "A" }, log.ToArray());
+    }
+
+    [Fact]
+    public void AMultiHostThatDoesNotOverrideGetChildren_DrawsItsChildrenInOrder()
+    {
+        Harness harness = NewHarness();
+        List<string> log = new();
+        MGWindow window = new(harness.GetDesktop(), 0, 0, 300, 200);
+        PlainStackPanel panel = new(window);
+        foreach (string name in new[] { "A", "B", "C" })
+        {
+            Assert.True(panel.TryAddChild(Named(window, name, log)));
+        }
+
+        window.SetContent(panel);
+        DrawOnce(harness, window);
+        log.Clear();
+        harness.Draw();
+
+        Assert.Equal(new[] { "A", "B", "C" }, log.ToArray());
+    }
+
+    [Fact]
     public void ASingleHostThatOverridesGetChildren_IsDrawnThroughIt()
     {
         Harness harness = NewHarness();
@@ -124,13 +191,14 @@ public class ContentHostDrawContentsTests
 
         Assert.Equal(new[] { "X", "Content" }, log.ToArray());
     }
+
     [Fact]
-    public void ASingleHostDrawsDirectlyOnlyWhenItDoesNotOverrideGetChildren()
+    public void AMultiHostWithNoChild_DrawsNothingAndDoesNotThrow()
     {
-        Assert.True(MGContentHost.DrawsChildrenDirectly(typeof(MGBorder), typeof(MGSingleContentHost)));
-        Assert.True(MGContentHost.DrawsChildrenDirectly(typeof(PlainBorder), typeof(MGSingleContentHost)));
-        Assert.True(MGContentHost.DrawsChildrenDirectly(typeof(MGWindow), typeof(MGSingleContentHost)));
-        Assert.False(MGContentHost.DrawsChildrenDirectly(typeof(ExtraChildBorder), typeof(MGSingleContentHost)));
-        Assert.False(MGContentHost.DrawsChildrenDirectly(typeof(ExtraChildWindow), typeof(MGSingleContentHost)));
+        Harness harness = NewHarness();
+        MGWindow window = new(harness.GetDesktop(), 0, 0, 300, 200);
+        window.SetContent(new PlainStackPanel(window));
+        DrawOnce(harness, window);
+        harness.Draw();
     }
 }

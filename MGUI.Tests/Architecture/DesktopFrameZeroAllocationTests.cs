@@ -25,9 +25,10 @@ public class DesktopFrameZeroAllocationTests
         Output = output;
     }
 
-    private long MeasureUpdate(Fixture fixture, params Point[] positions)
+    private long MeasureUpdate(Fixture fixture, params Point[] positions) => MeasureUpdate(Harness.Create(fixture), fixture, positions);
+
+    private long MeasureUpdate(Harness harness, Fixture fixture, Point[] positions)
     {
-        Harness harness = Harness.Create(fixture);
         int frame = 0;
         long bytes = DesktopFrameAllocationMeasurements.Measure(() => harness.Update(positions[frame++ % positions.Length], ButtonState.Released));
         Output.WriteLine($"{fixture} Update over {positions.Length} position(s): {bytes} B/frame");
@@ -35,9 +36,10 @@ public class DesktopFrameZeroAllocationTests
     }
 
     /// <summary>The bytes of the draw alone: each frame updates (not counted), then the allocation counter is read around the draw.</summary>
-    private long MeasureDraw(Fixture fixture, params Point[] positions)
+    private long MeasureDraw(Fixture fixture, params Point[] positions) => MeasureDraw(Harness.Create(fixture), fixture, positions);
+
+    private long MeasureDraw(Harness harness, Fixture fixture, Point[] positions)
     {
-        Harness harness = Harness.Create(fixture);
         int frame = 0;
         for (int i = 0; i < 500; i++)
         {
@@ -89,4 +91,33 @@ public class DesktopFrameZeroAllocationTests
 
     [Fact]
     public void BareWindow_Draw_WithTheMouseStillOverTheWindow_AllocatesNothing() => Assert.Equal(0, MeasureDraw(Fixture.BareWindow, OverTheWindow));
+
+    //  ---- T1.4: the default window, its title bar and its close button (the hovered positions are found by hit-test) -----------------------
+
+    private (Harness Harness, Point Position) DefaultWindowAt(string place)
+    {
+        Harness harness = Harness.Create(Fixture.DefaultWindow);
+        (Point title, Point close) = harness.FindTitleBarPoints();
+        return (harness, place == "title" ? title : place == "close" ? close : Outside);
+    }
+
+    [Theory]
+    [InlineData("outside")]
+    [InlineData("title")]
+    [InlineData("close")]
+    public void DefaultWindow_Update_AllocatesNothing(string place)
+    {
+        (Harness harness, Point position) = DefaultWindowAt(place);
+        Assert.Equal(0, MeasureUpdate(harness, Fixture.DefaultWindow, new[] { position }));
+    }
+
+    [Theory]
+    [InlineData("outside")]
+    [InlineData("title")]
+    [InlineData("close")]
+    public void DefaultWindow_Draw_AllocatesNothing(string place)
+    {
+        (Harness harness, Point position) = DefaultWindowAt(place);
+        Assert.Equal(0, MeasureDraw(harness, Fixture.DefaultWindow, new[] { position }));
+    }
 }

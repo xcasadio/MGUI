@@ -221,7 +221,7 @@ public abstract partial class MGContentHost : MGElement
 }
 
 /// <summary>Represents an <see cref="MGElement"/> that is capable of hosting 1 or more <see cref="MGElement"/>s as its content, such as an <see cref="MGStackPanel"/>.</summary>
-public abstract class MGMultiContentHost : MGContentHost
+public abstract partial class MGMultiContentHost : MGContentHost
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     protected ObservableCollection<MGElement> _Children { get; }
@@ -636,6 +636,30 @@ public abstract partial class MGSingleContentHost
             if (Content != null)
             {
                 Content.Draw(DA);
+            }
+        }
+        else
+        {
+            base.DrawContents(DA);
+        }
+    }
+}
+
+public abstract partial class MGMultiContentHost
+{
+    private bool? _DrawsChildrenDirectly;
+
+    /// <summary>Draws the children in order. A host that does not override <see cref="GetChildren"/> is walked by index, reading the count at each step,
+    /// which allocates nothing; a child that adds or removes children of this host while it is drawn no longer makes the walk throw
+    /// (the enumerator of the collection did): the walk goes on from the next index of the changed collection.</summary>
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGMultiContentHost));
+        if (_DrawsChildrenDirectly.Value)
+        {
+            for (var i = 0; i < _Children.Count; i++)
+            {
+                _Children[i].Draw(DA);
             }
         }
         else

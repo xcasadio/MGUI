@@ -66,6 +66,31 @@ public class DesktopFrameCharacterisationTests
         FrozenJournal.Assert("BareWindow draw journal", 130, "7465221FAD2D49C8", journal);
     }
 
+    [Fact]
+    public void TheDrawJournalOfADefaultWindow_IdleAndWithTheMouseOverTheTitleBarAndOverTheCloseButton()
+    {
+        DesktopFrameAllocationMeasurements.Harness harness = CreateHarness(DesktopFrameAllocationMeasurements.Fixture.DefaultWindow);
+        (Point title, Point close) = harness.FindTitleBarPoints();
+        List<string> journal = new();
+        foreach (Point position in new[] { Outside, Outside, title, title, close, close, Outside })
+        {
+            harness.Update(position, ButtonState.Released);
+            journal.AddRange(DrawJournal(harness).Lines);
+            journal.Add("--");
+        }
+
+        FrozenJournal.Assert("DefaultWindow draw journal", 322, "CA21F30ACC8E2699", journal);
+    }
+
+    [Fact]
+    public void TheDrawJournalOfAWindowWithAStackPanelOfTwoChildren_IdleAndWithTheMouseStillOverIt()
+    {
+        List<string> journal = WindowDrawJournal(DesktopFrameAllocationMeasurements.Fixture.Full,
+            Outside, Outside, new Point(150, 100), new Point(150, 100), Outside);
+
+        FrozenJournal.Assert("Full draw journal", 340, "4EA6EED126EC08FA", journal);
+    }
+
     //  ---- Update: a window, its events and the mouse -----------------------------------------------------------------------------------
 
     private sealed class ScenarioLog

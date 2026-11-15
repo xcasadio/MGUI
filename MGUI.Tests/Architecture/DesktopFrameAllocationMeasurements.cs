@@ -192,6 +192,31 @@ public class DesktopFrameAllocationMeasurements
 
         public void Draw(IUIDrawTransaction transaction) => Desktop.Draw(transaction);
 
+        /// <summary>Two mouse positions of the <see cref="Fixture.DefaultWindow"/> found by hit-test: over the title bar (not over its close button) and over the
+        /// close button. Each one is checked by an update: the hovered element of the window is under the position, and the close button is in the hovered state
+        /// for the second one only. The harness is left with the mouse outside the window.</summary>
+        public (Point OverTheTitleBar, Point OverTheCloseButton) FindTitleBarPoints()
+        {
+            MGButton close = Window.CloseButtonElement;
+            Rectangle closeBounds = close.LayoutBounds;
+            Point overTheCloseButton = close.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, closeBounds.Center);
+            Point overTheTitleBar = close.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, new Point(closeBounds.Left - 20, closeBounds.Center.Y));
+
+            Update(overTheCloseButton, ButtonState.Released);
+            Assert.NotNull(Window.HoveredElement);
+            Assert.True(close.IsSelfOrAncestorOf(Window.HoveredElement), "the position is not over the close button");
+            Assert.Equal(SecondaryVisualState.Hovered, close.VisualState.Secondary);
+
+            Update(overTheTitleBar, ButtonState.Released);
+            Assert.NotNull(Window.HoveredElement);
+            Assert.False(close.IsSelfOrAncestorOf(Window.HoveredElement), "the position is over the close button");
+            Assert.NotSame(Window, Window.HoveredElement);
+            Assert.NotEqual(SecondaryVisualState.Hovered, close.VisualState.Secondary);
+
+            Update(new Point(600, 340), ButtonState.Released);
+            return (overTheTitleBar, overTheCloseButton);
+        }
+
         public GraphTestRuntime GetRuntime() => Runtime;
 
         public MGDesktop GetDesktop() => Desktop;
