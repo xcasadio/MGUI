@@ -43,6 +43,29 @@ public class DesktopFrameCharacterisationTests
         FrozenJournal.Assert("NoWindow draw journal", 15, "D0A748987D1601A3", journal);
     }
 
+    private static List<string> WindowDrawJournal(DesktopFrameAllocationMeasurements.Fixture fixture, params Point[] positions)
+    {
+        DesktopFrameAllocationMeasurements.Harness harness = CreateHarness(fixture);
+        List<string> journal = new();
+        foreach (Point position in positions)
+        {
+            harness.Update(position, ButtonState.Released);
+            journal.AddRange(DrawJournal(harness).Lines);
+            journal.Add("--");
+        }
+
+        return journal;
+    }
+
+    [Fact]
+    public void TheDrawJournalOfABareWindow_IdleAndWithTheMouseStillOverIt()
+    {
+        List<string> journal = WindowDrawJournal(DesktopFrameAllocationMeasurements.Fixture.BareWindow,
+            Outside, Outside, new Point(150, 100), new Point(150, 100), Outside);
+
+        FrozenJournal.Assert("BareWindow draw journal", 130, "7465221FAD2D49C8", journal);
+    }
+
     //  ---- Update: a window, its events and the mouse -----------------------------------------------------------------------------------
 
     private sealed class ScenarioLog

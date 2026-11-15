@@ -10,7 +10,7 @@ using MGUI.Core.UI.Styling;
 namespace MGUI.Core.UI.Containers;
 
 /// <summary>Represents an <see cref="MGElement"/> that is capable of hosting one or more child <see cref="MGElement"/>s as its content.</summary>
-public abstract class MGContentHost : MGElement
+public abstract partial class MGContentHost : MGElement
 {
     protected override void AddComponent(MGComponentBase Component)
     {
@@ -269,7 +269,7 @@ public abstract class MGMultiContentHost : MGContentHost
 }
 
 /// <summary>Represents an <see cref="MGElement"/> that is capable of hosting exactly one child <see cref="MGElement"/> as its content, such as an <see cref="MGBorder"/>.</summary>
-public abstract class MGSingleContentHost : MGContentHost
+public abstract partial class MGSingleContentHost : MGContentHost
 {
     public const string ContentPartName = "PART_Content";
 
@@ -605,6 +605,42 @@ public class MGHeaderedContentPresenter : MGSingleContentHost
 
             this.Header = Header;
             SetContent(Content);
+        }
+    }
+}
+
+//  How a content host draws its children (kept apart from the declarations above, whose line numbers other tests pin).
+public abstract partial class MGContentHost
+{
+    //  Whether a host type draws its children without going through GetChildren(), by runtime type: true when the type does not override
+    //  GetChildren() below the base host that implements it (MGSingleContentHost or MGMultiContentHost), so that the children that GetChildren() would
+    //  enumerate are exactly the ones the base host holds. The answer is looked up once per host instance (at its first draw) and read from a field after.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> DrawsChildrenDirectlyByType = new();
+
+    internal static bool DrawsChildrenDirectly(Type hostType, Type baseHostType)
+        => DrawsChildrenDirectlyByType.GetOrAdd(hostType, static (type, baseType) =>
+            type.GetMethod(nameof(GetChildren), Type.EmptyTypes)?.DeclaringType == baseType, baseHostType);
+}
+
+public abstract partial class MGSingleContentHost
+{
+    private bool? _DrawsChildrenDirectly;
+
+    /// <summary>Draws the content. A host that does not override <see cref="GetChildren"/> draws <see cref="Content"/> directly (what the iterator of
+    /// <see cref="GetChildren"/> would yield), which allocates nothing.</summary>
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGSingleContentHost));
+        if (_DrawsChildrenDirectly.Value)
+        {
+            if (Content != null)
+            {
+                Content.Draw(DA);
+            }
+        }
+        else
+        {
+            base.DrawContents(DA);
         }
     }
 }

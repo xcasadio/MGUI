@@ -5245,6 +5245,27 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     protected ClipDefinition CreateRectangleClipDefinition(Rectangle targetBounds, string debugName)
         => ClipDefinition.Rectangle(targetBounds, true, debugName: debugName);
 
+    //  The rectangle clips of the self and contents hooks, kept between draws: a ClipDefinition is immutable, so the one of the
+    //  previous draw stands in for a new one while the bounds and the name are the same (an element that does not move or resize draws every frame
+    //  with the same clips). The names are built once per element.
+    private ClipDefinition _CachedSelfClipDefinition;
+    private ClipDefinition _CachedContentsClipDefinition;
+    private string _SelfClipDebugName;
+    private string _ContentsClipDebugName;
+
+    internal string SelfClipDebugName => _SelfClipDebugName ??= $"{ElementType}.Self";
+    internal string ContentsClipDebugName => _ContentsClipDebugName ??= $"{ElementType}.Contents";
+
+    private ClipDefinition ReuseRectangleClipDefinition(ref ClipDefinition cached, Rectangle targetBounds, string debugName)
+    {
+        if (cached == null || cached.Shape.Bounds != targetBounds || !ReferenceEquals(cached.DebugName, debugName))
+        {
+            cached = CreateRectangleClipDefinition(targetBounds, debugName);
+        }
+
+        return cached;
+    }
+
     protected ClipDefinition CreateRoundedClipDefinition(Rectangle targetBounds, MGCornerRadius cornerRadius, MGBoxGeometry geometry,
         string debugName, bool allowRectangleFallback = false)
         => ClipDefinition.RoundedRectangle(targetBounds, cornerRadius.ToClipCornerRadius(), geometry: geometry.ToClipGeometry(),
@@ -5271,13 +5292,13 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         {
             var backgroundBounds = GetBackgroundBounds(layoutBounds);
             var rectangleClipBounds = TransformClipBounds(DA, backgroundBounds);
-            return CreateRectangleClipDefinition(rectangleClipBounds, debugName);
+            return ReuseRectangleClipDefinition(ref _CachedContentsClipDefinition, rectangleClipBounds, debugName);
         }
 
         var clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
         if (backgroundShape.InnerCornerRadius.IsZero)
         {
-            return CreateRectangleClipDefinition(clipBounds, debugName);
+            return ReuseRectangleClipDefinition(ref _CachedContentsClipDefinition, clipBounds, debugName);
         }
 
         return CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry.ToClipGeometry(DA.Offset),
@@ -5287,7 +5308,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     // These hooks describe the logical clip that should constrain drawing. They do not participate in
     // background, border, or overlay painting; those continue to use the existing shape paint pipeline.
     internal virtual ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => ClipToBounds ? CreateRectangleClipDefinition(targetBounds, $"{ElementType}.Self") : null;
+        => ClipToBounds ? ReuseRectangleClipDefinition(ref _CachedSelfClipDefinition, targetBounds, SelfClipDebugName) : null;
 
     internal virtual ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
         => null;
@@ -5298,9 +5319,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         RecentDrawWasClipped = false;
 
         DA = DA.SetOpacity(DA.Opacity * Opacity) with { VisualState = VisualState };
-        MGElementDrawEventArgs DrawEventArgs = new(DA);
+        //  The event args are built when a handler is subscribed (and shared by the three events of this draw), not for every draw of every element.
+        MGElementDrawEventArgs DrawEventArgs = null;
 
-        OnBeginDraw?.Invoke(this, DrawEventArgs);
+        if (OnBeginDraw != null)
+        {
+            DrawEventArgs = new(DA);
+            OnBeginDraw.Invoke(this, DrawEventArgs);
+        }
 
         if (Visibility != Visibility.Visible || LayoutBounds.Width <= 0 || LayoutBounds.Height <= 0)
         {
@@ -5378,7 +5404,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     DrawOverlayBrush(DA, LayoutBounds);
                 }
 
-                OnEndingDraw?.Invoke(this, DrawEventArgs);
+                if (OnEndingDraw != null)
+                {
+                    DrawEventArgs ??= new(DA);
+                    OnEndingDraw.Invoke(this, DrawEventArgs);
+                }
             }
         }
         else
@@ -5388,7 +5418,11 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         TempTransform?.Dispose();
 
-        OnEndDraw?.Invoke(this, DrawEventArgs);
+        if (OnEndDraw != null)
+        {
+            DrawEventArgs ??= new(DA);
+            OnEndDraw.Invoke(this, DrawEventArgs);
+        }
     }
 
     protected virtual void DrawContents(ElementDrawArgs DA) { }

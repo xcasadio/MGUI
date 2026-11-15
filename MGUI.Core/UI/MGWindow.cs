@@ -662,10 +662,12 @@ public class MGWindow : MGSingleContentHost
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private readonly List<MGWindow> _NestedWindows;
-    //  The nested windows in the order Update walks them, rebuilt every frame in a list kept between frames; the flag tells a nested Update
-    //  of this same window (called by one of its nested windows) to take a list of its own.
+    //  The nested windows in the order Update and Draw walk them, rebuilt every frame in lists kept between frames; the flags tell a nested Update
+    //  or Draw of this same window (called by one of its nested windows) to take a list of its own.
     private readonly List<MGWindow> _NestedUpdateOrderBuffer = new();
     private bool _IsNestedUpdateOrderBufferInUse;
+    private readonly List<MGWindow> _NestedDrawOrderBuffer = new();
+    private bool _IsNestedDrawOrderBufferInUse;
     /// <summary>The last element represents the <see cref="MGWindow"/> that will be 
     /// drawn last (I.E., rendered overtop of everything else), and updated first (I.E., has the first chance to handle inputs)<br/>
     /// except in cases where a Topmost window is prioritized (See: <see cref="IsTopmost"/>)<para/>
@@ -2376,17 +2378,20 @@ public class MGWindow : MGSingleContentHost
     public event EventHandler<ElementDrawArgs> OnBeginDrawNestedWindows;
     public event EventHandler<ElementDrawArgs> OnEndDrawNestedWindows;
 
-    private IEnumerable<MGWindow> ParentWindows
+    private bool HasScaledParentWindow()
     {
-        get
+        var Current = ParentWindow;
+        while (Current != null)
         {
-            var Current = ParentWindow;
-            while (Current != null)
+            if (Current.IsWindowScaled)
             {
-                yield return Current;
-                Current = Current.ParentWindow;
+                return true;
             }
+
+            Current = Current.ParentWindow;
         }
+
+        return false;
     }
 
     /// <summary>Draws this window, composing its internal enter/exit draw transform (Y7, <see cref="EnterExitWindowTransformOrNull"/>) with
@@ -2414,7 +2419,7 @@ public class MGWindow : MGSingleContentHost
 
     private void DrawWindowAndPopupStack(ElementDrawArgs DA)
     {
-        if (!IsWindowScaled && !ParentWindows.Any(x => x.IsWindowScaled))
+        if (!IsWindowScaled && !HasScaledParentWindow())
         {
             base.Draw(DA);
         }
@@ -2448,9 +2453,25 @@ public class MGWindow : MGSingleContentHost
             DA.DT.FillRectangle(DA.Offset.ToVector2(), LayoutBounds, Color.Black * 0.5f);
         }
 
-        foreach (var Nested in _NestedWindows.OrderBy(x => x.IsTopmost))
+        //  The walk goes over a copy of the nested windows, in a list kept between frames (a nested Draw of this same window takes its own).
+        var ownsNestedDrawOrderBuffer = !_IsNestedDrawOrderBufferInUse;
+        List<MGWindow> nestedDrawOrder = ownsNestedDrawOrderBuffer ? _NestedDrawOrderBuffer : new List<MGWindow>(_NestedWindows.Count);
+        _IsNestedDrawOrderBufferInUse = true;
+        try
         {
-            Nested.Draw(DA);
+            MGDesktop.FillDrawOrder(_NestedWindows, nestedDrawOrder);
+            for (var i = 0; i < nestedDrawOrder.Count; i++)
+            {
+                nestedDrawOrder[i].Draw(DA);
+            }
+        }
+        finally
+        {
+            if (ownsNestedDrawOrderBuffer)
+            {
+                nestedDrawOrder.Clear();
+                _IsNestedDrawOrderBufferInUse = false;
+            }
         }
 
         ModalWindow?.Draw(DA);

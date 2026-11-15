@@ -73,4 +73,20 @@ public class DesktopFrameZeroAllocationTests
 
     [Fact]
     public void NoWindow_Draw_WithTheMouseMoving_AllocatesNothing() => Assert.Equal(0, MeasureDraw(Fixture.NoWindow, MovingA, MovingB));
+
+    //  ---- T1.3: a bare window (no title bar, no content) ---------------------------------------------------------------------------------
+
+    private static readonly Point OverTheWindow = new(150, 100);
+
+    [Fact]
+    public void BareWindow_Update_WithTheMouseOutside_AllocatesNothing() => Assert.Equal(0, MeasureUpdate(Fixture.BareWindow, Outside));
+
+    [Fact]
+    public void BareWindow_Update_WithTheMouseStillOverTheWindow_AllocatesNothing() => Assert.Equal(0, MeasureUpdate(Fixture.BareWindow, OverTheWindow));
+
+    [Fact]
+    public void BareWindow_Draw_WithTheMouseOutside_AllocatesNothing() => Assert.Equal(0, MeasureDraw(Fixture.BareWindow, Outside));
+
+    [Fact]
+    public void BareWindow_Draw_WithTheMouseStillOverTheWindow_AllocatesNothing() => Assert.Equal(0, MeasureDraw(Fixture.BareWindow, OverTheWindow));
 }

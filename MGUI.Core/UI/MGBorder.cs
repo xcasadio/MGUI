@@ -257,6 +257,6 @@ public class MGBorder : MGSingleContentHost
 
         // Rounded border/background paint still uses the box-shape brushes directly.
         // This hook only declares the content clip that should be resolved by the renderer.
-        return CreateBorderBackedContentsClipDefinition(DA, layoutBounds, $"{ElementType}.Contents");
+        return CreateBorderBackedContentsClipDefinition(DA, layoutBounds, ContentsClipDebugName);
     }
 }
