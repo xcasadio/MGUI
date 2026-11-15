@@ -1,5 +1,8 @@
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Containers.Grids;
+using MGUI.Core.UI.Docking.Controls;
+using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Shared.Rendering;
 using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
@@ -11,7 +14,7 @@ namespace MGUI.Tests.Architecture;
 /// <summary>
 /// Measurement bench of a desktop frame: how many bytes <see cref="MGDesktop.Update"/> and <see cref="MGDesktop.Draw(IUIDrawTransaction, float)"/>
 /// allocate per frame, on fixtures that grow one element at a time, so the difference between two rows is the cost of the element added.<para/>
-/// These tests assert no number: they write the measurements to the test output, and the plan of the allocation-free desktop frame copies them.
+/// These tests write their measurements to the test output and assert that each one is zero.
 /// The draw goes through a <see cref="NonRecordingDrawTransaction"/>, which allocates nothing of its own; the recording transaction that
 /// <see cref="GraphTestRuntime.CreateDrawTransaction"/> creates on every draw would count as desktop allocations.
 /// </summary>
@@ -35,7 +38,13 @@ public class DesktopFrameAllocationMeasurements
         WindowWithStackPanel,
         WindowWithStackPanelAndTextBlock,
         WindowWithStackPanelAndSlider,
-        Full
+        Full,
+        /// <summary>The <see cref="Full"/> content in the second row and second column of a 2 rows by 2 columns <see cref="MGGrid"/>.</summary>
+        FullInGrid,
+        /// <summary>The <see cref="Full"/> content in an <see cref="MGDockPanel"/>.</summary>
+        FullInDockPanel,
+        /// <summary>The <see cref="Full"/> content as the only panel of the only tab group of an <see cref="MGDockHost"/>.</summary>
+        FullInDockHost
     }
 
     [Theory]
@@ -46,6 +55,9 @@ public class DesktopFrameAllocationMeasurements
     [InlineData(Fixture.WindowWithStackPanelAndTextBlock)]
     [InlineData(Fixture.WindowWithStackPanelAndSlider)]
     [InlineData(Fixture.Full)]
+    [InlineData(Fixture.FullInGrid)]
+    [InlineData(Fixture.FullInDockPanel)]
+    [InlineData(Fixture.FullInDockHost)]
     public void AnIdleFrame(Fixture fixture)
     {
         Harness harness = Harness.Create(fixture);
@@ -57,18 +69,18 @@ public class DesktopFrameAllocationMeasurements
         Assert.True(fixture == Fixture.NoWindow || harness.Transaction.CallCount > 0);
         Output.WriteLine($"idle {fixture}: Update {update} B/frame, Draw {draw} B/frame");
 
-        //  The fixtures an earlier task made allocation free are asserted here (see DesktopFrameZeroAllocationTests for the other states).
-        if (fixture == Fixture.NoWindow)
-        {
-            Assert.Equal(0, update);
-            Assert.Equal(0, draw);
-        }
+        Assert.Equal(0, update);
+        Assert.Equal(0, draw);
     }
 
-    [Fact]
-    public void ADragFrame_OnTheFullFixture()
+    [Theory]
+    [InlineData(Fixture.Full)]
+    [InlineData(Fixture.FullInGrid)]
+    [InlineData(Fixture.FullInDockPanel)]
+    [InlineData(Fixture.FullInDockHost)]
+    public void ADragFrame(Fixture fixture)
     {
-        Harness harness = Harness.Create(Fixture.Full);
+        Harness harness = Harness.Create(fixture);
         MGSlider slider = harness.Slider;
         //  "F0" on [0, 1]: every value below 0.5 shows "0", so the drag does not change the label text.
         Rectangle bounds = slider.LayoutBounds;
@@ -87,7 +99,9 @@ public class DesktopFrameAllocationMeasurements
         long draw = Measure(() => harness.Draw());
 
         Assert.True(slider.IsDraggingThumb);
-        Output.WriteLine($"drag {Fixture.Full}: Update {update} B/frame, Draw {draw} B/frame");
+        Output.WriteLine($"drag {fixture}: Update {update} B/frame, Draw {draw} B/frame");
+        Assert.Equal(0, update);
+        Assert.Equal(0, draw);
     }
 
     [Fact]
@@ -103,6 +117,10 @@ public class DesktopFrameAllocationMeasurements
         long window = Measure(() => harness.Window.Draw(drawArgs));
 
         Output.WriteLine($"DrawSelf: MGStackPanel {panel} B, MGTextBlock {text} B, MGSlider {slider} B; MGWindow.Draw {window} B");
+        Assert.Equal(0, panel);
+        Assert.Equal(0, text);
+        Assert.Equal(0, slider);
+        Assert.Equal(0, window);
     }
 
     internal static long Measure(Action action)
@@ -157,27 +175,87 @@ public class DesktopFrameAllocationMeasurements
                 harness.Desktop.Windows.Add(window);
                 if (fixture >= Fixture.WindowWithStackPanel)
                 {
-                    MGStackPanel panel = new(window, Orientation.Vertical);
-                    harness.Panel = panel;
-                    if (fixture == Fixture.WindowWithStackPanelAndTextBlock || fixture == Fixture.Full)
+                    bool full = fixture >= Fixture.Full;
+                    bool withText = fixture == Fixture.WindowWithStackPanelAndTextBlock || full;
+                    bool withSlider = fixture == Fixture.WindowWithStackPanelAndSlider || full;
+                    if (fixture == Fixture.FullInDockHost)
                     {
-                        harness.TextBlock = new MGTextBlock(window, "Value");
-                        panel.TryAddChild(harness.TextBlock);
+                        harness.CreateDockHostContent(window);
                     }
-
-                    if (fixture == Fixture.WindowWithStackPanelAndSlider || fixture == Fixture.Full)
+                    else
                     {
-                        harness.Slider = new MGSlider(window, 0, 1, 0.5f) { ShowValueLabel = true, ValueLabelFormat = "F0" };
-                        panel.TryAddChild(harness.Slider);
+                        MGStackPanel panel = harness.CreateStackPanel(window, withText, withSlider);
+                        window.SetContent(fixture switch
+                        {
+                            Fixture.FullInGrid => harness.CreateGrid(window, panel),
+                            Fixture.FullInDockPanel => harness.CreateDockPanel(window, panel),
+                            _ => panel
+                        });
                     }
-
-                    window.SetContent(panel);
                 }
             }
 
             harness.Frame(new Point(600, 340), ButtonState.Released);
             harness.Frame(new Point(600, 340), ButtonState.Released);
             return harness;
+        }
+
+        private MGStackPanel CreateStackPanel(MGWindow window, bool withText, bool withSlider)
+        {
+            MGStackPanel panel = new(window, Orientation.Vertical);
+            Panel = panel;
+            if (withText)
+            {
+                TextBlock = new MGTextBlock(window, "Value");
+                panel.TryAddChild(TextBlock);
+            }
+
+            if (withSlider)
+            {
+                Slider = new MGSlider(window, 0, 1, 0.5f) { ShowValueLabel = true, ValueLabelFormat = "F0" };
+                panel.TryAddChild(Slider);
+            }
+
+            return panel;
+        }
+
+        /// <summary>A grid of 2 rows and 2 columns holding the content in its second row and second column.</summary>
+        private MGGrid CreateGrid(MGWindow window, MGElement content)
+        {
+            MGGrid grid = new(window);
+            grid.AddRow(GridLength.CreateWeightedLength(1));
+            grid.AddRow(GridLength.CreateWeightedLength(1));
+            grid.AddColumn(GridLength.CreateWeightedLength(1));
+            grid.AddColumn(GridLength.CreateWeightedLength(1));
+            Assert.True(grid.TryAddChild(1, 1, content));
+            return grid;
+        }
+
+        private MGDockPanel CreateDockPanel(MGWindow window, MGElement content)
+        {
+            MGDockPanel dockPanel = new(window);
+            Assert.True(dockPanel.TryAddChild(content, Dock.Top));
+            return dockPanel;
+        }
+
+        /// <summary>A dock host with one tab group holding one panel; the host builds the content of the panel when it needs it.</summary>
+        private void CreateDockHostContent(MGWindow window)
+        {
+            DockPanelNode panelNode = new() { Title = "Full", ContentFactory = () => CreateStackPanel(window, true, true) };
+            DockTabGroupNode group = new();
+            group.AddPanel(panelNode, -1);
+            MGDockHost host = new(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                LayoutModel = new DockLayoutModel(group)
+            };
+            foreach (DockPanelNode node in host.LayoutModel.GetAllPanels())
+            {
+                host.RegisterPanel(node);
+            }
+
+            window.SetContent(host);
         }
 
         public void Update(Point position, ButtonState left)

@@ -91,6 +91,65 @@ public class DesktopFrameCharacterisationTests
         FrozenJournal.Assert("Full draw journal", 340, "4EA6EED126EC08FA", journal);
     }
 
+    //  ---- Draw: the journal of the containers of the slider (T1.5), idle and while the slider is dragged ------------------------------
+
+    private static List<string> IdleJournal(DesktopFrameAllocationMeasurements.Fixture fixture)
+        => WindowDrawJournal(fixture, Outside, Outside, new Point(150, 100), new Point(150, 100), Outside);
+
+    /// <summary>The draw journal of the slider of the fixture while it is dragged (press on the thumb, two moves, a stay, release, mouse away).</summary>
+    private static List<string> DragJournal(DesktopFrameAllocationMeasurements.Fixture fixture)
+    {
+        DesktopFrameAllocationMeasurements.Harness harness = CreateHarness(fixture);
+        MGSlider slider = harness.Slider;
+        Rectangle bounds = slider.LayoutBounds;
+        Point thumb = slider.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, bounds.Center);
+        Point first = slider.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, new Point(bounds.Left + bounds.Width / 5, bounds.Center.Y));
+        Point second = slider.ConvertCoordinateSpace(CoordinateSpace.Layout, CoordinateSpace.Screen, new Point(bounds.Left + bounds.Width / 4, bounds.Center.Y));
+        List<string> journal = new();
+        foreach ((Point position, ButtonState left) in new[]
+                 {
+                     (Outside, ButtonState.Released), (thumb, ButtonState.Released), (thumb, ButtonState.Released), (thumb, ButtonState.Pressed),
+                     (first, ButtonState.Pressed), (second, ButtonState.Pressed), (second, ButtonState.Pressed), (first, ButtonState.Pressed),
+                     (first, ButtonState.Released), (Outside, ButtonState.Released)
+                 })
+        {
+            harness.Update(position, left);
+            journal.AddRange(DrawJournal(harness).Lines);
+            journal.Add("--");
+        }
+
+        Assert.True(slider.Value > 0f);
+        return journal;
+    }
+
+    [Fact]
+    public void TheDrawJournalOfTheFullFixture_WhileTheSliderIsDragged()
+        => FrozenJournal.Assert("Full drag journal", 800, "68E93B778DFA70A0", DragJournal(DesktopFrameAllocationMeasurements.Fixture.Full));
+
+    [Fact]
+    public void TheDrawJournalOfTheFullFixtureInAGrid_Idle()
+        => FrozenJournal.Assert("FullInGrid idle journal", 350, "E313EED065EDC31C", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInGrid));
+
+    [Fact]
+    public void TheDrawJournalOfTheFullFixtureInAGrid_WhileTheSliderIsDragged()
+        => FrozenJournal.Assert("FullInGrid drag journal", 820, "FEB8EB37392C2D41", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInGrid));
+
+    [Fact]
+    public void TheDrawJournalOfTheFullFixtureInADockPanel_Idle()
+        => FrozenJournal.Assert("FullInDockPanel idle journal", 350, "02355343A2F879CC", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockPanel));
+
+    [Fact]
+    public void TheDrawJournalOfTheFullFixtureInADockPanel_WhileTheSliderIsDragged()
+        => FrozenJournal.Assert("FullInDockPanel drag journal", 820, "03BDAA5F77FFA1B3", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockPanel));
+
+    [Fact]
+    public void TheDrawJournalOfTheFullFixtureInADockHost_Idle()
+        => FrozenJournal.Assert("FullInDockHost idle journal", 575, "C2490D7D7541C9AD", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockHost));
+
+    [Fact]
+    public void TheDrawJournalOfTheFullFixtureInADockHost_WhileTheSliderIsDragged()
+        => FrozenJournal.Assert("FullInDockHost drag journal", 1270, "52957F04D8CFA4E5", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockHost));
+
     //  ---- Update: a window, its events and the mouse -----------------------------------------------------------------------------------
 
     private sealed class ScenarioLog

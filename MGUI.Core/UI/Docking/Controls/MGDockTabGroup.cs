@@ -1033,10 +1033,16 @@ public class MGDockTabGroup : MGContentHost
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
-        {
-            child?.Draw(DA);
-        }
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        DrawChild(_tabHeadersPanel, DA);
+        DrawChild(_dropdownBtn, DA);
+        DrawChild(_maximizeBtn, DA);
+        DrawChild(_activeContentContainer, DA);
+    }
+
+    private static void DrawChild(MGElement child, ElementDrawArgs DA)
+    {
+        child?.Draw(DA);
     }
 
 }

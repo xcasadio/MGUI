@@ -5404,6 +5404,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     DrawOverlayBrush(DA, LayoutBounds);
                 }
 
+                EndingDrawInternal(DA);
                 if (OnEndingDraw != null)
                 {
                     DrawEventArgs ??= new(DA);
@@ -5426,6 +5427,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     }
 
     protected virtual void DrawContents(ElementDrawArgs DA) { }
+
+    /// <summary>Called just before <see cref="OnEndingDraw"/> is invoked, so that an element that has something to draw there does not have to subscribe to its own event
+    /// (a subscriber makes every draw of the element build the event arguments).</summary>
+    internal virtual void EndingDrawInternal(ElementDrawArgs DA) { }
 
     [DebuggerStepThrough]
     public class MGElementDrawEventArgs : EventArgs

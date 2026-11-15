@@ -795,9 +795,21 @@ public class MGDockTabItem : MGElement
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        DrawChild(_titleText, DA);
+        if (Panel?.CanAutoHide == true)
         {
-            child?.Draw(DA);
+            DrawChild(_pinButton, DA);
         }
+
+        if (Panel?.CanClose == true)
+        {
+            DrawChild(_closeButton, DA);
+        }
+    }
+
+    private static void DrawChild(MGElement child, ElementDrawArgs DA)
+    {
+        child?.Draw(DA);
     }
 }

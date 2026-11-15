@@ -120,4 +120,38 @@ public class DesktopFrameZeroAllocationTests
         (Harness harness, Point position) = DefaultWindowAt(place);
         Assert.Equal(0, MeasureDraw(harness, Fixture.DefaultWindow, new[] { position }));
     }
+
+    //  ---- T1.5: the slider and the containers that hold it, with the mouse still and moving over the window --------------------------------
+
+    private static readonly Point OverTheSlider = new(150, 100);
+
+    [Theory]
+    [InlineData(Fixture.WindowWithStackPanel)]
+    [InlineData(Fixture.WindowWithStackPanelAndTextBlock)]
+    [InlineData(Fixture.WindowWithStackPanelAndSlider)]
+    [InlineData(Fixture.Full)]
+    [InlineData(Fixture.FullInGrid)]
+    [InlineData(Fixture.FullInDockPanel)]
+    [InlineData(Fixture.FullInDockHost)]
+    public void TheContainersOfTheSlider_Update_AllocatesNothing(Fixture fixture)
+    {
+        Assert.Equal(0, MeasureUpdate(fixture, Outside));
+        Assert.Equal(0, MeasureUpdate(fixture, OverTheSlider));
+        Assert.Equal(0, MeasureUpdate(fixture, MovingA, MovingB));
+    }
+
+    [Theory]
+    [InlineData(Fixture.WindowWithStackPanel)]
+    [InlineData(Fixture.WindowWithStackPanelAndTextBlock)]
+    [InlineData(Fixture.WindowWithStackPanelAndSlider)]
+    [InlineData(Fixture.Full)]
+    [InlineData(Fixture.FullInGrid)]
+    [InlineData(Fixture.FullInDockPanel)]
+    [InlineData(Fixture.FullInDockHost)]
+    public void TheContainersOfTheSlider_Draw_AllocatesNothing(Fixture fixture)
+    {
+        Assert.Equal(0, MeasureDraw(fixture, Outside));
+        Assert.Equal(0, MeasureDraw(fixture, OverTheSlider));
+        Assert.Equal(0, MeasureDraw(fixture, MovingA, MovingB));
+    }
 }

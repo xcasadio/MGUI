@@ -652,10 +652,21 @@ public class MGDockDropIndicators : MGElement
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates (the zones exist together or not at all).
+        if (LeftZoneElement == null)
         {
-            child?.Draw(DA);
+            return;
         }
+
+        LeftZoneElement.Draw(DA);
+        RightZoneElement?.Draw(DA);
+        TopZoneElement?.Draw(DA);
+        BottomZoneElement?.Draw(DA);
+        CenterZoneElement?.Draw(DA);
+        HostLeftZoneElement?.Draw(DA);
+        HostRightZoneElement?.Draw(DA);
+        HostTopZoneElement?.Draw(DA);
+        HostBottomZoneElement?.Draw(DA);
     }
 
 }

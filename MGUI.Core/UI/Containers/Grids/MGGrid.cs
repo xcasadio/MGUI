@@ -1008,26 +1008,6 @@ public class MGGrid : MGMultiContentHost
                 UpdateSelection(Position, true);
             };
 
-            OnEndingDraw += (sender, e) =>
-            {
-                //  Draw the selection overlay
-                if (HasSelection && SelectionOverlay != null)
-                {
-                    var ScissorBounds = e.DA.DT.CurrentClipBounds;
-                    foreach (var Cell in CurrentSelection.Value)
-                    {
-                        if (_CellBounds.TryGetValue(Cell, out var Bounds))
-                        {
-                            var ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(e.DA.Offset));
-                            if (ScissorBounds.HasValue && ScreenSpaceBounds.Intersects(ScissorBounds.Value))
-                            {
-                                SelectionOverlay.Draw(e.DA, this, Bounds);
-                            }
-                        }
-                    }
-                }
-            };
-
             SelectionMode = GridSelectionMode.None;
             CurrentSelection = null;
 
@@ -1506,10 +1486,31 @@ public class MGGrid : MGMultiContentHost
         }
     }
 
+    /// <summary>Draws the selection overlay, where the grid used to handle its own <see cref="MGElement.OnEndingDraw"/> (a subscriber makes every draw build the event arguments).</summary>
+    internal override void EndingDrawInternal(ElementDrawArgs DA)
+    {
+        //  A selection whose mode is None has no cell, so there is nothing to enumerate (and enumerating it allocates).
+        if (HasSelection && CurrentSelection.Value.SelectionMode != GridSelectionMode.None && SelectionOverlay != null)
+        {
+            var ScissorBounds = DA.DT.CurrentClipBounds;
+            foreach (var Cell in CurrentSelection.Value)
+            {
+                if (_CellBounds.TryGetValue(Cell, out var Bounds))
+                {
+                    var ScreenSpaceBounds = ConvertCoordinateSpace(CoordinateSpace.UnscaledScreen, CoordinateSpace.Screen, Bounds.GetTranslated(DA.Offset));
+                    if (ScissorBounds.HasValue && ScreenSpaceBounds.Intersects(ScissorBounds.Value))
+                    {
+                        SelectionOverlay.Draw(DA, this, Bounds);
+                    }
+                }
+            }
+        }
+    }
+
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
-        //  Draw the selection background
-        if (HasSelection && SelectionBackground != null)
+        //  Draw the selection background (a selection whose mode is None has no cell, so there is nothing to enumerate)
+        if (HasSelection && CurrentSelection.Value.SelectionMode != GridSelectionMode.None && SelectionBackground != null)
         {
             var ScissorBounds = DA.DT.CurrentClipBounds;
             foreach (var Cell in CurrentSelection.Value)
