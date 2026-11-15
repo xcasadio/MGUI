@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -35,12 +36,44 @@ namespace MGUI.Shared.Rendering.Clipping
 
             return resolution.Strategy switch
             {
-                ClipStrategy.None => new(resolution, () => { }),
+                ClipStrategy.None => PushNoClip(resolution),
                 ClipStrategy.Scissor => PushScissor(resolution),
                 ClipStrategy.Stencil => PushStencil(resolution),
                 ClipStrategy.Mask => PushMask(resolution),
                 _ => throw new NotSupportedException($"Clip strategy '{resolution.Strategy}' is not available until the corresponding backend is installed.")
             };
+        }
+
+        /// <summary>Pushes the clip that <see cref="Push(ClipDefinition)"/> pushes for <see cref="ClipDefinition.Rectangle"/> (default strategy preference, scissor
+        /// available), counted the same, without creating the definition.</summary>
+        public ClipScope PushRectangle(Rectangle bounds, bool intersectWithCurrentClip)
+        {
+            _ScissorClipCount++;
+            return _Owner.PushRectangleClipCore(bounds, intersectWithCurrentClip);
+        }
+
+        private readonly Stack<NoClipSlot> _FreeNoClipSlots = new();
+
+        private ClipScope PushNoClip(ClipResolveResult resolution)
+        {
+            NoClipSlot slot = _FreeNoClipSlots.Count > 0 ? _FreeNoClipSlots.Pop() : new NoClipSlot(this);
+            slot.Scope.Reset(resolution);
+            return slot.Scope;
+        }
+
+        /// <summary>The scope of a clip that changes nothing, kept for reuse once disposed.</summary>
+        private sealed class NoClipSlot
+        {
+            private readonly ClipManager _Owner;
+            public readonly ClipScope Scope;
+
+            public NoClipSlot(ClipManager owner)
+            {
+                _Owner = owner;
+                Scope = new ClipScope(Release);
+            }
+
+            private void Release() => _Owner._FreeNoClipSlots.Push(this);
         }
 
         private ClipScope PushScissor(ClipResolveResult resolution)
@@ -118,7 +151,7 @@ namespace MGUI.Shared.Rendering.Clipping
             Rectangle bounds = resolution.Effective.Shape.Bounds;
             if (bounds.Width <= 0 || bounds.Height <= 0)
             {
-                return new ClipScope(resolution, () => { });
+                return PushNoClip(resolution);
             }
 
             RenderTargetLease renderTargetLease = _Owner.RentTemporaryRenderTarget(bounds.Width, bounds.Height, false);

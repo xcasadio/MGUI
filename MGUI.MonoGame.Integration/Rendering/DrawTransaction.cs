@@ -1064,73 +1064,119 @@ namespace MGUI.Shared.Rendering
         {
             if (!Bounds.HasValue)
             {
-                Rectangle previousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
-                bool previousScissorState = CurrentSettings.UsesScissorTest;
-                SetClipTarget(null, false);
-                Rectangle currentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
-                bool currentScissorState = CurrentSettings.UsesScissorTest;
-                bool clipChanged = currentBounds != previousBounds || currentScissorState != previousScissorState;
-
-                ClipDefinition requested = ClipDefinition.None(false);
-                ClipResolveResult resolution = new(requested, requested, ClipStrategy.None, false);
-                return new ClipScope(resolution, () =>
-                {
-                    if (!clipChanged)
-                    {
-                        return;
-                    }
-
-                    EndDraw(CurrentContext);
-                    SpriteBatch.GraphicsDevice.ScissorRectangle = previousBounds;
-
-                    bool activeScissorState = CurrentSettings.UsesScissorTest;
-                    if (previousScissorState && !activeScissorState)
-                    {
-                        SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
-                    }
-                    else if (!previousScissorState && activeScissorState)
-                    {
-                        SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
-                    }
-                });
+                return PushScissorClip(null, false, NoClipResolution);
             }
 
-            ClipDefinition definition = Bounds.HasValue
-                ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
-                : ClipDefinition.None();
-            return PushClipTemporary(definition);
+            return ClipManager.PushRectangle(Bounds.Value, IntersectWithCurrentClipTarget);
         }
 
         internal ClipScope PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult Resolution)
+            => PushScissorClip(Bounds, IntersectWithCurrentClipTarget, Resolution);
+
+        /// <summary>A scissor push whose scope reports the rectangle clip it was asked for, without creating the <see cref="ClipDefinition"/> that says so.</summary>
+        internal ClipScope PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget)
+            => PushScissorClip(Bounds, IntersectWithCurrentClipTarget, null);
+
+        private ClipScope PushScissorClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult? Resolution)
         {
-            Rectangle PreviousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
-            bool PreviousScissorState = CurrentSettings.UsesScissorTest;
+            Rectangle previousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
+            bool previousScissorState = CurrentSettings.UsesScissorTest;
 
             SetClipTarget(Bounds, IntersectWithCurrentClipTarget);
             Rectangle currentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
             bool currentScissorState = CurrentSettings.UsesScissorTest;
-            bool clipChanged = currentBounds != PreviousBounds || currentScissorState != PreviousScissorState;
 
-            return new ClipScope(Resolution, () =>
+            ScissorClipSlot slot = _FreeScissorClipSlots.Count > 0 ? _FreeScissorClipSlots.Pop() : new ScissorClipSlot(this);
+            slot.PreviousBounds = previousBounds;
+            slot.PreviousScissorState = previousScissorState;
+            slot.ClipChanged = currentBounds != previousBounds || currentScissorState != previousScissorState;
+
+            if (Resolution.HasValue)
             {
-                if (!clipChanged)
+                slot.Scope.Reset(Resolution.Value);
+            }
+            else
+            {
+                slot.Scope.ResetRectangle(Bounds.Value, IntersectWithCurrentClipTarget);
+            }
+
+            return slot.Scope;
+        }
+
+        private void RestoreScissor(Rectangle PreviousBounds, bool PreviousScissorState)
+        {
+            EndDraw(CurrentContext);
+            SpriteBatch.GraphicsDevice.ScissorRectangle = PreviousBounds;
+
+            bool activeScissorState = CurrentSettings.UsesScissorTest;
+            if (PreviousScissorState && !activeScissorState)
+            {
+                SetDrawSettings(WithRasterizerType(RasterizerType.SolidScissorTest));
+            }
+            else if (!PreviousScissorState && activeScissorState)
+            {
+                SetDrawSettings(WithRasterizerType(RasterizerType.Solid));
+            }
+        }
+
+        /// <summary>The current settings with another rasterizer type. The last pair of settings that differed by that alone is kept, so that a clip that
+        /// turns the scissor test off and a restore that turns it back on find each other's settings instead of creating new ones.</summary>
+        private DrawSettings WithRasterizerType(RasterizerType Type)
+        {
+            DrawSettings current = CurrentSettings;
+            if (ReferenceEquals(current, _RasterizerVariantA) && _RasterizerVariantB.RasterizerType == Type)
+            {
+                return _RasterizerVariantB;
+            }
+            if (ReferenceEquals(current, _RasterizerVariantB) && _RasterizerVariantA.RasterizerType == Type)
+            {
+                return _RasterizerVariantA;
+            }
+
+            DrawSettings changed = current with { RasterizerType = Type };
+            _RasterizerVariantA = current;
+            _RasterizerVariantB = changed;
+            return changed;
+        }
+
+        /// <summary>What <see cref="PushRectangleClip"/> reports when it is given no bounds.</summary>
+        private static readonly ClipResolveResult NoClipResolution = CreateNoClipResolution();
+
+        private static ClipResolveResult CreateNoClipResolution()
+        {
+            ClipDefinition none = ClipDefinition.None(false);
+            return new ClipResolveResult(none, none, ClipStrategy.None, false);
+        }
+
+        private readonly Stack<ScissorClipSlot> _FreeScissorClipSlots = new();
+        private DrawSettings _RasterizerVariantA;
+        private DrawSettings _RasterizerVariantB;
+
+        /// <summary>A scissor clip's scope and what it restores, kept in fields so that a push creates no closure. A slot goes back to its transaction's
+        /// free stack when its scope is disposed, so nested clips use one slot per level and any order of disposal stays correct.</summary>
+        private sealed class ScissorClipSlot
+        {
+            private readonly DrawTransaction _Owner;
+            public readonly ClipScope Scope;
+            public Rectangle PreviousBounds;
+            public bool PreviousScissorState;
+            public bool ClipChanged;
+
+            public ScissorClipSlot(DrawTransaction owner)
+            {
+                _Owner = owner;
+                Scope = new ClipScope(Restore);
+            }
+
+            private void Restore()
+            {
+                if (ClipChanged)
                 {
-                    return;
+                    _Owner.RestoreScissor(PreviousBounds, PreviousScissorState);
                 }
 
-                EndDraw(CurrentContext);
-                SpriteBatch.GraphicsDevice.ScissorRectangle = PreviousBounds;
-
-                bool activeScissorState = CurrentSettings.UsesScissorTest;
-                if (PreviousScissorState && !activeScissorState)
-                {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
-                }
-                else if (!PreviousScissorState && activeScissorState)
-                {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
-                }
-            });
+                _Owner._FreeScissorClipSlots.Push(this);
+            }
         }
 
         /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering.</summary>
@@ -1183,11 +1229,11 @@ namespace MGUI.Shared.Rendering
                 SpriteBatch.GraphicsDevice.ScissorRectangle = Bounds ?? Backend.GetViewport(0);
                 if (ShouldScissorTest && !IsScissorTesting)
                 {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
+                    SetDrawSettings(WithRasterizerType(RasterizerType.SolidScissorTest));
                 }
                 else if (!ShouldScissorTest && IsScissorTesting)
                 {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
+                    SetDrawSettings(WithRasterizerType(RasterizerType.Solid));
                 }
             }
         }
