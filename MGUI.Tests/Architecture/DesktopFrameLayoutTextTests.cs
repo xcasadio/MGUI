@@ -293,6 +293,7 @@ public class DesktopFrameLayoutTextTests
         (long update, long draw) = Measure(harness, 500, i => (i * 7 + 3) % LayoutTexts.Count);
         Output.WriteLine($"{fixture}: Update {update / 500.0} B/frame, Draw {draw / 500.0} B/frame");
         Assert.Equal(0, update);
+        Assert.Equal(0, draw);
     }
 
     /// <summary>One warm-up pass over the 50 texts, then the same 50 texts replayed in the same order.</summary>
@@ -309,6 +310,7 @@ public class DesktopFrameLayoutTextTests
         (long update, long draw) = Measure(harness, LayoutTexts.Count, i => i);
         Output.WriteLine($"{fixture}: Update {update} B, Draw {draw} B over {LayoutTexts.Count} frames");
         Assert.Equal(0, update);
+        Assert.Equal(0, draw);
     }
 
     /// <summary>The dock host fixture is not required to be at zero (the tab group makes a fill brush while it lays out, MGDockTabGroup.SyncHeaderVisuals, and its draw allocates now and then): the test only writes its measure.</summary>

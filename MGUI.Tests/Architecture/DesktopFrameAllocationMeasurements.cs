@@ -137,7 +137,8 @@ public class DesktopFrameAllocationMeasurements
         }
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        return (after - before) / MeasuredIterations;
+        //  Rounded up: a total under one byte per iteration must not read as zero.
+        return (after - before + MeasuredIterations - 1) / MeasuredIterations;
     }
 
     internal sealed class Harness

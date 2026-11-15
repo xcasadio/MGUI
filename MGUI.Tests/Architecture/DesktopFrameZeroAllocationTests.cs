@@ -57,7 +57,8 @@ public class DesktopFrameZeroAllocationTests
             total += GC.GetAllocatedBytesForCurrentThread() - before;
         }
 
-        long bytes = total / 500;
+        //  Rounded up: a total under one byte per frame must not read as zero.
+        long bytes = (total + 499) / 500;
         Output.WriteLine($"{fixture} Draw over {positions.Length} position(s): {bytes} B/frame, {harness.Transaction.CallCount} calls received");
         return bytes;
     }
@@ -123,7 +124,7 @@ public class DesktopFrameZeroAllocationTests
 
     //  ---- T1.5: the slider and the containers that hold it, with the mouse still and moving over the window --------------------------------
 
-    private static readonly Point OverTheSlider = new(150, 100);
+    private static readonly Point OverTheStackPanel = new(150, 100);
 
     [Theory]
     [InlineData(Fixture.WindowWithStackPanel)]
@@ -136,7 +137,8 @@ public class DesktopFrameZeroAllocationTests
     public void TheContainersOfTheSlider_Update_AllocatesNothing(Fixture fixture)
     {
         Assert.Equal(0, MeasureUpdate(fixture, Outside));
-        Assert.Equal(0, MeasureUpdate(fixture, OverTheSlider));
+        Assert.Equal(0, MeasureUpdate(fixture, OverTheStackPanel));
+        AssertNothingOverTheSlider(fixture, draw: false);
         Assert.Equal(0, MeasureUpdate(fixture, MovingA, MovingB));
     }
 
@@ -151,7 +153,24 @@ public class DesktopFrameZeroAllocationTests
     public void TheContainersOfTheSlider_Draw_AllocatesNothing(Fixture fixture)
     {
         Assert.Equal(0, MeasureDraw(fixture, Outside));
-        Assert.Equal(0, MeasureDraw(fixture, OverTheSlider));
+        Assert.Equal(0, MeasureDraw(fixture, OverTheStackPanel));
+        AssertNothingOverTheSlider(fixture, draw: true);
         Assert.Equal(0, MeasureDraw(fixture, MovingA, MovingB));
+    }
+
+    /// <summary>The mouse at the centre of the slider, read from its layout: a fixed point would be over whatever the fixture puts there.</summary>
+    private void AssertNothingOverTheSlider(Fixture fixture, bool draw)
+    {
+        Harness harness = Harness.Create(fixture);
+        harness.Frame(Outside, ButtonState.Released);
+        if (harness.Slider == null)
+        {
+            return;
+        }
+
+        Point[] overTheSlider = { harness.Slider.LayoutBounds.Center };
+        harness.Frame(overTheSlider[0], ButtonState.Released);
+        Assert.True(harness.Slider.IsHovered);
+        Assert.Equal(0, draw ? MeasureDraw(harness, fixture, overTheSlider) : MeasureUpdate(harness, fixture, overTheSlider));
     }
 }

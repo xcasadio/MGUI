@@ -257,6 +257,7 @@ public class DesktopWindowOrderTests
         }
 
         long after = GC.GetAllocatedBytesForCurrentThread();
-        return (after - before) / 500;
+        //  Rounded up: a total under one byte per frame must not read as zero.
+        return (after - before + 499) / 500;
     }
 }

@@ -134,7 +134,8 @@ public class TextBlockAllocationMeasurements
         }
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        return (after - before) / MeasuredIterations;
+        //  Rounded up: a total under one byte per iteration must not read as zero.
+        return (after - before + MeasuredIterations - 1) / MeasuredIterations;
     }
 
     /// <summary>Runs <paramref name="prepare"/> outside the measured window, then <paramref name="step"/> inside it, and averages the bytes of the step alone.</summary>
@@ -156,6 +157,6 @@ public class TextBlockAllocationMeasurements
             total += GC.GetAllocatedBytesForCurrentThread() - before;
         }
 
-        return total / MeasuredIterations;
+        return (total + MeasuredIterations - 1) / MeasuredIterations;
     }
 }
