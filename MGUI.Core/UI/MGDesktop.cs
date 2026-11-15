@@ -1872,10 +1872,13 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         }
     }
 
-    /// <param name="InitialDrawSettings">If null, uses <see cref="DrawSettings.Default"/></param>
+    //  Kept: DrawSettings.Default builds a new object at each read, which a draw without settings would do at every frame.
+    private readonly DrawSettings DefaultDrawSettings = DrawSettings.Default;
+
+    /// <param name="InitialDrawSettings">If null, uses settings equal to <see cref="DrawSettings.Default"/>, kept by this desktop.</param>
     public void Draw(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
     {
-        using (var DT = Runtime.BeginDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
+        using (var DT = Runtime.BeginDrawTransaction(InitialDrawSettings ?? DefaultDrawSettings, false))
         {
             Draw(DT, Opacity);
         }
