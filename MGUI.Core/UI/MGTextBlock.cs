@@ -1302,7 +1302,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
             //  Handle the '[Action]' inlined formatting code
             //  EX: Text="[Action=Action1]Click here[/Action] but not here"
             //  Then clicking the substring "Click here" should invoke the command named "Action1" (in MGResources.Commands)
-            if (ActionBounds.Any())
+            if (ActionBounds.Any)
             {
                 var MousePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
                 if (TryInvokeActionAt(MousePosition))
@@ -1317,14 +1317,15 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// <returns>True if a command was invoked.</returns>
     internal bool TryInvokeActionAt(Point MousePosition)
     {
-        foreach (var KVP in ActionBounds)
+        for (var NameIndex = 0; NameIndex < ActionBounds.NameCount; NameIndex++)
         {
-            var CommandName = KVP.Key;
+            var CommandName = ActionBounds.GetName(NameIndex);
             if (GetResources().TryGetCommand(CommandName, out var Command))
             {
-                foreach (var Bounds in KVP.Value)
+                var NameBounds = ActionBounds.GetBounds(NameIndex);
+                for (var BoundsIndex = 0; BoundsIndex < NameBounds.Count; BoundsIndex++)
                 {
-                    if (Bounds.Contains(MousePosition))
+                    if (NameBounds[BoundsIndex].Contains(MousePosition))
                     {
                         Command(this);
                         return true;
@@ -1932,33 +1933,34 @@ public class MGTextBlock : MGElement, ITextMeasurer
     }
 
     /// <summary>
-    /// Key = the name of a named delegate to invoke when clicking within any of the given bounds.<br/>
-    /// Value = the bounds of the text content that the named action corresponds to. Usually a list of 1 rectangle, but might be multiple if the bound text spans multiple lines.
+    /// For each name of a named delegate to invoke when clicking within any of its bounds: the bounds of the text content that the named action corresponds to. Usually 1 rectangle, but might be multiple if the bound text spans multiple lines.<br/>
+    /// Refilled by each draw; the lists of the names are reused from one draw to the next (<see cref="TextBoundsTracker"/>).
     /// </summary>
-    private readonly Dictionary<string, List<Rectangle>> ActionBounds = new();
+    private readonly TextBoundsTracker ActionBounds = new();
 
     /// <summary>
-    /// Key = the name of a ToolTip to reference,<br/>
-    /// Value = the bounds of the text content that the tooltip is applied to. Usually a list of 1 rectangle, but might be multiple if the text spans multiple lines.
+    /// For each name of a ToolTip to reference: the bounds of the text content that the tooltip is applied to. Usually 1 rectangle, but might be multiple if the text spans multiple lines.<br/>
+    /// Refilled by each draw; the lists of the names are reused from one draw to the next (<see cref="TextBoundsTracker"/>).
     /// </summary>
-    private readonly Dictionary<string, List<Rectangle>> ToolTipBounds = new();
+    private readonly TextBoundsTracker ToolTipBounds = new();
 
     protected override bool TryGetToolTip(out MGToolTip ToolTip)
     {
-        if (ToolTipBounds.Any())
+        if (ToolTipBounds.Any)
         {
             try
             {
                 var MousePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
 
-                foreach (var KVP in ToolTipBounds)
+                for (var NameIndex = 0; NameIndex < ToolTipBounds.NameCount; NameIndex++)
                 {
-                    var ToolTipName = KVP.Key;
+                    var ToolTipName = ToolTipBounds.GetName(NameIndex);
                     if (ParentWindow.TryGetNamedToolTip(ToolTipName, out ToolTip))
                     {
-                        foreach (var Bounds in KVP.Value)
+                        var NameBounds = ToolTipBounds.GetBounds(NameIndex);
+                        for (var BoundsIndex = 0; BoundsIndex < NameBounds.Count; BoundsIndex++)
                         {
-                            if (Bounds.Contains(MousePosition))
+                            if (NameBounds[BoundsIndex].Contains(MousePosition))
                             {
                                 return true;
                             }
@@ -1986,7 +1988,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
         base.UpdateSelf(UA);
 
-        if (ActionBounds.Any())
+        if (ActionBounds.Any)
         {
             ActionBounds.Clear();
         }
@@ -2127,26 +2129,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
                     if (Run.HasToolTip)
                     {
-                        var ToolTipName = Run.ToolTipId;
-                        if (!ToolTipBounds.TryGetValue(ToolTipName, out var Bounds))
-                        {
-                            Bounds = new();
-                            ToolTipBounds.Add(ToolTipName, Bounds);
-                        }
-
-                        Bounds.Add(RoundedRunBounds);
+                        ToolTipBounds.Add(Run.ToolTipId, RoundedRunBounds);
                     }
 
                     if (Run.HasAction)
                     {
-                        var ActionName = Run.ActionId;
-                        if (!ActionBounds.TryGetValue(ActionName, out var Bounds))
-                        {
-                            Bounds = new();
-                            ActionBounds.Add(ActionName, Bounds);
-                        }
-
-                        Bounds.Add(RoundedRunBounds);
+                        ActionBounds.Add(Run.ActionId, RoundedRunBounds);
                     }
                 }
             }
@@ -2309,24 +2297,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
                     if (!string.IsNullOrEmpty(ToolTipId))
                     {
-                        if (!ToolTipBounds.TryGetValue(ToolTipId, out var Bounds))
-                        {
-                            Bounds = new();
-                            ToolTipBounds.Add(ToolTipId, Bounds);
-                        }
-
-                        Bounds.Add(RoundedRunBounds);
+                        ToolTipBounds.Add(ToolTipId, RoundedRunBounds);
                     }
 
                     if (!string.IsNullOrEmpty(ActionId))
                     {
-                        if (!ActionBounds.TryGetValue(ActionId, out var Bounds))
-                        {
-                            Bounds = new();
-                            ActionBounds.Add(ActionId, Bounds);
-                        }
-
-                        Bounds.Add(RoundedRunBounds);
+                        ActionBounds.Add(ActionId, RoundedRunBounds);
                     }
                 }
             }

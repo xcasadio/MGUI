@@ -12,7 +12,7 @@ internal sealed class CountingFormattedTextBlock : MGTextBlock
 {
     public int LayoutChangedCallCount { get; private set; }
 
-    public CountingFormattedTextBlock(MGWindow window, string text) : base(window, text, Color.White, 12, true) { }
+    public CountingFormattedTextBlock(MGWindow window, string text, bool allowsInlineFormatting = true) : base(window, text, Color.White, 12, allowsInlineFormatting) { }
 
     public void ResetCount() => LayoutChangedCallCount = 0;
 
@@ -41,7 +41,7 @@ internal sealed class FormattedTextHarness
     public int Width { get; }
 
     /// <param name="engine">The text engine: the default one measures 6 px per character and the fractional one has fractional, non additive metrics.</param>
-    public FormattedTextHarness(int width, bool legacy, bool wrap = true, Action<MGTextBlock> configure = null, bool stableFootprint = false, ITextMeasurementEngine engine = null)
+    public FormattedTextHarness(int width, bool legacy, bool wrap = true, Action<MGTextBlock> configure = null, bool stableFootprint = false, ITextMeasurementEngine engine = null, bool allowsInlineFormatting = true)
     {
         Width = width;
         Runtime = new GraphTestRuntime(new Rectangle(0, 0, 1200, 600));
@@ -53,7 +53,7 @@ internal sealed class FormattedTextHarness
         Desktop = new MGDesktop(Runtime);
         Desktop.Resources.AddTexture(FormattedTextCorpus.Icon, new MGTextureData(new GraphTestImageResource(FormattedTextCorpus.Icon, 20, 30)));
         Window = new MGWindow(Desktop, 0, 0, width, 300) { WindowStyle = WindowStyle.None, Padding = new Thickness(0) };
-        TextBlock = new CountingFormattedTextBlock(Window, "")
+        TextBlock = new CountingFormattedTextBlock(Window, "", allowsInlineFormatting)
         {
             WrapText = wrap,
             HasStableTextFootprint = stableFootprint,
