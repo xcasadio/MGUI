@@ -54,8 +54,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 MGTextRunUnderlineConfig UnderlineConfig = new(true);
                 if (!string.IsNullOrEmpty(Action.Parameter))
                 {
-                    (var Height, var VerticalOffset, var Brush) = FTTokenizer.ParseUnderlineValue(Action.Parameter.Substring(1));
-                    UnderlineConfig = new MGTextRunUnderlineConfig(true, Height ?? 1, VerticalOffset ?? 0, Brush);
+                    UnderlineConfig = ParseUnderlineValue(Action.Parameter.Substring(1));
                 }
                 return this with { Underline = UnderlineConfig };
             }
@@ -76,7 +75,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
             case FTActionType.SetForeground:
             {
                 PreviousForegrounds.Add(Foreground);
-                var Value = ColorStringConverter.ParseColor(Action.Parameter.Substring(1)).ToXNAColor(); //ColorTranslator.FromHtml(Action.Parameter.Substring(1)).AsXNAColor();
+                var Value = ParseForegroundValue(Action.Parameter.Substring(1));
                 return this with { Foreground = Value };
             }
             case FTActionType.RevertForeground:
@@ -86,8 +85,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
             case FTActionType.SetBackground:
             {
                 PreviousBackgrounds.Add(Background);
-                (var Brush, var Padding) = FTTokenizer.ParseBackgroundValue(Action.Parameter.Substring(1));
-                return this with { Background = new MGTextRunBackgroundConfig(Brush, Padding) };
+                return this with { Background = ParseBackgroundValue(Action.Parameter.Substring(1)) };
             }
             case FTActionType.RevertBackground:
                 return this with { Background = GeneralUtils.RemoveLast(PreviousBackgrounds, default) };
@@ -96,10 +94,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
             case FTActionType.SetShadowing:
             {
                 PreviousShadows.Add(Shadow);
-                var Words = Action.Parameter.Substring(1).Split(' ');
-                var ParsedShadowColor = ColorTranslator.FromHtml(Words[0]).AsXNAColor();
-                Vector2 ParsedShadowOffset = Words.Length == 3 ? new(int.Parse(Words[1]), int.Parse(Words[2])) : new(1, 1);
-                return this with { Shadow = new MGTextRunShadowConfig(ParsedShadowColor, ParsedShadowOffset) };
+                return this with { Shadow = ParseShadowValue(Action.Parameter.Substring(1)) };
             }
             case FTActionType.RevertShadowing:
                 return this with { Shadow = GeneralUtils.RemoveLast(PreviousShadows, default) };
@@ -129,6 +124,38 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this;
             default: throw new NotImplementedException($"Unrecognized {nameof(FTActionType)}: {Action.ActionType}");
         }
+    }
+
+    internal readonly MGTextRunConfig WithForeground(Color? Value) => this with { Foreground = Value };
+
+    //  The interpretation of the value of a tag (the text after the '=' sign), shared by ApplyAction and the allocation-free scanner (FormattedTextScanner),
+    //  so both read a value the same way.
+
+    /// <summary>The color of a <c>[color=...]</c> tag.</summary>
+    internal static Color ParseForegroundValue(string Value)
+        => ColorStringConverter.ParseColor(Value).ToXNAColor(); //ColorTranslator.FromHtml(Value).AsXNAColor();
+
+    /// <summary>The underline of a <c>[underline=...]</c> tag with a (possibly empty) value.</summary>
+    internal static MGTextRunUnderlineConfig ParseUnderlineValue(string Value)
+    {
+        (var Height, var VerticalOffset, var Brush) = FTTokenizer.ParseUnderlineValue(Value);
+        return new MGTextRunUnderlineConfig(true, Height ?? 1, VerticalOffset ?? 0, Brush);
+    }
+
+    /// <summary>The background of a <c>[background=...]</c> tag.</summary>
+    internal static MGTextRunBackgroundConfig ParseBackgroundValue(string Value)
+    {
+        (var Brush, var Padding) = FTTokenizer.ParseBackgroundValue(Value);
+        return new MGTextRunBackgroundConfig(Brush, Padding);
+    }
+
+    /// <summary>The shadow of a <c>[shadow=...]</c> tag.</summary>
+    internal static MGTextRunShadowConfig ParseShadowValue(string Value)
+    {
+        var Words = Value.Split(' ');
+        var ParsedShadowColor = ColorTranslator.FromHtml(Words[0]).AsXNAColor();
+        Vector2 ParsedShadowOffset = Words.Length == 3 ? new(int.Parse(Words[1]), int.Parse(Words[2])) : new(1, 1);
+        return new MGTextRunShadowConfig(ParsedShadowColor, ParsedShadowOffset);
     }
 }
 

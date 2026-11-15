@@ -1219,6 +1219,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
         => First.Left == Second.Left && First.Top == Second.Top && First.Right == Second.Right && First.Bottom == Second.Bottom;
 
     private bool _IsTrackingMouseClicks;
+    private EventHandler<BaseMouseReleasedEventArgs> _ReleasedInsideHandler;
     private bool IsTrackingMouseClicks
     {
         get => _IsTrackingMouseClicks;
@@ -1228,13 +1229,15 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 _IsTrackingMouseClicks = value;
 
+                //  One delegate for the life of the text block: a text that gains and loses actions does not allocate a delegate each time.
+                _ReleasedInsideHandler ??= Mouse_ReleasedInside;
                 if (IsTrackingMouseClicks)
                 {
-                    MouseHandler.ReleasedInside += Mouse_ReleasedInside;
+                    MouseHandler.ReleasedInside += _ReleasedInsideHandler;
                 }
                 else if (_MouseHandler != null)
                 {
-                    MouseHandler.ReleasedInside -= Mouse_ReleasedInside;
+                    MouseHandler.ReleasedInside -= _ReleasedInsideHandler;
                 }
             }
         }
@@ -1314,11 +1317,20 @@ public class MGTextBlock : MGElement, ITextMeasurer
         }
     }
 
+    /// <summary>True when the runs of the text are read by <see cref="FormattedTextScanner"/> instead of the tokenizer and the parser: formatted text (inline formatting allowed) and no explicit runs.
+    /// A text the scanner cannot read (see <see cref="FormattedTextScanner.TryScan"/>: markup that makes the legacy parser throw, for example) goes through the legacy code, which throws or reads it.</summary>
+    private bool UsesFormattedTextPath => _AllowsInlineFormatting && !HasExplicitRuns && !_ForceLegacyTextPath;
+
     private void UpdateRuns()
     {
         if (UsesPlainTextPath)
         {
             UpdatePlainRuns();
+            return;
+        }
+
+        if (UsesFormattedTextPath && UpdateFormattedRuns())
+        {
             return;
         }
 
@@ -1338,11 +1350,36 @@ public class MGTextBlock : MGElement, ITextMeasurer
         }
 
         _ArePlainRunsKnown = false;
+        _AreFormattedRunsKnown = false;
         IsTrackingMouseClicks = Runs.Any(x => x.HasAction);
         AreLinesDirty = true;
 
         NotifyPropertyChanged(nameof(Runs));
         NumCharacters = Runs.Where(x => x is MGTextRunText).Cast<MGTextRunText>().Sum(x => x.Text.Length);
+    }
+
+    /// <summary>The formatted text counterpart of <see cref="UpdateRuns"/>: the runs are scanned into reused buffers and the public <see cref="Runs"/> are only built if somebody reads them.</summary>
+    /// <returns>False if the scanner cannot read the text (the legacy code then does): nothing was changed.</returns>
+    private bool UpdateFormattedRuns()
+    {
+        _FormattedScanner ??= new FormattedTextScanner();
+        _FormattedScratch ??= new FormattedTextRuns();
+        if (!_FormattedScanner.TryScan(CurrentTextSpan, DefaultTextRunSettings, GetDesktop(), _FormattedScratch))
+        {
+            return false;
+        }
+
+        //  The scan went to the scratch buffers, so that a text the scanner cannot read leaves the runs as they were. They now become the runs.
+        (_FormattedRuns, _FormattedScratch) = (_FormattedScratch, _FormattedRuns);
+        _Runs = null;
+        _ArePlainRunsKnown = false;
+        _AreFormattedRunsKnown = true;
+        IsTrackingMouseClicks = _FormattedRuns.HasAction;
+        AreLinesDirty = true;
+
+        NotifyPropertyChanged(nameof(Runs));
+        NumCharacters = _FormattedRuns.TextLength;
+        return true;
     }
 
     /// <summary>The plain text counterpart of <see cref="UpdateRuns"/>: the runs are not built, only what the layout needs (the settings the runs would carry and the
@@ -1352,6 +1389,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
         _PlainSettings = DefaultTextRunSettings;
         _Runs = null;
         _ArePlainRunsKnown = true;
+        _AreFormattedRunsKnown = false;
         IsTrackingMouseClicks = false; // plain runs have no action
         AreLinesDirty = true;
 
@@ -1382,6 +1420,10 @@ public class MGTextBlock : MGElement, ITextMeasurer
             {
                 var Tokens = FTTokenizer.TokenizeLineBreaks(Text, true).ToList();
                 _Runs = MGTextRun.ParseRuns(Tokens, _PlainSettings).ToList().AsReadOnly();
+            }
+            else if (_Runs == null && _AreFormattedRunsKnown)
+            {
+                _Runs = _FormattedRuns.Materialize();
             }
 
             return _Runs;
@@ -1426,6 +1468,18 @@ public class MGTextBlock : MGElement, ITextMeasurer
     private bool _ArePlainRunsKnown;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private bool _ArePlainLinesKnown;
+
+    //  The formatted text path (see UsesFormattedTextPath): the runs of the text are in _FormattedRuns, and _FormattedScratch is the buffer the next text is scanned into.
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _AreFormattedRunsKnown;
+    /// <summary>Test seam: true when the runs of the current text were read by the allocation-free scanner (false when the legacy code read them).</summary>
+    internal bool AreFormattedRunsKnown => _AreFormattedRunsKnown;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private FormattedTextScanner _FormattedScanner;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private FormattedTextRuns _FormattedRuns;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private FormattedTextRuns _FormattedScratch;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private MGTextRunConfig _PlainSettings;
     /// <summary>The lines of the plain text, computed by <see cref="UpdateLines"/> for the layout width: what <see cref="Lines"/> are when the plain lines are known.</summary>
