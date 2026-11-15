@@ -214,36 +214,41 @@ public abstract class MGTextRun
 
         FormattedText = FormattedText.Replace("\t", TabReplacement);
 
-        if (!Tokenizer.TryTokenize(FormattedText, true, out var Tokens))
-        {
-            //FTTokenMatch InvalidToken = Tokens.First(x => x.TokenType == FTTokenType.InvalidToken);
-            //throw new InvalidDataException($"Formatted text does not match valid format: {FormattedText}\n\nError at token #{Tokens.IndexOf(InvalidToken) + 1} with value: {InvalidToken.Value}");
-
-            //  Parse as much as we can until hitting an InvalidToken.
-            //  Once we do, convert all remaining text into a StringLiteral token
-            var Temp = Tokens;
-            Tokens = new List<FTTokenMatch>();
-            for (var i = 0; i < Temp.Count; i++)
-            {
-                var CurrentToken = Temp[i];
-                if (i + 1 < Temp.Count)
-                {
-                    var NextToken = Temp[i + 1];
-                    if (NextToken.TokenType == FTTokenType.InvalidToken)
-                    {
-                        var Value = CurrentToken.Value + CurrentToken.RemainingText;
-                        Tokens.Add(new FTTokenMatch(FTTokenType.StringLiteral, Value, ""));
-                        break;
-                    }
-                }
-
-                Tokens.Add(CurrentToken);
-            }
-        }
-
+        //  The tokenizer only returns the tokens of well formed tags (see IsWellFormedTag), so no markup makes the parsing below fail.
+        var Tokens = Tokenizer.Tokenize(FormattedText, true).ToList();
         foreach (var Run in ParseRuns(Tokens, DefaultSettings))
         {
             yield return Run;
+        }
+    }
+
+    /// <summary>True if <paramref name="TagTokens"/>, the tokens of one tag from <see cref="FTTokenType.OpenTag"/> to <see cref="FTTokenType.CloseTag"/>, are a tag the parser knows whose value
+    /// can be interpreted (a color that exists, a number that fits, ...). The tokenizer asks, and reads the open tag character of anything else as a literal character (MGUI ADR-0030).</summary>
+    internal static bool IsWellFormedTag(IReadOnlyList<FTTokenMatch> TagTokens)
+    {
+        try
+        {
+            var Count = 0;
+            foreach (var Action in Parser.ParseTokens(TagTokens))
+            {
+                Count++;
+                if (Action.ActionType == FTActionType.Image)
+                {
+                    FTTokenizer.ParseImageValue(Action.Parameter.Substring(1));
+                }
+                else
+                {
+                    //  Interprets the value as the parsing of the runs will, on settings and lists that are thrown away
+                    default(MGTextRunConfig).ApplyAction(Action, new List<float>(), new List<Color?>(), new List<MGTextRunUnderlineConfig>(), new List<MGTextRunBackgroundConfig>(), new List<MGTextRunShadowConfig>());
+                }
+            }
+
+            return Count == 1;
+        }
+        catch (Exception)
+        {
+            //  The parser knows no such tag, or the interpretation of the value rejected it
+            return false;
         }
     }
 

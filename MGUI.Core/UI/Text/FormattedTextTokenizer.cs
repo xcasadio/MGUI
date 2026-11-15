@@ -51,6 +51,8 @@ public enum FTTokenType
     ActionCloseTagType,
     ActionValue,
 
+    /// <summary>Used by the tokenizer to recognize that no well formed tag starts at an open tag character. <see cref="FTTokenizer.Tokenize"/> never returns it:
+    /// such a character is part of a <see cref="StringLiteral"/>.</summary>
     InvalidToken,
 
     StringLiteral,
@@ -462,22 +464,14 @@ public class FTTokenizer
         return Result.ToString();
     }
 
-    /// <param name="ShouldTokenizeLineBreaks">If true, linebreaks '\n', '\r', "\r\n" will be tokenized as <see cref="FTTokenType.LineBreak"/>.<br/>
-    /// If false, they will not be tokenized, and will instead remain as a substring inside a <see cref="FTTokenType.StringLiteral"/> token.<para/>
-    /// Warning - A linebreak is treated as the character literals: '\n', '\r', "\r\n", as opposed to the escaped strings such as @"\n". Be sure not to accidentally use a literal escape character '\\', such as if prefixing a hard-coded string with @.</param>
-    public bool TryTokenize(string Text, bool ShouldTokenizeLineBreaks, out List<FTTokenMatch> Result)
-    {
-        Result = Tokenize(Text, ShouldTokenizeLineBreaks).ToList();
-        return !Result.Any(x => x.TokenType == FTTokenType.InvalidToken);
-    }
-
     private static readonly string EscapedEscapeOpenTagChar = Regex.Escape(EscapeOpenTagChar.ToString());
     private static readonly string EscapedOpenTagChar = Regex.Escape(OpenTagChar.ToString());
 
     private static readonly string SubPattern1 = $@"[^{EscapedEscapeOpenTagChar}{EscapedOpenTagChar}]";
     private static readonly string SubPattern2 = $@"({EscapedEscapeOpenTagChar}({EscapedEscapeOpenTagChar}*)(?!({EscapedEscapeOpenTagChar}|{EscapedOpenTagChar})))";
     private static readonly string SubPattern3 = $@"({EscapedEscapeOpenTagChar}{EscapedOpenTagChar})";
-    private static readonly string Pattern = $"^({SubPattern1}|{SubPattern2}|{SubPattern3})*";
+    //  Anchored where the match starts (\G), so the text is read in place, from an index, without a copy of what is left of it.
+    private static readonly Regex LiteralRegex = new($@"\G({SubPattern1}|{SubPattern2}|{SubPattern3})*");
 
     /// <param name="ShouldTokenizeLineBreaks">If true, linebreaks '\n', '\r', "\r\n" will be tokenized as <see cref="FTTokenType.LineBreak"/>.<br/>
     /// If false, they will not be tokenized, and will instead remain as a substring inside a <see cref="FTTokenType.StringLiteral"/> token.<para/>
@@ -489,59 +483,65 @@ public class FTTokenizer
             yield break;
         }
 
-        var RemainingText = Text;
+        var Index = 0;
         StringBuilder CurrentStringLiteral = new();
 
-        var IsTokenizingFormattingCode = false;
-
         FTTokenType? PreviousToken = null;
-        while (!string.IsNullOrEmpty(RemainingText))
+        while (Index < Text.Length)
         {
-            if (!IsTokenizingFormattingCode)
+            var Match = LiteralRegex.Match(Text, Index);
+            if (Match.Success && Match.Length > 0)
             {
-                var Match = Regex.Match(RemainingText, Pattern);
-                if (Match.Success && !string.IsNullOrEmpty(Match.Value))
-                {
-                    var StringLiteral = Match.Value.Replace($"{EscapeOpenTagChar}{OpenTagChar}", $"{OpenTagChar}");
-                    CurrentStringLiteral.Append(StringLiteral);
-                    RemainingText = RemainingText.Substring(Match.Length);
-                }
-                else if (RemainingText.StartsWith(string.Join("", Enumerable.Repeat(EscapeOpenTagChar, 2))))
-                {
-                    CurrentStringLiteral.Append(EscapeOpenTagChar);
-                    RemainingText = RemainingText.Substring(2);
-                }
-                else
-                {
-                    if (CurrentStringLiteral.Length > 0)
-                    {
-                        foreach (var Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
-                        {
-                            yield return Item;
-                        }
-
-                        PreviousToken = FTTokenType.StringLiteral;
-                    }
-
-                    CurrentStringLiteral.Clear();
-                    IsTokenizingFormattingCode = true;
-                }
+                var StringLiteral = Match.Value.Replace($"{EscapeOpenTagChar}{OpenTagChar}", $"{OpenTagChar}");
+                CurrentStringLiteral.Append(StringLiteral);
+                Index += Match.Length;
+            }
+            else if (Text[Index] == EscapeOpenTagChar && Index + 1 < Text.Length && Text[Index + 1] == EscapeOpenTagChar)
+            {
+                CurrentStringLiteral.Append(EscapeOpenTagChar);
+                Index += 2;
             }
             else
             {
-                var Match = Definitions.Select(x => x.Match(PreviousToken, RemainingText)).First(x => x != null).Value;
-                yield return Match;
-                RemainingText = Match.RemainingText;
-                PreviousToken = Match.TokenType;
+                //  An open tag character. If it does not open a well formed tag, it is a character like another and the reading goes on right after it (MGUI ADR-0030).
+                //  A tag ends at the first close tag character that follows, with no line feed and no other open tag character before it: only these characters are read to
+                //  decide, so each character of the text is looked at a bounded number of times whatever the text is.
+                var TagEndSearchStop = Index + 1;
+                while (TagEndSearchStop < Text.Length && Text[TagEndSearchStop] != CloseTagChar && Text[TagEndSearchStop] != OpenTagChar && Text[TagEndSearchStop] != '\n')
+                {
+                    TagEndSearchStop++;
+                }
 
-                if (Match.TokenType == FTTokenType.InvalidToken)
+                List<FTTokenMatch> TagTokens = null;
+                if (TagEndSearchStop < Text.Length && Text[TagEndSearchStop] == CloseTagChar)
                 {
-                    yield break;
+                    TagTokens = TokenizeTag(CurrentStringLiteral.Length > 0 ? FTTokenType.StringLiteral : PreviousToken, Text, Index, TagEndSearchStop);
                 }
-                else if (Match.TokenType == FTTokenType.CloseTag)
+
+                if (TagTokens == null)
                 {
-                    IsTokenizingFormattingCode = false;
+                    CurrentStringLiteral.Append(Text[Index]);
+                    Index++;
+                    continue;
                 }
+
+                if (CurrentStringLiteral.Length > 0)
+                {
+                    foreach (var Item in TokenizeLineBreaks(CurrentStringLiteral.ToString(), ShouldTokenizeLineBreaks))
+                    {
+                        yield return Item;
+                    }
+
+                    CurrentStringLiteral.Clear();
+                }
+
+                foreach (var Item in TagTokens)
+                {
+                    yield return Item;
+                }
+
+                Index = TagEndSearchStop + 1;
+                PreviousToken = FTTokenType.CloseTag;
             }
         }
 
@@ -552,6 +552,41 @@ public class FTTokenizer
                 yield return Item;
             }
         }
+    }
+
+    /// <summary>The tokens of the tag written from <paramref name="Start"/> (an <see cref="OpenTagChar"/>) to <paramref name="End"/> (the first <see cref="CloseTagChar"/> after it) in
+    /// <paramref name="Text"/>, from <see cref="FTTokenType.OpenTag"/> to <see cref="FTTokenType.CloseTag"/>. Only these characters are read, so a text that is not a tag costs its own length.</summary>
+    /// <returns>Null if these characters are not a well formed tag: an unknown type, a value that is not one of its type, or a value its interpretation rejects.</returns>
+    private List<FTTokenMatch> TokenizeTag(FTTokenType? PreviousToken, string Text, int Start, int End)
+    {
+        List<FTTokenMatch> Tokens = new();
+        var RemainingTag = Text.Substring(Start, End - Start + 1);
+        while (RemainingTag.Length > 0)
+        {
+            var Match = Definitions.Select(x => x.Match(PreviousToken, RemainingTag)).First(x => x != null).Value;
+            if (Match.TokenType == FTTokenType.InvalidToken)
+            {
+                return null;
+            }
+
+            Tokens.Add(Match);
+            RemainingTag = Match.RemainingText;
+            PreviousToken = Match.TokenType;
+        }
+
+        if (PreviousToken != FTTokenType.CloseTag || !MGTextRun.IsWellFormedTag(Tokens))
+        {
+            return null;
+        }
+
+        //  The tag is one: its tokens now say what is left of the whole text after each of them
+        var TextAfterTag = Text.Substring(End + 1);
+        for (var i = 0; i < Tokens.Count; i++)
+        {
+            Tokens[i] = Tokens[i] with { RemainingText = Tokens[i].RemainingText + TextAfterTag };
+        }
+
+        return Tokens;
     }
 
     private static readonly Regex LineBreakRegex = new("(\r\n|\r|\n)"); // "\r\n" for Windows, '\r' for Mac, '\n' for Linux

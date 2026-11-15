@@ -28,7 +28,7 @@ public class FormattedTextCultureTests
 
     private static List<FTTokenType> TokenTypes(FTTokenizer tokenizer, string text)
     {
-        Assert.True(tokenizer.TryTokenize(text, false, out var tokens));
+        var tokens = tokenizer.Tokenize(text, false);
         List<FTTokenType> types = new();
         foreach (var token in tokens)
         {

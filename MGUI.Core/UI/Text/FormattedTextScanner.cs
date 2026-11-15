@@ -7,15 +7,15 @@ namespace MGUI.Core.UI.Text;
 /// Reads a formatted text (inline markup such as <c>[b]</c>, <c>[color=Red]</c>, <c>[tooltip=Name]</c>, <c>[img=Name 16x16]</c>) into a reused <see cref="FormattedTextRuns"/> without allocating:
 /// the work of <see cref="FTTokenizer"/>, <see cref="FTParser"/>, <see cref="MGTextRun.ParseRuns(string, MGTextRunConfig)"/> and of the sanitizing of <see cref="MGTextBlock"/>, in one pass over the
 /// characters, with no regular expression, no substring, no LINQ and no collection created per call.<para/>
-/// The result is the one the legacy code gives, quirks included, for every text it can read without throwing. Where the legacy code throws (a tag that is not closed, a tag of a known
-/// type that is not well formed, a color that does not exist, ...), or where this scanner cannot be sure it would read the same thing (a non ASCII letter or digit where the grammar
-/// compares letters or digits), <see cref="TryScan"/> returns false and the caller runs the legacy code instead, which throws or reads the text itself.<para/>
+/// The result is the one the legacy code gives. Where this scanner cannot be sure it would read the same thing (a non ASCII letter or digit where the grammar compares letters or
+/// digits, an image with no size in a block that has no desktop), <see cref="TryScan"/> returns false and the caller runs the legacy code instead.<para/>
 /// The language, as the legacy tokenizer defines it:<list type="bullet">
 /// <item>A tab is four spaces. A line break is <c>\r\n</c>, <c>\r</c> or <c>\n</c>.</item>
 /// <item><c>\</c> followed by <c>[</c> is a literal <c>[</c>; two backslashes before a <c>[</c> are a literal backslash and the <c>[</c> starts a tag (the pairs of a run of backslashes before a
 /// <c>[</c> collapse to one backslash each, an odd one escapes the <c>[</c>); backslashes that are not before a <c>[</c> are literal and are not collapsed.</item>
-/// <item>A tag is <c>[type]</c>, <c>[type=value]</c> or <c>[/type]</c> (<c>[\type]</c>), the type being matched without case. A <c>[</c> that is followed by no known type turns the rest of the text,
-/// from that <c>[</c>, into a literal (line breaks included, escapes not processed). A value that is a name (tooltip, action, image, background, ...) runs up to the first <c>]</c>.</item>
+/// <item>A tag is <c>[type]</c>, <c>[type=value]</c> or <c>[/type]</c> (<c>[\type]</c>), the type being matched without case. A <c>[</c> that does not open a well formed tag (no known type,
+/// no closing <c>]</c>, a value that is not one of its type, a value its interpretation rejects) is a literal <c>[</c> and the reading goes on right after it: no markup makes the
+/// reading fail (MGUI ADR-0030). A value that is a name (tooltip, action, image, background, ...) runs up to the first <c>]</c>.</item>
 /// </list>
 /// The values that the legacy code interprets with a regular expression or a converter (colors, brushes, images) are interpreted by the same legacy functions and kept in a small cache
 /// (<see cref="CacheLimit"/> entries per kind), keyed by the characters of the value, and the names of the tooltips and the actions are interned the same way: a text whose values were
@@ -26,6 +26,17 @@ internal sealed class FormattedTextScanner
     /// <summary>The number of entries of each cache. A cache that is full is emptied before it takes a new entry, so a text block that keeps showing new names does not grow without bound.</summary>
     internal const int CacheLimit = 128;
 
+
+    /// <summary>What the scanner found at a '['.</summary>
+    private enum TagResult : byte
+    {
+        /// <summary>A well formed tag, which was read.</summary>
+        Tag,
+        /// <summary>No well formed tag: the '[' is a literal character.</summary>
+        NotATag,
+        /// <summary>The legacy code has to read the text.</summary>
+        Decline
+    }
 
     private enum TagKind : byte
     {
@@ -131,17 +142,7 @@ internal sealed class FormattedTextScanner
         PreviousToolTipIds.Clear();
         PreviousActionIds.Clear();
 
-        bool Success;
-        try
-        {
-            Success = ScanText(Desktop) && !IsAmbiguous;
-        }
-        catch (Exception)
-        {
-            //  A value the legacy interpretation rejects (an unknown color, a number that does not fit, ...): the legacy code reads the text and throws what it threw before.
-            Success = false;
-        }
-
+        var Success = ScanText(Desktop) && !IsAmbiguous;
         this.Output = null;
         return Success;
     }
@@ -196,9 +197,28 @@ internal sealed class FormattedTextScanner
             var c = Source[Position];
             if (c == '[')
             {
-                if (!ScanTag(ref Position, Desktop))
+                TagResult Result;
+                try
+                {
+                    Result = ScanTag(ref Position, Desktop);
+                }
+                catch (Exception)
+                {
+                    //  A value its interpretation rejects (a color that does not exist, a number that does not fit, ...): not a tag. The value is interpreted before the tag changes
+                    //  anything, so nothing was changed.
+                    Result = TagResult.NotATag;
+                }
+
+                if (Result == TagResult.Decline || IsAmbiguous)
                 {
                     return false;
+                }
+
+                if (Result == TagResult.NotATag)
+                {
+                    //  A '[' that does not open a well formed tag is a character like another, and the reading goes on right after it.
+                    AppendLiteral('[');
+                    Position++;
                 }
             }
             else if (c == '\\')
@@ -281,45 +301,32 @@ internal sealed class FormattedTextScanner
     }
 
     /// <summary>Reads the tag that starts at <paramref name="Position"/> (a '[') and moves <paramref name="Position"/> after it.</summary>
-    /// <returns>False if the legacy code has to read the text.</returns>
-    private bool ScanTag(ref int Position, MGDesktop Desktop)
+    /// <returns><see cref="TagResult.NotATag"/> if no well formed tag starts there: nothing was changed, <paramref name="Position"/> included.</returns>
+    private TagResult ScanTag(ref int Position, MGDesktop Desktop)
     {
         var Start = Position + 1;
         if (Start >= SourceLength)
         {
-            //  A '[' that ends the text: the legacy parser throws.
-            return false;
+            //  A '[' that ends the text
+            return TagResult.NotATag;
         }
 
         if (!MatchType(Start, out var Kind, out var IsClose, out var AfterType))
         {
-            if (IsAmbiguous)
-            {
-                return false;
-            }
-
-            //  Not a tag: the legacy tokenizer reads an invalid token right after the '[', and the parser turns the '[' and everything after it, line breaks and
-            //  escapes included, into one literal, which joins the literal that comes just before it.
-            for (var i = Position; i < SourceLength; i++)
-            {
-                AppendLiteral(Source[i]);
-            }
-
-            Position = SourceLength;
-            return true;
+            return TagResult.NotATag;
         }
 
         if (IsClose)
         {
             if (AfterType >= SourceLength || Source[AfterType] != ']')
             {
-                return false;
+                return TagResult.NotATag;
             }
 
             CloseText();
             ApplyClose(Kind);
             Position = AfterType + 1;
-            return true;
+            return TagResult.Tag;
         }
 
         switch (Kind)
@@ -328,7 +335,7 @@ internal sealed class FormattedTextScanner
             case TagKind.Italic:
                 if (AfterType >= SourceLength || Source[AfterType] != ']')
                 {
-                    return false;
+                    return TagResult.NotATag;
                 }
 
                 CloseText();
@@ -342,13 +349,13 @@ internal sealed class FormattedTextScanner
                 }
 
                 Position = AfterType + 1;
-                return true;
+                return TagResult.Tag;
 
             case TagKind.Underline:
-                return ScanUnderline(AfterType, ref Position);
+                return ScanUnderline(AfterType, ref Position) ? TagResult.Tag : TagResult.NotATag;
 
             case TagKind.Opacity:
-                return ScanOpacity(AfterType, ref Position);
+                return ScanOpacity(AfterType, ref Position) ? TagResult.Tag : TagResult.NotATag;
 
             default:
                 return ScanValuedTag(Kind, AfterType, ref Position, Desktop);
@@ -495,11 +502,11 @@ internal sealed class FormattedTextScanner
         return Source[i] == ' ' && i + 1 < End;
     }
 
-    private bool ScanValuedTag(TagKind Kind, int At, ref int Position, MGDesktop Desktop)
+    private TagResult ScanValuedTag(TagKind Kind, int At, ref int Position, MGDesktop Desktop)
     {
         if (At >= SourceLength || Source[At] != '=')
         {
-            return false;
+            return TagResult.NotATag;
         }
 
         var ValueStart = At + 1;
@@ -509,7 +516,7 @@ internal sealed class FormattedTextScanner
             case TagKind.Foreground:
                 if (!MatchColor(ValueStart, out End))
                 {
-                    return false;
+                    return TagResult.NotATag;
                 }
 
                 break;
@@ -517,7 +524,7 @@ internal sealed class FormattedTextScanner
             case TagKind.Shadow:
                 if (!MatchColor(ValueStart, out End))
                 {
-                    return false;
+                    return TagResult.NotATag;
                 }
 
                 End = MatchShadowOffset(End);
@@ -527,13 +534,13 @@ internal sealed class FormattedTextScanner
                 //  Background, image, tooltip, action: a name that runs up to the first ']'
                 if (ValueStart >= SourceLength || Source[ValueStart] == ']')
                 {
-                    return false;
+                    return TagResult.NotATag;
                 }
 
                 End = IndexOfCloseTag(ValueStart);
                 if (End < 0 || Contains(ValueStart, End, '\n'))
                 {
-                    return false;
+                    return TagResult.NotATag;
                 }
 
                 break;
@@ -541,7 +548,7 @@ internal sealed class FormattedTextScanner
 
         if (End >= SourceLength || Source[End] != ']' || IsAmbiguous)
         {
-            return false;
+            return TagResult.NotATag;
         }
 
         var Value = new ReadOnlySpan<char>(Source, ValueStart, End - ValueStart);
@@ -582,6 +589,12 @@ internal sealed class FormattedTextScanner
                 //  An image that has no size takes the default size of its texture
                 if (Width <= 0 && Height <= 0)
                 {
+                    if (Desktop == null)
+                    {
+                        //  No desktop to give the size of the texture: the legacy code reads the text (and fails as it always did).
+                        return TagResult.Decline;
+                    }
+
                     (var DefaultWidth, var DefaultHeight) = Desktop.Resources.GetTextureDimensions(Image.SourceName);
                     Width = DefaultWidth ?? 0;
                     Height = DefaultHeight ?? 0;
@@ -620,7 +633,7 @@ internal sealed class FormattedTextScanner
         }
 
         Position = End + 1;
-        return true;
+        return TagResult.Tag;
     }
 
     private void ApplyClose(TagKind Kind)
@@ -769,13 +782,21 @@ internal sealed class FormattedTextScanner
         return false;
     }
 
+    /// <summary>The first ']' at or after <paramref name="Start"/>, or -1 if a line feed or a '[' comes first: a tag holds neither. The search stops there, so each character of
+    /// the text is looked at a bounded number of times whatever the text is.</summary>
     private int IndexOfCloseTag(int Start)
     {
         for (var i = Start; i < SourceLength; i++)
         {
-            if (Source[i] == ']')
+            var c = Source[i];
+            if (c == ']')
             {
                 return i;
+            }
+
+            if (c == '[' || c == '\n')
+            {
+                return -1;
             }
         }
 

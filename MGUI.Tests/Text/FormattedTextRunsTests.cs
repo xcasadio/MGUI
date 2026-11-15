@@ -110,32 +110,97 @@ public class FormattedTextRunsTests
 
         Output.WriteLine($"{corpus.Count} texts (x2): {read} read by the scanner, {threw} that the legacy code throws on, {declined} declined without a throw");
         Assert.True(corpus.Count >= 500);
-        Assert.True(read >= 700, $"{read} read");
-        Assert.True(threw >= 100, $"{threw} threw");
+        Assert.True(read >= 1000, $"{read} read");
+        //  No markup makes the reading fail (MGUI ADR-0030)
+        Assert.Equal(0, threw);
         Assert.True(declined >= 4, $"{declined} declined");
     }
 
-    [Fact]
-    public void ATextThatThrows_LeavesTheTextBlockAsTheLegacyCodeLeavesIt()
+    public static IEnumerable<object[]> TextsWithAnOpenTagCharacterThatOpensNoTag() => new[]
     {
-        foreach (string text in new[] { "[bold", "abc[", "[color=NotAColor]x", "[o=1.5]x", "[u=99999999999]x[/u]" })
+        //  text, then what is expected: the texts of the runs, "|" between two runs, "*" before a bold one, "/" for a line break
+        new object[] { "[bold", "[bold" },
+        new object[] { "abc[", "abc[" },
+        new object[] { "[", "[" },
+        new object[] { "[foo]", "[foo]" },
+        new object[] { "[color=NotAColor]x", "[color=NotAColor]x" },
+        new object[] { "[o=1.5]x", "[o=1.5]x" },
+        new object[] { "[u=99999999999]x[/u]", "[u=99999999999]x" },
+        new object[] { "[b x]y", "[b x]y" },
+        new object[] { "[/b x]y", "[/b x]y" },
+        new object[] { "[tt=Name", "[tt=Name" },
+        new object[] { "a [x] [b]bold[/b] c", "a [x] |*bold| c" },
+        new object[] { "[[b]x[/b]", "[|*x" },
+        new object[] { "[b][x[/b]y", "*[x|y" },
+        new object[] { "[foo]\nbar", "[foo]|/|bar" },
+        new object[] { "[foo] \\[b] [b]x", "[foo] [b] |*x" },
+        new object[] { "[color=NotAColor][b]x[/b]", "[color=NotAColor]|*x" },
+        //  A tag ends at the first close tag character on its line: a value does not start with one, and does not go past a line feed
+        new object[] { "[tt=]a]b", "[tt=]a]b" },
+        new object[] { "[bg=]x]y", "[bg=]x]y" },
+        new object[] { "[tt=a\nb]c", "[tt=a|/|b]c" },
+        //  ... and holds no other open tag character
+        new object[] { "[tt=a[b]x[/b]y", "[tt=a|*x|y" },
+        new object[] { "[bg=[bg=Red]x", "[bg=|x" },
+    };
+
+    [Theory]
+    [MemberData(nameof(TextsWithAnOpenTagCharacterThatOpensNoTag))]
+    public void AnOpenTagCharacterThatOpensNoWellFormedTag_IsALiteralCharacter_AndTheReadingGoesOn(string text, string expected)
+    {
+        foreach (bool legacy in new[] { true, false })
         {
-            FormattedTextHarness legacy = new(300, true);
-            FormattedTextHarness scanned = new(300, false);
-            legacy.TextBlock.Text = "[color=Red]before[/color]";
-            scanned.TextBlock.Text = "[color=Red]before[/color]";
-            Assert.True(scanned.TextBlock.AreFormattedRunsKnown);
+            FormattedTextHarness harness = new(300, legacy);
+            Exception error = Record.Exception(() => harness.TextBlock.Text = text);
+            Assert.Null(error);
+            Assert.Equal(!legacy, harness.TextBlock.AreFormattedRunsKnown);
 
-            Exception expected = Record.Exception(() => legacy.TextBlock.Text = text);
-            Exception actual = Record.Exception(() => scanned.TextBlock.Text = text);
+            List<string> parts = new();
+            foreach (MGTextRun run in harness.TextBlock.Runs)
+            {
+                parts.Add(run switch
+                {
+                    MGTextRunText textRun => (textRun.Settings.IsBold ? "*" : "") + textRun.Text,
+                    MGTextRunLineBreak => "/",
+                    _ => run.GetType().Name
+                });
+            }
 
-            Assert.NotNull(expected);
-            Assert.NotNull(actual);
-            Assert.Equal(expected.GetType(), actual.GetType());
-            Assert.Equal(text, scanned.TextBlock.Text);
-            Assert.Equal(TextRunDescriber.Describe(legacy.TextBlock.Runs), TextRunDescriber.Describe(scanned.TextBlock.Runs));
-            //  The runs of the text before are still the runs, whatever scanned them.
-            Assert.Contains(TextRunDescriber.Describe(scanned.TextBlock.Runs), x => x.Contains("before"));
+            Assert.Equal(expected, string.Join("|", parts));
+        }
+    }
+
+    [Fact]
+    public void ALongTextOfOpenTagCharactersThatOpenNoTag_IsNotReadOncePerOpenTagCharacter()
+    {
+        //  Each of these took seconds (or, for the scanner, a hundred milliseconds) when every '[' made the rest of the text be read again
+        string[] texts =
+        {
+            new string('[', 20000),
+            string.Concat(Enumerable.Repeat("[tt=", 5000)),
+            "[é]" + string.Concat(Enumerable.Repeat("[tt=", 5000)),
+            "[é]" + string.Concat(Enumerable.Repeat("[bg=", 5000)),
+            string.Concat(Enumerable.Repeat("[u=1 ", 4000)),
+            string.Concat(Enumerable.Repeat("[tt=a\n", 3000)) + "]",
+            string.Concat(Enumerable.Repeat("[c=x", 4000)) + "]",
+            string.Concat(Enumerable.Repeat("[bg=", 5000)) + "]",
+            string.Concat(Enumerable.Repeat("[u=1 2 ", 2858)) + "]",
+            "[é]" + string.Concat(Enumerable.Repeat("[bg=", 5000)) + "]",
+            new string('[', 20000) + "]",
+        };
+
+        foreach (bool legacy in new[] { true, false })
+        {
+            FormattedTextHarness harness = new(300, legacy);
+            harness.TextBlock.Text = "[b]warm[/b] [tt=up]";
+            foreach (string text in texts)
+            {
+                System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+                harness.TextBlock.Text = text;
+                watch.Stop();
+                Output.WriteLine($"legacy={legacy} {text.Length} characters starting with \"{TextRunDescriber.Escape(text.Substring(0, 8))}\": {watch.ElapsedMilliseconds} ms");
+                Assert.True(watch.ElapsedMilliseconds < 1000, $"legacy={legacy} \"{TextRunDescriber.Escape(text.Substring(0, 8))}\"...: {watch.ElapsedMilliseconds} ms");
+            }
         }
     }
 

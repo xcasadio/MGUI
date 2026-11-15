@@ -12,7 +12,7 @@
 //   NEW: Count consecutive backslashes before '['.
 //   For N backslashes: add N extra (doubling them to preserve literals) + 1 escape.
 //
-// TOKENIZER PROOF (cases verified with TryTokenize):
+// TOKENIZER PROOF (cases verified with Tokenize):
 //   Input              Tokens produced               Expected
 //   "\\[Bold]"         StringLiteral("[Bold]")       '[' IS escaped (1 backslash = odd)
 //   "\\\\[Bold]"       StringLiteral("\") + tag...   '[' NOT escaped (2 backslashes = even)
@@ -84,7 +84,8 @@ namespace MGUI.Samples.Features
             // Odd backslash count → '[' IS escaped → all tokens are StringLiteral
             {
                 total++;
-                bool ok = tok.TryTokenize("\\[Bold]", false, out List<FTTokenMatch> tokens);
+                List<FTTokenMatch> tokens = tok.Tokenize("\\[Bold]", false).ToList();
+                bool ok = tokens.Count > 0;
                 // The tokenizer should parse this entirely as string literals (no tags).
                 // '\\[Bold]' in C# string = \[Bold] = 1 backslash + [Bold]
                 // Tokenizer: SubPattern3 matches \[ → literal '[', 'Bold]' → literal
@@ -112,7 +113,8 @@ namespace MGUI.Samples.Features
             {
                 total++;
                 // In C# regular string: "\\[Bold]" = \\ + [Bold] = 2 backslashes + [Bold]
-                bool ok = tok.TryTokenize("\\\\[b]Bold[/b]", false, out List<FTTokenMatch> tokens);
+                List<FTTokenMatch> tokens = tok.Tokenize("\\\\[b]Bold[/b]", false).ToList();
+                bool ok = tokens.Count > 0;
                 // The tokenizer should: '\\' → literal '\', then '[b]Bold[/b]' → tag + string + close tag
                 bool hasTag = ok && tokens.Any(t => t.TokenType == FTTokenType.BoldOpenTagType);
                 bool hasLiteralBackslash = ok && tokens.Any(t => t.TokenType == FTTokenType.StringLiteral
@@ -138,7 +140,8 @@ namespace MGUI.Samples.Features
             {
                 total++;
                 // In C# regular string: "\\\[Bold]" = \\\ + [Bold] = 3 backslashes + [Bold]
-                bool ok = tok.TryTokenize("\\\\\\[Bold]", false, out List<FTTokenMatch> tokens);
+                List<FTTokenMatch> tokens = tok.Tokenize("\\\\\\[Bold]", false).ToList();
+                bool ok = tokens.Count > 0;
                 bool allLiteral = ok && tokens.All(t => t.TokenType == FTTokenType.StringLiteral);
                 string combined = string.Concat(tokens.Select(t => t.Value));
                 // '\\' branch → '\\', '\[' → '[', result = '\\[Bold]' no wait...
@@ -169,7 +172,8 @@ namespace MGUI.Samples.Features
                 string rawInput = "\\[Bold]";   // 1 backslash + [Bold]
                 string escaped = FTTokenizer.EscapeMarkdown(rawInput);
                 // After fix: escaped = \\\[Bold] (3 backslashes) → renders \[Bold] (1 backslash + literal '[Bold]')
-                bool ok = tok.TryTokenize(escaped, false, out List<FTTokenMatch> tokens);
+                List<FTTokenMatch> tokens = tok.Tokenize(escaped, false).ToList();
+                bool ok = tokens.Count > 0;
                 bool allLiteral = ok && tokens.All(t => t.TokenType == FTTokenType.StringLiteral);
                 string rendered = string.Concat(tokens.Select(t => t.Value));
                 bool correct = rendered == rawInput;  // should render exactly as typed
@@ -197,7 +201,8 @@ namespace MGUI.Samples.Features
                 total++;
                 string rawInput = "\\\\[Bold]";   // 2 backslashes + [Bold]
                 string escaped = FTTokenizer.EscapeMarkdown(rawInput);
-                bool ok = tok.TryTokenize(escaped, false, out List<FTTokenMatch> tokens);
+                List<FTTokenMatch> tokens = tok.Tokenize(escaped, false).ToList();
+                bool ok = tokens.Count > 0;
                 bool allLiteral = ok && tokens.All(t => t.TokenType == FTTokenType.StringLiteral);
                 string rendered = string.Concat(tokens.Select(t => t.Value));
                 bool correct = rendered == rawInput;
