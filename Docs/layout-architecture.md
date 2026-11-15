@@ -115,6 +115,33 @@ Un nouveau container participe automatiquement au responsive pour tout ce qui tr
 
 Tests du resolveur et des anchors : `MGUI.Tests/Architecture/ResponsiveMetricsResolverTests.cs`. Tests de regression layout sous scale (containers, texte, viewports extremes, non-regression opt-in) : `MGUI.Tests/Architecture/ResponsiveLayoutRegressionTests.cs` et `MGUI.Tests/Architecture/ResponsiveTextAndViewportRegressionTests.cs`.
 
+## Image du bureau sans allocation
+
+Apres une image de chauffe, `MGDesktop.Update()` et `MGDesktop.Draw(IUIDrawTransaction)` n'allouent rien pour un bureau fait de fenetres (`MGWindow` avec ou sans barre de titre, `MGBorder`, `MGResizeGrip`, bouton de fermeture au repos ou survole) dont le contenu est fait de `MGStackPanel`, `MGDockPanel`, `MGGrid`, `MGTextBlock` et `MGSlider`, et pour un `MGDockHost` a un seul groupe d'onglets :
+
+- au repos, souris hors de la fenetre, immobile ou en mouvement au-dessus d'elle ;
+- pendant le glissement d'un slider dont le texte de valeur ne change pas ;
+- apres un changement de texte d'un `MGTextBlock` a chaque image par `SetText(ReadOnlySpan<char>)`, mesure et arrangement compris, dans un `MGStackPanel`, un `MGDockPanel` ou un `MGGrid` dont les cellules ne changent pas de bornes.
+
+Regles a suivre dans un controle pour garder ce resultat :
+
+- ne pas s'abonner a ses propres evenements d'`Update` ou de `Draw` : un abonne fait creer les arguments de l'evenement a chaque image. Redefinir les methodes internes `BeginUpdateInternal`, `BeginUpdateContentsInternal`, `EndUpdateContentsInternal`, `EndUpdateInternal` ou `EndingDrawInternal` de `MGElement`, appelees juste avant l'evenement correspondant ;
+- un `DrawContents` redefini dessine ses enfants directement, sans `foreach (GetChildren())` (l'iterateur alloue). `MGSingleContentHost` et `MGMultiContentHost` le font deja pour tout type qui ne redefinit pas `GetChildren` ; un type qui le redefinit garde la boucle sur `GetChildren` ;
+- pas de LINQ, de liste ou de dictionnaire temporaire dans la mesure, l'arrangement ou le dessin ; l'ordre des fenetres passe par `MGDesktop.FillUpdateOrder` et `FillDrawOrder`.
+
+Ce qui alloue encore, mesure :
+
+- une `MGGrid` avec une selection de mode `Row`, `Column` ou `Cell` (iterateur a chaque `Draw`), et une grille dont les cellules changent de bornes (dictionnaire des bornes recree) ;
+- un `MGDockHost` avec separations, panneaux masques ou apercu de depot (`MGDockSplitContainer`, `MGDockAutoHideStrip`, `MGDockAutoHideDrawer`, `MGDockPreviewOverlay`) ; apres un changement de texte, 32 octets par image dans `MGDockTabGroup` ; Ctrl+Tab (lecture des modificateurs dans `KeyboardTracker`) ;
+- une fenetre en `SizeToContent` redimensionnee a chaque image : 488 a 1422 octets par `Draw` (chaque element garde 8 definitions de clip recentes) ;
+- `MGTextBox` et `MGGridColorPicker` : un nom de clip neuf a chaque dessin ;
+- un abonne a un evenement d'`Update` ou de `Draw` d'un element (arguments crees a chaque image) ;
+- les autres familles de controles (listes, arbres, onglets, menus, defilement, saisie) : non mesurees.
+
+Un enfant qui ajoute ou retire des enfants de son parent pendant son propre `Draw` ne fait plus lever d'exception par le parcours : le parcours continue a l'indice suivant de la collection modifiee.
+
+Tests : `MGUI.Tests/Architecture/DesktopFrameAllocationMeasurements.cs`, `DesktopFrameZeroAllocationTests.cs`, `DesktopFrameLayoutTextTests.cs` (zero), `DesktopFrameCharacterisationTests.cs` (journal ordonne des appels de dessin), `ContentHostDrawContentsTests.cs`. Le cout des clips d'un backend reel est traite a part (ADR-0027).
+
 ## Limites connues
 
 - Les metriques sont resolues depuis le viewport du desktop (`ValidScreenBounds`), pas par fenetre.
