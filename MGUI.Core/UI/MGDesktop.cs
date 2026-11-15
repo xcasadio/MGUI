@@ -1045,6 +1045,59 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     /// Note: This list does not include the special window used to render overlays. See: <see cref="OverlayHost"/></summary>
     public List<MGWindow> Windows { get; }
 
+    //  The windows in the order Update walks them and in the order Draw walks them, rebuilt every frame in lists kept between frames.
+    //  The "in use" flags tell a nested Update or Draw (called by a window during the walk) to take a list of its own.
+    private readonly List<MGWindow> UpdateOrderBuffer = new();
+    private bool IsUpdateOrderBufferInUse;
+    private readonly List<MGWindow> DrawOrderBuffer = new();
+    private bool IsDrawOrderBufferInUse;
+
+    /// <summary>Fills <paramref name="Result"/> (cleared first) with the windows in the order <see cref="Update"/> walks them: topmost windows first,
+    /// then the other windows, each group from the last window of <paramref name="Windows"/> to the first. Same order as
+    /// <c>Windows.Reverse().OrderByDescending(x => x.IsTopmost)</c> (a stable sort), without allocating.</summary>
+    internal static void FillUpdateOrder(List<MGWindow> Windows, List<MGWindow> Result)
+    {
+        Result.Clear();
+        for (var i = Windows.Count - 1; i >= 0; i--)
+        {
+            if (Windows[i].IsTopmost)
+            {
+                Result.Add(Windows[i]);
+            }
+        }
+
+        for (var i = Windows.Count - 1; i >= 0; i--)
+        {
+            if (!Windows[i].IsTopmost)
+            {
+                Result.Add(Windows[i]);
+            }
+        }
+    }
+
+    /// <summary>Fills <paramref name="Result"/> (cleared first) with the windows in the order <see cref="Draw(IUIDrawTransaction, float)"/> walks them:
+    /// the other windows first, then the topmost windows, each group from the first window of <paramref name="Windows"/> to the last. Same order as
+    /// <c>Windows.OrderBy(x => x.IsTopmost)</c> (a stable sort), without allocating.</summary>
+    internal static void FillDrawOrder(List<MGWindow> Windows, List<MGWindow> Result)
+    {
+        Result.Clear();
+        for (var i = 0; i < Windows.Count; i++)
+        {
+            if (!Windows[i].IsTopmost)
+            {
+                Result.Add(Windows[i]);
+            }
+        }
+
+        for (var i = 0; i < Windows.Count; i++)
+        {
+            if (Windows[i].IsTopmost)
+            {
+                Result.Add(Windows[i]);
+            }
+        }
+    }
+
     /// <summary>Moves the given <paramref name="Window"/> to the end of <see cref="Windows"/> list.<br/>
     /// It will typically be rendered overtop of all other <see cref="Windows"/> and have first chance at receiving/handling input,<br/>
     /// unless another window is Topmost (See: <see cref="MGWindow.IsTopmost"/>).</summary>
@@ -1617,56 +1670,72 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
 
         var IsWindowOccludedAtMousePos = false;
 
-        List<MGWindow> OrderedWindows;
-        using (UIPerformanceProbe.BeginDesktopPhase("OrderedWindows"))
+        //  The walk goes over a copy of Windows (a window opened or closed during the walk does not change it). The copy lives in a list
+        //  kept between frames; a nested Update (a window updating its desktop again) finds it in use and takes a list of its own.
+        var OwnsUpdateOrderBuffer = !IsUpdateOrderBufferInUse;
+        List<MGWindow> OrderedWindows = OwnsUpdateOrderBuffer ? UpdateOrderBuffer : new List<MGWindow>(Windows.Count + 1);
+        IsUpdateOrderBufferInUse = true;
+        try
         {
-            OrderedWindows = Windows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost).ToList();
-            OrderedWindows.Insert(0, OverlayWindow);
-        }
-
-        using (UIPerformanceProbe.BeginDesktopPhase("WindowUpdates"))
-        {
-            foreach (var Window in OrderedWindows)
+            using (UIPerformanceProbe.BeginDesktopPhase("OrderedWindows"))
             {
-                var PreviousQueuedToolTip = QueuedToolTip;
+                FillUpdateOrder(Windows, OrderedWindows);
+                OrderedWindows.Insert(0, OverlayWindow);
+            }
 
-                var IsOverlayWindow = Window == OverlayWindow;
-                var ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
-
-                //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, documented in Docs/input-architecture.md "Fenetres superposees"):
-                //  tell this window whether a higher window already claimed the mouse position this tick, so it can suppress
-                //  HoveredElement/PressedElement for the occluded position. Keyboard routing (by focus, not z-order) is untouched:
-                //  unlike ProcessInputs above, this does not affect ElementUpdateArgs.IsHitTestVisible.
-                Window.IsOccludedAtMousePos = IsWindowOccludedAtMousePos;
-
-                Window.Update(ProcessInputs ? UA : UA with { IsHitTestVisible = false });
-
-                //  Disallow occluded windows from overriding the active ToolTip
-                //  TODO probably also need similar logic in MGWindow.OnBeginUpdateContents in case it has nested window(s)
-                QueuedToolTip = IsWindowOccludedAtMousePos ? PreviousQueuedToolTip : QueuedToolTip;
-
-                //  The next window that we update is visually occluded at the current mouse position if the current window is being hovered,
-                //  since that means the mouse is hovering a window that is drawn overtop of the next window
-                if (!IsWindowOccludedAtMousePos && Window.VisualState.IsPressedOrHovered)
+            using (UIPerformanceProbe.BeginDesktopPhase("WindowUpdates"))
+            {
+                foreach (var Window in OrderedWindows)
                 {
-                    if (IsOverlayWindow) // When an overlay is being shown, disallow showing of tooltips that belong to windows underneath the overlay
+                    var PreviousQueuedToolTip = QueuedToolTip;
+
+                    var IsOverlayWindow = Window == OverlayWindow;
+                    var ProcessInputs = FocusInputPolicy.ShouldProcessWindowInputs(IsOverlayWindow, OverlayHost.ActiveOverlay != null, OverlayHost.IsModal);
+
+                    //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, documented in Docs/input-architecture.md "Fenetres superposees"):
+                    //  tell this window whether a higher window already claimed the mouse position this tick, so it can suppress
+                    //  HoveredElement/PressedElement for the occluded position. Keyboard routing (by focus, not z-order) is untouched:
+                    //  unlike ProcessInputs above, this does not affect ElementUpdateArgs.IsHitTestVisible.
+                    Window.IsOccludedAtMousePos = IsWindowOccludedAtMousePos;
+
+                    Window.Update(ProcessInputs ? UA : UA with { IsHitTestVisible = false });
+
+                    //  Disallow occluded windows from overriding the active ToolTip
+                    //  TODO probably also need similar logic in MGWindow.OnBeginUpdateContents in case it has nested window(s)
+                    QueuedToolTip = IsWindowOccludedAtMousePos ? PreviousQueuedToolTip : QueuedToolTip;
+
+                    //  The next window that we update is visually occluded at the current mouse position if the current window is being hovered,
+                    //  since that means the mouse is hovering a window that is drawn overtop of the next window
+                    if (!IsWindowOccludedAtMousePos && Window.VisualState.IsPressedOrHovered)
                     {
-                        IsWindowOccludedAtMousePos = OverlayHost.ActiveOverlay != null;
-                    }
-                    else if (!Window.AllowsClickThrough)
-                    {
-                        IsWindowOccludedAtMousePos = true;
-                    }
-                    else
-                    {
-                        //  Since this window DOES allow click-through, validate that at least one opaque element is being hovered
-                        var OpaqueHoveredElement = FindFirstOpaqueParent(Window.HoveredElement, true);
-                        if (OpaqueHoveredElement != null && OpaqueHoveredElement != Window)
+                        if (IsOverlayWindow) // When an overlay is being shown, disallow showing of tooltips that belong to windows underneath the overlay
+                        {
+                            IsWindowOccludedAtMousePos = OverlayHost.ActiveOverlay != null;
+                        }
+                        else if (!Window.AllowsClickThrough)
                         {
                             IsWindowOccludedAtMousePos = true;
                         }
+                        else
+                        {
+                            //  Since this window DOES allow click-through, validate that at least one opaque element is being hovered
+                            var OpaqueHoveredElement = FindFirstOpaqueParent(Window.HoveredElement, true);
+                            if (OpaqueHoveredElement != null && OpaqueHoveredElement != Window)
+                            {
+                                IsWindowOccludedAtMousePos = true;
+                            }
+                        }
                     }
                 }
+            }
+        }
+        finally
+        {
+            if (OwnsUpdateOrderBuffer)
+            {
+                //  Release the windows: the list is kept, its content is not.
+                OrderedWindows.Clear();
+                IsUpdateOrderBufferInUse = false;
             }
         }
 
@@ -1757,9 +1826,25 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
         {
             using (BA.DT.PushRectangleClip(ScreenBounds, true))
             {
-                foreach (var Window in Windows.OrderBy(x => x.IsTopmost))
+                //  Same copy rule as Update: the walk goes over a kept list, a nested Draw takes a list of its own.
+                var OwnsDrawOrderBuffer = !IsDrawOrderBufferInUse;
+                List<MGWindow> DrawOrder = OwnsDrawOrderBuffer ? DrawOrderBuffer : new List<MGWindow>(Windows.Count);
+                IsDrawOrderBufferInUse = true;
+                try
                 {
-                    Window.Draw(DA);
+                    FillDrawOrder(Windows, DrawOrder);
+                    for (var i = 0; i < DrawOrder.Count; i++)
+                    {
+                        DrawOrder[i].Draw(DA);
+                    }
+                }
+                finally
+                {
+                    if (OwnsDrawOrderBuffer)
+                    {
+                        DrawOrder.Clear();
+                        IsDrawOrderBufferInUse = false;
+                    }
                 }
 
                 if (OverlayHost.ActiveOverlay != null)
