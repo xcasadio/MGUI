@@ -1109,7 +1109,19 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return false;
         }
 
-        DesiredSize = _ArePlainLinesKnown ? MeasureDesiredTextSize(PlainLines) : MeasureDesiredTextSize(Lines);
+        if (_ArePlainLinesKnown)
+        {
+            DesiredSize = MeasureDesiredTextSize(PlainLines);
+        }
+        else if (_AreFormattedLinesKnown)
+        {
+            DesiredSize = MeasureDesiredTextSize(_FormattedLines);
+        }
+        else
+        {
+            DesiredSize = MeasureDesiredTextSize(Lines);
+        }
+
         return true;
     }
 
@@ -1137,6 +1149,15 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return true;
         }
 
+        if (_AreFormattedRunsKnown)
+        {
+            //  Formatted text: same, over the scanned runs.
+            _FormattedMeasureLines ??= new FormattedTextLayout();
+            _FormattedMeasureLines.Build(this, _FormattedRuns, TextContentSize.Width, WrapText, IgnoreEmptySpaceLines, false);
+            DesiredSize = MeasureDesiredTextSize(_FormattedMeasureLines);
+            return true;
+        }
+
         return TryMeasureDesiredTextSize(TextContentSize, Runs, out DesiredSize);
     }
 
@@ -1156,6 +1177,37 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     /// <summary>Same computation as <see cref="MeasureDesiredTextSize(IReadOnlyList{MGTextLine})"/>, over the lines of a plain text.</summary>
     private Thickness MeasureDesiredTextSize(PlainTextLayout TextLines)
+    {
+        var MeasuredLineCount = TextLines.LineCount;
+        if (MaxLines.HasValue && MeasuredLineCount > MaxLines.Value)
+        {
+            MeasuredLineCount = Math.Max(0, MaxLines.Value);
+        }
+
+        float Width = 0;
+        float Height = 0;
+        for (var i = 0; i < MeasuredLineCount; i++)
+        {
+            var Line = TextLines.GetLine(i);
+            Width = Math.Max(Width, Line.Width);
+            Height += Line.TotalHeight;
+        }
+
+        if (MeasuredLineCount > 1)
+        {
+            Height += EffectiveLinePadding * (MeasuredLineCount - 1);
+        }
+
+        if (MinLines > MeasuredLineCount)
+        {
+            Height += (MinLines - MeasuredLineCount) * (RF_Regular.LineHeight + EffectiveLinePadding);
+        }
+
+        return new Thickness((int)Math.Ceiling(Width), (int)Math.Ceiling(Height), 0, 0);
+    }
+
+    /// <summary>Same computation as <see cref="MeasureDesiredTextSize(IReadOnlyList{MGTextLine})"/>, over the lines of a formatted text.</summary>
+    private Thickness MeasureDesiredTextSize(FormattedTextLayout TextLines)
     {
         var MeasuredLineCount = TextLines.LineCount;
         if (MaxLines.HasValue && MeasuredLineCount > MaxLines.Value)
@@ -1253,25 +1305,35 @@ public class MGTextBlock : MGElement, ITextMeasurer
             if (ActionBounds.Any())
             {
                 var MousePosition = ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, InputTracker.Mouse.CurrentPosition);
-
-                foreach (var KVP in ActionBounds)
+                if (TryInvokeActionAt(MousePosition))
                 {
-                    var CommandName = KVP.Key;
-                    if (GetResources().TryGetCommand(CommandName, out var Command))
+                    e.SetHandledBy(this, false);
+                }
+            }
+        }
+    }
+
+    /// <summary>Invokes the command of the first action whose bounds (as of the last draw) contain <paramref name="MousePosition"/>, a position in <see cref="CoordinateSpace.Layout"/> space.</summary>
+    /// <returns>True if a command was invoked.</returns>
+    internal bool TryInvokeActionAt(Point MousePosition)
+    {
+        foreach (var KVP in ActionBounds)
+        {
+            var CommandName = KVP.Key;
+            if (GetResources().TryGetCommand(CommandName, out var Command))
+            {
+                foreach (var Bounds in KVP.Value)
+                {
+                    if (Bounds.Contains(MousePosition))
                     {
-                        foreach (var Bounds in KVP.Value)
-                        {
-                            if (Bounds.Contains(MousePosition))
-                            {
-                                Command(this);
-                                e.SetHandledBy(this, false);
-                                return;
-                            }
-                        }
+                        Command(this);
+                        return true;
                     }
                 }
             }
         }
+
+        return false;
     }
 
     private ReadOnlyCollection<MGTextRun> SanitizeRuns(IEnumerable<MGTextRun> SourceRuns)
@@ -1444,6 +1506,12 @@ public class MGTextBlock : MGElement, ITextMeasurer
                 var LineRuns = MGTextRun.ParseRuns(Tokens, PlainLines.Settings).ToList();
                 _Lines = MGTextLine.ParseLines(this, PlainLines.ParseWidth, PlainLines.WrapText, LineRuns, IgnoreEmptySpaceLines).ToList().AsReadOnly();
             }
+            else if (_Lines == null && _AreFormattedLinesKnown)
+            {
+                //  The runs the lines were computed for, built as public runs, laid out by the legacy code.
+                var LineRuns = _FormattedLines.Source.Materialize();
+                _Lines = MGTextLine.ParseLines(this, _FormattedLines.ParseWidth, _FormattedLines.WrapText, LineRuns, IgnoreEmptySpaceLines).ToList().AsReadOnly();
+            }
 
             return _Lines;
         }
@@ -1457,7 +1525,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// then measured by the new engine.</summary>
     private void KeepLinesOfTheCurrentFont()
     {
-        if (_Lines == null && _ArePlainLinesKnown)
+        if (_Lines == null && (_ArePlainLinesKnown || _AreFormattedLinesKnown))
         {
             _ = Lines;
         }
@@ -1481,6 +1549,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private FormattedTextRuns _FormattedScratch;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private bool _AreFormattedLinesKnown;
+    /// <summary>The lines of the formatted text, computed by <see cref="UpdateLines"/> for the layout width: what <see cref="Lines"/> are when the formatted lines are known.</summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private FormattedTextLayout _FormattedLines;
+    /// <summary>Scratch layout of the measure steps, which must not change <see cref="_FormattedLines"/>.</summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private FormattedTextLayout _FormattedMeasureLines;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private MGTextRunConfig _PlainSettings;
     /// <summary>The lines of the plain text, computed by <see cref="UpdateLines"/> for the layout width: what <see cref="Lines"/> are when the plain lines are known.</summary>
     private readonly PlainTextLayout PlainLines = new();
@@ -1488,7 +1564,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     private readonly PlainTextLayout PlainMeasureLines = new();
 
     /// <summary>True once lines were computed, whatever their representation (<see cref="Lines"/> is not null).</summary>
-    private bool HasLines => _ArePlainLinesKnown || _Lines != null;
+    private bool HasLines => _ArePlainLinesKnown || _AreFormattedLinesKnown || _Lines != null;
 
     private int NumCharacters { get; set; }
     private bool AreLinesDirty { get; set; } = true;
@@ -1507,11 +1583,21 @@ public class MGTextBlock : MGElement, ITextMeasurer
             PlainLines.Build(this, CurrentTextSpan, LineParseWidth, WrapText, IgnoreEmptySpaceLines, _PlainSettings, true);
             _Lines = null;
             _ArePlainLinesKnown = true;
+            _AreFormattedLinesKnown = false;
+        }
+        else if (_AreFormattedRunsKnown)
+        {
+            _FormattedLines ??= new FormattedTextLayout();
+            _FormattedLines.Build(this, _FormattedRuns, LineParseWidth, WrapText, IgnoreEmptySpaceLines, true);
+            _Lines = null;
+            _ArePlainLinesKnown = false;
+            _AreFormattedLinesKnown = true;
         }
         else
         {
             Lines = MGTextLine.ParseLines(this, LineParseWidth, WrapText, Runs, IgnoreEmptySpaceLines).ToList().AsReadOnly();
             _ArePlainLinesKnown = false;
+            _AreFormattedLinesKnown = false;
         }
 
         LastLineParseWidth = LineParseWidth;
@@ -1534,6 +1620,23 @@ public class MGTextBlock : MGElement, ITextMeasurer
 
     /// <summary>Same computation as <see cref="GetRenderedTextHeight(IReadOnlyList{MGTextLine})"/> over the lines of a plain text (<c>Enumerable.Sum</c> over floats adds in a double).</summary>
     private float GetRenderedTextHeight(PlainTextLayout lines)
+    {
+        if (lines.LineCount == 0)
+        {
+            return 0;
+        }
+
+        double Sum = 0;
+        for (var i = 0; i < lines.LineCount; i++)
+        {
+            Sum += lines.GetLine(i).TotalHeight;
+        }
+
+        return (float)Sum + EffectiveLinePadding * Math.Max(0, lines.LineCount - 1);
+    }
+
+    /// <summary>Same computation as <see cref="GetRenderedTextHeight(IReadOnlyList{MGTextLine})"/> over the lines of a formatted text.</summary>
+    private float GetRenderedTextHeight(FormattedTextLayout lines)
     {
         if (lines.LineCount == 0)
         {
@@ -1908,10 +2011,17 @@ public class MGTextBlock : MGElement, ITextMeasurer
         var paddedBounds = GetPaddedLayoutBounds(LayoutBounds);
 
         //  Plain text is drawn from its plain lines, without building the public Lines. A text that has a background or an underline
-        //  is not modeled there: it takes the loop below, which allocates (the allocation-free formatted text path is a later step).
+        //  is not modeled there: it takes the loop below, which builds the public lines.
         if (_ArePlainLinesKnown && !PlainLines.Settings.HasBackground && !PlainLines.Settings.Underline.IsEnabled)
         {
             DrawPlainLines(DA, LayoutBounds, paddedBounds, DefaultForeground, Transform, RemainingCharacters);
+            return;
+        }
+
+        //  Formatted text is drawn from its formatted lines, also without building the public Lines.
+        if (_AreFormattedLinesKnown)
+        {
+            DrawFormattedLines(DA, LayoutBounds, paddedBounds, DefaultForeground, Transform, ImageSizeScalar, RemainingCharacters);
             return;
         }
 
@@ -1975,11 +2085,9 @@ public class MGTextBlock : MGElement, ITextMeasurer
                     {
                         var UnderlineHeight = UnderlineSettings.Height;
                         var UnderlineYOffset = UnderlineSettings.VerticalOffset;
-                        var UnderlineBrush = TextRun.Settings.Underline.Brush ?? Foreground.AsFillBrush();
-
                         var Destination = new RectangleF(CurrentX, TextYPosition + Line.LineTextHeight - 2 + UnderlineYOffset, TextSize.X, UnderlineHeight);
                         //.CreateTransformedF(Transform); // IFillBrush.Draw will already account for ElementDrawArgs.Offset
-                        UnderlineBrush.Draw(DA.SetOpacity(ActualOpacity), this, Destination.RoundUp());
+                        DrawUnderline(DA, TextRun.Settings.Underline.Brush, Foreground, ActualOpacity, Destination.RoundUp());
                         //DT.FillRectangle(Vector2.Zero, Destination, Foreground);
                     }
 
@@ -2044,6 +2152,186 @@ public class MGTextBlock : MGElement, ITextMeasurer
             }
 
             CurrentY += Line.LineTotalHeight + EffectiveLinePadding;
+
+            if (TextProgress.HasValue && RemainingCharacters <= 0)
+            {
+                break;
+            }
+        }
+    }
+
+    /// <summary>Draws the underline of a run: with its own brush if it has one, else with the foreground color of the run.
+    /// The default underline used to be <c>Foreground.AsFillBrush().Draw(...)</c>: a <see cref="MGSolidFillBrush"/> created for each draw, which this draws without the brush
+    /// (<see cref="MGSolidFillBrush.Draw(ElementDrawArgs, MGElement, Rectangle)"/> multiplies its color by the opacity of the draw arguments, here <paramref name="ActualOpacity"/>
+    /// whatever the foreground already was multiplied by, and fills the rectangle unless the color is transparent).</summary>
+    private void DrawUnderline(ElementDrawArgs DA, IFillBrush Brush, Color Foreground, float ActualOpacity, Rectangle Bounds)
+    {
+        var BrushArgs = DA.SetOpacity(ActualOpacity);
+        if (Brush != null)
+        {
+            Brush.Draw(BrushArgs, this, Bounds);
+            return;
+        }
+
+        var ActualColor = Foreground * BrushArgs.Opacity;
+        if (ActualColor != Color.Transparent)
+        {
+            BrushArgs.Context.FillRectangle(BrushArgs.Offset.ToVector2(), Bounds, ActualColor);
+        }
+    }
+
+    /// <summary>The body of <see cref="DrawSelf"/> for a formatted text, from <see cref="_FormattedLines"/>: the same positions, colors, scale, shadow, backgrounds, underlines, images,
+    /// <see cref="TextProgress"/> truncation and tracking of tooltips and actions as the loop over <see cref="Lines"/>, without building any object.</summary>
+    private void DrawFormattedLines(ElementDrawArgs DA, Rectangle LayoutBounds, Rectangle paddedBounds, Color DefaultForeground, Matrix Transform, float ImageSizeScalar, int RemainingCharacters)
+    {
+        var Desktop = GetDesktop();
+        IUIDrawContext DT = DA.DT;
+        var Opacity = DA.Opacity;
+        var Layout = _FormattedLines;
+        var Runs = Layout.Source;
+        var CurrentY = GetRenderedTextStartY(LayoutBounds, GetRenderedTextHeight(Layout));
+
+        for (var LineIndex = 0; LineIndex < Layout.LineCount; LineIndex++)
+        {
+            var Line = Layout.GetLine(LineIndex);
+            Rectangle LineBounds = new(paddedBounds.Left, (int)CurrentY, paddedBounds.Width, (int)Line.TotalHeight);
+            float CurrentX = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.Width, (int)Line.TotalHeight)).Left;
+            float TextYPosition = ApplyAlignment(LineBounds, TextAlignment, VerticalContentAlignment, new Size((int)Line.Width, (int)Line.TextHeight)).Y;
+
+            for (var PieceIndex = 0; PieceIndex < Line.PieceCount; PieceIndex++)
+            {
+                var Piece = Layout.GetPiece(Line.FirstPiece + PieceIndex);
+                RectangleF RunBounds; // The bounds of the piece, in CoordinateSpace.Layout space
+                string ToolTipId;
+                string ActionId;
+
+                if (Piece.RunIndex >= 0 && Runs[Piece.RunIndex].Kind == ScannedRunKind.Image)
+                {
+                    ref var ImageRun = ref Runs[Piece.RunIndex];
+                    ToolTipId = ImageRun.ToolTipId;
+                    ActionId = ImageRun.ActionId;
+                    var ImgWidth = ImageRun.ImageWidth;
+                    var ImgHeight = ImageRun.ImageHeight;
+                    var YPosition = ApplyAlignment(LineBounds, HorizontalAlignment.Center, VerticalContentAlignment, new Size(ImgWidth, ImgHeight)).Top;
+                    var Position = new Vector2((int)CurrentX, YPosition).TransformBy(Transform).ToPoint();
+                    Desktop.Resources.TryDrawTexture(DT, ImageRun.ImageSource, Position, (int)(ImgWidth * ImageSizeScalar), (int)(ImgHeight * ImageSizeScalar), DA.Opacity);
+                    RunBounds = new(CurrentX, YPosition, ImgWidth, ImgHeight);
+                    CurrentX += ImgWidth;
+                }
+                else
+                {
+                    //  A text piece (the empty run of an empty line has the settings of an empty text run and no tooltip or action)
+                    MGTextRunConfig RunSettings;
+                    if (Piece.RunIndex >= 0)
+                    {
+                        ref var TextRun = ref Runs[Piece.RunIndex];
+                        RunSettings = TextRun.Settings;
+                        ToolTipId = TextRun.ToolTipId;
+                        ActionId = TextRun.ActionId;
+                    }
+                    else
+                    {
+                        RunSettings = EmptyLineRunSettings;
+                        ToolTipId = null;
+                        ActionId = null;
+                    }
+
+                    var IsBold = RunSettings.IsBold;
+                    var IsItalic = RunSettings.IsItalic;
+                    var resolved = GetResolvedFont(IsBold, IsItalic);
+                    // Text is drawn at the scale it is measured with (ADR-0023).
+                    var drawScale = resolved.ExactScale;
+
+                    var ActualOpacity = Opacity * RunSettings.Opacity;
+                    var Foreground = (RunSettings.Foreground ?? DefaultForeground) * ActualOpacity;
+
+                    var ActualText = Layout.GetPieceText(Piece);
+                    if (TextProgress.HasValue && RemainingCharacters < Piece.Length)
+                    {
+                        ActualText = ActualText.Slice(0, RemainingCharacters);
+                    }
+
+                    var TextSize = MeasureText(ActualText, IsBold, IsItalic);
+                    Vector2 visualDrawPosition = new(CurrentX, TextYPosition);
+                    var engineAdjustedDrawPosition = visualDrawPosition + (resolved.DrawOrigin * drawScale);
+
+                    //  Draw background
+                    if (RunSettings.HasBackground)
+                    {
+                        var BackgroundBrush = RunSettings.Background.Brush;
+                        var BackgroundPadding = RunSettings.Background.Padding;
+
+                        var BackgroundDestination = new Rectangle((int)CurrentX, (int)TextYPosition, (int)TextSize.X, (int)Line.TextHeight)
+                            .GetExpanded(BackgroundPadding);
+                        BackgroundBrush.Draw(DA.SetOpacity(ActualOpacity), this, BackgroundDestination);
+                    }
+
+                    //  Draw underline
+                    var UnderlineSettings = RunSettings.Underline;
+                    if (UnderlineSettings.IsEnabled)
+                    {
+                        var UnderlineHeight = UnderlineSettings.Height;
+                        var UnderlineYOffset = UnderlineSettings.VerticalOffset;
+
+                        var Destination = new RectangleF(CurrentX, TextYPosition + Line.TextHeight - 2 + UnderlineYOffset, TextSize.X, UnderlineHeight);
+                        DrawUnderline(DA, UnderlineSettings.Brush, Foreground, ActualOpacity, Destination.RoundUp());
+                    }
+
+                    var Position = engineAdjustedDrawPosition.TransformBy(Transform);
+                    if (RunSettings.IsShadowed)
+                    {
+                        //  Draw text twice, once for the shadow, then again for itself
+                        var ShadowColor = (RunSettings.Shadow.ShadowColor ?? DefaultForeground) * ActualOpacity;
+                        var ShadowOffset = RunSettings.Shadow.ShadowOffset ?? new(1, 1);
+
+                        DT.DrawTextViaEngine(resolved, ActualText, Position + ShadowOffset, ShadowColor, resolved.DrawOrigin, drawScale);
+                        DT.DrawTextViaEngine(resolved, ActualText, Position,               Foreground,  resolved.DrawOrigin, drawScale);
+                    }
+                    else
+                    {
+                        DT.DrawTextViaEngine(resolved, ActualText, Position, Foreground, resolved.DrawOrigin, drawScale);
+                    }
+
+                    RunBounds = new(CurrentX, TextYPosition, TextSize.X, TextSize.Y);
+                    CurrentX += TextSize.X;
+
+                    RemainingCharacters -= ActualText.Length;
+                    if (TextProgress.HasValue && RemainingCharacters <= 0)
+                    {
+                        break;
+                    }
+                }
+
+                //  Keep track of which parts of the textblock content have their own tooltip or delegate to invoke when clicking in the bounds
+                if (!string.IsNullOrEmpty(ToolTipId) || !string.IsNullOrEmpty(ActionId))
+                {
+                    var RoundedRunBounds = RunBounds.RoundUp();
+
+                    if (!string.IsNullOrEmpty(ToolTipId))
+                    {
+                        if (!ToolTipBounds.TryGetValue(ToolTipId, out var Bounds))
+                        {
+                            Bounds = new();
+                            ToolTipBounds.Add(ToolTipId, Bounds);
+                        }
+
+                        Bounds.Add(RoundedRunBounds);
+                    }
+
+                    if (!string.IsNullOrEmpty(ActionId))
+                    {
+                        if (!ActionBounds.TryGetValue(ActionId, out var Bounds))
+                        {
+                            Bounds = new();
+                            ActionBounds.Add(ActionId, Bounds);
+                        }
+
+                        Bounds.Add(RoundedRunBounds);
+                    }
+                }
+            }
+
+            CurrentY += Line.TotalHeight + EffectiveLinePadding;
 
             if (TextProgress.HasValue && RemainingCharacters <= 0)
             {

@@ -85,6 +85,7 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public List<GraphDrawTextureAtCall> DrawTextureAtCalls { get; } = new();
     public List<GraphTexturedTriangleListCall> TexturedTriangleListCalls { get; } = new();
     public List<GraphDrawTextCall> DrawTextCalls { get; } = new();
+    public List<GraphFillQuadrilateralCall> FillQuadrilateralCalls { get; } = new();
 
     public GraphNoOpDrawTransaction(IUIDesktopRuntime renderer, DrawSettings settings)
     {
@@ -134,7 +135,8 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         => TexturedTriangleListCalls.Add(new(Origin, Texture, Vertices.ToArray(), TextureCoordinates.ToArray(), Indices.ToArray(), ColorMask, CurrentSettings.SamplerType, _currentClipBounds));
 
     public void FillQuadrilateralLinearClamp(Vector2 Origin, Vector2 topLeft, Color topLeftColor, Vector2 topRight, Color topRightColor,
-        Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor) { }
+        Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor)
+        => FillQuadrilateralCalls.Add(new(Origin, topLeft, topLeftColor, topRight, topRightColor, bottomRight, bottomRightColor, bottomLeft, bottomLeftColor));
 
     public void StrokeLineSegment(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness = 1.0f)
         => StrokeLineCalls.Add(new(Origin, Start, End, Color, Thickness));
@@ -324,6 +326,7 @@ internal readonly record struct GraphStrokeLineCall(Vector2 Origin, Vector2 Star
 internal readonly record struct GraphFillRectangleCall(Vector2 Origin, RectangleF Destination, Color Color);
 internal readonly record struct GraphDrawTextCall(ResolvedFont Font, string Text, Vector2 Position, Vector2 Origin, float Scale, float Rotation, Color Color = default);
 internal readonly record struct GraphStrokeAndFillRectangleCall(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, Thickness StrokeThickness);
+internal readonly record struct GraphFillQuadrilateralCall(Vector2 Origin, Vector2 TopLeft, Color TopLeftColor, Vector2 TopRight, Color TopRightColor, Vector2 BottomRight, Color BottomRightColor, Vector2 BottomLeft, Color BottomLeftColor);
 internal readonly record struct GraphFillTriangleCall(Vector2 Origin, Vector2 V0, Color C0, Vector2 V1, Color C1, Vector2 V2, Color C2);
 internal readonly record struct GraphStrokeAndFillCircleCall(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness, int NumSides);
 internal readonly record struct GraphDrawTextureToCall(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask);

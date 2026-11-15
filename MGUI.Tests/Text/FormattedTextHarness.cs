@@ -16,6 +16,9 @@ internal sealed class CountingFormattedTextBlock : MGTextBlock
 
     public void ResetCount() => LayoutChangedCallCount = 0;
 
+    /// <summary>The tooltip the block would show at the current position of the mouse (see <see cref="MGTextBlock"/>.TryGetToolTip), which also forgets the bounds of the last draw.</summary>
+    public bool ProbeToolTip(out MGToolTip toolTip) => TryGetToolTip(out toolTip);
+
     protected override void LayoutChanged(MGElement Source, bool NotifyParent)
     {
         LayoutChangedCallCount++;
@@ -67,6 +70,15 @@ internal sealed class FormattedTextHarness
     {
         Runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(Elapsed), TimeSpan.FromMilliseconds(16), default, default));
         Desktop.Update();
+        Elapsed += 16;
+    }
+
+    /// <summary>Moves the mouse: the next reads of the position of the mouse (tooltips, clicks on an action) are at <paramref name="screenPosition"/>.</summary>
+    public void MoveMouse(Point screenPosition)
+    {
+        Runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(Elapsed), TimeSpan.FromMilliseconds(16),
+            new Microsoft.Xna.Framework.Input.MouseState(screenPosition.X, screenPosition.Y, 0, Microsoft.Xna.Framework.Input.ButtonState.Released, Microsoft.Xna.Framework.Input.ButtonState.Released,
+                Microsoft.Xna.Framework.Input.ButtonState.Released, Microsoft.Xna.Framework.Input.ButtonState.Released, Microsoft.Xna.Framework.Input.ButtonState.Released), default));
         Elapsed += 16;
     }
 
