@@ -3,6 +3,7 @@ using MGUI.Shared.Helpers;
 using System.Globalization;
 using ColorTranslator = System.Drawing.ColorTranslator;
 using System.Text;
+using System.Text.RegularExpressions;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework.Graphics;
 using MGUI.Core.UI.XAML;
@@ -33,6 +34,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
     public MGTextRunConfig ApplyAction(FTAction Action, IList<float> PreviousOpacities, IList<Color?> PreviousForegrounds,
         IList<MGTextRunUnderlineConfig> PreviousUnderlines, IList<MGTextRunBackgroundConfig> PreviousBackgrounds, IList<MGTextRunShadowConfig> PreviousShadows)
     {
+        //  A closing tag with no opening one before it changes nothing: each revert below falls back to the current value.
         switch (Action.ActionType)
         {
             //  Bold
@@ -59,7 +61,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this with { Underline = UnderlineConfig };
             }
             case FTActionType.RevertUnderline:
-                return this with { Underline = GeneralUtils.RemoveLast(PreviousUnderlines, default) };
+                return this with { Underline = GeneralUtils.RemoveLast(PreviousUnderlines, Underline) };
 
             //  Opacity
             case FTActionType.SetOpacity:
@@ -69,7 +71,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this with { Opacity = Value };
             }
             case FTActionType.RevertOpacity:
-                return this with { Opacity = GeneralUtils.RemoveLast(PreviousOpacities, 1.0f) };
+                return this with { Opacity = GeneralUtils.RemoveLast(PreviousOpacities, Opacity) };
 
             //  Foreground
             case FTActionType.SetForeground:
@@ -79,7 +81,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this with { Foreground = Value };
             }
             case FTActionType.RevertForeground:
-                return this with { Foreground = GeneralUtils.RemoveLast(PreviousForegrounds, null) };
+                return this with { Foreground = GeneralUtils.RemoveLast(PreviousForegrounds, Foreground) };
 
             //  Background
             case FTActionType.SetBackground:
@@ -88,7 +90,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this with { Background = ParseBackgroundValue(Action.Parameter.Substring(1)) };
             }
             case FTActionType.RevertBackground:
-                return this with { Background = GeneralUtils.RemoveLast(PreviousBackgrounds, default) };
+                return this with { Background = GeneralUtils.RemoveLast(PreviousBackgrounds, Background) };
 
             //  Shadowing
             case FTActionType.SetShadowing:
@@ -97,7 +99,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this with { Shadow = ParseShadowValue(Action.Parameter.Substring(1)) };
             }
             case FTActionType.RevertShadowing:
-                return this with { Shadow = GeneralUtils.RemoveLast(PreviousShadows, default) };
+                return this with { Shadow = GeneralUtils.RemoveLast(PreviousShadows, Shadow) };
 
             //  Image
             case FTActionType.Image:
@@ -149,12 +151,22 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
         return new MGTextRunBackgroundConfig(Brush, Padding);
     }
 
-    /// <summary>The shadow of a <c>[shadow=...]</c> tag.</summary>
+    //  The offset that may end the value of a shadow: two numbers separated by a space or a comma, as the tokenizer accepts them.
+    private static readonly Regex ShadowOffsetParser = new(@" (?<X>-?\d{1,2})( |,)(?<Y>-?\d{1,2})$", RegexOptions.CultureInvariant);
+
+    /// <summary>The shadow of a <c>[shadow=...]</c> tag: a color, then an optional offset (<c>Red 1 2</c> or <c>Red 1,2</c>; (1,1) without one).</summary>
     internal static MGTextRunShadowConfig ParseShadowValue(string Value)
     {
-        var Words = Value.Split(' ');
-        var ParsedShadowColor = ColorTranslator.FromHtml(Words[0]).AsXNAColor();
-        Vector2 ParsedShadowOffset = Words.Length == 3 ? new(int.Parse(Words[1]), int.Parse(Words[2])) : new(1, 1);
+        var ColorString = Value;
+        Vector2 ParsedShadowOffset = new(1, 1);
+        var Match = ShadowOffsetParser.Match(Value);
+        if (Match.Success)
+        {
+            ColorString = Value.Substring(0, Match.Index);
+            ParsedShadowOffset = new(int.Parse(Match.Groups["X"].Value, CultureInfo.InvariantCulture), int.Parse(Match.Groups["Y"].Value, CultureInfo.InvariantCulture));
+        }
+
+        var ParsedShadowColor = ColorTranslator.FromHtml(ColorString).AsXNAColor();
         return new MGTextRunShadowConfig(ParsedShadowColor, ParsedShadowOffset);
     }
 }

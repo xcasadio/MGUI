@@ -2148,10 +2148,8 @@ public class MGTextBlock : MGElement, ITextMeasurer
         }
     }
 
-    /// <summary>Draws the underline of a run: with its own brush if it has one, else with the foreground color of the run.
-    /// The default underline used to be <c>Foreground.AsFillBrush().Draw(...)</c>: a <see cref="MGSolidFillBrush"/> created for each draw, which this draws without the brush
-    /// (<see cref="MGSolidFillBrush.Draw(ElementDrawArgs, MGElement, Rectangle)"/> multiplies its color by the opacity of the draw arguments, here <paramref name="ActualOpacity"/>
-    /// whatever the foreground already was multiplied by, and fills the rectangle unless the color is transparent).</summary>
+    /// <summary>Draws the underline of a run: with its own brush if it has one, else with <paramref name="Foreground"/>, the color the text of the run is drawn with
+    /// (it already carries <paramref name="ActualOpacity"/>, which is therefore applied once, as it is to the text).</summary>
     private void DrawUnderline(ElementDrawArgs DA, IFillBrush Brush, Color Foreground, float ActualOpacity, Rectangle Bounds)
     {
         var BrushArgs = DA.SetOpacity(ActualOpacity);
@@ -2161,10 +2159,9 @@ public class MGTextBlock : MGElement, ITextMeasurer
             return;
         }
 
-        var ActualColor = Foreground * BrushArgs.Opacity;
-        if (ActualColor != Color.Transparent)
+        if (Foreground != Color.Transparent)
         {
-            BrushArgs.Context.FillRectangle(BrushArgs.Offset.ToVector2(), Bounds, ActualColor);
+            BrushArgs.Context.FillRectangle(BrushArgs.Offset.ToVector2(), Bounds, Foreground);
         }
     }
 

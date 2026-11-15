@@ -634,19 +634,19 @@ internal sealed class FormattedTextScanner
                 State.IsItalic = false;
                 break;
             case TagKind.Opacity:
-                State.Opacity = Pop(PreviousOpacities, 1.0f);
+                State.Opacity = Pop(PreviousOpacities, State.Opacity);
                 break;
             case TagKind.Underline:
-                State.Underline = Pop(PreviousUnderlines, default);
+                State.Underline = Pop(PreviousUnderlines, State.Underline);
                 break;
             case TagKind.Foreground:
-                State = State.WithForeground(Pop(PreviousForegrounds, null));
+                State = State.WithForeground(Pop(PreviousForegrounds, State.Foreground));
                 break;
             case TagKind.Background:
-                State.Background = Pop(PreviousBackgrounds, default);
+                State.Background = Pop(PreviousBackgrounds, State.Background);
                 break;
             case TagKind.Shadow:
-                State.Shadow = Pop(PreviousShadows, default);
+                State.Shadow = Pop(PreviousShadows, State.Shadow);
                 break;
             case TagKind.ToolTip:
                 ToolTipId = Pop(PreviousToolTipIds, null);

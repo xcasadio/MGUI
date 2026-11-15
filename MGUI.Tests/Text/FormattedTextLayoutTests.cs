@@ -588,9 +588,9 @@ public class FormattedTextLayoutTests
     [InlineData(1f)]
     [InlineData(0.8f)]
     [InlineData(0.35f)]
-    public void TheDefaultUnderline_IsWhatASolidBrushOfTheForegroundDraws(float opacity)
+    public void TheDefaultUnderline_HasTheColorOfTheText(float opacity)
     {
-        //  The default underline (no brush in the markup) used to be drawn by Foreground.AsFillBrush().Draw(...). It is now drawn without the brush: the same rectangle with the same color.
+        //  The default underline (no brush in the markup) is drawn with the color of the text of its run: the opacity is applied once (it used to be applied twice).
         foreach (string text in new[] { "word", "[color=#336699]word[/color]", "[o=0.5]word[/o]", "[color=#33669980]word[/color]", "[color=Red][o=0.25]word[/o][/color]" })
         {
             foreach (bool legacy in new[] { true, false })
@@ -606,13 +606,8 @@ public class FormattedTextLayoutTests
                 float actualOpacity = opacity * settings.Opacity;
                 Color foreground = (settings.Foreground ?? harness.TextBlock.ActualForeground) * actualOpacity;
                 Assert.Single(actual.FillRectangleCalls);
-                RectangleF destination = actual.FillRectangleCalls[0].Destination;
-                Rectangle bounds = new((int)destination.X, (int)destination.Y, (int)destination.Width, (int)destination.Height);
-
-                GraphNoOpDrawTransaction expected = new(harness.Runtime, DrawSettings.Default);
-                new Core.UI.Brushes.FillBrushes.MGSolidFillBrush(foreground).Draw(harness.CreateDrawArgs(expected, opacity).SetOpacity(actualOpacity), harness.TextBlock, bounds);
-
-                Assert.Equal(expected.FillRectangleCalls, actual.FillRectangleCalls);
+                Assert.Equal(foreground, actual.FillRectangleCalls[0].Color);
+                Assert.Contains(actual.DrawTextCalls, x => x.Color == foreground);
             }
         }
     }
