@@ -390,7 +390,7 @@ public class StableDiagnosticIdTests
             _textEngine = new ToolingTestTextEngine(DefaultFontFamily);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new ToolingNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
 
         public void ApplyFrame(UpdateBaseArgs updateArgs)

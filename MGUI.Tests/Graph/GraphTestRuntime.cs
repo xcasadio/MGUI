@@ -49,7 +49,7 @@ internal sealed class GraphTestRuntime : IUIDesktopRuntime
         _textEngine = new GraphTestTextEngine(DefaultFontFamily);
     }
 
-    public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+    public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
         => new GraphNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
 
     public void ApplyFrame(UpdateBaseArgs updateArgs)

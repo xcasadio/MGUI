@@ -141,7 +141,7 @@ public class BackendProjectSplitTests
     public void RuntimeAndViewContracts_UseSharedDrawTransactionInterface()
     {
         Assert.Equal(typeof(IUIDrawTransaction), typeof(IUIDesktopRuntime)
-            .GetMethod(nameof(IUIDesktopRuntime.CreateDrawTransaction))!
+            .GetMethod(nameof(IUIDesktopRuntime.BeginDrawTransaction))!
             .ReturnType);
 
         Assert.Equal(typeof(IUIDrawTransaction), typeof(IUIView)

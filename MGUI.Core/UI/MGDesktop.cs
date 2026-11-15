@@ -1875,7 +1875,7 @@ public class MGDesktop : ViewModelBase, IMouseHandlerHost, IKeyboardHandlerHost,
     /// <param name="InitialDrawSettings">If null, uses <see cref="DrawSettings.Default"/></param>
     public void Draw(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
     {
-        using (var DT = Runtime.CreateDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
+        using (var DT = Runtime.BeginDrawTransaction(InitialDrawSettings ?? DrawSettings.Default, false))
         {
             Draw(DT, Opacity);
         }

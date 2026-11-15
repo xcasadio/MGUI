@@ -16,7 +16,7 @@ namespace MGUI.Tests.Architecture;
 /// allocate per frame, on fixtures that grow one element at a time, so the difference between two rows is the cost of the element added.<para/>
 /// These tests write their measurements to the test output and assert that each one is zero.
 /// The draw goes through a <see cref="NonRecordingDrawTransaction"/>, which allocates nothing of its own; the recording transaction that
-/// <see cref="GraphTestRuntime.CreateDrawTransaction"/> creates on every draw would count as desktop allocations.
+/// <see cref="GraphTestRuntime.BeginDrawTransaction"/> creates on every draw would count as desktop allocations.
 /// </summary>
 public class DesktopFrameAllocationMeasurements
 {

@@ -180,7 +180,7 @@ public class TextSpanGpuTests
         }
 
         public DrawTransaction CreateTransaction()
-            => (DrawTransaction)Renderer.CreateDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Sprites);
+            => (DrawTransaction)Renderer.BeginDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Sprites);
 
         public Color[] Render(Action<DrawTransaction> draw)
         {

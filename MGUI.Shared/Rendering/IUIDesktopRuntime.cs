@@ -18,7 +18,7 @@ namespace MGUI.Shared.Rendering
         public event EventHandler<EventArgs> EndUpdate;
         public UpdateBaseArgs UpdateArgs { get; }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin);
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin);
         public void RegisterView(IUIView View);
     }
 }

@@ -244,7 +244,7 @@ public class InputLifetimeRegressionTests
             _textEngine = new LifetimeTestTextEngine(DefaultFontFamily);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new LifetimeTestNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
 
         public void ApplyFrame(UpdateBaseArgs updateArgs)

@@ -194,7 +194,7 @@ public class TextSurfaceLiteTests
             _textEngine = new TextSurfaceTestTextEngine(DefaultFontFamily);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
         {
             LastDrawTransaction = new TextSurfaceNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
             return LastDrawTransaction;

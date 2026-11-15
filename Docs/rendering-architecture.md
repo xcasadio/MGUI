@@ -103,7 +103,7 @@ public interface IUIDesktopRuntime
     event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
     event EventHandler<EventArgs> EndUpdate;
     UpdateBaseArgs UpdateArgs { get; }
-    IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin);
+    IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin);
     void RegisterView(IUIView View);
 }
 ```
@@ -134,7 +134,7 @@ Boucle par frame :
 1. le host emet `PreviewUpdate` ; `MainRenderer` reconstruit `UpdateArgs` (temps total, delta, etats bruts souris/clavier via `IRawInputSource`) et appelle `Input.Update(...)` ;
 2. l'application appelle `desktop.Update()` ;
 3. le host emet `EndUpdate` ; `MainRenderer` releve l'evenement `IUIDesktopRuntime.EndUpdate` consomme par `MGDesktop` pour ses finalisations de frame ;
-4. draw : `desktop.Draw()` cree sa propre transaction via `CreateDrawTransaction(...)`, ou l'application appelle `MGDesktop.Draw(IUIDrawTransaction, float)` / `UIView.Draw(IUIDrawTransaction, float)` avec une transaction qu'elle possede.
+4. draw : `desktop.Draw()` cree sa propre transaction via `BeginDrawTransaction(...)`, ou l'application appelle `MGDesktop.Draw(IUIDrawTransaction, float)` / `UIView.Draw(IUIDrawTransaction, float)` avec une transaction qu'elle possede.
 
 ### Surfaces
 

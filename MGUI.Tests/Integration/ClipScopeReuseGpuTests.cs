@@ -34,7 +34,7 @@ public class ClipScopeReuseGpuTests
         MainRenderer renderer = MonoGameBackendBootstrap.Create(new GameRenderHost<HeadlessGame>(GpuDeviceHost.Instance.Game)).Renderer;
         GraphicsDevice device = GpuDeviceHost.Instance.GraphicsDevice;
         device.ScissorRectangle = new Rectangle(0, 0, 128, 128);
-        return (DrawTransaction)renderer.CreateDrawTransaction(DrawSettings.Default with { RasterizerType = rasterizer }, DeferBegin: true, DrawContext.Sprites);
+        return (DrawTransaction)renderer.BeginDrawTransaction(DrawSettings.Default with { RasterizerType = rasterizer }, DeferBegin: true, DrawContext.Sprites);
     }
 
     /// <summary>The state a clip leaves behind: forcing a begin and an end makes the sprite batch apply its rasterizer state to the device.</summary>

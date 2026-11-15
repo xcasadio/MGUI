@@ -128,7 +128,7 @@ public class MGListBoxPressedItemTests
             _textEngine = new ListBoxTestTextEngine(DefaultFontFamily);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new ListBoxTestNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
 
         public void ApplyFrame(UpdateBaseArgs updateArgs)

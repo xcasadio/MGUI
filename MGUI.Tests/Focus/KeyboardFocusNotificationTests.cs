@@ -223,7 +223,7 @@ public class KeyboardFocusNotificationTests
             _textEngine = new FocusNotificationTestTextEngine(DefaultFontFamily);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new FocusNotificationNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
 
         public void ApplyFrame(UpdateBaseArgs updateArgs)

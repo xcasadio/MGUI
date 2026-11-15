@@ -26,7 +26,7 @@ public class EngineOwnedRenderingProofTests
         ResolvedFont font = runtime.ProofTextEngine.ResolveFont(FontSpec.Normal(runtime.DefaultFontFamily, 14));
         ProofRenderTarget buffer = new("proof-buffer", 128, 64);
 
-        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.CreateDrawTransaction(DrawSettings.Default, false));
+        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.BeginDrawTransaction(DrawSettings.Default, false));
         using (transaction.SetRenderTargetTemporary(buffer, Color.Transparent))
         {
             transaction.FillRectangle(Vector2.Zero, new RectangleF(0, 0, 40, 20), Color.Red);
@@ -63,7 +63,7 @@ public class EngineOwnedRenderingProofTests
 
         desktop.Update();
 
-        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.CreateDrawTransaction(DrawSettings.Default, false));
+        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.BeginDrawTransaction(DrawSettings.Default, false));
         desktop.View.Draw(transaction, 1.0f);
 
         Assert.Contains(runtime.RegisteredViews, x => ReferenceEquals(x, desktop.View));
@@ -95,7 +95,7 @@ public class EngineOwnedRenderingProofTests
         desktop.Windows.Add(window);
         desktop.Update();
 
-        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.CreateDrawTransaction(DrawSettings.Default, false));
+        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.BeginDrawTransaction(DrawSettings.Default, false));
         desktop.View.Draw(transaction, 1.0f);
 
         Assert.Contains(transaction.Calls, x => x.Kind == ProofDrawCallKind.StrokeAndFillPolygon);
@@ -197,7 +197,7 @@ public class EngineOwnedRenderingProofTests
             EndUpdate?.Invoke(this, EventArgs.Empty);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new ProofDrawTransaction(this, Settings ?? DrawSettings.Default);
 
         public void RegisterView(IUIView View)

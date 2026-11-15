@@ -41,3 +41,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0025 | A host can pause the raw navigation path, and what was held stays silent afterwards | Accepted | 2026-11-01 |
 | ADR-0026 | Text engines measure and draw a span of characters | Accepted | 2026-11-14 |
 | ADR-0027 | A clip scope can be re-armed, so a backend pushes clips without allocating | Accepted | 2026-11-15 |
+| ADR-0028 | The runtime method that opens a draw transaction is named BeginDrawTransaction | Accepted | 2026-11-15 |

@@ -27,7 +27,7 @@ Votre runtime doit fournir:
 - `TextEngine` (un `ITextMeasurementEngine`) pour la resolution et la mesure du texte, avec l'evenement `TextEngineChanged` ;
 - `EndUpdate`, evenement leve a la fin de chaque update de frame — `MGDesktop` s'y abonne pour ses finalisations ;
 - `UpdateArgs` pour l'etat brut de la frame courante ;
-- `CreateDrawTransaction(...)` pour construire un `IUIDrawTransaction` ;
+- `BeginDrawTransaction(...)` pour construire un `IUIDrawTransaction` ;
 - `RegisterView(...)` pour enregistrer les `UIView` crees par `MGDesktop`.
 
 ### 2. Surface et buffers
@@ -82,7 +82,7 @@ void UpdateFrame(TimeSpan totalElapsed, TimeSpan frameElapsed, MouseState mouse,
 
 void DrawFrame()
 {
-    using IUIDrawTransaction transaction = runtime.CreateDrawTransaction(DrawSettings.Default, false);
+    using IUIDrawTransaction transaction = runtime.BeginDrawTransaction(DrawSettings.Default, false);
     desktop.View.Draw(transaction, 1.0f);
 }
 ```
@@ -117,7 +117,7 @@ public sealed class MyRuntime : IUIDesktopRuntime
     public event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
     public event EventHandler<EventArgs> EndUpdate;
 
-    public IUIDrawTransaction CreateDrawTransaction(DrawSettings settings, bool deferBegin)
+    public IUIDrawTransaction BeginDrawTransaction(DrawSettings settings, bool deferBegin)
         => new MyDrawTransaction(this, settings);
 
     public void RegisterView(IUIView view)

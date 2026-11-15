@@ -82,13 +82,13 @@ namespace MGUI.Shared.Rendering
 
         internal Rectangle GetViewport(int Margin) => Surface.GetBounds().GetCompressed(Margin);
 
-        IUIDrawTransaction IUIDesktopRuntime.CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
-            => CreateDrawTransaction(Settings, DeferBegin);
+        IUIDrawTransaction IUIDesktopRuntime.BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
+            => BeginDrawTransaction(Settings, DeferBegin);
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
-            => CreateDrawTransaction(Settings, DeferBegin, DrawContext.Sprites);
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
+            => BeginDrawTransaction(Settings, DeferBegin, DrawContext.Sprites);
 
-        internal IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext)
+        internal IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext)
             => new DrawTransaction(this, Settings, DeferBegin, DefaultContext);
 
         internal RenderTargetLease RentRenderTarget(int width, int height, bool preserveContents)

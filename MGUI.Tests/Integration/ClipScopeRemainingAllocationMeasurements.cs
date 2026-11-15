@@ -38,7 +38,7 @@ public class ClipScopeRemainingAllocationMeasurements
             device.Clear(ClearOptions.Target | ClearOptions.Stencil, Color.Black, 1.0f, 0);
 
             MainRenderer renderer = MonoGameBackendBootstrap.Create(new GameRenderHost<HeadlessGame>(GpuDeviceHost.Instance.Game)).Renderer;
-            using DrawTransaction dt = (DrawTransaction)renderer.CreateDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Primitives);
+            using DrawTransaction dt = (DrawTransaction)renderer.BeginDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Primitives);
 
             ClipGeometry geometry = new(
                 new List<Vector2> { new(10, 10), new(100, 10), new(10, 100) },

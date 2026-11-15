@@ -79,7 +79,7 @@ public class HostRuntimeContractTests
         string[] expectedMembers =
         {
             "AssetProvider",
-            "CreateDrawTransaction",
+            "BeginDrawTransaction",
             "DefaultFontFamily",
             "Input",
             "RegisterView",
@@ -140,7 +140,7 @@ public class HostRuntimeContractTests
             "TextEngine",
             "UpdateArgs"
         }, propertyNames);
-        Assert.Equal(new[] { "CreateDrawTransaction", "RegisterView" }, methodNames);
+        Assert.Equal(new[] { "BeginDrawTransaction", "RegisterView" }, methodNames);
         Assert.Equal(new[] { "EndUpdate", "TextEngineChanged" }, eventNames);
         Assert.Equal(typeof(ITextMeasurementEngine), contractType.GetProperty(nameof(IUIDesktopRuntime.TextEngine))!.PropertyType);
         Assert.Equal(typeof(EventHandler<EventArgs>), contractType.GetEvent(nameof(IUIDesktopRuntime.EndUpdate))!.EventHandlerType);

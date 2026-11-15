@@ -49,7 +49,7 @@ public class MGImageBrightnessGpuTests
             device.Clear(Color.Black);
 
             MainRenderer renderer = MonoGameBackendBootstrap.Create(new GameRenderHost<HeadlessGame>(GpuDeviceHost.Instance.Game)).Renderer;
-            using (DrawTransaction dt = (DrawTransaction)renderer.CreateDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Sprites))
+            using (DrawTransaction dt = (DrawTransaction)renderer.BeginDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Sprites))
             {
                 ElementDrawArgs da = new(new DrawBaseArgs(TimeSpan.Zero, dt, 1f), new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
                 image.DrawSelf(da, new Rectangle(8, 8, 4, 4));

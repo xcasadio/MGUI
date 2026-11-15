@@ -161,7 +161,7 @@ namespace MGUI.Samples.Features
         }
         public UpdateBaseArgs UpdateArgs => _inner.UpdateArgs;
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin) => _inner.CreateDrawTransaction(Settings, DeferBegin);
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin) => _inner.BeginDrawTransaction(Settings, DeferBegin);
         public void RegisterView(IUIView View) => _inner.RegisterView(View);
     }
 }
