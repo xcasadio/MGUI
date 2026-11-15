@@ -115,7 +115,7 @@ public class DesktopFrameAllocationMeasurements
         return (after - before) / MeasuredIterations;
     }
 
-    private sealed class Harness
+    internal sealed class Harness
     {
         private readonly GraphTestRuntime Runtime;
         private readonly MGDesktop Desktop;
@@ -182,6 +182,12 @@ public class DesktopFrameAllocationMeasurements
         }
 
         public void Draw() => Desktop.Draw(Transaction);
+
+        public void Draw(IUIDrawTransaction transaction) => Desktop.Draw(transaction);
+
+        public GraphTestRuntime GetRuntime() => Runtime;
+
+        public MGDesktop GetDesktop() => Desktop;
 
         public void Frame(Point position, ButtonState left)
         {
