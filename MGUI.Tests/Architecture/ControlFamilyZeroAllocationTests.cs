@@ -348,4 +348,72 @@ public class ControlFamilyZeroAllocationTests
     [Fact]
     public void TreeViewOfThreeLevels_DrawJournal_AtRestAndOnHover()
         => FrozenJournal.Assert("tree view draw journal", 4280, "0F2EE6FCC35D9D5F", ListDrawJournal(CreateTreeViewScene()));
+
+    // ---- MGTabControl with three tabs ----
+
+    private static ListScene CreateTabControlScene()
+    {
+        ControlBench bench = new();
+        MGTabControl tabControl = new(bench.Window);
+        MGTabItem[] tabs =
+        {
+            tabControl.AddTab("One", new MGTextBlock(bench.Window, "first content")),
+            tabControl.AddTab("Two", new MGTextBlock(bench.Window, "second content")),
+            tabControl.AddTab("Three", new MGTextBlock(bench.Window, "third content"))
+        };
+        bench.Show(tabControl);
+        ListScene scene = new(bench, tabs[0].Header.ActualLayoutBounds.Center, tabs[1].Header.ActualLayoutBounds.Center);
+        Assert.NotEqual(scene.First, scene.Second);
+        bench.AssertHovers(bench.Window, tabs[0].Header, scene.First);
+        bench.AssertHovers(bench.Window, tabs[1].Header, scene.Second);
+        bench.Mouse = ControlBench.OutsideTheWindow;
+        bench.Frames(2);
+        return scene;
+    }
+
+    [Fact]
+    public void TabControlWithThreeTabs_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTabControl", CreateTabControlScene(), false).UpdateTotal);
+
+    [Fact]
+    public void TabControlWithThreeTabs_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTabControl", CreateTabControlScene(), false).DrawTotal);
+
+    [Fact]
+    public void TabControlWithThreeTabs_Update_OnHeaderHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTabControl", CreateTabControlScene(), true).UpdateTotal);
+
+    [Fact]
+    public void TabControlWithThreeTabs_Draw_OnHeaderHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTabControl", CreateTabControlScene(), true).DrawTotal);
+
+    [Fact]
+    public void TabControlWithThreeTabs_DrawJournal_AtRestAndOnHeaderHover()
+        => FrozenJournal.Assert("tab control draw journal", 1100, "C3124B89E3FC9739", ListDrawJournal(CreateTabControlScene()));
+
+    /// <summary>The visual tree children of the tab control are kept between calls, and follow the tabs and the selection: a list that was returned is not changed by a later selection.</summary>
+    [Fact]
+    public void TabControlWithThreeTabs_VisualTreeChildren_FollowTheSelection()
+    {
+        ControlBench bench = new();
+        MGTabControl tabControl = new(bench.Window);
+        MGTabItem one = tabControl.AddTab("One", new MGTextBlock(bench.Window, "first content"));
+        MGTabItem two = tabControl.AddTab("Two", new MGTextBlock(bench.Window, "second content"));
+        MGTabItem three = tabControl.AddTab("Three", new MGTextBlock(bench.Window, "third content"));
+        bench.Show(tabControl);
+        Assert.Same(one, tabControl.SelectedTab);
+
+        IReadOnlyList<MGElement> all = tabControl.GetVisualTreeChildren(true, true);
+        IReadOnlyList<MGElement> active = tabControl.GetVisualTreeChildren(false, true);
+        Assert.Same(all, tabControl.GetVisualTreeChildren(true, true));
+        Assert.Equal(new MGElement[] { two, three, one }, all);
+        Assert.Equal(new MGElement[] { one }, active);
+        Assert.Equal(new MGElement[] { two, three }, tabControl.GetVisualTreeChildren(true, false));
+        Assert.Empty(tabControl.GetVisualTreeChildren(false, false));
+
+        Assert.True(tabControl.TrySelectTab(two));
+        Assert.Equal(new MGElement[] { one, three, two }, tabControl.GetVisualTreeChildren(true, true));
+        Assert.Equal(new MGElement[] { two }, tabControl.GetVisualTreeChildren(false, true));
+        Assert.Equal(new MGElement[] { one, three }, tabControl.GetVisualTreeChildren(true, false));
+
+        //  The lists returned before the selection changed still hold what they held.
+        Assert.Equal(new MGElement[] { two, three, one }, all);
+        Assert.Equal(new MGElement[] { one }, active);
+    }
 }
