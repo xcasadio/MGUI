@@ -26,6 +26,7 @@ namespace MGUI.Shared.Rendering
     internal sealed class DrawTransaction : IMonoGameDrawContext
     {
         private MainRenderer Backend { get; }
+        private DerivedDrawSettingsCache DerivedSettings => Backend.DerivedSettings;
         IUIDesktopRuntime IUIRenderContext.Renderer => Backend;
         Rectangle? IUIRenderContext.CurrentClipBounds => CurrentClipBounds;
         DrawStateHandle IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings)
@@ -1073,7 +1074,7 @@ namespace MGUI.Shared.Rendering
 
         public DrawStateHandle SetTransformTemporary(Matrix Transform)
         {
-            return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
+            return SetDrawSettingsTemporary(DerivedSettings.WithTransform(CurrentSettings, Transform));
         }
 
         //  What each temporary change in force restores, one slot per change (ADR-0031).
@@ -1252,7 +1253,7 @@ namespace MGUI.Shared.Rendering
 
         /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering, and restores the previous effect when the returned handle is disposed.</summary>
         public DrawStateHandle SetEffectTemporary(Effect Effect)
-            => SetDrawSettingsTemporary(CurrentSettings with { BackendEffect = Effect });
+            => SetDrawSettingsTemporary(DerivedSettings.WithEffect(CurrentSettings, Effect));
 
         internal void ClearStencil(int StencilValue = 0)
         {

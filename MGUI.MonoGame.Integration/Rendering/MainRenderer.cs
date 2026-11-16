@@ -88,6 +88,9 @@ namespace MGUI.Shared.Rendering
         public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => BeginDrawTransaction(Settings, DeferBegin, DrawContext.Sprites);
 
+        /// <summary>The settings the transactions of this renderer derived for temporary transforms and effects, kept from one transaction to the next (ADR-0031).</summary>
+        internal DerivedDrawSettingsCache DerivedSettings { get; } = new();
+
         internal IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext)
             => new DrawTransaction(this, Settings, DeferBegin, DefaultContext);
 

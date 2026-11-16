@@ -171,6 +171,133 @@ public class ClipScopeRemainingAllocationMeasurements
         });
     }
 
+    /// <summary>A temporary transform or effect that keeps its value allocates nothing: the transaction finds the settings it derived for it
+    /// (ADR-0031). A transform whose value is new derives one <see cref="DrawSettings"/>: that number is written, not asserted.</summary>
+    [GpuFact]
+    public void ATemporaryTransformOrEffectThatKeepsItsValue_AllocatesNothing()
+    {
+        (long transform, long nested, long effect, long changing) = GpuDeviceHost.Instance.Invoke(() =>
+        {
+            GraphicsDevice device = GpuDeviceHost.Instance.GraphicsDevice;
+            using RenderTarget2D target = new(device, 128, 128, false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8);
+            device.SetRenderTarget(target);
+
+            MainRenderer renderer = MonoGameBackendBootstrap.Create(new GameRenderHost<HeadlessGame>(GpuDeviceHost.Instance.Game)).Renderer;
+            using DrawTransaction dt = (DrawTransaction)renderer.BeginDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Primitives);
+            IUIRenderContext context = dt;
+            Matrix outer = Matrix.CreateTranslation(1, 2, 0);
+            Matrix inner = Matrix.CreateScale(2);
+            using BasicEffect basicEffect = new(device);
+
+            long transformBytes = MeasurePairs(() => context.SetTransformTemporary(outer).Dispose());
+            long nestedBytes = MeasurePairs(() =>
+            {
+                using (context.SetTransformTemporary(outer))
+                using (context.SetTransformTemporary(inner))
+                {
+                }
+            });
+            long effectBytes = MeasurePairs(() => dt.SetEffectTemporary(basicEffect).Dispose());
+            int step = 0;
+            long changingBytes = MeasurePairs(() => context.SetTransformTemporary(Matrix.CreateTranslation(++step, 0, 0)).Dispose());
+
+            dt.Dispose();
+            device.SetRenderTarget(null);
+            return (transformBytes, nestedBytes, effectBytes, changingBytes);
+        });
+
+        _Output.WriteLine($"SetTransformTemporary + dispose: {transform} bytes; two nested: {nested} bytes; SetEffectTemporary + dispose: {effect} bytes; " +
+                          $"a transform whose value is new each time: {changing} bytes ({changing / MeasuredPairs} per pair), {MeasuredPairs} pairs each");
+        Assert.Equal(0, transform);
+        Assert.Equal(0, nested);
+        Assert.Equal(0, effect);
+    }
+
+    /// <summary>Squares drawn under nested temporary transforms and a temporary effect land where they land with settings derived at each
+    /// change, the first time (settings derived and kept) and the second (settings found again); and not where they land without transform.</summary>
+    [GpuFact]
+    public void DrawingUnderTemporaryTransformsAndEffect_DrawsThePixelsOfSettingsDerivedAtEachChange()
+    {
+        (string kept, string keptAgain, string derived, string untransformed) = GpuDeviceHost.Instance.Invoke(() =>
+        {
+            GraphicsDevice device = GpuDeviceHost.Instance.GraphicsDevice;
+            using SpriteEffect effect = new(device);
+            MainRenderer renderer = MonoGameBackendBootstrap.Create(new GameRenderHost<HeadlessGame>(GpuDeviceHost.Instance.Game)).Renderer;
+            return (DrawSquares(renderer, effect, 1), DrawSquares(renderer, effect, 1), DrawSquares(renderer, effect, 2), DrawSquares(renderer, effect, 3));
+        });
+
+        Assert.Equal(derived, kept);
+        Assert.Equal(derived, keptAgain);
+        Assert.NotEqual(untransformed, kept);
+    }
+
+    /// <summary>Kind 1: temporary changes; kind 2: settings derived at each change; kind 3: no transform and no effect.</summary>
+    private static string DrawSquares(MainRenderer renderer, Effect effect, int kind)
+    {
+        GraphicsDevice device = GpuDeviceHost.Instance.GraphicsDevice;
+        using RenderTarget2D target = new(device, 128, 128, false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8);
+        device.SetRenderTarget(target);
+        device.Clear(ClearOptions.Target | ClearOptions.Stencil, Color.Black, 1.0f, 0);
+        using (DrawTransaction dt = (DrawTransaction)renderer.BeginDrawTransaction(DrawSettings.Default, DeferBegin: false, DrawContext.Sprites))
+        {
+            Matrix outer = Matrix.CreateTranslation(20, 10, 0);
+            Matrix inner = Matrix.CreateScale(2, 2, 1) * outer;
+            if (kind == 1)
+            {
+                using (dt.SetTransformTemporary(outer))
+                {
+                    dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 0, 10, 10));
+                    using (dt.SetTransformTemporary(inner))
+                    {
+                        dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(10, 10, 10, 10));
+                    }
+
+                    using (dt.SetEffectTemporary(effect))
+                    {
+                        dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(40, 0, 10, 10));
+                    }
+
+                    dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 30, 10, 10));
+                }
+
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 60, 10, 10));
+            }
+            else if (kind == 2)
+            {
+                DrawSettings initial = dt.CurrentSettings;
+                dt.SetDrawSettings(initial with { Transform = outer });
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 0, 10, 10));
+                dt.SetDrawSettings(initial with { Transform = inner });
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(10, 10, 10, 10));
+                dt.SetDrawSettings(initial with { Transform = outer, BackendEffect = effect });
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(40, 0, 10, 10));
+                dt.SetDrawSettings(initial with { Transform = outer });
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 30, 10, 10));
+                dt.SetDrawSettings(initial);
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 60, 10, 10));
+            }
+            else
+            {
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 0, 10, 10));
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(10, 10, 10, 10));
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(40, 0, 10, 10));
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 30, 10, 10));
+                dt.DrawTextureTo(dt.WhitePixel, null, new Rectangle(0, 60, 10, 10));
+            }
+        }
+
+        device.SetRenderTarget(null);
+        Color[] pixels = new Color[target.Width * target.Height];
+        target.GetData(pixels);
+        System.Text.StringBuilder text = new(pixels.Length);
+        foreach (Color pixel in pixels)
+        {
+            text.Append(pixel == Color.Black ? '.' : pixel == Color.White ? '#' : '?');
+        }
+
+        return text.ToString();
+    }
+
     private static long MeasurePairs(Action pair)
     {
         for (int i = 0; i < WarmupPairs; i++)
