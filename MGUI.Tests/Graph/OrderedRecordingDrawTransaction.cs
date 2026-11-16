@@ -119,29 +119,39 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
         Write("SetDrawSettings/1", Settings == null ? "null" : Sett(Settings));
     }
 
-    public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+    private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+
+    public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
     {
         DrawSettings previous = CurrentSettings;
         int id = NextScopeId++;
         CurrentSettings = Settings ?? DrawSettings.Default;
         Write("SetDrawSettingsTemporary/1", "scope=" + id, Settings == null ? "null" : Sett(Settings));
-        return new RecordedScope(this, "DisposeDrawSettings", id, () => CurrentSettings = previous);
+        return _DrawStateScopes.Push(() =>
+        {
+            CurrentSettings = previous;
+            Write("DisposeDrawSettings", "scope=" + id);
+        });
     }
 
-    public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+    public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
     {
         int id = NextScopeId++;
         Write("SetRenderTargetTemporary/2", "scope=" + id, Img(New), ClearColor.HasValue ? Col(ClearColor.Value) : "null");
-        return new RecordedScope(this, "DisposeRenderTarget", id, null);
+        return _DrawStateScopes.Push(() => Write("DisposeRenderTarget", "scope=" + id));
     }
 
-    public IDisposable SetTransformTemporary(Matrix Transform)
+    public DrawStateHandle SetTransformTemporary(Matrix Transform)
     {
         DrawSettings previous = CurrentSettings;
         int id = NextScopeId++;
         CurrentSettings = CurrentSettings with { Transform = Transform };
         Write("SetTransformTemporary/1", "scope=" + id, Mat(Transform));
-        return new RecordedScope(this, "DisposeTransform", id, () => CurrentSettings = previous);
+        return _DrawStateScopes.Push(() =>
+        {
+            CurrentSettings = previous;
+            Write("DisposeTransform", "scope=" + id);
+        });
     }
 
     public ClipResolveResult ResolveClip(ClipDefinition Definition)
@@ -197,35 +207,6 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
         }
 
         JournalLines.Add(line.ToString());
-    }
-
-    private sealed class RecordedScope : IDisposable
-    {
-        private readonly OrderedRecordingDrawTransaction Owner;
-        private readonly string Label;
-        private readonly int Id;
-        private readonly Action Restore;
-        private bool IsDisposed;
-
-        public RecordedScope(OrderedRecordingDrawTransaction owner, string label, int id, Action restore)
-        {
-            Owner = owner;
-            Label = label;
-            Id = id;
-            Restore = restore;
-        }
-
-        public void Dispose()
-        {
-            if (IsDisposed)
-            {
-                return;
-            }
-
-            IsDisposed = true;
-            Restore?.Invoke();
-            Owner.Write(Label, "scope=" + Id);
-        }
     }
 
     private static string F(float value) => value.ToString(CultureInfo.InvariantCulture);

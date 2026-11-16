@@ -5392,7 +5392,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         //  The local matrix lives in unscaled screen space (the space of DA.Offset and of the input hit-test) and is composed
         //  BEFORE the current transform, which already carries MGWindow.Scale. Nothing is pushed for an identity transform,
         //  so an element without transform never breaks the current batch.
-        IDisposable TempTransform = null;
+        DrawStateHandle TempTransform = default;
         var UnscaledBounds = LayoutBounds.GetTranslated(DA.Offset);
         if (TryGetRenderTransformMatrix(UnscaledBounds, out var LocalTransform))
         {
@@ -5464,7 +5464,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             RecentDrawWasClipped = true;
         }
 
-        TempTransform?.Dispose();
+        TempTransform.Dispose();
 
         if (OnEndDraw != null)
         {

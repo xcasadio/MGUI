@@ -11,9 +11,9 @@ namespace MGUI.Shared.Rendering
         public Rectangle? CurrentClipBounds { get; }
 
         public void SetDrawSettings(DrawSettings Settings);
-        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings);
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor);
-        public IDisposable SetTransformTemporary(Matrix Transform);
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings);
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor);
+        public DrawStateHandle SetTransformTemporary(Matrix Transform);
         public ClipResolveResult ResolveClip(ClipDefinition Definition);
         public ClipScope PushClipTemporary(ClipDefinition Definition);
         public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);

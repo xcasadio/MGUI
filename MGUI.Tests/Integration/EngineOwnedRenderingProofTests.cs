@@ -300,29 +300,31 @@ public class EngineOwnedRenderingProofTests
             Record(ProofDrawCallKind.SetDrawSettings, ProofDrawCallCategory.State);
         }
 
-        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+        private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
             SetDrawSettings(Settings);
 
-            return new DisposableAction(() => CurrentSettings = previous);
+            return _DrawStateScopes.Push(() => CurrentSettings = previous);
         }
 
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
         {
             ProofRenderTarget next = New as ProofRenderTarget ?? throw new InvalidOperationException("Proof backend requires proof render targets.");
             ProofRenderTarget? previous = _currentRenderTarget;
             _currentRenderTarget = next;
             Record(ProofDrawCallKind.SetRenderTarget, ProofDrawCallCategory.State, renderTargetId: next.Id, clearColor: ClearColor);
 
-            return new DisposableAction(() =>
+            return _DrawStateScopes.Push(() =>
             {
                 _currentRenderTarget = previous;
                 Record(ProofDrawCallKind.SetRenderTarget, ProofDrawCallCategory.State, renderTargetId: previous?.Id, clearColor: null);
             });
         }
 
-        public IDisposable SetTransformTemporary(Matrix Transform)
+        public DrawStateHandle SetTransformTemporary(Matrix Transform)
             => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
@@ -501,26 +503,6 @@ public class EngineOwnedRenderingProofTests
             if (call.Category is ProofDrawCallCategory.Shape or ProofDrawCallCategory.Text or ProofDrawCallCategory.Image)
             {
                 RecordedCalls.Add(call);
-            }
-        }
-    }
-
-    private sealed class DisposableAction : IDisposable
-    {
-        private readonly Action _disposeAction;
-        private bool _isDisposed;
-
-        public DisposableAction(Action disposeAction)
-        {
-            _disposeAction = disposeAction ?? throw new ArgumentNullException(nameof(disposeAction));
-        }
-
-        public void Dispose()
-        {
-            if (!_isDisposed)
-            {
-                _isDisposed = true;
-                _disposeAction();
             }
         }
     }

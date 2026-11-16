@@ -26,7 +26,7 @@ public class UIView : IUIView
         }
 
         var renderTarget = Surface.GetRenderTarget();
-        using (renderTarget != null ? DT.SetRenderTargetTemporary(renderTarget, null) : null)
+        using (renderTarget != null ? DT.SetRenderTargetTemporary(renderTarget, null) : default)
         {
             Desktop.Draw(DT, opacity);
         }

@@ -115,7 +115,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 _Owner.DrawClipGeometry(geometry);
             }
 
-            IDisposable stencilReadScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
+            DrawStateHandle stencilReadScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
             {
                 DepthStencilType = DepthStencilType.StencilReadEqual,
                 StencilReference = childDepth,
@@ -163,13 +163,13 @@ namespace MGUI.Shared.Rendering.Clipping
                 _TemporaryRenderTargetReuseCount++;
             }
 
-            IDisposable depthStencilDisableScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
+            DrawStateHandle depthStencilDisableScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
             {
                 DepthStencilType = DepthStencilType.None,
             });
-            IDisposable renderTargetScope = _Owner.SetRenderTargetTemporary(maskTarget, Color.Transparent);
+            DrawStateHandle renderTargetScope = _Owner.SetRenderTargetTemporary(maskTarget, Color.Transparent);
             ClipScope clipDisableScope = _Owner.PushRectangleClip(null, false);
-            IDisposable transformScope = _Owner.SetTransformTemporary(_Owner.CurrentSettings.Transform * Matrix.CreateTranslation(-bounds.Left, -bounds.Top, 0));
+            DrawStateHandle transformScope = _Owner.SetTransformTemporary(_Owner.CurrentSettings.Transform * Matrix.CreateTranslation(-bounds.Left, -bounds.Top, 0));
 
             using (_Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
             {
@@ -186,7 +186,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 }
             }
 
-            IDisposable maskedContentScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
+            DrawStateHandle maskedContentScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
             {
                 BlendType = BlendType.DestinationAlphaMask,
                 DepthStencilType = DepthStencilType.None,

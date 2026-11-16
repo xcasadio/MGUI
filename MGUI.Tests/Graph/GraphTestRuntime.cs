@@ -153,17 +153,19 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         CurrentSettings = Settings ?? DrawSettings.Default;
     }
 
-    public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+    private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+
+    public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
     {
         DrawSettings previous = CurrentSettings;
         SetDrawSettings(Settings);
-        return new GraphDisposableAction(() => CurrentSettings = previous);
+        return _DrawStateScopes.Push(() => CurrentSettings = previous);
     }
 
-    public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
-        => new GraphDisposableAction(() => { });
+    public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        => default;
 
-    public IDisposable SetTransformTemporary(Matrix Transform)
+    public DrawStateHandle SetTransformTemporary(Matrix Transform)
     {
         TransformPushes.Add(Transform);
         return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
@@ -298,28 +300,6 @@ internal sealed class GraphTestTextEngine : ITextMeasurementEngine
     public float GetSpaceWidth(ResolvedFont font) => font.SpaceWidth;
 
     public void InvalidateCache() { }
-}
-
-internal sealed class GraphDisposableAction : IDisposable
-{
-    private readonly Action DisposeAction;
-    private bool _disposed;
-
-    public GraphDisposableAction(Action disposeAction)
-    {
-        DisposeAction = disposeAction;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-        DisposeAction();
-    }
 }
 
 internal readonly record struct GraphStrokeLineCall(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness);

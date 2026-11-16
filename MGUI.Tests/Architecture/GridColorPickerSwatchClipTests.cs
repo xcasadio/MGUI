@@ -175,16 +175,18 @@ public class GridColorPickerSwatchClipTests
 
         public void SetDrawSettings(DrawSettings Settings) => CurrentSettings = Settings ?? DrawSettings.Default;
 
-        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+        private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
             SetDrawSettings(Settings);
-            return new DisposableAction(() => CurrentSettings = previous);
+            return _DrawStateScopes.Push(() => CurrentSettings = previous);
         }
 
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor) => new DisposableAction(() => { });
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor) => default;
 
-        public IDisposable SetTransformTemporary(Matrix Transform) => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
+        public DrawStateHandle SetTransformTemporary(Matrix Transform) => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
             => ClipStrategyResolver.Resolve(Definition ?? ClipDefinition.None(), ClipBackendCapabilities.Default);
@@ -220,24 +222,5 @@ public class GridColorPickerSwatchClipTests
             => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
         public void Dispose() { }
-    }
-
-    private sealed class DisposableAction : IDisposable
-    {
-        private readonly Action _disposeAction;
-        private bool _disposed;
-
-        public DisposableAction(Action disposeAction) => _disposeAction = disposeAction;
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-            _disposeAction();
-        }
     }
 }

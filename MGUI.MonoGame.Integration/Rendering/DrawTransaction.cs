@@ -28,9 +28,9 @@ namespace MGUI.Shared.Rendering
         private MainRenderer Backend { get; }
         IUIDesktopRuntime IUIRenderContext.Renderer => Backend;
         Rectangle? IUIRenderContext.CurrentClipBounds => CurrentClipBounds;
-        IDisposable IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings)
+        DrawStateHandle IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings)
             => SetDrawSettingsTemporary(Settings);
-        IDisposable IUIRenderContext.SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        DrawStateHandle IUIRenderContext.SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
             => SetRenderTargetTemporary(New, ClearColor);
         void IUIDrawContext.FillRectangle(Vector2 Origin, RectangleF Destination, Color Color)
             => FillRectangle(Origin, Destination, Color, null);
@@ -981,11 +981,33 @@ namespace MGUI.Shared.Rendering
         #endregion Draw Geometry
         #endregion Draw
 
+        private readonly RenderTargetBinding[] _SingleRenderTargetBinding = new RenderTargetBinding[1];
+
+        /// <summary>The first render target bound to the device, or null for the back buffer. Read without the array that
+        /// <see cref="GraphicsDevice.GetRenderTargets()"/> creates when one target is bound, which is the case of every target this transaction sets.</summary>
+        private RenderTarget2D GetCurrentRenderTarget()
+        {
+            int count = GraphicsDevice.RenderTargetCount;
+            if (count == 0)
+            {
+                return null;
+            }
+
+            if (count == 1)
+            {
+                GraphicsDevice.GetRenderTargets(_SingleRenderTargetBinding);
+                RenderTarget2D target = _SingleRenderTargetBinding[0].RenderTarget as RenderTarget2D;
+                _SingleRenderTargetBinding[0] = default;
+                return target;
+            }
+
+            return GraphicsDevice.GetRenderTargets()[0].RenderTarget as RenderTarget2D;
+        }
+
         /// <param name="ClearColor">Optional. If not null, the new render target will be immediately cleared with this color. Only used if the render target actually changed.</param>
         public void SetRenderTarget(RenderTarget2D New, Color? ClearColor)
         {
-            RenderTargetBinding[] RTBs = GraphicsDevice.GetRenderTargets();
-            RenderTarget2D CurrentTarget = RTBs.Length == 0 ? null : RTBs[0].RenderTarget as RenderTarget2D;
+            RenderTarget2D CurrentTarget = GetCurrentRenderTarget();
             if (New != CurrentTarget)
             {
                 EndDraw(CurrentContext);
@@ -1012,15 +1034,16 @@ namespace MGUI.Shared.Rendering
         /// }</code>
         /// </summary>
         /// <param name="ClearColor">Optional. If not null, the new render target will be immediately cleared with this color. Only used if the render target actually changed.</param>
-        public IDisposable SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor)
+        public DrawStateHandle SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor)
         {
-            RenderTargetBinding[] RTBs = GraphicsDevice.GetRenderTargets();
-            RenderTarget2D CurrentTarget = RTBs.Length == 0 ? null : RTBs[0].RenderTarget as RenderTarget2D;
+            RenderTarget2D CurrentTarget = GetCurrentRenderTarget();
 
-            return new TemporaryChange<RenderTarget2D, Color?>(CurrentTarget, New, null, ClearColor, SetRenderTarget);
+            int slot = _TemporaryTargets.Acquire(CurrentTarget, out int generation);
+            SetRenderTarget(New, ClearColor);
+            return new DrawStateHandle(_TemporaryTargetOwner ??= new TemporaryTargetOwner(this), slot, generation);
         }
 
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
             => SetRenderTargetTemporary(New.GetRenderTarget2D(), ClearColor);
 
         internal RenderTargetLease RentTemporaryRenderTarget(int width, int height, bool preserveContents)
@@ -1041,14 +1064,58 @@ namespace MGUI.Shared.Rendering
         }
 
         /// <param name="New">To change current settings, consider using '<see cref="CurrentSettings"/> with { ... }' record syntax.</param>
-        public IDisposable SetDrawSettingsTemporary(DrawSettings New)
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings New)
         {
-            return new TemporaryChange<DrawSettings>(CurrentSettings, New, SetDrawSettings);
+            int slot = _TemporarySettings.Acquire(CurrentSettings, out int generation);
+            SetDrawSettings(New);
+            return new DrawStateHandle(_TemporarySettingsOwner ??= new TemporarySettingsOwner(this), slot, generation);
         }
 
-        public IDisposable SetTransformTemporary(Matrix Transform)
+        public DrawStateHandle SetTransformTemporary(Matrix Transform)
         {
             return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
+        }
+
+        //  What each temporary change in force restores, one slot per change (ADR-0031).
+        private readonly GenerationSlots<DrawSettings> _TemporarySettings = new();
+        private readonly GenerationSlots<RenderTarget2D> _TemporaryTargets = new();
+        private TemporarySettingsOwner _TemporarySettingsOwner;
+        private TemporaryTargetOwner _TemporaryTargetOwner;
+
+        private sealed class TemporarySettingsOwner : IDrawStateHandleOwner
+        {
+            private readonly DrawTransaction _Transaction;
+
+            public TemporarySettingsOwner(DrawTransaction Transaction)
+            {
+                _Transaction = Transaction;
+            }
+
+            public void ReleaseDrawState(int Slot, int Generation)
+            {
+                if (_Transaction._TemporarySettings.TryRelease(Slot, Generation, out DrawSettings previous))
+                {
+                    _Transaction.SetDrawSettings(previous);
+                }
+            }
+        }
+
+        private sealed class TemporaryTargetOwner : IDrawStateHandleOwner
+        {
+            private readonly DrawTransaction _Transaction;
+
+            public TemporaryTargetOwner(DrawTransaction Transaction)
+            {
+                _Transaction = Transaction;
+            }
+
+            public void ReleaseDrawState(int Slot, int Generation)
+            {
+                if (_Transaction._TemporaryTargets.TryRelease(Slot, Generation, out RenderTarget2D previous))
+                {
+                    _Transaction.SetRenderTarget(previous, null);
+                }
+            }
         }
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
@@ -1183,8 +1250,8 @@ namespace MGUI.Shared.Rendering
         public void SetEffect(Effect Effect)
             => SetDrawSettings(CurrentSettings with { BackendEffect = Effect });
 
-        /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering, and restores the previous effect when the returned <see cref="IDisposable"/> is disposed.</summary>
-        public IDisposable SetEffectTemporary(Effect Effect)
+        /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering, and restores the previous effect when the returned handle is disposed.</summary>
+        public DrawStateHandle SetEffectTemporary(Effect Effect)
             => SetDrawSettingsTemporary(CurrentSettings with { BackendEffect = Effect });
 
         internal void ClearStencil(int StencilValue = 0)

@@ -17,7 +17,6 @@ namespace MGUI.Tests.Graph;
 /// </summary>
 internal sealed class NonRecordingDrawTransaction : IUIDrawTransaction
 {
-    private static readonly IDisposable NoOpScope = new GraphDisposableAction(static () => { });
     private static readonly ClipDefinition NoClip = ClipDefinition.None();
     private readonly ClipScope SharedClipScope = new(new ClipResolveResult(NoClip, NoClip, ClipStrategy.Scissor, false), static () => { });
 
@@ -81,11 +80,11 @@ internal sealed class NonRecordingDrawTransaction : IUIDrawTransaction
         CurrentSettings = Settings ?? DrawSettings.Default;
     }
 
-    public IDisposable SetDrawSettingsTemporary(DrawSettings Settings) => NoOpScope;
+    public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings) => default;
 
-    public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor) => NoOpScope;
+    public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor) => default;
 
-    public IDisposable SetTransformTemporary(Matrix Transform) => NoOpScope;
+    public DrawStateHandle SetTransformTemporary(Matrix Transform) => default;
 
     public ClipResolveResult ResolveClip(ClipDefinition Definition)
     {
