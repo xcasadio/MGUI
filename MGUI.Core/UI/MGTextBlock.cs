@@ -1397,7 +1397,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     }
 
     /// <summary>True when the runs of the text are read by <see cref="FormattedTextScanner"/> instead of the tokenizer and the parser: formatted text (inline formatting allowed) and no explicit runs.
-    /// A text the scanner cannot read (see <see cref="FormattedTextScanner.TryScan"/>: a non ASCII character where the grammar compares letters or digits, for example) goes through the legacy code, which reads the same language.</summary>
+    /// A text the scanner cannot read (see <see cref="FormattedTextScanner.TryScan"/>: an image with no size in a block that has no desktop) goes through the legacy code, which reads the same language.</summary>
     private bool UsesFormattedTextPath => _AllowsInlineFormatting && !HasExplicitRuns && !_ForceLegacyTextPath;
 
     private void UpdateRuns()

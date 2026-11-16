@@ -46,3 +46,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0030 | An open tag character that opens no well formed tag is a literal character | Accepted | 2026-11-15 |
 | ADR-0031 | Temporary draw state changes and clips are designated by generation handles | Accepted | 2026-11-16 |
 | ADR-0032 | The MonoGame backend keeps one draw transaction per renderer | Accepted | 2026-11-16 |
+| ADR-0033 | The grammar of markup tags is ASCII | Accepted | 2026-11-16 |

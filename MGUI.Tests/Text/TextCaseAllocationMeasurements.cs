@@ -184,14 +184,14 @@ public class TextCaseAllocationMeasurements
     [Fact]
     public void NonAsciiCharacterNearAnOpenTagChangedEveryFrame()
     {
-        //  The scanner finds no tag type after the '[' and a non ASCII character among the first ones: the text is ambiguous and the legacy pipeline reads it.
-        string[] ambiguous = { $"Value [{AcuteE}] first text", $"Value [{AcuteE}] second text" };
-        TextBlockFixture fixture = CreateFixture(true, ambiguous[0]);
+        //  The grammar of tags is ASCII (MGUI ADR-0033): the scanner finds no tag type after the '[' and reads the text, whatever the characters that follow are. It was left to the legacy pipeline before.
+        string[] nonAscii = { $"Value [{AcuteE}] first text", $"Value [{AcuteE}] second text" };
+        TextBlockFixture fixture = CreateFixture(true, nonAscii[0]);
         MGTextBlock textBlock = fixture.TextBlock;
-        Assert.False(textBlock.AreFormattedRunsKnown, "the scanner read the text: it is not ambiguous");
-        Run("formatted text with a non ASCII character right after a '[' (legacy fallback), changed every frame between two strings", fixture,
-            frame => textBlock.Text = ambiguous[frame & 1]);
-        Assert.False(textBlock.AreFormattedRunsKnown);
+        Assert.True(textBlock.AreFormattedRunsKnown, "the scanner did not read the text");
+        Run("formatted text with a non ASCII character right after a '[' (scanner), changed every frame between two strings", fixture,
+            frame => textBlock.Text = nonAscii[frame & 1]);
+        Assert.True(textBlock.AreFormattedRunsKnown);
 
         //  Reference: the same texts with an ASCII character, read by the scanner.
         string[] ascii = { "Value [e] first text", "Value [e] second text" };

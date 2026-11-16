@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Text;
 using Xunit.Abstractions;
@@ -9,8 +10,8 @@ namespace MGUI.Tests.Text;
 /// The runs of a formatted text read by the allocation-free scanner (<see cref="FormattedTextScanner"/>) against the ones of the legacy pipeline (<see cref="FTTokenizer"/>, <see cref="FTParser"/>,
 /// <see cref="MGTextRun.ParseRuns(string, MGTextRunConfig)"/> and the sanitizing of <see cref="MGTextBlock"/>), reached through <see cref="MGTextBlock.ForceLegacyTextPath"/>.<para/>
 /// The public <see cref="MGTextBlock.Runs"/> of a block on the new path are built from what the scanner read (they are not parsed again), so comparing them with the legacy ones compares the scanner
-/// with the legacy code. <see cref="MGTextBlock.AreFormattedRunsKnown"/> says which path read a text: the tests check that the scanner reads everything the legacy code reads, and declines only a text the
-/// legacy code throws on or a text with a non ASCII character (the grammar compares letters and digits by Unicode rules the scanner does not reproduce).
+/// with the legacy code. <see cref="MGTextBlock.AreFormattedRunsKnown"/> says which path read a text: the tests check that the scanner reads everything the legacy code reads: the grammar of tags is ASCII in both
+/// (MGUI ADR-0033), so no text is declined (but an image with no size in a block that has no desktop, which these blocks have).
 /// </summary>
 public class FormattedTextRunsTests
 {
@@ -54,6 +55,31 @@ public class FormattedTextRunsTests
     [Theory]
     [MemberData(nameof(Defaults))]
     public void TheRuns_AreTheRunsOfTheLegacyPipeline(bool bold, bool italic, bool underlined, bool shadowed)
+        => CompareTheCorpus(bold, italic, underlined, shadowed);
+
+    /// <summary>The whole corpus again under the cultures whose rules of case or of digits differ (tr-TR is the one where i and I are not a pair, fr-FR and ar-SA have their own number formats):
+    /// what is a tag does not depend on the culture of the process, and the scanner reads every text.</summary>
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("tr-TR")]
+    [InlineData("fr-FR")]
+    [InlineData("")]
+    public void TheRuns_AreTheRunsOfTheLegacyPipeline_UnderEveryCulture(string culture)
+    {
+        CultureInfo original = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo(culture);
+            CompareTheCorpus(true, true, false, true);
+            CompareTheCorpus(false, false, true, false);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = original;
+        }
+    }
+
+    private void CompareTheCorpus(bool bold, bool italic, bool underlined, bool shadowed)
     {
         void Configure(MGTextBlock block)
         {
@@ -102,8 +128,9 @@ public class FormattedTextRunsTests
                 }
                 else
                 {
+                    //  The grammar of tags is ASCII (MGUI ADR-0033): the scanner leaves no text to the legacy code but an image with no size in a block with no desktop, and the blocks here have one.
                     declined++;
-                    Assert.True(text.Any(x => x > 127), $"{context}: the scanner declined a text with only ASCII characters that the legacy code reads");
+                    Assert.Fail($"{context}: the scanner declined a text that the legacy code reads");
                 }
             }
         }
@@ -113,7 +140,8 @@ public class FormattedTextRunsTests
         Assert.True(read >= 1000, $"{read} read");
         //  No markup makes the reading fail (MGUI ADR-0030)
         Assert.Equal(0, threw);
-        Assert.True(declined >= 4, $"{declined} declined");
+        Assert.Equal(0, declined);
+        Assert.Equal(corpus.Count * 2, read);
     }
 
     public static IEnumerable<object[]> TextsWithAnOpenTagCharacterThatOpensNoTag() => new[]

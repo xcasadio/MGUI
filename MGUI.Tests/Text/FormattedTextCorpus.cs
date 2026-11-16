@@ -78,6 +78,30 @@ internal static class FormattedTextCorpus
         "[img=Icon 1234x5678]", "[img=Icon 12345x6]", "[img=Icon 16 x 16]", "[img=Icon 16,16]", "[img=Icon  16x16]", "[img=Icon 16X16]x", "[img=Icon 3 4]",
         //  Non ASCII
         "é[b]é[/b]é", "[é]x", "[日本語] text", "[b]日本語[/b] テキスト", "[o=٠.٥]x[/o]", "[u=٢]x[/u]", "[color=Rèd]x[/color]", "[bacKground=Red]x", "[tt=Info é]x[/tt]", "[action=Go日本]x[/action]", "[Kold]x",
+        //  The grammar of tags is ASCII (MGUI ADR-0033): a number of a tag with a digit that is not an ASCII one, and a type with a letter that is not an ASCII one, are not tags
+        //  Opacity
+        "[o=٠.٥]x[/o]", "[o=0.٥]x[/o]", "[o=０.５]x[/o]", "[o=.۵]x", "[opacity=0.5٥]x", "[o=٠.5]x[/o]", "[o=0.٥٥]x",
+        //  Underline: height, offset, brush
+        "[u=٢]x[/u]", "[u=2 -١]x[/u]", "[u=２ １]x[/u]", "[u=٢ -1 Red]x[/u]", "[u=2 ١ Red]x[/u]", "[underline=३]x", "[u=2 -1 Réd]x[/u]",
+        //  Shadow: the offset and the factor of the color
+        "[shadow=Red ١ ٢]x[/shadow]", "[s=Red 1,٢]x[/s]", "[s=Red １ ２]x[/s]", "[shadow=Red 1 ٢]x[/shadow]", "[shadow=Red * ٥]x[/shadow]", "[shadow=Red 1٢ 3]x",
+        //  Background: the padding
+        "[bg=Red ٢]x[/bg]", "[bg=Blue 1,２,3]x[/bg]", "[background=Red 1,2,٣,4]x[/background]", "[bg=Red -٢]x[/bg]",
+        //  Image: the size
+        "[img=Icon ١٦x١٦]", "[img=Icon １６x１６]x", "[image=Icon 16x١٦]", "[img=Icon ١٦,١٦]x", "[img=Icon 1٦x16]",
+        //  Colors: the components of RGB and the factor
+        "[color=RGB(١,2,3)]x[/color]", "[color=rgb(１,２,３)]x[/color]", "[color=RGBA(1,2,3,٤)]x[/color]", "[color=Red * ٠.٥]x[/color]", "[color=Red*０.5]x[/color]", "[c=Red*0.٥]x[/c]", "[fg=RGB(1,٢,3)]x",
+        //  Types written with a letter that is not ASCII, with and without a closing tag
+        "[bacKground=Red]x[/bg]", "[bacKground=Red]x[/bacKground]", "[/bacKground]x", "[bKground=Red]x",
+        "[İtalic]x[/italic]", "[İtalic]x[/İtalic]", "[İ]x[/i]", "[ıtalic]x[/italic]", "[ı]x[/ı]", "[/İtalic]x", "[italİc]x[/italic]", "[toolİp=A]x[/tooltip]", "[İmg=Icon]", "[İmage=Icon 4x4]", "[unıderline]x", "[shadowı]x",
+        "[ｂ]x[/ｂ]", "[ｂold]x[/bold]", "[bｏld]x[/b]", "[Ｃolor=Red]x[/color]", "[color=Red]x[/Ｃolor]", "[ｏ=0.5]x[/o]", "[Ｕ]x[/u]", "[Ｕnderline]x", "[o=0.5]x[/ｏ]",
+        "[ſhadow=Red]x[/shadow]", "[ṡhadow=Red]x", "[ßold]x", "[cölor=Red]x[/color]", "[ΑΒ]x",
+        //  The same types and numbers in ASCII, under any culture (the Turkish I is an I)
+        "[ITALIC]x[/ITALIC]", "[Italic]x[/Italic]", "[I]x[/I]", "[IMG=Icon 16X16]", "[UNDERLINE=2 -1 Red]x[/UNDERLINE]", "[TOOLTIP=A]x[/TOOLTIP]", "[BACKGROUND=Red 1,2,3,4]x[/BACKGROUND]", "[Opacity=0.50]x[/Opacity]", "[RGB]", "[color=RGB(1,2,3)]x[/color]", "[color=rGb(1,2,3)]x[/color]",
+        //  Names and ordinary text keep their characters
+        "[tt=Été 日本]x[/tt]", "[action=日本語]x[/action]", "[img=Icôn]", "[img=日本 16x16]", "[img=Icon ١x٢]", "[tt=١٢٣]x[/tt]", "[action=Kİı]x[/action]", "[bg=Red]١٢[/bg]",
+        "١٢٣ [b]ذ[/b] ＡＢＣ K İ ı", "[é", "é[", "[١]x", "[٠.5]x", "[K]x", "[İ]x", "[ı]x", "[ｂ]x", "K[b]İ[/b]ı", "a[éb]c[b]d[/b]", "[日][b]x[/b]",
+        "[color=Rèd]x[/color]", "[color=Ｒed]x[/color]", "[color=#００FF00]x", "[color=#00FF0٠]x[/color]",
         //  Names and values that are not ASCII or that repeat
         "[tt=a]1[/tt][tt=a]2[/tt][tt=b]3[/tt]", "[action=a]1[/action][action=a]2[/action]", "[tt=a][/tt][tt=a][/tt]",
     };

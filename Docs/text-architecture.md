@@ -167,17 +167,19 @@ Ce qui est a zero allocation, apres echauffement (`MGUI.Core/UI/MGTextBlock.cs`,
 Limites (ces cas allouent) :
 
 - la premiere fois qu'un bloc voit une valeur de balise (couleur, brosse, soulignement, ombre, image, nom d'infobulle ou d'action) : la valeur est interpretee par le code historique puis gardee dans un cache du bloc ;
-- un bloc qui fait tourner plus de 128 valeurs distinctes d'une meme sorte, ou plus de 64 noms d'infobulles ou d'actions : le cache plein est vide puis rempli de nouveau ;
-- un balisage que le lecteur sans allocation ne lit pas, laisse au code historique : caractere non ASCII la ou la grammaire compare des lettres ou des chiffres et image sans taille quand le bloc n'a pas de bureau (la casse d'un type de balise ne depend plus de la culture du processus : `[I]` est la balise italique sous une culture turque ou azerie comme ailleurs) ;
+- un bloc qui fait tourner plus de 128 valeurs distinctes d'une meme sorte (couleurs, brosses, soulignements, ombres, images, et les noms d'infobulles et d'actions, qui forment une sorte), refusees ou acceptees : le cache plein est vide puis rempli de nouveau ;
+- un balisage que le lecteur sans allocation ne lit pas, laisse au code historique : un seul cas, une image sans taille quand le bloc n'a pas de bureau (ADR-0033 : la grammaire des balises est ASCII, donc plus aucun texte n'est laisse au code historique a cause d'un caractere non ASCII) ;
 - une balise dont la valeur est refusee a l'interpretation (`[color=NotAColor]`) : la premiere lecture de la valeur lance et rattrape une exception, puis le refus est garde dans le meme cache que les valeurs acceptees (une entree par valeur refusee, meme limite de 128) : un texte qui la contient et change a chaque image n'alloue plus et ne lance plus rien (`FormattedTextRejectedValueTests`) ;
-- un bloc sans balise avec `IsUnderlined` ou un fond au niveau du bloc : il repasse par l'ancienne boucle de dessin ;
-- `TextCharactersPerSecond` : un `TextRevealRun` est recree a chaque changement de texte ;
+- un bloc sans balise qui aurait un fond de texte (impossible avec l'API actuelle : seule une balise `[bg]` en pose un) repasserait par l'ancienne boucle de dessin ; un bloc sans balise souligne (`IsUnderlined`) est dessine sans allocation ;
+- `TextCharactersPerSecond` : le `TextRevealRun` du bloc est reutilise a chaque nouvelle synchronisation (changement de texte, de vitesse, ecriture de `TextProgress`) ; un nouveau n'est construit que la premiere fois, pendant un tick du moteur d'animation ou quand le run est encore actif sur un autre bureau ;
 - un changement de police : environ 11,7 Ko une fois, donc un zoom qui change la police a chaque image alloue ;
 - le reste de l'image du bureau (`MGDesktop`, `MGWindow`, layout du parent apres un `RelayoutParent`) : hors de ce chantier.
 
 Les tampons d'un bloc grandissent avec le plus long texte vu et ne retrecissent pas. Un bloc a balises garde un lecteur, deux tampons de runs et deux layouts, crees au premier usage (environ 4 a 5 Ko par bloc).
 
 `internal bool ForceLegacyTextPath` garde l'ancien pipeline appelable : les tests differentiels comparent les deux chemins (runs, lignes, tailles, appels de dessin, exceptions, evenements, clics).
+
+Grammaire ASCII (ADR-0033) : un type de balise est fait de lettres ASCII (comparees sans casse, chaque lettre ecrite sous ses deux formes dans les motifs, jamais `(?i)`) et un nombre de chiffres ASCII (`[0-9]`, jamais `\d`), dans le code historique comme dans le lecteur sans allocation, quelle que soit la culture du processus. `[o=` suivi de chiffres arabo-indiens, `[` suivi d'un `b` pleine chasse ou d'un `I` pointu turc, ou le signe Kelvin dans `background`, ne forment donc pas une balise : c'est du texte (ADR-0030). Les noms (infobulle, action, image), les brosses, le nom d'une couleur et le texte gardent tous leurs caracteres. Le lecteur n'a plus de resultat "ambigu".
 
 Balisage invalide (ADR-0030) : un `[` qui n'ouvre pas une balise bien formee (type inconnu, pas de `]`, valeur qui n'est pas de son type, valeur refusee a l'interpretation) est un caractere litteral et la lecture reprend juste apres lui. Une balise finit au premier `]` qui suit son `[` et ne contient ni saut de ligne ni autre `[` : ce qui est lu pour decider d'un `[` s'arrete la, donc la lecture reste proportionnelle au texte. Aucun balisage ne fait lever `Text`, `SetText` ou `MGTextRun.ParseRuns`. Une balise fermante sans ouverture ne change rien. `FTTokenizer.Tokenize` ne rend plus `FTTokenType.InvalidToken` et `FTTokenizer.TryTokenize` est retire.
 

@@ -7,8 +7,8 @@ namespace MGUI.Core.UI.Text;
 /// Reads a formatted text (inline markup such as <c>[b]</c>, <c>[color=Red]</c>, <c>[tooltip=Name]</c>, <c>[img=Name 16x16]</c>) into a reused <see cref="FormattedTextRuns"/> without allocating:
 /// the work of <see cref="FTTokenizer"/>, <see cref="FTParser"/>, <see cref="MGTextRun.ParseRuns(string, MGTextRunConfig)"/> and of the sanitizing of <see cref="MGTextBlock"/>, in one pass over the
 /// characters, with no regular expression, no substring, no LINQ and no collection created per call.<para/>
-/// The result is the one the legacy code gives. Where this scanner cannot be sure it would read the same thing (a non ASCII letter or digit where the grammar compares letters or
-/// digits, an image with no size in a block that has no desktop), <see cref="TryScan"/> returns false and the caller runs the legacy code instead.<para/>
+/// The result is the one the legacy code gives. The grammar of tags is ASCII (MGUI ADR-0033): a type and a number are ASCII letters and ASCII digits, in this scanner and in the legacy code. The
+/// only text this scanner leaves to the legacy code is an image with no size in a block that has no desktop (<see cref="TryScan"/> then returns false and the caller runs the legacy code).<para/>
 /// The language, as the legacy tokenizer defines it:<list type="bullet">
 /// <item>A tab is four spaces. A line break is <c>\r\n</c>, <c>\r</c> or <c>\n</c>.</item>
 /// <item><c>\</c> followed by <c>[</c> is a literal <c>[</c>; two backslashes before a <c>[</c> are a literal backslash and the <c>[</c> starts a tag (the pairs of a run of backslashes before a
@@ -161,7 +161,6 @@ internal sealed class FormattedTextScanner
     private string ActionId;
     private int OpenStart;
     private int OpenLength;
-    private bool IsAmbiguous;
 
     /// <summary>Reads <paramref name="Text"/> into <paramref name="Output"/>, replacing its content.</summary>
     /// <param name="DefaultSettings">The settings of a text outside any tag.</param>
@@ -178,7 +177,6 @@ internal sealed class FormattedTextScanner
         ActionId = null;
         OpenStart = -1;
         OpenLength = 0;
-        IsAmbiguous = false;
         PreviousOpacities.Clear();
         PreviousForegrounds.Clear();
         PreviousUnderlines.Clear();
@@ -187,7 +185,7 @@ internal sealed class FormattedTextScanner
         PreviousToolTipIds.Clear();
         PreviousActionIds.Clear();
 
-        var Success = ScanText(Desktop) && !IsAmbiguous;
+        var Success = ScanText(Desktop);
         this.Output = null;
         return Success;
     }
@@ -254,7 +252,7 @@ internal sealed class FormattedTextScanner
                     Result = TagResult.NotATag;
                 }
 
-                if (Result == TagResult.Decline || IsAmbiguous)
+                if (Result == TagResult.Decline)
                 {
                     return false;
                 }
@@ -439,7 +437,7 @@ internal sealed class FormattedTextScanner
             i++;
         }
 
-        if (i >= SourceLength || Source[i] != ']' || IsAmbiguous)
+        if (i >= SourceLength || Source[i] != ']')
         {
             return false;
         }
@@ -486,11 +484,6 @@ internal sealed class FormattedTextScanner
 
             End = At;
             Config = new MGTextRunUnderlineConfig(true);
-        }
-
-        if (IsAmbiguous)
-        {
-            return false;
         }
 
         CloseText();
@@ -599,7 +592,7 @@ internal sealed class FormattedTextScanner
                 break;
         }
 
-        if (End >= SourceLength || Source[End] != ']' || IsAmbiguous)
+        if (End >= SourceLength || Source[End] != ']')
         {
             return TagResult.NotATag;
         }
@@ -869,22 +862,8 @@ internal sealed class FormattedTextScanner
 
     //  ---- Grammar ----
 
-    /// <summary>The characters of a letter or of a digit that the legacy regular expressions would compare by Unicode or case rules this scanner does not reproduce make the text ambiguous.</summary>
-    private bool IsDigit(char Value)
-    {
-        if (Value >= '0' && Value <= '9')
-        {
-            return true;
-        }
-
-        if (Value > 127 && char.IsDigit(Value))
-        {
-            IsAmbiguous = true;
-            return true;
-        }
-
-        return false;
-    }
+    /// <summary>A digit of a number of a tag is an ASCII digit: <c>[0-9]</c> in the patterns of the legacy tokenizer, never <c>\d</c>, which matches every decimal digit of Unicode (MGUI ADR-0033).</summary>
+    private static bool IsDigit(char Value) => Value >= '0' && Value <= '9';
 
     /// <summary>The first ']' at or after <paramref name="Start"/>, or -1 if a line feed or a '[' comes first: a tag holds neither. The search stops there, so each character of
     /// the text is looked at a bounded number of times whatever the text is.</summary>
@@ -991,16 +970,7 @@ internal sealed class FormattedTextScanner
             return true;
         }
 
-        //  No type. A non ASCII character among the first ones could still be a letter the case insensitive comparison of the legacy pattern would accept.
-        for (var i = At; i < SourceLength && i < At + 10; i++)
-        {
-            if (Source[i] > 127)
-            {
-                IsAmbiguous = true;
-                break;
-            }
-        }
-
+        //  No type: the types are spelled with ASCII letters, whatever follows (MGUI ADR-0033)
         Kind = default;
         AfterType = 0;
         return false;

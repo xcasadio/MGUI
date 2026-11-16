@@ -152,7 +152,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
     }
 
     //  The offset that may end the value of a shadow: two numbers separated by a space or a comma, as the tokenizer accepts them.
-    private static readonly Regex ShadowOffsetParser = new(@" (?<X>-?\d{1,2})( |,)(?<Y>-?\d{1,2})$", RegexOptions.CultureInvariant);
+    private static readonly Regex ShadowOffsetParser = new(@" (?<X>-?[0-9]{1,2})( |,)(?<Y>-?[0-9]{1,2})$", RegexOptions.CultureInvariant);
 
     /// <summary>The shadow of a <c>[shadow=...]</c> tag: a color, then an optional offset (<c>Red 1 2</c> or <c>Red 1,2</c>; (1,1) without one).</summary>
     internal static MGTextRunShadowConfig ParseShadowValue(string Value)

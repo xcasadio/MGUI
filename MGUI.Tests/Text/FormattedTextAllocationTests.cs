@@ -128,21 +128,50 @@ public class FormattedTextAllocationTests
         Assert.False(harness.TextBlock.AreFormattedRunsKnown);
     }
 
-    [Fact]
-    public void ATextThatTheScannerDeclines_FallsBackToTheLegacyCode_AndAllocates()
+    /// <summary>Two texts that alternate, with a character that is not ASCII where the grammar of tags reads a type or a number: none of them is a tag (MGUI ADR-0033), and the scanner reads them.</summary>
+    public static IEnumerable<object[]> NonAsciiCases() => new[]
     {
-        //  A text the scanner cannot be sure to read like the legacy code (here a non ASCII character right after the '[') is read by the legacy code, which allocates: that case is routed there on purpose.
+        new object[] { "a non ASCII character right after a [", "[é] text [b]bold[/b]", "[é] text [b]bold![/b]" },
+        new object[] { "a letter of a type that is not ASCII", "[Kold]x [bacKground=Red]y[/bg] [İtalic]z[/italic]", "[Kold]x [bacKground=Red]y![/bg] [İtalic]z[/italic]" },
+        new object[] { "digits that are not ASCII", "[o=٠.٥]x[/o] [u=٢ -1]y[/u] [shadow=Red ١ ٢]z[/shadow]", "[o=٠.٥]x[/o] [u=٢ -1]y[/u] [shadow=Red ١ ٢]z![/shadow]" },
+        new object[] { "full width letters and digits", "[ｂ]x[/ｂ] [o=０.５]y[/o] [color=RGB(１,2,3)]z", "[ｂ]x![/ｂ] [o=０.５]y[/o] [color=RGB(１,2,3)]z" },
+        new object[] { "names and text that are not ASCII", "[tt=Été 日本]a[/tt] [action=日本]b[/action] [img=Icôn 4x4] ١٢", "[tt=Été 日本]a![/tt] [action=日本]b[/action] [img=Icôn 4x4] ١٢" },
+    };
+
+    [Theory]
+    [MemberData(nameof(NonAsciiCases))]
+    public void SetText_OnATextWithNonAsciiCharactersNearTheTags_AllocatesNothing(string name, string firstText, string secondText)
+    {
+        //  The scanner no longer leaves such a text to the legacy code (it allocated about 20 KB at each change).
         FormattedTextHarness harness = new(300, false);
-        string firstText = "[é] text [b]bold[/b]";
-        string secondText = "[é] text [b]bold![/b]";
         harness.TextBlock.Text = firstText;
-        Assert.False(harness.TextBlock.AreFormattedRunsKnown);
+        Assert.True(harness.TextBlock.AreFormattedRunsKnown, name);
 
         long allocated = ChangeLoop(harness, firstText.ToCharArray(), secondText.ToCharArray());
 
-        Output.WriteLine($"declined text, read by the legacy code: {allocated} B over {MeasuredIterations} changes");
-        Assert.True(allocated > 0);
-        Assert.False(harness.TextBlock.AreFormattedRunsKnown);
+        Assert.Equal(0, allocated);
+        Assert.True(harness.TextBlock.AreFormattedRunsKnown, name);
+    }
+
+    [Fact]
+    public void OnlyAnImageWithoutASize_InABlockWithNoDesktop_IsLeftToTheLegacyCode()
+    {
+        //  The size of the texture of an image with no size comes from the desktop: with none, the scanner declines (the legacy code then reads the text, and fails as it always did). Nothing else is declined.
+        Core.UI.Text.FormattedTextScanner scanner = new();
+        Core.UI.Text.FormattedTextRuns runs = new();
+        Core.UI.Text.MGTextRunConfig settings = new(false);
+
+        Assert.False(scanner.TryScan("a [img=Icon] b".AsSpan(), settings, null, runs));
+        Assert.False(scanner.TryScan("[img=Icon 0x0]".AsSpan(), settings, null, runs));
+        Assert.True(scanner.TryScan("a [img=Icon 5x6] b".AsSpan(), settings, null, runs));
+
+        foreach (string text in FormattedTextCorpus.Build())
+        {
+            if (!text.Contains("[img=", StringComparison.OrdinalIgnoreCase) && !text.Contains("[image=", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.True(scanner.TryScan(text.AsSpan(), settings, null, runs), $"declined \"{TextRunDescriber.Escape(text)}\"");
+            }
+        }
     }
 
     [Fact]

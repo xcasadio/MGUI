@@ -70,8 +70,7 @@ public class FTTokenDefinition
 
     public FTTokenDefinition(FTTokenType Type, string Pattern, IEnumerable<FTTokenType?> PrecededBy, IEnumerable<FTTokenType?> NotPrecededBy)
     {
-        //  CultureInvariant: the patterns ignore case, and under a Turkish or an Azerbaijani culture an uppercase I would not be the letter i,
-        //  so what is a tag would depend on the culture of the process.
+        //  CultureInvariant: kept from before the patterns spelled both cases of a letter themselves (MGUI ADR-0033), so that no option of the process can change what a pattern matches.
         Regex = new Regex(Pattern, RegexOptions.CultureInvariant);
         this.Type = Type;
         this.PrecededBy = PrecededBy.ToList().AsReadOnly();
@@ -121,6 +120,20 @@ public class FTTokenizer
 
     private List<FTTokenDefinition> Definitions { get; }
     private static IEnumerable<T> AsEnumerable<T>(params T[] values) => values;
+
+    /// <summary>The pattern of <paramref name="Letters"/> (ASCII letters) without regard to case, spelled as classes (<c>bold</c> is <c>[Bb][Oo][Ll][Dd]</c>). The grammar of tags is ASCII (MGUI ADR-0033):
+    /// the inline <c>(?i)</c> option would also match the letters that fold to an ASCII one (U+212A KELVIN SIGN is a <c>k</c>), and, without <see cref="RegexOptions.CultureInvariant"/>, those of the culture
+    /// of the process (U+0130 is an <c>i</c> under a Turkish culture).</summary>
+    private static string Word(string Letters)
+    {
+        StringBuilder Result = new();
+        foreach (var Letter in Letters)
+        {
+            Result.Append('[').Append(char.ToUpperInvariant(Letter)).Append(char.ToLowerInvariant(Letter)).Append(']');
+        }
+
+        return Result.ToString();
+    }
 
     public FTTokenizer()
     {
@@ -181,7 +194,7 @@ public class FTTokenizer
         );
 
         //  Tag Types
-        var BoldTypePattern = $@"(?i)(bold|b(?={EscapedCloseTag}))(?-i)";
+        var BoldTypePattern = $@"({Word("bold")}|{Word("b")}(?={EscapedCloseTag}))";
         Definitions.Add(new(FTTokenType.BoldOpenTagType, $@"^{BoldTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -191,7 +204,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var ItalicTypePattern = $@"(?i)(italic|i(?={EscapedCloseTag}))(?-i)";
+        var ItalicTypePattern = $@"({Word("italic")}|{Word("i")}(?={EscapedCloseTag}))";
         Definitions.Add(new(FTTokenType.ItalicOpenTagType, $@"^{ItalicTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -201,7 +214,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var OpacityTypePattern = $@"(?i)(opacity|o(?=(\=|{EscapedCloseTag})))(?-i)";
+        var OpacityTypePattern = $@"({Word("opacity")}|{Word("o")}(?=(\=|{EscapedCloseTag})))";
         Definitions.Add(new(FTTokenType.OpacityOpenTagType, $@"^{OpacityTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -211,7 +224,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var UnderlineTypePattern = $@"(?i)(underline|u(?=(\=|{EscapedCloseTag})))(?-i)";
+        var UnderlineTypePattern = $@"({Word("underline")}|{Word("u")}(?=(\=|{EscapedCloseTag})))";
         Definitions.Add(new(FTTokenType.UnderlineOpenTagType, $@"^{UnderlineTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -221,7 +234,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var ForegroundTypePattern = $@"(?i)(fg|foreground|color|c(?=(\=|{EscapedCloseTag})))(?-i)";
+        var ForegroundTypePattern = $@"({Word("fg")}|{Word("foreground")}|{Word("color")}|{Word("c")}(?=(\=|{EscapedCloseTag})))";
         Definitions.Add(new(FTTokenType.ForegroundOpenTagType, $@"^{ForegroundTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -231,7 +244,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var BackgroundTypePattern = @"(?i)(bg|background)(?-i)";
+        var BackgroundTypePattern = $@"({Word("bg")}|{Word("background")})";
         Definitions.Add(new(FTTokenType.BackgroundOpenTagType, $@"^{BackgroundTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -241,7 +254,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var ShadowTypePattern = $@"(?i)(shadow|s(?=(\=|{EscapedCloseTag})))(?-i)";
+        var ShadowTypePattern = $@"({Word("shadow")}|{Word("s")}(?=(\=|{EscapedCloseTag})))";
         Definitions.Add(new(FTTokenType.ShadowOpenTagType, $@"^{ShadowTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -251,13 +264,13 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var ImageTypePattern = $@"(?i)(image|img)(?=\=)(?-i)";
+        var ImageTypePattern = $@"({Word("image")}|{Word("img")})(?=\=)";
         Definitions.Add(new(FTTokenType.ImageOpenTagType, $@"^{ImageTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var ToolTipTypePattern = $@"(?i)(tooltip|tt)(?-i)";
+        var ToolTipTypePattern = $@"({Word("tooltip")}|{Word("tt")})";
         Definitions.Add(new(FTTokenType.ToolTipOpenTagType, $@"^{ToolTipTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -267,7 +280,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var ActionTypePattern = $@"(?i)(action|command)(?-i)";
+        var ActionTypePattern = $@"({Word("action")}|{Word("command")})";
         Definitions.Add(new(FTTokenType.ActionOpenTagType, $@"^{ActionTypePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpenTag),
             Enumerable.Empty<FTTokenType?>())
@@ -278,7 +291,7 @@ public class FTTokenizer
         );
 
         //  Tag Values
-        var OpacityPattern = $@"0?\.\d\d?";
+        var OpacityPattern = $@"0?\.[0-9][0-9]?";
         Definitions.Add(new(FTTokenType.OpacityValue, $@"^={OpacityPattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.OpacityOpenTagType),
             Enumerable.Empty<FTTokenType?>())
@@ -291,8 +304,8 @@ public class FTTokenizer
 
         const string ColorHexPattern = @"#[a-fA-F0-9]{6,8}";
         const string ColorNamePattern = @"[a-zA-Z]+";
-        const string ColorRGBPattern = @"(?i)RGBA?(?-i)\(\d{1,3}, ?\d{1,3}, ?\d{1,3}(, ?\d{1,3})?\)";
-        var ColorPattern = $@"({ColorRGBPattern}|{ColorHexPattern}|{ColorNamePattern})( ?\* ?\d+(\.\d+)?)?";
+        var ColorRGBPattern = $@"{Word("rgb")}[Aa]?\([0-9]{{1,3}}, ?[0-9]{{1,3}}, ?[0-9]{{1,3}}(, ?[0-9]{{1,3}})?\)";
+        var ColorPattern = $@"({ColorRGBPattern}|{ColorHexPattern}|{ColorNamePattern})( ?\* ?[0-9]+(\.[0-9]+)?)?";
         Definitions.Add(new(FTTokenType.ForegroundValue, $@"^={ColorPattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.ForegroundOpenTagType),
             Enumerable.Empty<FTTokenType?>())
@@ -303,7 +316,7 @@ public class FTTokenizer
             Enumerable.Empty<FTTokenType?>())
         );
 
-        var ShadowValuePattern = $@"{ColorPattern}( -?\d{{1,2}}( |,)-?\d{{1,2}})?";
+        var ShadowValuePattern = $@"{ColorPattern}( -?[0-9]{{1,2}}( |,)-?[0-9]{{1,2}})?";
         Definitions.Add(new(FTTokenType.ShadowValue, $@"^={ShadowValuePattern}",
             AsEnumerable<FTTokenType?>(FTTokenType.ShadowOpenTagType),
             Enumerable.Empty<FTTokenType?>())
@@ -350,7 +363,7 @@ public class FTTokenizer
     //  All parameters are optional
     //  EX: "[Underline=2 -1 Blue]" uses a solid blue brush to draw a 2px tall rectangle, offsetted upwards by 1px above the bottom of the text it's anchored to
     //      "[Underline=4]" uses the TextBlock's current Foreground Color as the brush, to draw a 4px tall rectangle at the default location just below the text it's anchored to
-    private static readonly string UnderlineValuePattern = $@"((?<Height>\d+)(( (?<Offset>-?\d+))(( (?<Brush>.+?)))?)?)?{CloseTagOrEndOfStringLookahead}";
+    private static readonly string UnderlineValuePattern = $@"((?<Height>[0-9]+)(( (?<Offset>-?[0-9]+))(( (?<Brush>.+?)))?)?)?{CloseTagOrEndOfStringLookahead}";
     public static readonly Regex UnderlineValueParser = new(UnderlineValuePattern);
     public static (int? Height, int? VerticalOffset, IFillBrush Brush) ParseUnderlineValue(string Value)
     {
@@ -370,7 +383,7 @@ public class FTTokenizer
 
     //  The background fill brush (usually a single color) followed by an optional Padding Thickness
     //  EX: "[Background=Red 2,-4,2,8]" uses a solid red brush, with Padding="2,-4,2,8"
-    private static readonly string BackgroundValuePattern = $@"(?<Brush>.+?)( (?<Padding>-?\d+(,-?\d+){{0,3}}))?{CloseTagOrEndOfStringLookahead}";
+    private static readonly string BackgroundValuePattern = $@"(?<Brush>.+?)( (?<Padding>-?[0-9]+(,-?[0-9]+){{0,3}}))?{CloseTagOrEndOfStringLookahead}";
     public static readonly Regex BackgroundValueParser = new(BackgroundValuePattern);
     public static (IFillBrush Brush, Thickness Padding) ParseBackgroundValue(string Value)
     {
@@ -393,7 +406,7 @@ public class FTTokenizer
 
     //  The name to reference the texture by, followed by an optional target size X Y
     //  EX: "[img=Gold.png 32x16]" would reference a texture by name="Gold.png", and draw it with Width=32, Height=16
-    private static readonly string ImageValuePattern = $@"(?<SourceName>.+?)( (?<Width>\d{{1,4}})( |,|x|X)(?<Height>\d{{1,4}}))?{CloseTagOrEndOfStringLookahead}";
+    private static readonly string ImageValuePattern = $@"(?<SourceName>.+?)( (?<Width>[0-9]{{1,4}})( |,|x|X)(?<Height>[0-9]{{1,4}}))?{CloseTagOrEndOfStringLookahead}";
     private static readonly Regex ImageValueParser = new(ImageValuePattern);
 
     internal static (string SourceName, int? TargetWidth, int? TargetHeight) ParseImageValue(string Value)
