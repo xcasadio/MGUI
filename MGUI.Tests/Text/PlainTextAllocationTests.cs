@@ -73,12 +73,17 @@ public class PlainTextAllocationTests
             Frame();
         }
 
-        public void Frame()
+        public void Update()
         {
             Runtime.ApplyFrame(new UpdateBaseArgs(TimeSpan.FromMilliseconds(Elapsed), TimeSpan.FromMilliseconds(16), default, default));
             Desktop.Update();
-            Desktop.Draw(Transaction);
             Elapsed += 16;
+        }
+
+        public void Frame()
+        {
+            Update();
+            Desktop.Draw(Transaction);
         }
 
         public ElementDrawArgs CreateDrawArgs()
@@ -308,6 +313,75 @@ public class PlainTextAllocationTests
         long allocated = DrawLoop(harness, changesEachFrame, shadowed, revealing);
 
         Assert.Equal(0, allocated);
+    }
+
+    [Theory]
+    [InlineData(TextBlockCorpusId.ShortNumber, false)]
+    [InlineData(TextBlockCorpusId.OneLineSentence, false)]
+    [InlineData(TextBlockCorpusId.OneLineSentence, true)]
+    [InlineData(TextBlockCorpusId.MultiLine, false)]
+    [InlineData(TextBlockCorpusId.WrappedSentence, false)]
+    [InlineData(TextBlockCorpusId.WrappedSentence, true)]
+    public void DrawSelf_OfAnUnderlinedPlainText_AllocatesNothing(TextBlockCorpusId id, bool shadowed)
+    {
+        Harness harness = new(id, false);
+        harness.TextBlock.IsUnderlined = true;
+        harness.Frame();
+        harness.Frame();
+        Assert.True(harness.TextBlock.IsUnderlined);
+
+        long allocated = DrawLoop(harness, false, shadowed, false);
+
+        Assert.Equal(0, allocated);
+    }
+
+    [Fact]
+    public void DrawSelf_OfAnUnderlinedPlainText_DrawsTheUnderline_AndAllocatesNothingWhileTheTextChanges()
+    {
+        //  The underline is a fill of the draw transaction: count the fills of one draw on a recording transaction, then run the changing text loop.
+        Harness harness = new(TextBlockCorpusId.WrappedSentence, false);
+        harness.TextBlock.IsUnderlined = true;
+        harness.Frame();
+        harness.Frame();
+        OrderedRecordingDrawTransaction journal = new(harness.Runtime, DrawSettings.Default);
+        ElementDrawArgs journalArgs = new(new DrawBaseArgs(TimeSpan.Zero, journal, 1f), new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
+        harness.TextBlock.DrawSelf(journalArgs, harness.TextBlock.LayoutBounds);
+        Assert.Contains(journal.Lines, x => x.StartsWith("FillRectangle/", StringComparison.Ordinal));
+
+        long allocated = DrawLoop(harness, true, false, false);
+
+        Assert.Equal(0, allocated);
+    }
+
+    [Theory]
+    [InlineData(TextBlockCorpusId.OneLineSentence)]
+    [InlineData(TextBlockCorpusId.WrappedSentence)]
+    public void TheDesktopDraw_OfAnUnderlinedPlainText_AllocatesNothing(TextBlockCorpusId id)
+    {
+        Harness harness = new(id, false);
+        harness.TextBlock.IsUnderlined = true;
+        harness.Frame();
+        harness.Frame();
+        Assert.True(harness.TextBlock.IsUnderlined);
+
+        for (int i = 0; i < WarmupIterations; i++)
+        {
+            harness.Frame();
+        }
+
+        long calls = harness.Transaction.CallCount;
+        long allocated = 0;
+        for (int i = 0; i < MeasuredIterations; i++)
+        {
+            //  Only the draw is counted: the update is not what this test is about.
+            harness.Update();
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            harness.Desktop.Draw(harness.Transaction);
+            allocated += GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        Assert.Equal(0, allocated);
+        Assert.True(harness.Transaction.CallCount - calls >= MeasuredIterations, "the measured loop did draw");
     }
 
     [Fact]

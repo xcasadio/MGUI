@@ -6,6 +6,7 @@ using MGUI.Shared.Text.Engines;
 using MGUI.Tests.Graph;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
+using Xunit.Abstractions;
 
 namespace MGUI.Tests.Text;
 
@@ -63,6 +64,13 @@ internal sealed class FractionalTestTextEngine : ITextMeasurementEngine
 /// </summary>
 public class PlainTextDifferentialTests
 {
+    private readonly ITestOutputHelper Output;
+
+    public PlainTextDifferentialTests(ITestOutputHelper output)
+    {
+        Output = output;
+    }
+
     private static readonly double[] LayoutWidths = { 0, 0.5, 1, 5, 17, 33.5, 60, 100, 250, 1000, 100000, double.MaxValue };
 
     private static readonly string[] FixedTexts =
@@ -453,6 +461,121 @@ public class PlainTextDifferentialTests
         }
 
         Assert.True(configurations >= 96 && draws > 2500 && nonEmptyDraws > 1500, $"{configurations} configurations, {draws} draw calls, {nonEmptyDraws} non empty");
+    }
+
+    /// <summary>The plain path hands its text to the transaction as a span and the legacy path as a string: the journal labels the two overloads apart (a trailing "s"), the text
+    /// and every other argument are the same. The overload is not what is compared here, so the label of the span overload is brought back to the one of the string overload.</summary>
+    private static List<string> Normalized(IReadOnlyList<string> lines)
+        => lines.Select(x => x.StartsWith("DrawTextViaEngine/9s ", StringComparison.Ordinal) ? "DrawTextViaEngine/9 " + x.Substring("DrawTextViaEngine/9s ".Length) : x).ToList();
+
+    /// <summary>Every call <see cref="MGTextBlock.DrawSelf"/> makes to the transaction, in order, with the arguments (the underline fills included, which
+    /// <see cref="Draw"/> does not see).</summary>
+    private static List<string> DrawJournal(Fixture fixture, float opacity)
+    {
+        OrderedRecordingDrawTransaction transaction = new(fixture.Runtime, DrawSettings.Default);
+        ElementDrawArgs drawArgs = new(new DrawBaseArgs(TimeSpan.Zero, transaction, opacity), new VisualState(PrimaryVisualState.Normal, SecondaryVisualState.None), Point.Zero);
+        fixture.TextBlock.DrawSelf(drawArgs, fixture.TextBlock.LayoutBounds);
+        return Normalized(transaction.Lines);
+    }
+
+    /// <summary>Every call a whole frame of the desktop makes to the transaction, in order, with the arguments.</summary>
+    private static List<string> DesktopJournal(Fixture fixture)
+    {
+        OrderedRecordingDrawTransaction transaction = new(fixture.Runtime, DrawSettings.Default);
+        fixture.Desktop.Draw(transaction);
+        return Normalized(transaction.Lines);
+    }
+
+    /// <summary>The underline of a plain text is drawn by the plain lines loop, not by the legacy one: the whole journal of the draw (the underline fills, the shadow, the text, in
+    /// order) is the one of the forced legacy pipeline, over a corpus of texts, with and without underline, and every setting that can reach a plain underline (its color, which
+    /// is the foreground of the text, the opacity of the draw and of the element, the line padding, the alignments, the wrapping, the width, the shadow, the reveal).</summary>
+    [Fact]
+    public void AnUnderlinedPlainText_MakesTheDrawCallsOfTheLegacyPipeline_UnderlineFillsIncluded()
+    {
+        List<string> corpus = BuildCorpus();
+        int configurations = 0;
+        int cases = 0;
+        int underlineFills = 0;
+        double?[] progresses = { null, 0.0, 0.3, 0.77, 1.0 };
+        HorizontalAlignment[] horizontals = { HorizontalAlignment.Left, HorizontalAlignment.Center, HorizontalAlignment.Right };
+        VerticalAlignment[] verticals = { VerticalAlignment.Top, VerticalAlignment.Center, VerticalAlignment.Bottom };
+        Color?[] foregrounds = { null, new Color(200, 30, 90, 255), new Color(10, 220, 40, 128), Color.Transparent };
+        float[] drawOpacities = { 1f, 0.8f, 0.35f };
+        float[] elementOpacities = { 1f, 0.6f };
+
+        foreach (bool wrap in new[] { false, true })
+        foreach (bool bold in new[] { false, true })
+        foreach (bool shadow in new[] { false, true })
+        foreach (bool underline in new[] { false, true })
+        foreach (int width in new[] { 40, 400 })
+        foreach (int alignment in new[] { 0, 1, 2 })
+        {
+            int configuration = configurations++;
+            HorizontalAlignment horizontal = horizontals[alignment];
+            VerticalAlignment vertical = verticals[(alignment + configuration) % verticals.Length];
+            Color? foreground = foregrounds[configuration % foregrounds.Length];
+            float drawOpacity = drawOpacities[configuration % drawOpacities.Length];
+            float elementOpacity = elementOpacities[configuration / 3 % elementOpacities.Length];
+            float linePadding = configuration % 2 == 0 ? 3.5f : 0f;
+
+            void Configure(MGTextBlock block)
+            {
+                block.IsShadowed = shadow;
+                block.ShadowOffset = new Point(2, 1);
+                block.IsUnderlined = underline;
+                block.TextAlignment = horizontal;
+                block.VerticalContentAlignment = vertical;
+                block.LinePadding = linePadding;
+                block.Opacity = elementOpacity;
+                if (foreground.HasValue)
+                {
+                    block.Foreground = new VisualStateSetting<Color?>(foreground, foreground, foreground);
+                }
+            }
+
+            Fixture plain = new(width, wrap, null, 0, bold, false, configure: Configure);
+            Fixture legacy = new(width, wrap, null, 0, bold, true, configure: Configure);
+
+            for (int p = 0; p < progresses.Length; p++)
+            {
+                double? progress = progresses[p];
+                plain.TextBlock.TextProgress = progress;
+                legacy.TextBlock.TextProgress = progress;
+
+                //  The first hundred texts of the corpus (the whole fixed list included) at the first progress, a different few of the corpus at the others.
+                int count = p == 0 ? 100 : 8;
+                for (int t = 0; t < count; t++)
+                {
+                    string text = p == 0 ? corpus[t] : corpus[(configuration * 13 + p * 29 + t * 41) % corpus.Count];
+                    plain.TextBlock.Text = text;
+                    legacy.TextBlock.Text = text;
+                    plain.Frame();
+                    plain.Frame();
+                    legacy.Frame();
+                    legacy.Frame();
+
+                    string context = $"text=\"{Escape(text)}\" wrap={wrap} bold={bold} shadow={shadow} underline={underline} width={width} h={horizontal} v={vertical} " +
+                                     $"progress={progress} foreground={foreground} drawOpacity={drawOpacity} elementOpacity={elementOpacity} linePadding={linePadding}";
+
+                    List<string> expected = DrawJournal(legacy, drawOpacity);
+                    List<string> actual = DrawJournal(plain, drawOpacity);
+                    Assert.True(expected.Count == actual.Count, $"{context}: {expected.Count} draw calls, got {actual.Count}");
+                    for (int i = 0; i < expected.Count; i++)
+                    {
+                        Assert.True(expected[i] == actual[i], $"{context}: draw call {i} is {actual[i]}, expected {expected[i]}");
+                    }
+
+                    //  The desktop frame too (the element opacity applies there).
+                    Assert.True(DesktopJournal(legacy).SequenceEqual(DesktopJournal(plain)), $"{context}: the journal of the desktop frame differs");
+
+                    cases++;
+                    underlineFills += expected.Count(x => x.StartsWith("FillRectangle/", StringComparison.Ordinal));
+                }
+            }
+        }
+
+        Assert.True(configurations == 96 && cases > 12000 && underlineFills > 2000, $"{configurations} configurations, {cases} cases, {underlineFills} underline fills");
+        Output.WriteLine($"{configurations} configurations, {cases} cases, {underlineFills} fills");
     }
 
     private static void AssertSamePublicLines(MGTextBlock expectedBlock, MGTextBlock actualBlock, string context)

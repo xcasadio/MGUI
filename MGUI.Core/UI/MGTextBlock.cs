@@ -2012,9 +2012,9 @@ public class MGTextBlock : MGElement, ITextMeasurer
         var padding = ResolvedPadding;
         var paddedBounds = GetPaddedLayoutBounds(LayoutBounds);
 
-        //  Plain text is drawn from its plain lines, without building the public Lines. A text that has a background or an underline
-        //  is not modeled there: it takes the loop below, which builds the public lines.
-        if (_ArePlainLinesKnown && !PlainLines.Settings.HasBackground && !PlainLines.Settings.Underline.IsEnabled)
+        //  Plain text is drawn from its plain lines, without building the public Lines. A text that has a background is not modeled there
+        //  (the settings of a plain text come from DefaultTextRunSettings, which has none): it takes the loop below, which builds the public lines.
+        if (_ArePlainLinesKnown && !PlainLines.Settings.HasBackground)
         {
             DrawPlainLines(DA, LayoutBounds, paddedBounds, DefaultForeground, Transform, RemainingCharacters);
             return;
@@ -2317,7 +2317,7 @@ public class MGTextBlock : MGElement, ITextMeasurer
     private static readonly MGTextRunConfig EmptyLineRunSettings = new(false);
 
     /// <summary>The body of <see cref="DrawSelf"/> for a plain text, from <see cref="PlainLines"/>: the same positions, colors, scale, shadow and <see cref="TextProgress"/> truncation as
-    /// the loop over <see cref="Lines"/>, without building any object. A plain run has no image, no action, no tooltip, no background and no underline (the caller checked), so
+    /// the loop over <see cref="Lines"/>, without building any object. A plain run has no image, no action, no tooltip and no background (the caller checked), so
     /// there is nothing to track in <see cref="ActionBounds"/> and <see cref="ToolTipBounds"/>.</summary>
     private void DrawPlainLines(ElementDrawArgs DA, Rectangle LayoutBounds, Rectangle paddedBounds, Color DefaultForeground, Matrix Transform, int RemainingCharacters)
     {
@@ -2356,6 +2356,16 @@ public class MGTextBlock : MGElement, ITextMeasurer
                 var TextSize = MeasureText(ActualText, IsBold, IsItalic);
                 Vector2 visualDrawPosition = new(CurrentX, TextYPosition);
                 var engineAdjustedDrawPosition = visualDrawPosition + (resolved.DrawOrigin * drawScale);
+
+                //  Draw underline
+                var UnderlineSettings = RunSettings.Underline;
+                if (UnderlineSettings.IsEnabled)
+                {
+                    var UnderlineHeight = UnderlineSettings.Height;
+                    var UnderlineYOffset = UnderlineSettings.VerticalOffset;
+                    var Destination = new RectangleF(CurrentX, TextYPosition + Line.TextHeight - 2 + UnderlineYOffset, TextSize.X, UnderlineHeight);
+                    DrawUnderline(DA, UnderlineSettings.Brush, Foreground, ActualOpacity, Destination.RoundUp());
+                }
 
                 var Position = engineAdjustedDrawPosition.TransformBy(Transform);
                 if (RunSettings.IsShadowed)
