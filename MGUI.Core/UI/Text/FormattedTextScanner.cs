@@ -19,7 +19,8 @@ namespace MGUI.Core.UI.Text;
 /// </list>
 /// The values that the legacy code interprets with a regular expression or a converter (colors, brushes, images) are interpreted by the same legacy functions and kept in a small cache
 /// (<see cref="CacheLimit"/> entries per kind), keyed by the characters of the value, and the names of the tooltips and the actions are interned the same way: a text whose values were
-/// already seen allocates nothing; a value never seen allocates its string (and what its legacy interpretation allocates) once.
+/// already seen allocates nothing; a value never seen allocates its string (and what its legacy interpretation allocates) once. A value that the interpretation rejects (it throws) is kept in
+/// the same cache as rejected, so that it throws once and not at each read of a text that holds it.
 /// </summary>
 internal sealed class FormattedTextScanner
 {
@@ -66,27 +67,71 @@ internal sealed class FormattedTextScanner
         }
     }
 
-    /// <summary>A dictionary keyed by strings that is read with the characters of a value, without building the string.</summary>
+    /// <summary>What a cache holds for a value: its interpretation, or the fact that the interpretation rejected it (it threw).</summary>
+    private readonly struct CacheEntry<T>
+    {
+        public readonly T Value;
+
+        /// <summary>The culture in effect when the interpretation threw, or null if the value was accepted. The interpretation of a brush or a color goes through converters that read the
+        /// current culture (the list separator of a color list, the number format), so a rejection holds for that culture only: it is read again, and interpreted again, under another one.</summary>
+        public readonly CultureInfo RejectedIn;
+
+        public CacheEntry(T Value, CultureInfo RejectedIn)
+        {
+            this.Value = Value;
+            this.RejectedIn = RejectedIn;
+        }
+    }
+
+    /// <summary>A dictionary keyed by strings that is read with the characters of a value, without building the string. A value that the interpretation rejects is kept like an accepted one
+    /// (one entry per value, the same <see cref="CacheLimit"/>), so that the interpretation throws once per value and not at every read of a text that holds it.</summary>
     private sealed class ValueCache<T>
     {
-        private readonly Dictionary<string, T> Items = new();
-        private readonly Dictionary<string, T>.AlternateLookup<ReadOnlySpan<char>> Lookup;
+        private readonly Dictionary<string, CacheEntry<T>> Items = new();
+        private readonly Dictionary<string, CacheEntry<T>>.AlternateLookup<ReadOnlySpan<char>> Lookup;
 
         public ValueCache()
         {
             Lookup = Items.GetAlternateLookup<ReadOnlySpan<char>>();
         }
 
-        public bool TryGet(ReadOnlySpan<char> Key, out T Value) => Lookup.TryGetValue(Key, out Value);
-
-        public void Add(string Key, T Value)
+        /// <returns>True if the value is known: <paramref name="IsRejected"/> says whether it was rejected (<paramref name="Value"/> is then the default).</returns>
+        public bool TryGet(ReadOnlySpan<char> Key, out T Value, out bool IsRejected)
         {
-            if (Items.Count >= CacheLimit)
+            if (Lookup.TryGetValue(Key, out var Entry))
+            {
+                if (Entry.RejectedIn == null)
+                {
+                    Value = Entry.Value;
+                    IsRejected = false;
+                    return true;
+                }
+
+                if (ReferenceEquals(Entry.RejectedIn, CultureInfo.CurrentCulture))
+                {
+                    Value = default;
+                    IsRejected = true;
+                    return true;
+                }
+            }
+
+            Value = default;
+            IsRejected = false;
+            return false;
+        }
+
+        public void Add(string Key, T Value) => Set(Key, new CacheEntry<T>(Value, null));
+
+        public void AddRejected(string Key) => Set(Key, new CacheEntry<T>(default, CultureInfo.CurrentCulture));
+
+        private void Set(string Key, CacheEntry<T> Entry)
+        {
+            if (Items.Count >= CacheLimit && !Items.ContainsKey(Key))
             {
                 Items.Clear();
             }
 
-            Items[Key] = Value;
+            Items[Key] = Entry;
         }
     }
 
@@ -204,8 +249,8 @@ internal sealed class FormattedTextScanner
                 }
                 catch (Exception)
                 {
-                    //  A value its interpretation rejects (a color that does not exist, a number that does not fit, ...): not a tag. The value is interpreted before the tag changes
-                    //  anything, so nothing was changed.
+                    //  What the interpretation of a value does not already answer (the cache of values keeps the values it rejects): the size of the texture of an image, which the
+                    //  desktop gives. Not a tag. The value is interpreted before the tag changes anything, so nothing was changed.
                     Result = TagResult.NotATag;
                 }
 
@@ -422,7 +467,15 @@ internal sealed class FormattedTextScanner
             }
 
             var Value = new ReadOnlySpan<char>(Source, ValueStart, End - ValueStart);
-            Config = Value.IsEmpty ? new MGTextRunUnderlineConfig(true) : GetUnderline(Value);
+            if (Value.IsEmpty)
+            {
+                Config = new MGTextRunUnderlineConfig(true);
+            }
+            else if (!TryGetUnderline(Value, out Config))
+            {
+                //  A value its interpretation rejects (a height that does not fit, a brush that is not one): not a tag
+                return false;
+            }
         }
         else
         {
@@ -556,7 +609,11 @@ internal sealed class FormattedTextScanner
         {
             case TagKind.Foreground:
             {
-                var Color = GetForeground(Value);
+                if (!TryGetForeground(Value, out var Color))
+                {
+                    return TagResult.NotATag;
+                }
+
                 CloseText();
                 PreviousForegrounds.Add(State.Foreground);
                 State = State.WithForeground(Color);
@@ -565,7 +622,11 @@ internal sealed class FormattedTextScanner
 
             case TagKind.Background:
             {
-                var Background = GetBackground(Value);
+                if (!TryGetBackground(Value, out var Background))
+                {
+                    return TagResult.NotATag;
+                }
+
                 CloseText();
                 PreviousBackgrounds.Add(State.Background);
                 State.Background = Background;
@@ -574,7 +635,11 @@ internal sealed class FormattedTextScanner
 
             case TagKind.Shadow:
             {
-                var Shadow = GetShadow(Value);
+                if (!TryGetShadow(Value, out var Shadow))
+                {
+                    return TagResult.NotATag;
+                }
+
                 CloseText();
                 PreviousShadows.Add(State.Shadow);
                 State.Shadow = Shadow;
@@ -683,63 +748,102 @@ internal sealed class FormattedTextScanner
     }
 
     //  ---- Values: the legacy interpretation, kept by the characters of the value ----
+    //
+    //  A value is interpreted once. What the interpretation gives is kept, and so is the fact that it threw (the value is then not a value of its tag: the '[' is a literal character). The
+    //  interpretation of the values below is a function of the characters of the value, and of the current culture for the converters that read it (see CacheEntry<T>.RejectedIn):
+    //  - a color (foreground, shadow) is limited by the grammar to a name, a hexadecimal number or RGB(...), with an optional factor and, for a shadow, an offset;
+    //  - an underline is a height, an offset and a brush; a background is a brush and a padding: a brush is any text, which goes through the converter of colors;
+    //  - an image and the name of a tooltip or of an action are never rejected (the name is the text, the size is at most four digits): there is no rejection to keep.
+    //  Nothing in them reads the desktop, a resource or a name registered later: the texture of an image is looked up after the value is read, by the caller, and never by the interpretation.
 
-    private Color GetForeground(ReadOnlySpan<char> Value)
+    private bool TryGetForeground(ReadOnlySpan<char> Value, out Color Result)
     {
         var Cache = ForegroundCache ??= new();
-        if (!Cache.TryGet(Value, out var Result))
+        if (!Cache.TryGet(Value, out Result, out var IsRejected))
         {
             var Key = new string(Value);
-            Result = MGTextRunConfig.ParseForegroundValue(Key);
-            Cache.Add(Key, Result);
+            try
+            {
+                Result = MGTextRunConfig.ParseForegroundValue(Key);
+                Cache.Add(Key, Result);
+            }
+            catch (Exception)
+            {
+                Cache.AddRejected(Key);
+                IsRejected = true;
+            }
         }
 
-        return Result;
+        return !IsRejected;
     }
 
-    private MGTextRunUnderlineConfig GetUnderline(ReadOnlySpan<char> Value)
+    private bool TryGetUnderline(ReadOnlySpan<char> Value, out MGTextRunUnderlineConfig Result)
     {
         var Cache = UnderlineCache ??= new();
-        if (!Cache.TryGet(Value, out var Result))
+        if (!Cache.TryGet(Value, out Result, out var IsRejected))
         {
             var Key = new string(Value);
-            Result = MGTextRunConfig.ParseUnderlineValue(Key);
-            Cache.Add(Key, Result);
+            try
+            {
+                Result = MGTextRunConfig.ParseUnderlineValue(Key);
+                Cache.Add(Key, Result);
+            }
+            catch (Exception)
+            {
+                Cache.AddRejected(Key);
+                IsRejected = true;
+            }
         }
 
-        return Result;
+        return !IsRejected;
     }
 
-    private MGTextRunBackgroundConfig GetBackground(ReadOnlySpan<char> Value)
+    private bool TryGetBackground(ReadOnlySpan<char> Value, out MGTextRunBackgroundConfig Result)
     {
         var Cache = BackgroundCache ??= new();
-        if (!Cache.TryGet(Value, out var Result))
+        if (!Cache.TryGet(Value, out Result, out var IsRejected))
         {
             var Key = new string(Value);
-            Result = MGTextRunConfig.ParseBackgroundValue(Key);
-            Cache.Add(Key, Result);
+            try
+            {
+                Result = MGTextRunConfig.ParseBackgroundValue(Key);
+                Cache.Add(Key, Result);
+            }
+            catch (Exception)
+            {
+                Cache.AddRejected(Key);
+                IsRejected = true;
+            }
         }
 
-        return Result;
+        return !IsRejected;
     }
 
-    private MGTextRunShadowConfig GetShadow(ReadOnlySpan<char> Value)
+    private bool TryGetShadow(ReadOnlySpan<char> Value, out MGTextRunShadowConfig Result)
     {
         var Cache = ShadowCache ??= new();
-        if (!Cache.TryGet(Value, out var Result))
+        if (!Cache.TryGet(Value, out Result, out var IsRejected))
         {
             var Key = new string(Value);
-            Result = MGTextRunConfig.ParseShadowValue(Key);
-            Cache.Add(Key, Result);
+            try
+            {
+                Result = MGTextRunConfig.ParseShadowValue(Key);
+                Cache.Add(Key, Result);
+            }
+            catch (Exception)
+            {
+                Cache.AddRejected(Key);
+                IsRejected = true;
+            }
         }
 
-        return Result;
+        return !IsRejected;
     }
 
     private ParsedImage GetImage(ReadOnlySpan<char> Value)
     {
         var Cache = ImageCache ??= new();
-        if (!Cache.TryGet(Value, out var Result))
+        if (!Cache.TryGet(Value, out var Result, out _))
         {
             var Key = new string(Value);
             (var SourceName, var Width, var Height) = FTTokenizer.ParseImageValue(Key);
@@ -754,7 +858,7 @@ internal sealed class FormattedTextScanner
     private string GetName(ReadOnlySpan<char> Value)
     {
         var Cache = NameCache ??= new();
-        if (!Cache.TryGet(Value, out var Result))
+        if (!Cache.TryGet(Value, out var Result, out _))
         {
             Result = new string(Value);
             Cache.Add(Result, Result);
