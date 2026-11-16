@@ -78,6 +78,95 @@ public readonly record struct GridSelection(MGGrid Grid, GridCell Cell, GridSele
 
     public MGGrid Grid { get; init; } = Grid ?? throw new ArgumentNullException(nameof(Grid));
 
+    /// <summary>The cells of the selection, in the order of <see cref="GetEnumerator"/>, for a <c>foreach</c> that allocates nothing (the interface implementation above makes an iterator at each enumeration).
+    /// The same rules as <see cref="GetCells"/>: a row selection gives the cell of each column of the row (if the row is still in the grid), and so on.</summary>
+    internal CellEnumerable Cells => new(this);
+
+    internal readonly struct CellEnumerable
+    {
+        private readonly GridSelection Selection;
+
+        public CellEnumerable(GridSelection Selection)
+        {
+            this.Selection = Selection;
+        }
+
+        public CellEnumerator GetEnumerator() => new(Selection);
+    }
+
+    internal struct CellEnumerator
+    {
+        private readonly GridSelection Selection;
+        private bool IsStarted;
+        private bool IsInGrid;
+        private int Next;
+
+        public GridCell Current { get; private set; }
+
+        public CellEnumerator(GridSelection Selection)
+        {
+            this.Selection = Selection;
+            IsStarted = false;
+            IsInGrid = false;
+            Next = 0;
+            Current = default;
+        }
+
+        public bool MoveNext()
+        {
+            var Grid = Selection.Grid;
+            var Cell = Selection.Cell;
+            switch (Selection.SelectionMode)
+            {
+                case GridSelectionMode.None:
+                    return false;
+                case GridSelectionMode.Row:
+                    if (!IsStarted)
+                    {
+                        IsStarted = true;
+                        IsInGrid = Grid.Rows.Contains(Cell.Row);
+                    }
+
+                    if (IsInGrid && Next < Grid.Columns.Count)
+                    {
+                        Current = new GridCell(Cell.Row, Grid.Columns[Next++]);
+                        return true;
+                    }
+
+                    return false;
+                case GridSelectionMode.Column:
+                    if (!IsStarted)
+                    {
+                        IsStarted = true;
+                        IsInGrid = Grid.Columns.Contains(Cell.Column);
+                    }
+
+                    if (IsInGrid && Next < Grid.Rows.Count)
+                    {
+                        Current = new GridCell(Grid.Rows[Next++], Cell.Column);
+                        return true;
+                    }
+
+                    return false;
+                case GridSelectionMode.Cell:
+                    if (!IsStarted)
+                    {
+                        IsStarted = true;
+                        IsInGrid = Grid.Rows.Contains(Cell.Row) && Grid.Columns.Contains(Cell.Column);
+                        if (IsInGrid)
+                        {
+                            Current = Cell;
+                            return true;
+                        }
+                    }
+
+                    return false;
+                default:
+                    throw new NotImplementedException($"Unrecognized {nameof(GridSelectionMode)}: {Selection.SelectionMode}");
+            }
+        }
+    }
+
     private IEnumerable<GridCell> GetCells()
     {
         switch (SelectionMode)
@@ -1736,7 +1825,7 @@ public class MGGrid : MGMultiContentHost
         if (HasSelection && CurrentSelection.Value.SelectionMode != GridSelectionMode.None && SelectionOverlay != null)
         {
             var ScissorBounds = DA.DT.CurrentClipBounds;
-            foreach (var Cell in CurrentSelection.Value)
+            foreach (var Cell in CurrentSelection.Value.Cells)
             {
                 if (_CellBounds.TryGetValue(Cell, out var Bounds))
                 {
@@ -1756,7 +1845,7 @@ public class MGGrid : MGMultiContentHost
         if (HasSelection && CurrentSelection.Value.SelectionMode != GridSelectionMode.None && SelectionBackground != null)
         {
             var ScissorBounds = DA.DT.CurrentClipBounds;
-            foreach (var Cell in CurrentSelection.Value)
+            foreach (var Cell in CurrentSelection.Value.Cells)
             {
                 if (_CellBounds.TryGetValue(Cell, out var Bounds))
                 {

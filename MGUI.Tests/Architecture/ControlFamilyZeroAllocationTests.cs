@@ -1,3 +1,5 @@
+using MGUI.Core.UI.Containers.Grids;
+using Microsoft.Xna.Framework.Input;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
 using MGUI.Shared.Input;
@@ -594,6 +596,192 @@ public class ControlFamilyZeroAllocationTests
             Assert.Equal(SecondaryVisualState.Hovered, changes[i].New.Secondary);
             Assert.Equal(changes[i].New, changes[i + 1].Previous);
             Assert.Equal(SecondaryVisualState.None, changes[i + 1].New.Secondary);
+        }
+    }
+
+
+    // ---- MGGrid 3x3 with a selected cell ----
+
+    /// <summary>A 3x3 grid in cell selection mode, with the cell of the second row and second column selected by a real click and the mouse moved away.</summary>
+    private sealed record GridScene(ControlBench Bench, MGGrid Grid, Point First, Point Second)
+    {
+        /// <summary>The click of the measurement: a press then a release on one cell, then on the other, one click every two frames.</summary>
+        public Action<int> Click => frame =>
+        {
+            int step = frame & 3;
+            Bench.Mouse = step < 2 ? Second : First;
+            Bench.Left = (step & 1) == 0 ? ButtonState.Pressed : ButtonState.Released;
+        };
+    }
+
+    private static GridScene CreateGridScene(GridSelectionMode mode = GridSelectionMode.Cell)
+    {
+        ControlBench bench = new();
+        MGGrid grid = new(bench.Window) { SelectionMode = mode };
+        for (int i = 0; i < 3; i++)
+        {
+            grid.AddRow(GridLength.CreateWeightedLength(1));
+            grid.AddColumn(GridLength.CreateWeightedLength(1));
+        }
+
+        MGTextBlock[,] cells = new MGTextBlock[3, 3];
+        for (int row = 0; row < 3; row++)
+        {
+            for (int column = 0; column < 3; column++)
+            {
+                cells[row, column] = new MGTextBlock(bench.Window, $"R{row}C{column}");
+                Assert.True(grid.TryAddChild(row, column, cells[row, column]));
+            }
+        }
+
+        bench.Show(grid);
+        GridScene scene = new(bench, grid, cells[1, 1].ActualLayoutBounds.Center, cells[0, 0].ActualLayoutBounds.Center);
+
+        bench.Mouse = scene.First;
+        bench.Left = ButtonState.Pressed;
+        bench.Frame();
+        bench.Left = ButtonState.Released;
+        bench.Frames(2);
+        bench.Mouse = ControlBench.OutsideTheWindow;
+        bench.Frames(2);
+        if (mode == GridSelectionMode.Cell)
+        {
+            Assert.True(grid.HasSelection);
+            Assert.Same(grid.Rows[1], grid.CurrentSelection.Value.Cell.Row);
+        }
+
+        return scene;
+    }
+
+    private FrameBytes MeasureGrid(bool click, GridSelectionMode mode = GridSelectionMode.Cell)
+    {
+        GridScene scene = CreateGridScene(mode);
+        ControlBench bench = scene.Bench;
+        if (click && mode == GridSelectionMode.Cell)
+        {
+            //  Warm the click path and check that the selection really moves.
+            for (int frame = 0; frame < 8; frame++)
+            {
+                scene.Click(frame);
+                bench.Frame();
+                if (frame == 5)
+                {
+                    Assert.Same(scene.Grid.Rows[0], scene.Grid.CurrentSelection.Value.Cell.Row);
+                }
+                else if (frame == 7)
+                {
+                    Assert.Same(scene.Grid.Rows[1], scene.Grid.CurrentSelection.Value.Cell.Row);
+                }
+            }
+        }
+
+        long callsBefore = bench.Transaction.CallCount;
+        FrameBytes bytes = FrameAllocationMeter.Measure(click ? scene.Click : null, bench.Update, bench.Draw);
+        Assert.True(bench.Transaction.CallCount > callsBefore, "the measured frames drew nothing");
+        Assert.True(scene.Grid.HasSelection);
+        bench.Left = ButtonState.Released;
+        Output.WriteLine($"MGGrid, {(mode == GridSelectionMode.Cell ? "a cell selected" : "no selection mode")}{(click ? ", selection moved by a click every 2 frames" : ", at rest")}: Update {bytes.Update} B/frame, Draw {bytes.Draw} B/frame (totals {bytes.UpdateTotal} and {bytes.DrawTotal} B over {bytes.Iterations} frames)");
+        return bytes;
+    }
+
+    [Fact]
+    public void GridWithASelection_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureGrid(false).UpdateTotal);
+
+    [Fact]
+    public void GridWithASelection_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureGrid(false).DrawTotal);
+    /// <summary>A click is a press and a release, and the mouse tracker of MGUI.Shared creates the event objects of each (the press, the release, the click and its sequence, the drag start and end,
+    /// the routing metadata): they are the whole of what the update of the clicked grid allocates, and they do not depend on the selection. The same clicks on a grid without selection
+    /// mode (the same handlers, no selection) allocate the same bytes, so the selection that the click moves allocates nothing. When the tracker stops allocating them, both become 0.</summary>
+    [Fact]
+    public void GridWithASelection_Update_WithTheSelectionMovedByClicks_AllocatesOnlyTheMouseInputEvents()
+    {
+        FrameBytes withSelection = MeasureGrid(true);
+        FrameBytes withoutSelection = MeasureGrid(true, GridSelectionMode.None);
+        Assert.True(withoutSelection.UpdateTotal > 0, "the clicks create no mouse event object: the baseline is not measuring the input");
+        Assert.Equal(withoutSelection.UpdateTotal, withSelection.UpdateTotal);
+    }
+
+    [Fact]
+    public void GridWithASelection_Draw_WithTheSelectionMovedByClicks_AllocatesNothing() => Assert.Equal(0, MeasureGrid(true).DrawTotal);
+
+    /// <summary>The draw journal of the grid: two frames at rest with the cell selected, then 16 frames of the click pattern (the selection moves between the two cells every
+    /// 4 frames, with the press and the release on their own frames), then two frames at rest. Frozen on the code before the allocation-free work, kept after it.</summary>
+    [Fact]
+    public void GridWithASelection_DrawJournal_AtRestAndAcrossSelectionMoves()
+    {
+        GridScene scene = CreateGridScene();
+        ControlBench bench = scene.Bench;
+        OrderedRecordingDrawTransaction transaction = new(bench.Runtime, DrawSettings.Default);
+        List<string> journal = new();
+        void Record(string label)
+        {
+            transaction.ClearJournal();
+            bench.Update();
+            bench.Desktop.Draw(transaction);
+            journal.Add($"== {label} selection={(scene.Grid.CurrentSelection.HasValue ? scene.Grid.CurrentSelection.Value.Cell.Row.Top + "," + scene.Grid.CurrentSelection.Value.Cell.Column.Left : "none")}");
+            journal.AddRange(transaction.Lines);
+        }
+
+        Record("rest, selected");
+        Record("rest, selected, again");
+        for (int frame = 0; frame < 16; frame++)
+        {
+            scene.Click(frame);
+            Record($"click frame {frame}");
+        }
+
+        bench.Left = ButtonState.Released;
+        bench.Mouse = ControlBench.OutsideTheWindow;
+        Record("rest after the clicks");
+        Record("rest after the clicks, again");
+        FrozenJournal.Assert("grid draw journal", 1500, "49B5CDC15160B011", journal);
+    }
+
+    /// <summary>The allocation-free cells of a selection are the cells that a foreach over the selection gives, in the same order, for each mode, and none for a cell that is not in the grid.</summary>
+    [Fact]
+    public void GridSelection_Cells_AreTheCellsOfTheEnumeration()
+    {
+        ControlBench bench = new();
+        MGGrid grid = new(bench.Window);
+        MGGrid other = new(bench.Window);
+        for (int i = 0; i < 3; i++)
+        {
+            grid.AddRow(GridLength.CreateWeightedLength(1));
+            grid.AddColumn(GridLength.CreateWeightedLength(1));
+            other.AddRow(GridLength.CreateWeightedLength(1));
+            other.AddColumn(GridLength.CreateWeightedLength(1));
+        }
+
+        GridCell inside = new(grid.Rows[1], grid.Columns[2]);
+        GridCell outside = new(other.Rows[1], grid.Columns[2]);
+        foreach (GridSelectionMode mode in new[] { GridSelectionMode.None, GridSelectionMode.Row, GridSelectionMode.Column, GridSelectionMode.Cell })
+        {
+            foreach (GridCell cell in new[] { inside, outside })
+            {
+                GridSelection selection = new(grid, cell, mode);
+                List<GridCell> expected = new();
+                foreach (GridCell expectedCell in (IEnumerable<GridCell>)selection)
+                {
+                    expected.Add(expectedCell);
+                }
+
+                List<GridCell> actual = new();
+                foreach (GridCell actualCell in selection.Cells)
+                {
+                    actual.Add(actualCell);
+                }
+
+                Assert.Equal(expected, actual);
+                //  The row of the outside cell belongs to another grid, its column to this one.
+                int expectedCount = mode switch
+                {
+                    GridSelectionMode.Row => cell == inside ? 3 : 0,
+                    GridSelectionMode.Column => 3,
+                    GridSelectionMode.Cell => cell == inside ? 1 : 0,
+                    _ => 0
+                };
+                Assert.Equal(expectedCount, actual.Count);
+            }
         }
     }
 }
