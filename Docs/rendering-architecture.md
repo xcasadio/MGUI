@@ -293,6 +293,7 @@ La frontiere est epinglee par des suites de tests dans `MGUI.Tests/Architecture/
 - Le shim `SetClipTargetTemporary` a encore des call sites legacy (`MGDesktop`, `MGContextMenu`, `MGRatingControl`) ; voir les taches.
 - Profondeur stencil plafonnee a 255 ; le backend mask a un cout memoire/batching eleve et ne doit pas devenir un chemin chaud.
 - Le dossier racine `MGUI.MonoGame/` est mort (bin/obj uniquement, hors solution).
+- `FillPolygon` ne copie plus ses sommets (un tableau est passe tel quel, une liste indexable passe par un tampon garde par longueur, jusqu'a 256 sommets), mais le dessin d'un polygone alloue encore a chaque appel : `PrimitiveDrawing.DrawSolidPolygon` de MonoGame.Extended triangule dans des objets neufs (376 octets pour un triangle, 928 a 992 pour sept ou huit sommets, mesure sur GPU reel). `DrawSolidPolygon` ne modifie pas le tableau recu et ne le garde pas : c'est ce qui rend le tampon partage sur dans un lot (`FillPolygonGpuTests`).
 
 ## Reste a faire
 
