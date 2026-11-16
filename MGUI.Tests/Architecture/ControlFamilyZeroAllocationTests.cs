@@ -1199,8 +1199,8 @@ public class ControlFamilyZeroAllocationTests
         FrozenJournal.Assert("text box draw journal", 936, "70E142E4BD23747E", journal);
     }
 
-    /// <summary>The update of a frame in which a key is pressed in a focused text box that ignores it (F1, then F2, one per frame): what the keyboard input of MGUI.Shared allocates for a key
-    /// (the key pressed, released and clicked event arguments, the input stream and its routing metadata; the modifier reads no longer allocate, ADR-0034), and nothing of the text box.</summary>
+    /// <summary>The update of a frame in which a key is pressed in a focused text box that ignores it (F1, then F2, one per frame): the keyboard input of MGUI.Shared refills the press, release, click and
+    /// stream instances of the key (ADR-0034), the text box ignores the key, so nothing is allocated. The keys are real: the tracker holds F1 or F2 at the end.</summary>
     private FrameBytes MeasureTextBoxWithIgnoredKeys()
     {
         TextBoxScene scene = CreateTextBoxScene(true);
@@ -1211,28 +1211,31 @@ public class ControlFamilyZeroAllocationTests
         Assert.Same(scene.TextBox, bench.Desktop.FocusedKeyboardHandler);
         Assert.Equal("", scene.TextBox.Text);
         Assert.Equal(0, bytes.DrawTotal);
+        Assert.True(bench.Desktop.InputTracker.Keyboard.IsPressed(Keys.F1) || bench.Desktop.InputTracker.Keyboard.IsPressed(Keys.F2), "the measured frames press no key");
         Output.WriteLine($"MGTextBox focused, one ignored key per frame (F1, F2): Update {bytes.Update} B/frame (total {bytes.UpdateTotal} B over {bytes.Iterations} frames)");
         return bytes;
     }
 
-    /// <summary>What the update of a typing frame (the text alternates between "a" and "") allocates beyond the keyboard input of MGUI.Shared, over the 500 measured frames. Frozen: the new text
+    [Fact]
+    public void TextBoxWithTheFocus_Update_WithIgnoredKeys_AllocatesNothing() => Assert.Equal(0, MeasureTextBoxWithIgnoredKeys().UpdateTotal);
+
+    /// <summary>What the update of a typing frame (the text alternates between "a" and "") allocates, over the 500 measured frames, all of it beyond the keyboard input of MGUI.Shared, which allocates
+    /// nothing since ADR-0034. Frozen: the new text
     /// string and the objects that its change makes (the text changed notification, the layout of the text block, the geometry of the characters that the caret reads) are results of the change,
     /// and the lines of the text block that <c>TextRenderInfo</c> reads, public <c>MGTextLine</c> objects that <c>MGTextBlock.Lines</c> builds again with the legacy line parser at each
     /// change, are 1.6 KB of the 2.6 KB of each key. The legacy parser cannot be skipped without the layouts of the text block giving the original index of each character (the internal layouts do not
     /// compute it), and the objects are not reused because the caret keeps references to them. When the caret geometry no longer goes through <c>MGTextBlock.Lines</c>, this value drops: update it with the
     /// value that the failure message gives.</summary>
-    private const long TypingBytesBeyondTheKeyboardInput = 1300000;
+    private const long TypingBytes = 1300000;
 
     [Fact]
-    public void TextBoxWithTheFocus_Update_WhileTyping_AllocatesTheKeyboardInputAndTheNewTextLayout()
+    public void TextBoxWithTheFocus_Update_WhileTyping_AllocatesOnlyTheNewTextLayout()
     {
-        FrameBytes ignored = MeasureTextBoxWithIgnoredKeys();
-        Assert.True(ignored.UpdateTotal > 0, "the keys create no input object: the baseline is not measuring the keyboard input");
         foreach (bool steadyCaret in new[] { false, true })
         {
             FrameBytes typing = MeasureTextBox(steadyCaret, true);
-            Assert.True(typing.UpdateTotal - ignored.UpdateTotal == TypingBytesBeyondTheKeyboardInput,
-                $"typing allocates {typing.UpdateTotal} B over {typing.Iterations} frames, {ignored.UpdateTotal} B of them for the keyboard input alone: {typing.UpdateTotal - ignored.UpdateTotal} B beyond it, expected {TypingBytesBeyondTheKeyboardInput}");
+            Assert.True(typing.UpdateTotal == TypingBytes,
+                $"typing allocates {typing.UpdateTotal} B over {typing.Iterations} frames, expected {TypingBytes}");
         }
     }
 }
