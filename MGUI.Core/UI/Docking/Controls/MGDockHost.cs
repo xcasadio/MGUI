@@ -539,7 +539,7 @@ public class MGDockHost : MGSingleContentHost
         if (!IsDragging)
         {
             var kb = ParentWindow.Desktop.InputTracker.Keyboard;
-            //  Tab is read first: IsControlDown and IsShiftDown allocate, and only matter in the frame where Tab was pressed.
+            //  Tab is read first: IsControlDown and IsShiftDown only matter in the frame where Tab was pressed.
             var tabJustPressed = kb.CurrentKeyPressedEvents[Microsoft.Xna.Framework.Input.Keys.Tab] != null;
 
             if (tabJustPressed && kb.IsControlDown)

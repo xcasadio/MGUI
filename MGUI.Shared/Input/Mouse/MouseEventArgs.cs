@@ -8,10 +8,42 @@ using System.Threading.Tasks;
 
 namespace MGUI.Shared.Input.Mouse
 {
+    /// <summary>The target that adopted a <see cref="MouseClickSequence"/>. The weak reference is created at the first adoption and re-armed by
+    /// <see cref="SetTarget"/> afterwards, so that adopting a target allocates nothing once the sequence of a button has adopted one.</summary>
     internal sealed class MouseClickSequenceRoutingMetadata
     {
-        public long? ValidatedTargetId { get; set; }
-        public WeakReference<IMouseHandlerHost> ValidatedTargetHost { get; set; }
+        public long? ValidatedTargetId { get; private set; }
+        private WeakReference<IMouseHandlerHost> _ValidatedTargetHost;
+
+        /// <summary>Forgets the adopted target, as the metadata of a new sequence has none.</summary>
+        public void Clear()
+        {
+            ValidatedTargetId = null;
+            _ValidatedTargetHost?.SetTarget(null);
+        }
+
+        public void SetTarget(long TargetId, IMouseHandlerHost TargetHost)
+        {
+            ValidatedTargetId = TargetId;
+            if (TargetHost == null)
+            {
+                _ValidatedTargetHost?.SetTarget(null);
+            }
+            else if (_ValidatedTargetHost == null)
+            {
+                _ValidatedTargetHost = new(TargetHost);
+            }
+            else
+            {
+                _ValidatedTargetHost.SetTarget(TargetHost);
+            }
+        }
+
+        public bool TryGetTargetHost(out IMouseHandlerHost TargetHost)
+        {
+            TargetHost = null;
+            return _ValidatedTargetHost != null && _ValidatedTargetHost.TryGetTarget(out TargetHost);
+        }
     }
 
     /// <summary>Raised for a mouse wheel movement. <see cref="MouseTracker"/> reuses one instance from one wheel tick to the next (see
@@ -72,16 +104,18 @@ namespace MGUI.Shared.Input.Mouse
 
     #region Press / Release / Click
     /// <summary>Represents the stable technical identity of a candidate multi-click sequence.
-    /// This sequence is used for internal routing and does not depend on the public <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> state.</summary>
+    /// This sequence is used for internal routing and does not depend on the public <see cref="HandledByEventArgs{THandlerType}.HandledBy"/> state.<para/>
+    /// <see cref="MouseTracker"/> keeps one sequence per button and restarts it, with a new <see cref="Id"/>, its start time and no adopted target, at the first click of
+    /// each sequence of that button: a sequence is valid until the next sequence of the same button. Read it during the event, do not keep it (keep its <see cref="Id"/>).
+    /// See ADR-0034.</summary>
     public class MouseClickSequence
     {
-        public long Id { get; }
-        public MouseButton Button { get; }
-        public TimeSpan StartedAt { get; }
+        public long Id { get; private set; }
+        public MouseButton Button { get; private set; }
+        public TimeSpan StartedAt { get; private set; }
 
-        public BaseMouseClickedEventArgs FirstClick { get; private set; }
-        public BaseMouseClickedEventArgs LatestClick { get; private set; }
-        public int ClickCount => LatestClick?.ClickCount ?? 0;
+        /// <summary>The click count of the latest click of this sequence, 0 before its first click.</summary>
+        public int ClickCount { get; private set; }
 
         internal MouseClickSequenceRoutingMetadata RoutingMetadata { get; } = new();
 
@@ -92,14 +126,19 @@ namespace MGUI.Shared.Input.Mouse
             this.StartedAt = StartedAt;
         }
 
-        internal void RegisterClick(BaseMouseClickedEventArgs ClickedArgs)
+        /// <summary>Restarts this reused sequence as a new one: a new identity, no click yet and no adopted target.</summary>
+        internal void Restart(long Id, MouseButton Button, TimeSpan StartedAt)
         {
-            if (FirstClick == null)
-            {
-                FirstClick = ClickedArgs;
-            }
+            this.Id = Id;
+            this.Button = Button;
+            this.StartedAt = StartedAt;
+            ClickCount = 0;
+            RoutingMetadata.Clear();
+        }
 
-            LatestClick = ClickedArgs;
+        internal void RegisterClick(int ClickCount)
+        {
+            this.ClickCount = ClickCount;
         }
 
         internal bool CanBeAdoptedBy(long TargetId)
@@ -112,8 +151,7 @@ namespace MGUI.Shared.Input.Mouse
                 return false;
             }
 
-            RoutingMetadata.ValidatedTargetId = TargetId;
-            RoutingMetadata.ValidatedTargetHost = TargetHost != null ? new(TargetHost) : null;
+            RoutingMetadata.SetTarget(TargetId, TargetHost);
             return true;
         }
 
@@ -121,25 +159,19 @@ namespace MGUI.Shared.Input.Mouse
             => RoutingMetadata.ValidatedTargetId == TargetId;
 
         internal bool TryGetValidatedTargetHost(out IMouseHandlerHost TargetHost)
-        {
-            TargetHost = null;
-
-            if (RoutingMetadata.ValidatedTargetHost == null)
-            {
-                return false;
-            }
-
-            return RoutingMetadata.ValidatedTargetHost.TryGetTarget(out TargetHost);
-        }
+            => RoutingMetadata.TryGetTargetHost(out TargetHost);
     }
 
+    /// <summary>Raised when a mouse button is pressed. <see cref="MouseTracker"/> keeps one instance per button and refills it, with its handled state reset, at each press of that button:
+    /// read it during the event, do not keep it. It stays valid, unchanged, until the next press of the same button, so while the button is held and during its release. A handler that needs a
+    /// value later copies the value. See ADR-0034.</summary>
     public class BaseMousePressedEventArgs : HandledByEventArgs<IMouseHandlerHost>
     {
         public MouseTracker Tracker { get; }
 
-        public TimeSpan PressedAt { get; }
+        public TimeSpan PressedAt { get; private set; }
         public MouseButton Button { get; }
-        public Point Position { get; }
+        public Point Position { get; private set; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
 
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Left"/></summary>
@@ -157,20 +189,31 @@ namespace MGUI.Shared.Input.Mouse
             this.Button = Button;
             this.Position = Position;
         }
+
+        /// <summary>Refills this reused instance for a new press of its button: new values, and the handled state back to not handled.</summary>
+        internal void Set(Point Position, TimeSpan PressedAt)
+        {
+            Reset();
+            this.Position = Position;
+            this.PressedAt = PressedAt;
+        }
     }
 
+    /// <summary>Raised when a mouse button is released. <see cref="MouseTracker"/> keeps one instance per button and refills it, with its handled state reset, at each release of that button:
+    /// read it during the event, do not keep it. It stays valid, unchanged, until the next release of the same button. <see cref="PressedArgs"/> designates the press instance of the same
+    /// button (valid until the next press of that button), and <see cref="HeldDuration"/> is a value written when the release is filled. See ADR-0034.</summary>
     public class BaseMouseReleasedEventArgs : HandledByEventArgs<IMouseHandlerHost>
     {
         public MouseTracker Tracker { get; }
 
-        public BaseMousePressedEventArgs PressedArgs { get; }
+        public BaseMousePressedEventArgs PressedArgs { get; private set; }
 
-        public TimeSpan ReleasedAt { get; }
+        public TimeSpan ReleasedAt { get; private set; }
         public MouseButton Button { get; }
-        public Point Position { get; }
+        public Point Position { get; private set; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
 
-        public TimeSpan HeldDuration => ReleasedAt.Subtract(PressedArgs.PressedAt);
+        public TimeSpan HeldDuration { get; private set; }
 
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Left"/></summary>
         public bool IsLMB => Button == MouseButton.Left;
@@ -183,33 +226,47 @@ namespace MGUI.Shared.Input.Mouse
             : base()
         {
             this.Tracker = Tracker;
+            this.Button = Button;
+            Fill(PressedArgs, Position, ReleasedAt);
+        }
+
+        /// <summary>Refills this reused instance for a new release of its button: new values, and the handled state back to not handled.</summary>
+        internal void Set(BaseMousePressedEventArgs PressedArgs, Point Position, TimeSpan ReleasedAt)
+        {
+            Reset();
+            Fill(PressedArgs, Position, ReleasedAt);
+        }
+
+        private void Fill(BaseMousePressedEventArgs PressedArgs, Point Position, TimeSpan ReleasedAt)
+        {
             this.ReleasedAt = ReleasedAt;
             this.PressedArgs = PressedArgs;
-            this.Button = Button;
             this.Position = Position;
+            HeldDuration = PressedArgs == null ? TimeSpan.Zero : ReleasedAt.Subtract(PressedArgs.PressedAt);
         }
     }
 
+    /// <summary>Raised when a mouse button is clicked. <see cref="MouseTracker"/> keeps one instance per button and refills it, with its handled state reset, at each click of that button:
+    /// read it during the event, do not keep it. It stays valid, unchanged, until the next click of the same button. <see cref="ReleasedArgs"/> and <see cref="PressedArgs"/> designate the release and
+    /// press instances of the same button (valid until the next release and the next press of that button), and <see cref="Sequence"/> the sequence of that button (valid until the next sequence
+    /// of the button): a handler that needs a value of the click, such as <see cref="MultiClickSequenceId"/>, later copies the value. See ADR-0034.</summary>
     public class BaseMouseClickedEventArgs : HandledByEventArgs<IMouseHandlerHost>
     {
         public MouseTracker Tracker { get; }
 
         /// <summary>The release event that completed this click.</summary>
-        public BaseMouseReleasedEventArgs ReleasedArgs { get; }
+        public BaseMouseReleasedEventArgs ReleasedArgs { get; private set; }
         public BaseMousePressedEventArgs PressedArgs => ReleasedArgs?.PressedArgs;
-
-        /// <summary>The previous click in the same candidate multi-click sequence, if any.</summary>
-        public BaseMouseClickedEventArgs PreviousClickInSequence { get; }
 
         /// <summary>The explicit multi-click sequence that this click belongs to.
         /// This sequence provides routing identity independently from the public handled state.</summary>
-        public MouseClickSequence Sequence { get; }
+        public MouseClickSequence Sequence { get; private set; }
 
         /// <summary>An identifier shared by clicks that belong to the same candidate multi-click sequence.</summary>
         public long MultiClickSequenceId => Sequence?.Id ?? 0;
 
         /// <summary>The raw click count within the current candidate multi-click sequence.</summary>
-        public int ClickCount { get; }
+        public int ClickCount { get; private set; }
 
         /// <summary>True when this click completes a recognized double-click pair within the current sequence, such as click counts 2, 4, 6, etc.</summary>
         public bool IsDoubleClick => MouseTracker.IsDoubleClickCount(ClickCount);
@@ -218,7 +275,7 @@ namespace MGUI.Shared.Input.Mouse
         public bool IsMultiClick => ClickCount > 1;
 
         public MouseButton Button { get; }
-        public Point Position { get; }
+        public Point Position { get; private set; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
 
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Left"/></summary>
@@ -229,30 +286,44 @@ namespace MGUI.Shared.Input.Mouse
         public bool IsMMB => Button == MouseButton.Middle;
 
         public BaseMouseClickedEventArgs(MouseTracker Tracker, BaseMouseReleasedEventArgs ReleasedArgs, MouseButton Button, Point Position,
-            int ClickCount = 1, BaseMouseClickedEventArgs PreviousClickInSequence = null, MouseClickSequence Sequence = null)
+            int ClickCount = 1, MouseClickSequence Sequence = null)
             : base()
         {
             this.Tracker = Tracker;
-            this.ReleasedArgs = ReleasedArgs;
             this.Button = Button;
+            Fill(ReleasedArgs, Position, ClickCount, Sequence);
+        }
+
+        /// <summary>Refills this reused instance for a new click of its button: new values, and the handled state back to not handled.</summary>
+        internal void Set(BaseMouseReleasedEventArgs ReleasedArgs, Point Position, int ClickCount, MouseClickSequence Sequence)
+        {
+            Reset();
+            Fill(ReleasedArgs, Position, ClickCount, Sequence);
+        }
+
+        private void Fill(BaseMouseReleasedEventArgs ReleasedArgs, Point Position, int ClickCount, MouseClickSequence Sequence)
+        {
+            this.ReleasedArgs = ReleasedArgs;
             this.Position = Position;
             this.ClickCount = Math.Max(1, ClickCount);
-            this.PreviousClickInSequence = PreviousClickInSequence;
             this.Sequence = Sequence;
 
-            this.Sequence?.RegisterClick(this);
+            this.Sequence?.RegisterClick(this.ClickCount);
         }
     }
     #endregion Press / Release / Click
 
     #region Drag
+    /// <summary>Raised when a drag starts. <see cref="MouseTracker"/> keeps one instance per drag start condition and per button and refills it, with its handled state reset, at each drag start
+    /// of that condition and button: read it during the event, do not keep it. It stays valid, unchanged, until the next drag start of the same condition and button, so during the whole drag
+    /// and its drag end, whose <see cref="BaseMouseDraggedEventArgs.DragStartArgs"/> and <see cref="BaseMouseDragEndEventArgs.DragStartArgs"/> designate it. See ADR-0034.</summary>
     public class BaseMouseDragStartEventArgs : HandledByEventArgs<IMouseHandlerHost>
     {
         public MouseTracker Tracker { get; }
 
-        public TimeSpan StartedAt { get; }
+        public TimeSpan StartedAt { get; private set; }
         public MouseButton Button { get; }
-        public Point Position { get; }
+        public Point Position { get; private set; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
 
         /// <summary>True if the <see cref="Button"/> associated with this event is <see cref="MouseButton.Left"/></summary>
@@ -271,6 +342,14 @@ namespace MGUI.Shared.Input.Mouse
             this.Button = Button;
             this.Position = Position;
             this.Condition = Condition;
+        }
+
+        /// <summary>Refills this reused instance for a new drag of its condition and button: new values, and the handled state back to not handled.</summary>
+        internal void Set(Point Position, TimeSpan StartedAt)
+        {
+            Reset();
+            this.Position = Position;
+            this.StartedAt = StartedAt;
         }
     }
 
@@ -336,15 +415,17 @@ namespace MGUI.Shared.Input.Mouse
         public void SetHandled<T>(T HandledBy, bool OverwriteIfAlreadyHandled) { }
     }
 
+    /// <summary>Raised when a drag ends. <see cref="MouseTracker"/> keeps one instance per drag start condition and per button and refills it at each drag end of that condition and button:
+    /// read it during the event, do not keep it. It stays valid, unchanged, until the next drag end of the same condition and button. A handler that needs a value later copies the value. See ADR-0034.</summary>
     public class BaseMouseDragEndEventArgs// : HandledByEventArgs<IMouseHandler>
     {
         public MouseTracker Tracker { get; }
 
-        public BaseMouseDragStartEventArgs DragStartArgs { get; }
+        public BaseMouseDragStartEventArgs DragStartArgs { get; private set; }
 
-        public TimeSpan Timestamp { get; }
+        public TimeSpan Timestamp { get; private set; }
         public MouseButton Button { get; }
-        private Point Position { get; }
+        private Point Position { get; set; }
 
         public Point StartPosition => DragStartArgs.Position;
         public Vector2 AdjustedStartPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
@@ -366,6 +447,14 @@ namespace MGUI.Shared.Input.Mouse
             this.Timestamp = Timestamp;
             this.Button = Button;
             this.Position = Position;
+        }
+
+        /// <summary>Refills this reused instance for a new drag end of its condition and button.</summary>
+        internal void Set(BaseMouseDragStartEventArgs DragStartArgs, Point Position, TimeSpan Timestamp)
+        {
+            this.DragStartArgs = DragStartArgs;
+            this.Position = Position;
+            this.Timestamp = Timestamp;
         }
 
         /// <summary>Returns the distance the mouse has moved from the original position that the drag originated from, to its current position.</summary>

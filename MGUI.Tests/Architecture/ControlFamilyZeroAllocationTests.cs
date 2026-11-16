@@ -667,8 +667,13 @@ public class ControlFamilyZeroAllocationTests
         FrameBytes bytes = FrameAllocationMeter.Measure(click ? scene.Click : null, bench.Update, bench.Draw);
         Assert.True(bench.Transaction.CallCount > callsBefore, "the measured frames drew nothing");
         Assert.True(scene.Grid.HasSelection);
+        if (click)
+        {
+            Assert.NotNull(bench.Desktop.InputTracker.Mouse.RecentButtonClickedEvents[MGUI.Shared.Input.Mouse.MouseButton.Left]);
+        }
+
         bench.Left = ButtonState.Released;
-        Output.WriteLine($"MGGrid, {(mode == GridSelectionMode.Cell ? "a cell selected" : "no selection mode")}{(click ? ", selection moved by a click every 2 frames" : ", at rest")}: Update {bytes.Update} B/frame, Draw {bytes.Draw} B/frame (totals {bytes.UpdateTotal} and {bytes.DrawTotal} B over {bytes.Iterations} frames)");
+        Output.WriteLine($"MGGrid,{(mode == GridSelectionMode.Cell ? "a cell selected" : "no selection mode")}{(click ? ", selection moved by a click every 2 frames" : ", at rest")}: Update {bytes.Update} B/frame, Draw {bytes.Draw} B/frame (totals {bytes.UpdateTotal} and {bytes.DrawTotal} B over {bytes.Iterations} frames)");
         return bytes;
     }
 
@@ -677,16 +682,14 @@ public class ControlFamilyZeroAllocationTests
 
     [Fact]
     public void GridWithASelection_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureGrid(false).DrawTotal);
-    /// <summary>A click is a press and a release, and the mouse tracker of MGUI.Shared creates the event objects of each (the press, the release, the click and its sequence, the drag start and end,
-    /// the routing metadata): they are the whole of what the update of the clicked grid allocates, and they do not depend on the selection. The same clicks on a grid without selection
-    /// mode (the same handlers, no selection) allocate the same bytes, so the selection that the click moves allocates nothing. When the tracker stops allocating them, both become 0.</summary>
+    /// <summary>A click is a press and a release: the mouse tracker of MGUI.Shared refills the press, release, click, drag start and drag end instances of the button and its click sequence
+    /// (ADR-0034), so the update of the clicked grid allocates nothing, whether the click moves a selection or not (the same clicks on a grid without selection mode, the same handlers). The
+    /// clicks are real: <see cref="MeasureGrid"/> checks that the selection moves, and that the tracker holds the latest click.</summary>
     [Fact]
-    public void GridWithASelection_Update_WithTheSelectionMovedByClicks_AllocatesOnlyTheMouseInputEvents()
+    public void GridWithASelection_Update_WithTheSelectionMovedByClicks_AllocatesNothing()
     {
-        FrameBytes withSelection = MeasureGrid(true);
-        FrameBytes withoutSelection = MeasureGrid(true, GridSelectionMode.None);
-        Assert.True(withoutSelection.UpdateTotal > 0, "the clicks create no mouse event object: the baseline is not measuring the input");
-        Assert.Equal(withoutSelection.UpdateTotal, withSelection.UpdateTotal);
+        Assert.Equal(0, MeasureGrid(true).UpdateTotal);
+        Assert.Equal(0, MeasureGrid(true, GridSelectionMode.None).UpdateTotal);
     }
 
     [Fact]
