@@ -27,6 +27,7 @@ namespace MGUI.Shared.Rendering
     {
         private MainRenderer Backend { get; }
         private DerivedDrawSettingsCache DerivedSettings => Backend.DerivedSettings;
+        internal DerivedDrawSettingsCache StencilSettings => Backend.StencilSettings;
         IUIDesktopRuntime IUIRenderContext.Renderer => Backend;
         Rectangle? IUIRenderContext.CurrentClipBounds => CurrentClipBounds;
         DrawStateHandle IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings)
@@ -1173,6 +1174,10 @@ namespace MGUI.Shared.Rendering
                 {
                     RestoreScissor(State.PreviousScissorBounds, State.PreviousScissorState);
                 }
+            }
+            else if (State.Strategy == ClipStrategy.Stencil && State.Restore == null)
+            {
+                ClipManager.RestoreStencil(in State);
             }
             else
             {

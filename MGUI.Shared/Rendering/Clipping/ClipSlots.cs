@@ -26,6 +26,12 @@ namespace MGUI.Shared.Rendering.Clipping
         /// <summary>Scissor: false when the push changed nothing, so that the release has nothing to restore.</summary>
         public bool ScissorChanged;
 
+        /// <summary>Stencil: the handle of the settings that read the stencil while the clip is in force, and the stencil depths before and inside the clip.
+        /// The geometry to draw again on release is the one of <see cref="Resolution"/>.</summary>
+        public DrawStateHandle StencilReadScope;
+        public int ParentStencilDepth;
+        public int ChildStencilDepth;
+
         /// <summary>A callback to run on release, for a strategy that does not keep what it restores in the fields above.</summary>
         public Action Restore;
 
@@ -56,6 +62,18 @@ namespace MGUI.Shared.Rendering.Clipping
                 PreviousScissorBounds = PreviousScissorBounds,
                 PreviousScissorState = PreviousScissorState,
                 ScissorChanged = ScissorChanged
+            };
+
+        /// <summary>A stencil clip: its release disposes <paramref name="StencilReadScope"/>, draws the geometry of <paramref name="Resolution"/> again to
+        /// take it off the stencil, and goes back to <paramref name="ParentStencilDepth"/>.</summary>
+        public static ClipSlotState Stencil(ClipResolveResult Resolution, DrawStateHandle StencilReadScope, int ParentStencilDepth, int ChildStencilDepth)
+            => new()
+            {
+                Strategy = ClipStrategy.Stencil,
+                Resolution = Resolution,
+                StencilReadScope = StencilReadScope,
+                ParentStencilDepth = ParentStencilDepth,
+                ChildStencilDepth = ChildStencilDepth
             };
 
         /// <summary>A clip of <paramref name="Strategy"/> whose release runs <paramref name="Restore"/>.</summary>

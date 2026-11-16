@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Shared.Rendering
 {
-    /// <summary>The settings a draw transaction derived for its temporary transforms and effects, kept so that the same change finds its settings
+    /// <summary>The settings a draw transaction derived for its temporary transforms and effects and for its stencil clips, kept so that the same change finds its settings
     /// again instead of creating them (ADR-0031): a transform or an effect that keeps its value from frame to frame allocates nothing.<para/>
     /// An entry is found by the settings it derives from and by the value that replaces their transform or effect. Equal settings are the same
     /// settings (ADR-0029), so the settings of a new frame find the entries of the frame before.<para/>
@@ -12,13 +12,23 @@ namespace MGUI.Shared.Rendering
     {
         public const int Capacity = 32;
 
+        private enum EntryKind
+        {
+            Transform,
+            Effect,
+            Stencil
+        }
+
         private struct Entry
         {
             public DrawSettings Source;
             public DrawSettings Derived;
             public Matrix Transform;
             public object Effect;
-            public bool IsEffect;
+            public EntryKind Kind;
+            public BlendType BlendType;
+            public DepthStencilType DepthStencilType;
+            public int StencilReference;
         }
 
         private readonly Entry[] _Entries = new Entry[Capacity];
@@ -36,14 +46,14 @@ namespace MGUI.Shared.Rendering
             for (int i = 0; i < _Count; i++)
             {
                 ref Entry entry = ref _Entries[i];
-                if (!entry.IsEffect && entry.Transform == Transform && IsSameSettings(entry.Source, Source))
+                if (entry.Kind == EntryKind.Transform && entry.Transform == Transform && IsSameSettings(entry.Source, Source))
                 {
                     return entry.Derived;
                 }
             }
 
             DrawSettings derived = Source with { Transform = Transform };
-            Add(new Entry { Source = Source, Derived = derived, Transform = Transform });
+            Add(new Entry { Source = Source, Derived = derived, Kind = EntryKind.Transform, Transform = Transform });
             return derived;
         }
 
@@ -58,14 +68,41 @@ namespace MGUI.Shared.Rendering
             for (int i = 0; i < _Count; i++)
             {
                 ref Entry entry = ref _Entries[i];
-                if (entry.IsEffect && ReferenceEquals(entry.Effect, Effect) && IsSameSettings(entry.Source, Source))
+                if (entry.Kind == EntryKind.Effect && ReferenceEquals(entry.Effect, Effect) && IsSameSettings(entry.Source, Source))
                 {
                     return entry.Derived;
                 }
             }
 
             DrawSettings derived = Source with { BackendEffect = Effect };
-            Add(new Entry { Source = Source, Derived = derived, Effect = Effect, IsEffect = true });
+            Add(new Entry { Source = Source, Derived = derived, Kind = EntryKind.Effect, Effect = Effect });
+            return derived;
+        }
+
+        /// <summary><paramref name="Source"/> with another blend, depth and stencil test and stencil reference: the three settings a stencil clip
+        /// derives at each depth (write, read, restore).</summary>
+        public DrawSettings WithStencil(DrawSettings Source, BlendType BlendType, DepthStencilType DepthStencilType, int StencilReference)
+        {
+            for (int i = 0; i < _Count; i++)
+            {
+                ref Entry entry = ref _Entries[i];
+                if (entry.Kind == EntryKind.Stencil && entry.StencilReference == StencilReference && entry.DepthStencilType == DepthStencilType
+                    && entry.BlendType == BlendType && IsSameSettings(entry.Source, Source))
+                {
+                    return entry.Derived;
+                }
+            }
+
+            DrawSettings derived = Source with { BlendType = BlendType, DepthStencilType = DepthStencilType, StencilReference = StencilReference };
+            Add(new Entry
+            {
+                Source = Source,
+                Derived = derived,
+                Kind = EntryKind.Stencil,
+                BlendType = BlendType,
+                DepthStencilType = DepthStencilType,
+                StencilReference = StencilReference
+            });
             return derived;
         }
 

@@ -86,41 +86,34 @@ namespace MGUI.Shared.Rendering.Clipping
             _StencilClipCount++;
             _MaxStencilDepth = Math.Max(_MaxStencilDepth, childDepth);
 
-            using (_Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
-            {
-                BlendType = BlendType.ColorWriteDisable,
-                DepthStencilType = DepthStencilType.StencilWriteIncrement,
-                StencilReference = parentDepth,
-            }))
+            using (_Owner.SetDrawSettingsTemporary(_Owner.StencilSettings.WithStencil(_Owner.CurrentSettings, BlendType.ColorWriteDisable,
+                       DepthStencilType.StencilWriteIncrement, parentDepth)))
             {
                 _Owner.DrawClipGeometry(geometry);
             }
 
-            DrawStateHandle stencilReadScope = _Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
-            {
-                DepthStencilType = DepthStencilType.StencilReadEqual,
-                StencilReference = childDepth,
-            });
+            DrawSettings current = _Owner.CurrentSettings;
+            DrawStateHandle stencilReadScope = _Owner.SetDrawSettingsTemporary(_Owner.StencilSettings.WithStencil(current, current.BlendType,
+                DepthStencilType.StencilReadEqual, childDepth));
             _StencilDepth = childDepth;
 
             ClipResolveResult effectiveResolution = resolution with { StencilDepth = childDepth };
 
-            return _Owner.ClipSlots.Push(ClipSlotState.WithCallback(ClipStrategy.Stencil, effectiveResolution, () =>
+            return _Owner.ClipSlots.Push(ClipSlotState.Stencil(effectiveResolution, stencilReadScope, parentDepth, childDepth));
+        }
+
+        /// <summary>Ends the stencil clip of <paramref name="state"/>: back to the settings before it, its geometry taken off the stencil.</summary>
+        public void RestoreStencil(in ClipSlotState state)
+        {
+            state.StencilReadScope.Dispose();
+
+            using (_Owner.SetDrawSettingsTemporary(_Owner.StencilSettings.WithStencil(_Owner.CurrentSettings, BlendType.ColorWriteDisable,
+                       DepthStencilType.StencilRestoreDecrement, state.ChildStencilDepth)))
             {
-                stencilReadScope.Dispose();
+                _Owner.DrawClipGeometry(state.Resolution.Effective.Shape.Geometry.Value);
+            }
 
-                using (_Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
-                {
-                    BlendType = BlendType.ColorWriteDisable,
-                    DepthStencilType = DepthStencilType.StencilRestoreDecrement,
-                    StencilReference = childDepth,
-                }))
-                {
-                    _Owner.DrawClipGeometry(geometry);
-                }
-
-                _StencilDepth = parentDepth;
-            }));
+            _StencilDepth = state.ParentStencilDepth;
         }
 
         private ClipHandle PushMask(ClipResolveResult resolution)

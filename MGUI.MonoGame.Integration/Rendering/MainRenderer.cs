@@ -91,6 +91,9 @@ namespace MGUI.Shared.Rendering
         /// <summary>The settings the transactions of this renderer derived for temporary transforms and effects, kept from one transaction to the next (ADR-0031).</summary>
         internal DerivedDrawSettingsCache DerivedSettings { get; } = new();
 
+        /// <summary>The three settings a stencil clip derives at each depth, kept from one transaction to the next (ADR-0031).</summary>
+        internal DerivedDrawSettingsCache StencilSettings { get; } = new();
+
         internal IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext)
             => new DrawTransaction(this, Settings, DeferBegin, DefaultContext);
 
