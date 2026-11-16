@@ -246,7 +246,9 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
 }
 
 /// <summary>Compares a journal with a frozen expectation: the number of lines and a hash of the text (SHA-256, first 16 hex digits).
-/// On a mismatch the failure message carries the whole journal, so the new value can be read and the difference found by a text diff.</summary>
+/// On a mismatch the failure message carries the whole journal, so the new value can be read and the difference found by a text diff.
+/// The frozen journals of the desktop frame and of the control families are the ones of the code that pushed the rectangle clips of an element as definitions, in the
+/// normal form of <see cref="ElementClipJournal"/> (ADR-0035).</summary>
 internal static class FrozenJournal
 {
     public static string Hash(string journal)
@@ -260,5 +262,31 @@ internal static class FrozenJournal
         {
             Xunit.Assert.Fail($"{name}: expected {expectedLines} lines, hash {expectedHash}; got {lines.Count} lines, hash {hash}.\nJournal:\n{journal}");
         }
+    }
+}
+
+/// <summary>Turns a journal written by the code that pushed the rectangle clips of an element as definitions into the journal of the code that pushes them with
+/// <see cref="IUIRenderContext.PushRectangleClip"/> (ADR-0035, decision D16): a <c>PushClipTemporary/1</c> line of a rectangular definition whose debug name ends with
+/// <c>.Self</c>, <c>.Contents</c> or <c>.Viewport</c> (the names the clip hooks of <see cref="MGUI.Core.UI.MGElement"/> gave) becomes the <c>PushRectangleClip/2</c>
+/// line with the same scope, bounds and intersect flag. Every other line is kept as it is: the rounded and geometry clips, and the clip that a control pushes itself
+/// (the <c>.Swatches</c> clip of <see cref="MGUI.Core.UI.MGGridColorPicker"/>).</summary>
+internal static class ElementClipJournal
+{
+    private static readonly System.Text.RegularExpressions.Regex ElementRectangleClip = new(
+        @"^PushClipTemporary/1 (?<scope>scope=\d+) clip\(Rectangle,(?<rect>\[[^\]]*\]),radius=\([^)]*\),intersect=(?<intersect>True|False),pref=Default,fallback=False,name=[^ ]*\.(Self|Contents|Viewport)\) (?<bounds>bounds=.*)$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    public static IReadOnlyList<string> Normalise(IReadOnlyList<string> lines)
+    {
+        List<string> result = new(lines.Count);
+        foreach (string line in lines)
+        {
+            System.Text.RegularExpressions.Match match = ElementRectangleClip.Match(line);
+            result.Add(match.Success
+                ? $"PushRectangleClip/2 {match.Groups["scope"].Value} {match.Groups["rect"].Value} intersect={match.Groups["intersect"].Value} {match.Groups["bounds"].Value}"
+                : line);
+        }
+
+        return result;
     }
 }

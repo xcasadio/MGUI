@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
@@ -135,22 +136,22 @@ public class MGPathLite : MGVertexShapeElementBase
         return false;
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         if (!ClipToBounds || _Figures.Length != 1)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         var figure = _Figures[0];
         var placement = GetPlacement(layoutBounds);
         if (!figure.IsClosed || figure.Points.Count < 3)
         {
-            return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, placement.Bounds));
         }
 
         var geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, DA.Offset.ToVector2() + placement.GeometryOrigin);
-        return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
+        return ElementClipRequest.FromDefinition(CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true));
     }
 
     private void RebuildGeometry()

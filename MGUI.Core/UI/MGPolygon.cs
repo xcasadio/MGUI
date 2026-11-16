@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
@@ -76,20 +77,20 @@ public class MGPolygon : MGPolyline
         return HasVisibleStroke && MGVectorShapeHelper.IsPointNearPolyline(NormalizedPoints, localPoint, StrokeThickness, true);
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         if (!ClipToBounds)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         var placement = GetPlacement(layoutBounds);
         if (NormalizedPoints.Length < 3)
         {
-            return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, placement.Bounds));
         }
 
         var geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, DA.Offset.ToVector2() + placement.GeometryOrigin);
-        return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
+        return ElementClipRequest.FromDefinition(CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true));
     }
 }

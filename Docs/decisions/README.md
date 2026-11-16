@@ -48,3 +48,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0032 | The MonoGame backend keeps one draw transaction per renderer | Accepted | 2026-11-16 |
 | ADR-0033 | The grammar of markup tags is ASCII | Accepted | 2026-11-16 |
 | ADR-0034 | The input event arguments are reused | Accepted | 2026-11-16 |
+| ADR-0035 | The rectangle clips of an element are pushed as rectangles, without a clip definition | Accepted | 2026-11-16 |

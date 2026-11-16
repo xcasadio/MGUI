@@ -24,6 +24,7 @@ using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.Tooling;
 using MGUI.Shared.Rendering.Clipping;
+using MGUI.Core.UI.Clipping;
 using System.Threading;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
@@ -5271,78 +5272,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     protected Rectangle TransformClipBounds(ElementDrawArgs DA, Rectangle bounds)
         => bounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
 
-    protected ClipDefinition CreateRectangleClipDefinition(Rectangle targetBounds, string debugName)
-        => ClipDefinition.Rectangle(targetBounds, true, debugName: debugName);
-
-    //  The rectangle clips of the self and contents hooks, kept between draws: a ClipDefinition is immutable, so the one of the
-    //  previous draw stands in for a new one while the bounds and the name are the same (an element that does not move or resize draws every frame
-    //  with the same clips). The names are built once per element.
-    private ClipDefinition _CachedSelfClipDefinition;
-    private ClipDefinition _CachedContentsClipDefinition;
-    private string _SelfClipDebugName;
+    //  The name of the contents clip of the element, built once: a name built at each draw would be a new string per frame.
     private string _ContentsClipDebugName;
 
-    internal string SelfClipDebugName => _SelfClipDebugName ??= $"{ElementType}.Self";
     internal string ContentsClipDebugName => _ContentsClipDebugName ??= $"{ElementType}.Contents";
-
-    //  The clips of the bounds an element had recently: an element that changes between a few sizes (a text block whose text wraps on one line, then two, then one again) gets the clip
-    //  of a size it already had instead of a new one. The array is made the first time the bounds of a clip change; an element whose clips never change does not pay for it.
-    //  Sixteen: the self and the contents hooks share the array, and an element that moves draws both with each of its positions (the content of a scroll viewer
-    //  moved by the wheel: two clips per offset it has had), so eight positions take sixteen definitions.
-    private const int RecentRectangleClipDefinitionCount = 16;
-    private ClipDefinition[] _RecentRectangleClipDefinitions;
-    private int _NextRecentRectangleClipDefinition;
-
-    private ClipDefinition ReuseRectangleClipDefinition(ref ClipDefinition cached, Rectangle targetBounds, string debugName)
-    {
-        if (cached != null && cached.Shape.Bounds == targetBounds && ReferenceEquals(cached.DebugName, debugName))
-        {
-            return cached;
-        }
-
-        var recent = _RecentRectangleClipDefinitions;
-        if (recent != null)
-        {
-            for (var i = 0; i < recent.Length; i++)
-            {
-                var candidate = recent[i];
-                if (candidate != null && candidate.Shape.Bounds == targetBounds && ReferenceEquals(candidate.DebugName, debugName))
-                {
-                    cached = candidate;
-                    return candidate;
-                }
-            }
-        }
-
-        if (cached != null)
-        {
-            //  The bounds changed: the definition being replaced is kept too, so that coming back to its bounds is free
-            RememberRectangleClipDefinition(cached);
-            cached = CreateRectangleClipDefinition(targetBounds, debugName);
-            RememberRectangleClipDefinition(cached);
-        }
-        else
-        {
-            cached = CreateRectangleClipDefinition(targetBounds, debugName);
-        }
-
-        return cached;
-    }
-
-    private void RememberRectangleClipDefinition(ClipDefinition definition)
-    {
-        var recent = _RecentRectangleClipDefinitions ??= new ClipDefinition[RecentRectangleClipDefinitionCount];
-        for (var i = 0; i < recent.Length; i++)
-        {
-            if (ReferenceEquals(recent[i], definition))
-            {
-                return;
-            }
-        }
-
-        recent[_NextRecentRectangleClipDefinition] = definition;
-        _NextRecentRectangleClipDefinition = (_NextRecentRectangleClipDefinition + 1) % recent.Length;
-    }
 
     protected ClipDefinition CreateRoundedClipDefinition(Rectangle targetBounds, MGCornerRadius cornerRadius, MGBoxGeometry geometry,
         string debugName, bool allowRectangleFallback = false)
@@ -5359,37 +5292,63 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         => ClipDefinition.ArbitraryGeometry(targetBounds, geometry, intersectWithCurrentClip: true,
             allowRectangleFallback: allowRectangleFallback, debugName: debugName);
 
-    protected ClipDefinition CreateBorderBackedContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, string debugName)
+    /// <summary>The contents clip of an element that has a border: the inside of the border, which follows the rounded corners of the background when it has them. A rectangle when
+    /// the inside is one (no object is made for it), a definition named <paramref name="debugName"/> when it is rounded.</summary>
+    internal ElementClipRequest GetBorderBackedContentsClip(ElementDrawArgs DA, Rectangle layoutBounds, string debugName)
     {
         if (!HasBorder)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         if (!TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out var backgroundShape, out var backgroundGeometry, false))
         {
             var backgroundBounds = GetBackgroundBounds(layoutBounds);
-            var rectangleClipBounds = TransformClipBounds(DA, backgroundBounds);
-            return ReuseRectangleClipDefinition(ref _CachedContentsClipDefinition, rectangleClipBounds, debugName);
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, backgroundBounds));
         }
 
         var clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
         if (backgroundShape.InnerCornerRadius.IsZero)
         {
-            return ReuseRectangleClipDefinition(ref _CachedContentsClipDefinition, clipBounds, debugName);
+            return ElementClipRequest.Rectangle(clipBounds);
         }
 
-        return CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry.ToClipGeometry(DA.Offset),
-            debugName, allowRectangleFallback: true);
+        return ElementClipRequest.FromDefinition(CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry.ToClipGeometry(DA.Offset),
+            debugName, allowRectangleFallback: true));
+    }
+
+    //  The rectangle definition CreateBorderBackedContentsClipDefinition made last: a ClipDefinition is immutable, so it stands in for a new one while the bounds
+    //  and the name are the same (a control that does not move draws every frame with the same clip).
+    private ClipDefinition _CachedBorderBackedRectangleClipDefinition;
+
+    /// <summary><see cref="GetBorderBackedContentsClip"/> for a control that pushes the clip itself, with <see cref="IUIRenderContext.PushClipTemporary"/>: the rectangle is a
+    /// definition, a new one when its bounds or its name change. Null when there is no border.</summary>
+    protected ClipDefinition CreateBorderBackedContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, string debugName)
+    {
+        ElementClipRequest clip = GetBorderBackedContentsClip(DA, layoutBounds, debugName);
+        if (clip.Kind != ElementClipKind.Rectangle)
+        {
+            return clip.Definition;
+        }
+
+        ClipDefinition cached = _CachedBorderBackedRectangleClipDefinition;
+        if (cached == null || cached.Shape.Bounds != clip.Bounds || !ReferenceEquals(cached.DebugName, debugName))
+        {
+            cached = ClipDefinition.Rectangle(clip.Bounds, true, debugName: debugName);
+            _CachedBorderBackedRectangleClipDefinition = cached;
+        }
+
+        return cached;
     }
 
     // These hooks describe the logical clip that should constrain drawing. They do not participate in
     // background, border, or overlay painting; those continue to use the existing shape paint pipeline.
-    internal virtual ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => ClipToBounds ? ReuseRectangleClipDefinition(ref _CachedSelfClipDefinition, targetBounds, SelfClipDebugName) : null;
+    // A rectangle is returned as a rectangle, not as a definition: Draw pushes it with PushRectangleClip (ADR-0035).
+    internal virtual ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ClipToBounds ? ElementClipRequest.Rectangle(targetBounds) : ElementClipRequest.None;
 
-    internal virtual ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal virtual ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 
     public virtual void Draw(ElementDrawArgs DA)
     {
@@ -5436,12 +5395,12 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
 
-        var SelfClipDefinition = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
-        var ContentsClipDefinition = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
+        var SelfClip = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
+        var ContentsClip = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
 
         if (!DA.DT.CurrentSettings.UsesScissorTest || !DA.DT.CurrentClipBounds.HasValue || TargetBounds.Intersects(DA.DT.CurrentClipBounds.Value))
         {
-            using (SelfClipDefinition == null ? default : DA.Context.PushClipTemporary(SelfClipDefinition))
+            using (SelfClip.Push(DA.Context))
             {
                 // Decorative layers follow the element's self clip. Content-only clipping starts later,
                 // so rounded shape paint remains independent from whichever clip backend gets selected.
@@ -5462,7 +5421,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
                 DrawSelf(DA, LayoutBounds);
 
-                using (ContentsClipDefinition == null ? default : DA.Context.PushClipTemporary(ContentsClipDefinition))
+                using (ContentsClip.Push(DA.Context))
                 {
                     foreach (var Component in _componentsDrawBeforeContents)
                     {

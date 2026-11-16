@@ -224,7 +224,10 @@ Hooks sur `MGElement` (`MGUI.Core/UI/MGElement.cs`) :
 
 - `GetSelfClipDefinition(...)` (internal virtual) : clip applique autour du dessin decoratif/self ;
 - `GetContentsClipDefinition(...)` (internal virtual) : clip applique uniquement autour du contenu heberge ;
-- `CreateBorderBackedContentsClipDefinition(...)` (protected) : helper pour les clips de contenu arrondis adosses au border.
+- `GetBorderBackedContentsClip(...)` (internal) : clip de contenu adosse au border, rectangle ou arrondi ;
+- `CreateBorderBackedContentsClipDefinition(...)` (protected) : le meme clip sous forme de `ClipDefinition`, pour un controle qui le pousse lui-meme avec `PushClipTemporary` (le clip des pastilles de `MGGridColorPicker`).
+
+Les deux hooks rendent un `ElementClipRequest` (`MGUI.Core/UI/Clipping/`, struct) : rien, un rectangle, ou une `ClipDefinition`. Un clip rectangulaire n'est jamais une `ClipDefinition` : `MGElement.Draw` le pousse avec `PushRectangleClip(bounds, true)`, qui resout au meme scissor (`ClipStrategyResolver` : `ClipKind.Rectangle` donne `ClipStrategy.Scissor`, bounds et intersection identiques) sans creer d'objet, quelles que soient les bounds. Un contenu defile pose ainsi deux clips par image a des bounds nouvelles sans allouer. Les clips arrondis et a geometrie restent des `ClipDefinition` poussees avec `PushClipTemporary`. Consequence pour le journal des appels de dessin : un clip rectangulaire d'element s'y lit `PushRectangleClip/2` (bounds, intersect) et ne porte plus de nom de debug ; l'affichage est inchange (ADR-0035).
 
 Trois categories de visuels :
 
@@ -242,7 +245,7 @@ Migrer un controle existant :
 
 1. garder la logique de draw inchangee ;
 2. deplacer l'intention de clip dans `GetSelfClipDefinition(...)` ou `GetContentsClipDefinition(...)` ;
-3. retourner `ClipDefinition.Rectangle(...)` / `.RoundedRectangle(...)` / `.ArbitraryGeometry(...)` ;
+3. retourner `ElementClipRequest.Rectangle(bounds)` pour un rectangle, ou `ElementClipRequest.FromDefinition(...)` avec `ClipDefinition.RoundedRectangle(...)` / `.ArbitraryGeometry(...)` (`ElementClipRequest.None` pour aucun clip) ;
 4. supprimer tout scope de clip local qui n'existait que pour emuler la meme intention dans `Draw(...)`.
 
 Ajouter un nouveau type de clip :

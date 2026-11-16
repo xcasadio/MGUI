@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Styling;
@@ -400,11 +401,11 @@ public class MGDockDropIndicators : MGElement
         SyncZoneVisuals();
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 
     /// <summary>
     /// Returns the host-edge zone whose indicator square contains <paramref name="screenPosition"/>,

@@ -29,26 +29,28 @@ public class TransformedClipTests
         desktop.Update();
     }
 
-    private static GraphNoOpDrawTransaction Draw(GraphTestRuntime runtime, MGDesktop desktop)
+    /// <summary>Draws the desktop and reads the clip in force at the moment the content of <paramref name="scrollViewer"/> starts to draw: the viewport clip of the viewer
+    /// (<see cref="MGScrollViewer.GetContentsClipDefinition"/>), whose bounds are those of the innermost clip pushed by the viewer. The viewport clip is pushed
+    /// with <see cref="IUIRenderContext.PushRectangleClip"/> and carries no debug name (ADR-0035), so it is found by where it is in force, not by what it is called.</summary>
+    private static GraphNoOpDrawTransaction Draw(GraphTestRuntime runtime, MGDesktop desktop, MGScrollViewer scrollViewer, out Rectangle? viewportClip)
     {
         GraphNoOpDrawTransaction transaction = new(runtime, DrawSettings.Default);
-        desktop.Draw(transaction);
-        return transaction;
-    }
-
-    /// <summary>The last (innermost) recorded clip whose debug name is <c>"ScrollViewer.Viewport"</c>
-    /// (<see cref="MGScrollViewer.GetContentsClipDefinition"/>'s own debug name).</summary>
-    private static Rectangle? LastScrollViewerViewportClip(GraphNoOpDrawTransaction transaction)
-    {
-        for (int i = transaction.ClipPushes.Count - 1; i >= 0; i--)
+        Rectangle? captured = null;
+        EventHandler<MGElement.MGElementDrawEventArgs> onBeginDraw = (_, _) => captured = transaction.CurrentClipBounds;
+        MGElement content = scrollViewer.Content;
+        Assert.NotNull(content);
+        content.OnBeginDraw += onBeginDraw;
+        try
         {
-            if (transaction.ClipPushes[i].DebugName == "ScrollViewer.Viewport")
-            {
-                return transaction.ClipPushes[i].Bounds;
-            }
+            desktop.Draw(transaction);
+        }
+        finally
+        {
+            content.OnBeginDraw -= onBeginDraw;
         }
 
-        return null;
+        viewportClip = captured;
+        return transaction;
     }
 
     private static (GraphTestRuntime Runtime, MGDesktop Desktop, MGWindow Window, MGScrollViewer ScrollViewer) BuildScrollViewerScene(float windowScale = 1f)
@@ -73,10 +75,9 @@ public class TransformedClipTests
     {
         var scene = BuildScrollViewerScene(windowScale: 1f);
 
-        GraphNoOpDrawTransaction transaction = Draw(scene.Runtime, scene.Desktop);
+        GraphNoOpDrawTransaction transaction = Draw(scene.Runtime, scene.Desktop, scene.ScrollViewer, out Rectangle? recorded);
 
         Assert.Empty(transaction.TransformPushes); // an unscaled window without enter/exit pushes no transform at all (Y7)
-        Rectangle? recorded = LastScrollViewerViewportClip(transaction);
         Assert.NotNull(recorded);
 
         // The pre-Y10 formula: ConvertCoordinateSpace(UnscaledScreen, Screen, ContentViewport.GetTranslated(DA.Offset)), i.e. the two-corner
@@ -91,14 +92,13 @@ public class TransformedClipTests
     {
         var scene = BuildScrollViewerScene(windowScale: 1.5f);
 
-        GraphNoOpDrawTransaction transaction = Draw(scene.Runtime, scene.Desktop);
+        GraphNoOpDrawTransaction transaction = Draw(scene.Runtime, scene.Desktop, scene.ScrollViewer, out Rectangle? recorded);
 
         // A scaled window always pushes its own UnscaledScreenSpaceToScaledScreenSpace matrix around its content (Y7): the ambient
         // transform already carries MGWindow.Scale, exactly the matrix the pre-Y10 ConvertCoordinateSpace call applied by hand.
         Matrix windowScaleMatrix = Assert.Single(transaction.TransformPushes);
         AssertMatrix(scene.Window.UnscaledScreenSpaceToScaledScreenSpace, windowScaleMatrix);
 
-        Rectangle? recorded = LastScrollViewerViewportClip(transaction);
         Assert.NotNull(recorded);
 
         Rectangle expected = scene.ScrollViewer.ContentViewport.GetTranslated(scene.ScrollViewer.Origin)
@@ -112,10 +112,9 @@ public class TransformedClipTests
         var scene = BuildScrollViewerScene(windowScale: 1f);
         scene.ScrollViewer.RenderTransform.Translation = new Vector2(40f, 15f);
 
-        GraphNoOpDrawTransaction transaction = Draw(scene.Runtime, scene.Desktop);
+        GraphNoOpDrawTransaction transaction = Draw(scene.Runtime, scene.Desktop, scene.ScrollViewer, out Rectangle? recorded);
 
         Matrix localTransform = Assert.Single(transaction.TransformPushes);
-        Rectangle? recorded = LastScrollViewerViewportClip(transaction);
         Assert.NotNull(recorded);
 
         // Same viewport, transformed through the exact matrix that was pushed to draw the scroll viewer's own content (the ambient
@@ -160,8 +159,7 @@ public class TransformedClipTests
         Vector2 pivot = comboBox.Dropdown.ActualLayoutBounds.Center.ToVector2();
         Matrix midRunMatrix = midRunTransform.ToMatrix(pivot);
 
-        GraphNoOpDrawTransaction midRunTransaction = Draw(runtime, desktop);
-        Rectangle? midRunClip = LastScrollViewerViewportClip(midRunTransaction);
+        Draw(runtime, desktop, comboBox.DropdownScrollViewer, out Rectangle? midRunClip);
         Assert.NotNull(midRunClip);
 
         // Let the entry finish, then draw again: the untransformed baseline for the exact same viewport.
@@ -171,8 +169,7 @@ public class TransformedClipTests
         }
         Assert.True(comboBox.Dropdown.EnterExitWindowTransformOrNull == null || comboBox.Dropdown.EnterExitWindowTransformOrNull.IsIdentity);
 
-        GraphNoOpDrawTransaction baselineTransaction = Draw(runtime, desktop);
-        Rectangle? baselineClip = LastScrollViewerViewportClip(baselineTransaction);
+        Draw(runtime, desktop, comboBox.DropdownScrollViewer, out Rectangle? baselineClip);
         Assert.NotNull(baselineClip);
 
         Rectangle expectedMidRunClip = baselineClip.Value.CreateTransformedBoundsF(midRunMatrix).RoundUp();

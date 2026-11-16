@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MGUI.Core.UI.Clipping;
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
@@ -248,15 +249,15 @@ public class MGBorder : MGSingleContentHost
         }
     }
 
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         if (!ClipToBounds)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         // Rounded border/background paint still uses the box-shape brushes directly.
         // This hook only declares the content clip that should be resolved by the renderer.
-        return CreateBorderBackedContentsClipDefinition(DA, layoutBounds, ContentsClipDebugName);
+        return GetBorderBackedContentsClip(DA, layoutBounds, ContentsClipDebugName);
     }
 }

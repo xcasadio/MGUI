@@ -113,6 +113,39 @@ public class ControlFamilyZeroAllocationTests
     [Fact]
     public void ScrollViewerWithTallContent_Draw_WithTheMouseWheel_AllocatesNothing() => Assert.Equal(0, MeasureScrollViewerWithTheWheel().DrawTotal);
 
+    /// <summary>A continuous scroll: every frame, before the update, the offset of the viewer is one pixel further down than at the previous frame, so that no offset repeats
+    /// over the <see cref="FrameAllocationMeter.WarmupFrames"/> warm-up frames and the <see cref="FrameAllocationMeter.MeasuredFrames"/> measured ones. Each offset gives the content
+    /// bounds that no frame had before, and so two clips of new bounds (the viewport clip does not move, the clips of the content and of its children do). The prepare step
+    /// that writes the offset is measured on its own and is not part of the draw.</summary>
+    private FrameBytes MeasureScrollViewerOnFreshOffsets()
+    {
+        ControlBench bench = new();
+        MGScrollViewer scrollViewer = CreateTallScrollViewer(bench);
+        int frames = FrameAllocationMeter.WarmupFrames + FrameAllocationMeter.MeasuredFrames;
+        Assert.True(scrollViewer.MaxVerticalOffset >= frames, $"the content scrolls over {scrollViewer.MaxVerticalOffset} pixels, less than the {frames} frames");
+
+        long callsBefore = bench.Transaction.CallCount;
+        float previousOffset = -1f;
+        int differentOffsets = 0;
+        FrameBytes bytes = FrameAllocationMeter.Measure(frame =>
+        {
+            scrollViewer.VerticalOffset = frame;
+            if (frame >= FrameAllocationMeter.WarmupFrames && scrollViewer.VerticalOffset != previousOffset)
+            {
+                differentOffsets++;
+            }
+
+            previousOffset = scrollViewer.VerticalOffset;
+        }, bench.Update, bench.Draw);
+        Assert.True(bench.Transaction.CallCount > callsBefore, "the measured frames drew nothing");
+        Assert.Equal(FrameAllocationMeter.MeasuredFrames, differentOffsets);
+        Output.WriteLine($"MGScrollViewer over {FrameAllocationMeter.MeasuredFrames} offsets that are all different: Update {bytes.Update} B/frame, Draw {bytes.Draw} B/frame (totals {bytes.UpdateTotal} and {bytes.DrawTotal} B over {bytes.Iterations} frames)");
+        return bytes;
+    }
+
+    [Fact]
+    public void ScrollViewerWithTallContent_Draw_OverOffsetsThatAreAllDifferent_AllocatesNothing() => Assert.Equal(0, MeasureScrollViewerOnFreshOffsets().DrawTotal);
+
     /// <summary>The draw journal of the scroll viewer (every call of the transaction, with the clips and their names): one frame at rest, then four notches down,
     /// one notch up and two frames at rest. Frozen on the code before the allocation-free work, kept after it.</summary>
     [Fact]
@@ -145,7 +178,7 @@ public class ControlFamilyZeroAllocationTests
         Record("rest after the wheel");
         Record("rest after the wheel, again");
 
-        FrozenJournal.Assert("scroll viewer draw journal", 2912, "DDC79E6AEAE75E01", journal);
+        FrozenJournal.Assert("scroll viewer draw journal", 2912, "9E62836A6CD2B516", journal);
     }
 
     // ---- MGListBox and MGListView of 50 items ----
@@ -276,11 +309,11 @@ public class ControlFamilyZeroAllocationTests
 
     [Fact]
     public void ListBoxOf50Items_DrawJournal_AtRestAndOnHover()
-        => FrozenJournal.Assert("list box draw journal", 5876, "4F799554548B59F5", ListDrawJournal(CreateListBoxScene()));
+        => FrozenJournal.Assert("list box draw journal", 5876, "BC458FAB8AE994E8", ListDrawJournal(CreateListBoxScene()));
 
     [Fact]
     public void ListViewOf50Items_DrawJournal_AtRestAndOnHover()
-        => FrozenJournal.Assert("list view draw journal", 4430, "C44BDC8BCB28886C", ListDrawJournal(CreateListViewScene()));
+        => FrozenJournal.Assert("list view draw journal", 4430, "AD29804048F6D65C", ListDrawJournal(CreateListViewScene()));
 
     // ---- MGTreeView of 14 nodes, three levels expanded ----
 
@@ -337,7 +370,7 @@ public class ControlFamilyZeroAllocationTests
 
     [Fact]
     public void TreeViewOfThreeLevels_DrawJournal_AtRestAndOnHover()
-        => FrozenJournal.Assert("tree view draw journal", 4280, "0F2EE6FCC35D9D5F", ListDrawJournal(CreateTreeViewScene()));
+        => FrozenJournal.Assert("tree view draw journal", 4280, "7593866D83B716B1", ListDrawJournal(CreateTreeViewScene()));
 
     // ---- MGTabControl with three tabs ----
 
@@ -375,7 +408,7 @@ public class ControlFamilyZeroAllocationTests
 
     [Fact]
     public void TabControlWithThreeTabs_DrawJournal_AtRestAndOnHeaderHover()
-        => FrozenJournal.Assert("tab control draw journal", 1100, "C3124B89E3FC9739", ListDrawJournal(CreateTabControlScene()));
+        => FrozenJournal.Assert("tab control draw journal", 1100, "4A61ACA0BF83E614", ListDrawJournal(CreateTabControlScene()));
 
     /// <summary>The visual tree children of the tab control are kept between calls, and follow the tabs and the selection: a list that was returned is not changed by a later selection.</summary>
     [Fact]
@@ -518,15 +551,15 @@ public class ControlFamilyZeroAllocationTests
 
     [Fact]
     public void ContextMenuOpen_DrawJournal_OutsideAndOnHover()
-        => FrozenJournal.Assert("context menu draw journal", 1440, "8C19560187849240", ListDrawJournal(CreateContextMenuScene()));
+        => FrozenJournal.Assert("context menu draw journal", 1440, "9266ECA7AE7728A6", ListDrawJournal(CreateContextMenuScene()));
 
     [Fact]
     public void MenuBarClosed_DrawJournal_AtRestAndOnHover()
-        => FrozenJournal.Assert("menu bar draw journal", 1111, "8491EDE04F750CF0", ListDrawJournal(CreateMenuBarScene()));
+        => FrozenJournal.Assert("menu bar draw journal", 1111, "41CFD489AC31D6E0", ListDrawJournal(CreateMenuBarScene()));
 
     [Fact]
     public void MenuBarDropdownOpen_DrawJournal_OnHover()
-        => FrozenJournal.Assert("menu bar dropdown draw journal", 1983, "C9B27046C894BB4E", ListDrawJournal(CreateMenuBarDropdownScene()));
+        => FrozenJournal.Assert("menu bar dropdown draw journal", 1983, "CDFDC93B0E0E8ED2", ListDrawJournal(CreateMenuBarDropdownScene()));
 
     // ---- The kept arguments and lists that the menu fixes rely on ----
 
@@ -725,7 +758,7 @@ public class ControlFamilyZeroAllocationTests
         bench.Mouse = ControlBench.OutsideTheWindow;
         Record("rest after the clicks");
         Record("rest after the clicks, again");
-        FrozenJournal.Assert("grid draw journal", 1500, "49B5CDC15160B011", journal);
+        FrozenJournal.Assert("grid draw journal", 1500, "1517D35FB852D0F5", journal);
     }
 
     /// <summary>The allocation-free cells of a selection are the cells that a foreach over the selection gives, in the same order, for each mode, and none for a cell that is not in the grid.</summary>
@@ -1007,15 +1040,15 @@ public class ControlFamilyZeroAllocationTests
 
     [Fact]
     public void DockHostWithTwoTabGroups_DrawJournal_AtRest()
-        => FrozenJournal.Assert("dock two groups draw journal", 632, "C81E268CEED773E7", DockRestJournal(CreateTwoGroupsScene()));
+        => FrozenJournal.Assert("dock two groups draw journal", 632, "D83BEE98675FFA9B", DockRestJournal(CreateTwoGroupsScene()));
 
     [Fact]
     public void DockHostWithAPanelAutoHidden_DrawJournal_AtRest()
-        => FrozenJournal.Assert("dock auto-hidden draw journal", 688, "A771A7614050A38E", DockRestJournal(CreateAutoHiddenScene()));
+        => FrozenJournal.Assert("dock auto-hidden draw journal", 688, "5C0A025A62A967D5", DockRestJournal(CreateAutoHiddenScene()));
 
     [Fact]
     public void DockHostWithATabBehindTheActiveTab_DrawJournal_AtRest()
-        => FrozenJournal.Assert("dock tab behind draw journal", 672, "A79CC28083C4B3B9", DockRestJournal(CreateTabBehindTheActiveTabScene()));
+        => FrozenJournal.Assert("dock tab behind draw journal", 672, "33C33BE1B0090BDF", DockRestJournal(CreateTabBehindTheActiveTabScene()));
 
     /// <summary>The draw journal of a tab drag: two frames before it, the press, the first moves, six frames of the mouse alternating between the two positions with the drop
     /// preview shown, then the release (the drop) and two frames after it.</summary>
@@ -1048,7 +1081,7 @@ public class ControlFamilyZeroAllocationTests
             record("after the drop 0");
             record("after the drop 1");
         });
-        FrozenJournal.Assert("dock drag draw journal", 3100, "5B1B87801887E010", journal);
+        FrozenJournal.Assert("dock drag draw journal", 3100, "BA04E47B44FF69B8", journal);
     }
 
     /// <summary>AddChildrenTo gives, for every element of the dock scenes, the children that GetChildren yields, in the same order.</summary>
@@ -1196,7 +1229,7 @@ public class ControlFamilyZeroAllocationTests
             Record($"rest after the keys {frame}");
         }
 
-        FrozenJournal.Assert("text box draw journal", 936, "70E142E4BD23747E", journal);
+        FrozenJournal.Assert("text box draw journal", 936, "A006940EB631CE11", journal);
     }
 
     /// <summary>The update of a frame in which a key is pressed in a focused text box that ignores it (F1, then F2, one per frame): the keyboard input of MGUI.Shared refills the press, release, click and

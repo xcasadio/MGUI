@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MGUI.Core.UI.Clipping;
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Text;
 using System.Text;
@@ -1781,9 +1782,6 @@ public class MGTextBox : MGElement, ITextEntryHost
         Caret.Draw(DA, LayoutBounds);
     }
 
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => CreateBorderBackedContentsClipDefinition(DA, layoutBounds, ContentsClipName ??= $"{ElementType}.Contents");
-
-    //  Kept: a name built at each draw would be a new string per frame, and the clip cache of the element is keyed by it.
-    private string ContentsClipName;
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => GetBorderBackedContentsClip(DA, layoutBounds, ContentsClipDebugName);
 }

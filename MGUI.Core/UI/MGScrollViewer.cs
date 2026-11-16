@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MGUI.Core.UI.Clipping;
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
@@ -1239,29 +1240,14 @@ public class MGScrollViewer : MGSingleContentHost
 
     private bool? _DrawsChildrenDirectly;
 
-    //  Kept: a name built at each draw would be a new string per frame, and the clip cache of an element is keyed by it.
-    private string _ViewportClipName;
-
-    //  The clip of the viewport of the previous draw. A ClipDefinition is immutable and the viewer draws every frame with the same viewport (a scroll moves the content, not
-    //  the viewport), so the definition stands in for a new one while the screen bounds are the same. The screen bounds are read at every draw, from the viewport,
-    //  the draw offset and the ambient transform: whatever changes one of them (a resize, a move of the viewer or of its window, a transform) gives other bounds and a new definition.
-    private ClipDefinition _ViewportClip;
-
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         //  Y10: built from the ambient draw transform (the same way MGElement.Draw computes targetBounds), instead of a coordinate-space
         //  conversion that only knew about MGWindow.Scale. Without any transform pushed, or under a pure scale (MGWindow.Scale != 1),
         //  this produces the exact same rectangle: CreateTransformedBoundsF reduces to the old two-corner mapping for a non-rotated matrix,
         //  and the ambient transform already carries MGWindow.Scale, the same matrix the previous ConvertCoordinateSpace call applied.
         //  Under a transformed ancestor (a sliding window, a RenderTransform), the clip now follows the content to where it is actually drawn.
-        var screenBounds = TransformClipBounds(DA, ContentViewport);
-        var name = _ViewportClipName ??= $"{ElementType}.Viewport";
-        var cached = _ViewportClip;
-        if (cached == null || cached.Shape.Bounds != screenBounds || !ReferenceEquals(cached.DebugName, name))
-        {
-            cached = _ViewportClip = CreateRectangleClipDefinition(screenBounds, name);
-        }
-
-        return cached;
+        //  A rectangle, not a definition: the viewport is read at every draw, from the viewport, the draw offset and the ambient transform, and costs no object (ADR-0035).
+        return ElementClipRequest.Rectangle(TransformClipBounds(DA, ContentViewport));
     }
 }

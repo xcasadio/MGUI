@@ -145,16 +145,16 @@ public class DesktopFrameLayoutTextTests
     public void TheLayoutOfTheFullFixtureInADockHost_AfterEachOfFiftyTexts() => FrozenJournal.Assert("FullInDockHost layout journal", 1630, "845AF18D5646C839", LayoutJournal(Fixture.FullInDockHost));
 
     [Fact]
-    public void TheDrawJournalOfTheFullFixture_AfterEachOfFiftyTexts() => FrozenJournal.Assert("Full text draw journal", 3421, "41F2D22E04C15451", DrawJournal(Fixture.Full));
+    public void TheDrawJournalOfTheFullFixture_AfterEachOfFiftyTexts() => FrozenJournal.Assert("Full text draw journal", 3421, "CBD830BC2DE6173D", DrawJournal(Fixture.Full));
 
     [Fact]
-    public void TheDrawJournalOfTheFullFixtureInAGrid_AfterEachOfFiftyTexts() => FrozenJournal.Assert("FullInGrid text draw journal", 3568, "499E2F3D359CB059", DrawJournal(Fixture.FullInGrid));
+    public void TheDrawJournalOfTheFullFixtureInAGrid_AfterEachOfFiftyTexts() => FrozenJournal.Assert("FullInGrid text draw journal", 3568, "0791109678B802E1", DrawJournal(Fixture.FullInGrid));
 
     [Fact]
-    public void TheDrawJournalOfTheFullFixtureInADockPanel_AfterEachOfFiftyTexts() => FrozenJournal.Assert("FullInDockPanel text draw journal", 3521, "12367A53E24DBF44", DrawJournal(Fixture.FullInDockPanel));
+    public void TheDrawJournalOfTheFullFixtureInADockPanel_AfterEachOfFiftyTexts() => FrozenJournal.Assert("FullInDockPanel text draw journal", 3521, "F1AA7094430063C7", DrawJournal(Fixture.FullInDockPanel));
 
     [Fact]
-    public void TheDrawJournalOfTheFullFixtureInADockHost_AfterEachOfFiftyTexts() => FrozenJournal.Assert("FullInDockHost text draw journal", 5771, "B5F7B15D0E65D0AB", DrawJournal(Fixture.FullInDockHost));
+    public void TheDrawJournalOfTheFullFixtureInADockHost_AfterEachOfFiftyTexts() => FrozenJournal.Assert("FullInDockHost text draw journal", 5771, "619CAF35A17399FD", DrawJournal(Fixture.FullInDockHost));
 
     [Fact]
     public void ThePlainTextOfTheFixtureIsTheTextThatWasSet()

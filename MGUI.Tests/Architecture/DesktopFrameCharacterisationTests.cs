@@ -63,7 +63,7 @@ public class DesktopFrameCharacterisationTests
         List<string> journal = WindowDrawJournal(DesktopFrameAllocationMeasurements.Fixture.BareWindow,
             Outside, Outside, new Point(150, 100), new Point(150, 100), Outside);
 
-        FrozenJournal.Assert("BareWindow draw journal", 130, "7465221FAD2D49C8", journal);
+        FrozenJournal.Assert("BareWindow draw journal", 130, "D2CF59A9BD3CD31B", journal);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class DesktopFrameCharacterisationTests
             journal.Add("--");
         }
 
-        FrozenJournal.Assert("DefaultWindow draw journal", 322, "CA21F30ACC8E2699", journal);
+        FrozenJournal.Assert("DefaultWindow draw journal", 322, "3B64773DAF20101F", journal);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class DesktopFrameCharacterisationTests
         List<string> journal = WindowDrawJournal(DesktopFrameAllocationMeasurements.Fixture.Full,
             Outside, Outside, new Point(150, 100), new Point(150, 100), Outside);
 
-        FrozenJournal.Assert("Full draw journal", 340, "4EA6EED126EC08FA", journal);
+        FrozenJournal.Assert("Full draw journal", 340, "C33570F304CF3B13", journal);
     }
 
     //  ---- Draw: the journal of the containers of the slider (T1.5), idle and while the slider is dragged ------------------------------
@@ -124,31 +124,31 @@ public class DesktopFrameCharacterisationTests
 
     [Fact]
     public void TheDrawJournalOfTheFullFixture_WhileTheSliderIsDragged()
-        => FrozenJournal.Assert("Full drag journal", 800, "68E93B778DFA70A0", DragJournal(DesktopFrameAllocationMeasurements.Fixture.Full));
+        => FrozenJournal.Assert("Full drag journal", 800, "28216027FE3E2430", DragJournal(DesktopFrameAllocationMeasurements.Fixture.Full));
 
     [Fact]
     public void TheDrawJournalOfTheFullFixtureInAGrid_Idle()
-        => FrozenJournal.Assert("FullInGrid idle journal", 350, "E313EED065EDC31C", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInGrid));
+        => FrozenJournal.Assert("FullInGrid idle journal", 350, "9B362C0EA9AA6648", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInGrid));
 
     [Fact]
     public void TheDrawJournalOfTheFullFixtureInAGrid_WhileTheSliderIsDragged()
-        => FrozenJournal.Assert("FullInGrid drag journal", 820, "FEB8EB37392C2D41", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInGrid));
+        => FrozenJournal.Assert("FullInGrid drag journal", 820, "23E93872079BE9FB", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInGrid));
 
     [Fact]
     public void TheDrawJournalOfTheFullFixtureInADockPanel_Idle()
-        => FrozenJournal.Assert("FullInDockPanel idle journal", 350, "02355343A2F879CC", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockPanel));
+        => FrozenJournal.Assert("FullInDockPanel idle journal", 350, "7DFE601A92B64C8A", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockPanel));
 
     [Fact]
     public void TheDrawJournalOfTheFullFixtureInADockPanel_WhileTheSliderIsDragged()
-        => FrozenJournal.Assert("FullInDockPanel drag journal", 820, "03BDAA5F77FFA1B3", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockPanel));
+        => FrozenJournal.Assert("FullInDockPanel drag journal", 820, "52A2244390EF6E04", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockPanel));
 
     [Fact]
     public void TheDrawJournalOfTheFullFixtureInADockHost_Idle()
-        => FrozenJournal.Assert("FullInDockHost idle journal", 575, "C2490D7D7541C9AD", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockHost));
+        => FrozenJournal.Assert("FullInDockHost idle journal", 575, "9D2F0166D829607D", IdleJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockHost));
 
     [Fact]
     public void TheDrawJournalOfTheFullFixtureInADockHost_WhileTheSliderIsDragged()
-        => FrozenJournal.Assert("FullInDockHost drag journal", 1270, "52957F04D8CFA4E5", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockHost));
+        => FrozenJournal.Assert("FullInDockHost drag journal", 1270, "086B76BB5245F345", DragJournal(DesktopFrameAllocationMeasurements.Fixture.FullInDockHost));
 
     //  ---- Update: a window, its events and the mouse -----------------------------------------------------------------------------------
 
