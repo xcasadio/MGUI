@@ -21,6 +21,9 @@ public sealed class UIAnimationManager
     //  Update, before the engine does anything else this tick.
     private readonly ConcurrentQueue<UIAnimationCompletion> _PendingCancellations = new();
 
+    /// <summary>True while <see cref="Update"/> walks the active list: a finished animation stays in it until the walk ends.</summary>
+    internal bool IsTicking => _IsTicking;
+
     /// <summary>The time source shared by every animation of the desktop.</summary>
     public UIAnimationClock Clock { get; } = new();
 

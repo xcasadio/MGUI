@@ -823,18 +823,34 @@ public class MGTextBlock : MGElement, ITextMeasurer
         var RemainingCharacters = (1.0 - From) * NumCharacters;
         var RemainingSeconds = RemainingCharacters / Speed.Value;
         _IsTextRevealSyncPending = false;
-        _TextRevealAnimation = new TextRevealRun
+
+        //  The run of the previous synchronisation is started over instead of a new one being built (a restart allocates nothing): it is
+        //  cancelled first (KeepCurrent, like the replacement the engine does for a new run on the same path), so it leaves and re-enters the
+        //  engine's active list as a new run would. A new run is built when that cannot be done identically: the first time, during a tick of the
+        //  engine (a finished run still sits in the active list until the tick ends, and would keep its place in it), or when the run still belongs
+        //  to the engine of another desktop.
+        var Manager = GetDesktop().Animations;
+        var Run = _TextRevealAnimation;
+        if (Run == null || Manager.IsTicking || (Run.IsActive && !ReferenceEquals(Run.Manager, Manager)))
         {
-            From = From,
-            To = 1.0,
-            Duration = TimeSpan.FromSeconds(RemainingSeconds),
-            Easing = UIEasing.Linear,
-            Name = TextRevealAnimationName,
-            FillBehavior = UIAnimationFillBehavior.HoldEnd,
-            CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
-            InheritsBaseValue = false,
-        };
-        Animations.Start(_TextRevealAnimation);
+            Run = _TextRevealAnimation = new TextRevealRun
+            {
+                To = 1.0,
+                Easing = UIEasing.Linear,
+                Name = TextRevealAnimationName,
+                FillBehavior = UIAnimationFillBehavior.HoldEnd,
+                CancelBehavior = UIAnimationCancelBehavior.KeepCurrent,
+                InheritsBaseValue = false,
+            };
+        }
+        else
+        {
+            Run.Cancel();
+        }
+
+        Run.From = From;
+        Run.Duration = TimeSpan.FromSeconds(RemainingSeconds);
+        Animations.Start(Run);
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
