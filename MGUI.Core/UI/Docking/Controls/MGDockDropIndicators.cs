@@ -355,6 +355,21 @@ public class MGDockDropIndicators : MGElement
         SyncZoneVisuals();
     }
 
+    /// <summary>The same as <see cref="SetDisabledZones(IEnumerable{DockZone})"/> for a set, read with the enumerator of the set itself (a <c>foreach</c> over the interface boxes it).</summary>
+    internal void SetDisabledZones(HashSet<DockZone> disabledZones)
+    {
+        _disabledZones.Clear();
+        if (disabledZones != null)
+        {
+            foreach (var z in disabledZones)
+            {
+                _disabledZones.Add(z);
+            }
+        }
+
+        SyncZoneVisuals();
+    }
+
     // ── Host-edge indicator API ──────────────────────────────────────────────
 
     /// <summary>

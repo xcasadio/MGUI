@@ -729,10 +729,29 @@ public class MGDockTabItem : MGElement
         }
     }
 
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        if (_titleText != null)
+        {
+            buffer.Add(_titleText);
+        }
+
+        if (_pinButton != null && Panel?.CanAutoHide == true)
+        {
+            buffer.Add(_pinButton);
+        }
+
+        if (_closeButton != null && Panel?.CanClose == true)
+        {
+            buffer.Add(_closeButton);
+        }
+    }
+
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
     {
         SharedSize = new Thickness(0);
-            
+
         // MGDockTabItem has no padding/borders/margins of its own
         // The content (title + close button) is measured in UpdateContentMeasurement()
         return new Thickness(0);

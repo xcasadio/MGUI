@@ -1,3 +1,6 @@
+using MGUI.Core.UI.Docking;
+using MGUI.Core.UI.Docking.Controls;
+using MGUI.Core.UI.Docking.DockLayout;
 using MGUI.Core.UI.Containers.Grids;
 using Microsoft.Xna.Framework.Input;
 using MGUI.Core.UI;
@@ -782,6 +785,314 @@ public class ControlFamilyZeroAllocationTests
                 };
                 Assert.Equal(expectedCount, actual.Count);
             }
+        }
+    }
+
+    // ---- MGDockHost ----
+
+    /// <summary>Two tab groups separated by a splitter: A in the first, B in the second; C is created but only docked, as a second tab of B, when panelCInGroupB is true.</summary>
+    private sealed class DockScene
+    {
+        public ControlBench Bench { get; } = new();
+        public MGDockHost Host { get; private set; }
+        public DockPanelNode PanelA { get; private set; }
+        public DockPanelNode PanelC { get; private set; }
+        public DockTabGroupNode GroupA { get; private set; }
+        public DockTabGroupNode GroupB { get; private set; }
+
+        public static DockScene Create(bool panelCInGroupB)
+        {
+            DockScene scene = new();
+            MGWindow window = scene.Bench.Window;
+            scene.PanelA = new DockPanelNode { Title = "A", ContentFactory = () => new MGTextBlock(window, "Panel A content") };
+            DockPanelNode panelB = new() { Title = "B", ContentFactory = () => new MGTextBlock(window, "Panel B content") };
+            scene.PanelC = new DockPanelNode { Title = "C", ContentFactory = () => new MGTextBlock(window, "Panel C content") };
+            scene.GroupA = new DockTabGroupNode();
+            scene.GroupA.AddPanel(scene.PanelA, -1);
+            scene.GroupB = new DockTabGroupNode();
+            scene.GroupB.AddPanel(panelB, -1);
+            if (panelCInGroupB)
+            {
+                scene.GroupB.AddPanel(scene.PanelC, -1);
+            }
+
+            DockSplitNode root = new()
+            {
+                Orientation = Orientation.Horizontal,
+                SplitRatio = 0.5f,
+                MinFirstSize = 0,
+                MinSecondSize = 0,
+                FirstChild = scene.GroupA,
+                SecondChild = scene.GroupB
+            };
+            scene.Host = new MGDockHost(window)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                LayoutModel = new DockLayoutModel(root)
+            };
+            foreach (DockPanelNode node in scene.Host.LayoutModel.GetAllPanels())
+            {
+                scene.Host.RegisterPanel(node);
+            }
+
+            scene.Bench.Show(scene.Host);
+            return scene;
+        }
+
+        public MGDockTabGroup VisualGroupOf(DockTabGroupNode node)
+        {
+            foreach (MGDockTabGroup group in Host.GetAllVisibleTabGroups())
+            {
+                if (ReferenceEquals(group.GroupNode, node))
+                {
+                    return group;
+                }
+            }
+
+            throw new InvalidOperationException("the tab group is not visible");
+        }
+    }
+
+    private static DockScene CreateTwoGroupsScene()
+    {
+        DockScene scene = DockScene.Create(false);
+        Assert.Equal(2, scene.Host.GetAllVisibleTabGroups().Count());
+        return scene;
+    }
+
+    private static DockScene CreateAutoHiddenScene()
+    {
+        //  "Hidden" is read as auto-hidden: the panel leaves the layout tree for the auto-hide strip (UnpinPanel), the drawer stays closed.
+        DockScene scene = DockScene.Create(true);
+        scene.Host.UnpinPanel(scene.PanelC);
+        scene.Bench.Frames(3);
+        Assert.False(scene.PanelC.IsPinned);
+        Assert.Contains(scene.PanelC, scene.Host.LayoutModel.GetAllAutoHidePanels());
+        Assert.Equal(2, scene.Host.GetAllVisibleTabGroups().Count());
+        return scene;
+    }
+
+    private static DockScene CreateTabBehindTheActiveTabScene()
+    {
+        DockScene scene = DockScene.Create(true);
+        Assert.Equal(2, scene.GroupB.Panels.Count);
+        return scene;
+    }
+
+    /// <summary>The drag of the measurement: a press on the tab of A, the mouse moved to the group B (the drag starts, then the drop preview shows), and then held down.</summary>
+    private sealed class DockDrag
+    {
+        public DockScene Scene { get; } = DockScene.Create(false);
+        public Point PressPoint { get; }
+        public Point Midway { get; }
+        public Point First { get; }
+        public Point Second { get; }
+
+        public DockDrag()
+        {
+            MGDockTabItem tab = Scene.VisualGroupOf(Scene.GroupA).TraverseVisualTree<MGDockTabItem>(IncludeSelf: false).First();
+            PressPoint = tab.LayoutBounds.Center;
+            Point groupCenter = Scene.VisualGroupOf(Scene.GroupB).LayoutBounds.Center;
+            Midway = new((PressPoint.X + groupCenter.X) / 2, (PressPoint.Y + groupCenter.Y) / 2);
+            First = groupCenter;
+            Second = new(groupCenter.X + 8, groupCenter.Y + 6);
+        }
+
+        public Action<int> Alternate => frame => Scene.Bench.Mouse = (frame & 1) == 0 ? First : Second;
+
+        /// <summary>Presses, moves, and reaches the group B: the drop preview shows. Checks the drag and its drop target.</summary>
+        public void Start()
+        {
+            ControlBench bench = Scene.Bench;
+            MGDockHost host = Scene.Host;
+            bench.Mouse = PressPoint;
+            bench.Frames(2);
+            bench.Left = ButtonState.Pressed;
+            bench.Frame();
+            bench.Mouse = Midway;
+            bench.Frame();
+            bench.Mouse = First;
+            bench.Frames(3);
+            Assert.NotNull(host.CurrentDrag);
+            Assert.True(host.CurrentDrag.HasExceededThreshold);
+            Assert.NotNull(host.CurrentDropTarget);
+            DockZone zone = host.CurrentDropTarget.Zone;
+            bench.Mouse = Second;
+            bench.Frames(3);
+            Assert.NotNull(host.CurrentDropTarget);
+            Assert.Equal(zone, host.CurrentDropTarget.Zone);
+            bench.Mouse = First;
+            bench.Frames(3);
+        }
+    }
+
+    private FrameBytes MeasureDock(string label, DockScene scene, Action<int> prepare = null)
+    {
+        ControlBench bench = scene.Bench;
+        long callsBefore = bench.Transaction.CallCount;
+        FrameBytes bytes = FrameAllocationMeter.Measure(prepare, bench.Update, bench.Draw);
+        Assert.True(bench.Transaction.CallCount > callsBefore, "the measured frames drew nothing");
+        Output.WriteLine($"MGDockHost {label}: Update {bytes.Update} B/frame, Draw {bytes.Draw} B/frame (totals {bytes.UpdateTotal} and {bytes.DrawTotal} B over {bytes.Iterations} frames)");
+        return bytes;
+    }
+
+    private FrameBytes MeasureDockDrag()
+    {
+        DockDrag drag = new();
+        drag.Start();
+        FrameBytes bytes = MeasureDock("tab drag, drop preview shown, mouse alternating between two positions", drag.Scene, drag.Alternate);
+        Assert.NotNull(drag.Scene.Host.CurrentDrag);
+        Assert.NotNull(drag.Scene.Host.CurrentDropTarget);
+        drag.Scene.Bench.Left = ButtonState.Released;
+        drag.Scene.Bench.Frames(2);
+        return bytes;
+    }
+
+    [Fact]
+    public void DockHostWithTwoTabGroups_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureDock("two tab groups, at rest", CreateTwoGroupsScene()).UpdateTotal);
+
+    [Fact]
+    public void DockHostWithTwoTabGroups_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureDock("two tab groups, at rest", CreateTwoGroupsScene()).DrawTotal);
+
+    [Fact]
+    public void DockHostWithAPanelAutoHidden_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureDock("one panel auto-hidden, at rest", CreateAutoHiddenScene()).UpdateTotal);
+
+    [Fact]
+    public void DockHostWithAPanelAutoHidden_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureDock("one panel auto-hidden, at rest", CreateAutoHiddenScene()).DrawTotal);
+
+    [Fact]
+    public void DockHostWithATabBehindTheActiveTab_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureDock("one tab behind the active tab, at rest", CreateTabBehindTheActiveTabScene()).UpdateTotal);
+
+    [Fact]
+    public void DockHostWithATabBehindTheActiveTab_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureDock("one tab behind the active tab, at rest", CreateTabBehindTheActiveTabScene()).DrawTotal);
+
+    /// <summary>The update of a frame of the drag allocates the one <see cref="DockDropTarget"/> that the drop target computation makes for the position of the mouse, and nothing else:
+    /// <c>MGDockHost.CurrentDropTarget</c> is a public property of a public mutable class that notifies when its reference changes, so the object is the result of the computation and is
+    /// kept as it is (reusing one would stop the notification at each frame). Every other part of the computation (the walks of the visual tree, the forbidden zones, the docking rules,
+    /// the zone search) allocates nothing.</summary>
+    [Fact]
+    public void DockHostDuringATabDrag_Update_AllocatesOnlyTheDropTarget()
+    {
+        GC.KeepAlive(new DockDropTarget());
+        AllocationWindow.Start();
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        DockDropTarget target = new();
+        long dropTargetBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        GC.KeepAlive(target);
+        Assert.True(dropTargetBytes > 0);
+
+        //  Every measured frame moves the mouse by 10 pixels (between the two positions), more than the 5 that make the host compute the target again.
+        FrameBytes bytes = MeasureDockDrag();
+        Assert.Equal(dropTargetBytes * bytes.Iterations, bytes.UpdateTotal);
+    }
+
+    [Fact]
+    public void DockHostDuringATabDrag_Draw_AllocatesNothing() => Assert.Equal(0, MeasureDockDrag().DrawTotal);
+
+    private static List<string> DockDrawJournal(DockScene scene, Action<Action<string>> script)
+    {
+        ControlBench bench = scene.Bench;
+        OrderedRecordingDrawTransaction transaction = new(bench.Runtime, DrawSettings.Default);
+        List<string> journal = new();
+        void Record(string label)
+        {
+            transaction.ClearJournal();
+            bench.Update();
+            bench.Desktop.Draw(transaction);
+            journal.Add($"== {label}");
+            journal.AddRange(transaction.Lines);
+        }
+
+        script(Record);
+        return journal;
+    }
+
+    private static List<string> DockRestJournal(DockScene scene)
+        => DockDrawJournal(scene, record =>
+        {
+            for (int frame = 0; frame < 4; frame++)
+            {
+                record($"rest {frame}");
+            }
+        });
+
+    [Fact]
+    public void DockHostWithTwoTabGroups_DrawJournal_AtRest()
+        => FrozenJournal.Assert("dock two groups draw journal", 632, "C81E268CEED773E7", DockRestJournal(CreateTwoGroupsScene()));
+
+    [Fact]
+    public void DockHostWithAPanelAutoHidden_DrawJournal_AtRest()
+        => FrozenJournal.Assert("dock auto-hidden draw journal", 688, "A771A7614050A38E", DockRestJournal(CreateAutoHiddenScene()));
+
+    [Fact]
+    public void DockHostWithATabBehindTheActiveTab_DrawJournal_AtRest()
+        => FrozenJournal.Assert("dock tab behind draw journal", 672, "A79CC28083C4B3B9", DockRestJournal(CreateTabBehindTheActiveTabScene()));
+
+    /// <summary>The draw journal of a tab drag: two frames before it, the press, the first moves, six frames of the mouse alternating between the two positions with the drop
+    /// preview shown, then the release (the drop) and two frames after it.</summary>
+    [Fact]
+    public void DockHostDuringATabDrag_DrawJournal_BeforeDuringAndAfterTheDrop()
+    {
+        DockDrag drag = new();
+        ControlBench bench = drag.Scene.Bench;
+        List<string> journal = DockDrawJournal(drag.Scene, record =>
+        {
+            record("before the drag 0");
+            record("before the drag 1");
+            bench.Mouse = drag.PressPoint;
+            record("mouse on the tab");
+            bench.Left = ButtonState.Pressed;
+            record("pressed");
+            bench.Mouse = drag.Midway;
+            record("moved midway");
+            bench.Mouse = drag.First;
+            record("on the group 0");
+            record("on the group 1");
+            for (int frame = 0; frame < 6; frame++)
+            {
+                drag.Alternate(frame);
+                record($"alternating {frame}");
+            }
+
+            bench.Left = ButtonState.Released;
+            record("released");
+            record("after the drop 0");
+            record("after the drop 1");
+        });
+        FrozenJournal.Assert("dock drag draw journal", 3100, "5B1B87801887E010", journal);
+    }
+
+    /// <summary>AddChildrenTo gives, for every element of the dock scenes, the children that GetChildren yields, in the same order.</summary>
+    [Fact]
+    public void AddChildrenTo_GivesTheChildrenOfGetChildren_ForTheElementsOfTheDockScenes()
+    {
+        foreach (DockScene scene in new[] { CreateTwoGroupsScene(), CreateAutoHiddenScene(), CreateTabBehindTheActiveTabScene() })
+        {
+            int visited = 0;
+            foreach (MGElement element in scene.Bench.Window.TraverseVisualTree(true, true, true, true, MGElement.TreeTraversalMode.Preorder))
+            {
+                List<MGElement> expected = new(element.GetChildren());
+                List<MGElement> actual = new();
+                element.AddChildrenTo(actual);
+                Assert.Equal(expected, actual);
+                visited++;
+            }
+
+            Assert.True(visited > 20, "the walk visited too few elements");
+        }
+    }
+
+    /// <summary>The visible tab groups and split containers that the drag collects are the ones that the public enumeration gives, in the same order, whatever the host contains.</summary>
+    [Fact]
+    public void DockHost_CollectedTreeWalks_AreTheEnumerations()
+    {
+        foreach (DockScene scene in new[] { CreateTwoGroupsScene(), CreateAutoHiddenScene(), CreateTabBehindTheActiveTabScene() })
+        {
+            List<MGDockTabGroup> expectedGroups = scene.Host.GetAllVisibleTabGroups().ToList();
+            Assert.Equal(2, expectedGroups.Count);
+            Assert.Equal(expectedGroups, scene.Host.CollectVisibleTabGroups());
+            Assert.Single(scene.Host.CollectSplitContainers());
         }
     }
 }

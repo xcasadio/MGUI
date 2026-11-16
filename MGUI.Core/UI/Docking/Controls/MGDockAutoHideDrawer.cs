@@ -495,11 +495,29 @@ public class MGDockAutoHideDrawer : MGContentHost
         }
     }
 
+    private static void DrawChild(MGElement child, ElementDrawArgs DA)
+    {
+        child?.Draw(DA);
+    }
+
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates (the template parts exist together or not at all).
+        if (_border != null)
         {
-            child?.Draw(DA);
+            DrawChild(_border, DA);
+            DrawChild(_header, DA);
+            DrawChild(_titleLabel, DA);
+            DrawChild(_pinBtn, DA);
+            DrawChild(_closeBtn, DA);
+        }
+
+        DrawChild(_content, DA);
+
+        if (_border != null)
+        {
+            DrawChild(_pinIcon, DA);
+            DrawChild(_closeIcon, DA);
         }
     }
 

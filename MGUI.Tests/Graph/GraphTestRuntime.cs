@@ -271,14 +271,25 @@ internal sealed class GraphTestTextEngine : ITextMeasurementEngine
         DefaultFamily = defaultFamily;
     }
 
+    //  Like the engines of the backends (SpriteFontTextEngine, FontStashSharpTextEngine), which cache the font they resolve by spec: a second request for the same spec returns the same
+    //  ResolvedFont, so that an element that resolves its font at each draw does not allocate in a measurement made on this engine.
+    private readonly Dictionary<FontSpec, ResolvedFont> ResolvedFonts = new();
+
     public ResolvedFont ResolveFont(FontSpec spec)
     {
+        if (ResolvedFonts.TryGetValue(spec, out ResolvedFont cached))
+        {
+            return cached;
+        }
+
         int size = Math.Max(1, spec.Size);
         FontSpec effectiveSpec = string.IsNullOrWhiteSpace(spec.Family)
             ? FontSpec.Normal(DefaultFamily, size)
             : spec;
 
-        return new ResolvedFont(effectiveSpec, size, 1.0f, 1.0f, size, Math.Max(1.0f, size * 0.5f), Vector2.Zero, false, new object());
+        ResolvedFont resolved = new(effectiveSpec, size, 1.0f, 1.0f, size, Math.Max(1.0f, size * 0.5f), Vector2.Zero, false, new object());
+        ResolvedFonts[spec] = resolved;
+        return resolved;
     }
 
     public Vector2 MeasureText(ResolvedFont font, string text)
@@ -300,7 +311,7 @@ internal sealed class GraphTestTextEngine : ITextMeasurementEngine
 
     public float GetSpaceWidth(ResolvedFont font) => font.SpaceWidth;
 
-    public void InvalidateCache() { }
+    public void InvalidateCache() => ResolvedFonts.Clear();
 }
 
 internal readonly record struct GraphStrokeLineCall(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness);

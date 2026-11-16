@@ -630,8 +630,10 @@ public class MGDockHost : MGSingleContentHost
 
         // ── Find which panel group the mouse is hovering over ───────────────────
         MGDockTabGroup hoveredGroup = null;
-        foreach (var tabGroup in GetAllVisibleTabGroups())
+        var visibleTabGroups = CollectVisibleTabGroups();
+        for (var i = 0; i < visibleTabGroups.Count; i++)
         {
+            var tabGroup = visibleTabGroups[i];
             if (tabGroup != null && tabGroup.LayoutBounds.Contains(mousePosition))
             {
                 hoveredGroup = tabGroup;
@@ -720,8 +722,10 @@ public class MGDockHost : MGSingleContentHost
         // When the mouse is hovering over any split container's splitter bar we offer a
         // "insert between" drop target.  hoveredGroup is typically null here because the
         // splitter bar lies in the gap between two groups.
-        foreach (var sc in GetAllSplitContainers())
+        var splitContainers = CollectSplitContainers();
+        for (var splitContainerIndex = 0; splitContainerIndex < splitContainers.Count; splitContainerIndex++)
         {
+            var sc = splitContainers[splitContainerIndex];
             var splitterBounds = sc.SplitterBarLayoutBounds;
             if (splitterBounds == Microsoft.Xna.Framework.Rectangle.Empty)
             {
@@ -789,7 +793,17 @@ public class MGDockHost : MGSingleContentHost
             }
 
             // Build the drop target reusing the normal zone calculator
-            var leafVisual = GetAllVisibleTabGroups().FirstOrDefault(tg => tg.GroupNode == leafGroup);
+            MGDockTabGroup leafVisual = null;
+            var leafCandidates = CollectVisibleTabGroups();
+            for (var i = 0; i < leafCandidates.Count; i++)
+            {
+                if (leafCandidates[i].GroupNode == leafGroup)
+                {
+                    leafVisual = leafCandidates[i];
+                    break;
+                }
+            }
+
             if (leafVisual == null)
             {
                 continue;
@@ -2234,7 +2248,9 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public DockTabGroupNode GetDocumentArea()
     {
-        return GetAllTabGroups().FirstOrDefault(g => g.IsDocumentArea && !g.IsHiddenInLayout);
+        //  The first tab group of the layout, in the order of GetAllTabGroups(), that is the visible document area; found without the iterators and the closure that the query makes
+        //  (the drag asks for it, through CanDockTo, at every frame).
+        return LayoutModel?.FindVisibleDocumentArea();
     }
 
     /// <summary>
@@ -2334,8 +2350,10 @@ public class MGDockHost : MGSingleContentHost
             var family = panel.Family;
             if (family != null)
             {
-                foreach (var p in targetGroup.Panels)
+                var targetPanels = targetGroup.Panels;
+                for (var i = 0; i < targetPanels.Count; i++)
                 {
+                    var p = targetPanels[i];
                     if (p.Id == panel.Id)
                     {
                         continue; // skip self
@@ -2359,7 +2377,9 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private HashSet<DockZone> GetForbiddenZones(DockPanelNode panel, DockTabGroupNode targetGroup)
     {
-        var forbidden = new HashSet<DockZone>();
+        //  The set is kept, emptied and refilled at each call (the callers read it at once): the drag asks for it at each frame.
+        var forbidden = _forbiddenZones;
+        forbidden.Clear();
         if (panel == null || targetGroup == null)
         {
             return forbidden;
@@ -3021,9 +3041,95 @@ public class MGDockHost : MGSingleContentHost
             DockDropCalculator.DefaultMarginPercent);
 
         // Find the target matching the specified zone
-        var matchingTarget = zones.FirstOrDefault(z => z.Zone == zone);
-        
+        //  A loop, not FirstOrDefault with a lambda: the lambda captures zone, so its closure would be made at every call of this method, whatever the zone.
+        DockDropTarget matchingTarget = null;
+        for (var i = 0; i < zones.Count; i++)
+        {
+            if (zones[i].Zone == zone)
+            {
+                matchingTarget = zones[i];
+                break;
+            }
+        }
+
         return matchingTarget;
+    }
+
+    private readonly HashSet<DockZone> _forbiddenZones = new();
+
+    //  The lists and the stack that the walks of the visual tree below fill, kept between calls (a walk is made in one go, nothing is called during it that starts another walk).
+    private readonly List<MGDockTabGroup> _visibleTabGroupsBuffer = new();
+    private readonly List<MGDockSplitContainer> _splitContainersBuffer = new();
+    private readonly List<MGElement> _treeWalkBuffer = new();
+
+    /// <summary>The tab groups that <see cref="GetAllVisibleTabGroups"/> gives, in the same order, in a list that this host keeps and refills at each call (read it before the next call).</summary>
+    internal List<MGDockTabGroup> CollectVisibleTabGroups()
+    {
+        _visibleTabGroupsBuffer.Clear();
+        if (Content != null)
+        {
+            FindTabGroupsInto(Content, _visibleTabGroupsBuffer);
+        }
+
+        return _visibleTabGroupsBuffer;
+    }
+
+    private void FindTabGroupsInto(MGElement element, List<MGDockTabGroup> results)
+    {
+        if (element == null)
+        {
+            return;
+        }
+
+        if (element is MGDockTabGroup tabGroup)
+        {
+            results.Add(tabGroup);
+        }
+
+        var start = _treeWalkBuffer.Count;
+        element.AddChildrenTo(_treeWalkBuffer);
+        var end = _treeWalkBuffer.Count;
+        for (var i = start; i < end; i++)
+        {
+            FindTabGroupsInto(_treeWalkBuffer[i], results);
+        }
+
+        _treeWalkBuffer.RemoveRange(start, end - start);
+    }
+
+    /// <summary>The split containers that <see cref="GetAllSplitContainers"/> gives, in the same order, in a list that this host keeps and refills at each call.</summary>
+    internal List<MGDockSplitContainer> CollectSplitContainers()
+    {
+        _splitContainersBuffer.Clear();
+        if (Content != null)
+        {
+            FindSplitContainersInto(Content, _splitContainersBuffer);
+        }
+
+        return _splitContainersBuffer;
+    }
+
+    private void FindSplitContainersInto(MGElement element, List<MGDockSplitContainer> results)
+    {
+        if (element == null)
+        {
+            return;
+        }
+
+        if (element is MGDockSplitContainer splitContainer)
+        {
+            results.Add(splitContainer);
+        }
+
+        var start = _treeWalkBuffer.Count;
+        element.AddChildrenTo(_treeWalkBuffer);
+        var end = _treeWalkBuffer.Count;
+        for (var i = start; i < end; i++)
+        {
+            FindSplitContainersInto(_treeWalkBuffer[i], results);
+        }
+
+        _treeWalkBuffer.RemoveRange(start, end - start);
     }
 
     /// <summary>

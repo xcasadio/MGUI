@@ -777,6 +777,30 @@ public class MGDockTabGroup : MGContentHost
         }
     }
 
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        if (_tabHeadersPanel != null)
+        {
+            buffer.Add(_tabHeadersPanel);
+        }
+
+        if (_dropdownBtn != null)
+        {
+            buffer.Add(_dropdownBtn);
+        }
+
+        if (_maximizeBtn != null)
+        {
+            buffer.Add(_maximizeBtn);
+        }
+
+        if (_activeContentContainer != null)
+        {
+            buffer.Add(_activeContentContainer);
+        }
+    }
+
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
         // ── Header row: tabs + optional scroll buttons + dropdown + maximize ──────

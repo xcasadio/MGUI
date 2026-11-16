@@ -3570,6 +3570,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     public virtual IEnumerable<MGElement> GetChildren() => Enumerable.Empty<MGElement>();
 
+    /// <summary>Appends the children that <see cref="GetChildren"/> yields, in the same order, to <paramref name="buffer"/>, for a walk of the tree that allocates nothing: the types that
+    /// know their children without an iterator say so by overriding this. The default goes through <see cref="GetChildren"/>.</summary>
+    internal virtual void AddChildrenTo(List<MGElement> buffer)
+    {
+        foreach (var child in GetChildren())
+        {
+            buffer.Add(child);
+        }
+    }
+
     public virtual MGBorder GetBorder() => null;
     public bool HasBorder => GetBorder() != null;
 

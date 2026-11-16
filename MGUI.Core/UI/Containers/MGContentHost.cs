@@ -631,6 +631,20 @@ public abstract partial class MGSingleContentHost
     //  content is now, or it is replaced: it is compared with Content at each call, so that nothing has to tell this host that its content changed, and a list that was returned is never changed.
     private List<MGElement> _KeptVisualTreeChildren;
 
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        //  A host that overrides GetChildren() has children that this class does not know.
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGSingleContentHost));
+        if (!_DrawsChildrenDirectly.Value)
+        {
+            base.AddChildrenTo(buffer);
+        }
+        else if (Content != null)
+        {
+            buffer.Add(Content);
+        }
+    }
+
     /// <inheritdoc/>
     public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool includeActive)
     {
@@ -688,6 +702,21 @@ public abstract partial class MGMultiContentHost
     /// <summary>Draws the children in order. A host that does not override <see cref="GetChildren"/> is walked by index, reading the count at each step,
     /// which allocates nothing; a child that adds or removes children of this host while it is drawn no longer makes the walk throw
     /// (the enumerator of the collection did): the walk goes on from the next index of the changed collection.</summary>
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGMultiContentHost));
+        if (!_DrawsChildrenDirectly.Value)
+        {
+            base.AddChildrenTo(buffer);
+            return;
+        }
+
+        for (var i = 0; i < _Children.Count; i++)
+        {
+            buffer.Add(_Children[i]);
+        }
+    }
+
     protected override void DrawContents(ElementDrawArgs DA)
     {
         _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGMultiContentHost));
