@@ -35,8 +35,21 @@ public static class UISymbolDrawing
 
     public static void DrawFilledTriangleArrow(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, UITriangleArrowDirection direction, Color color)
     {
-        drawContext.FillPolygon(origin, GetTriangleArrowVertices(bounds, direction).Select(x => x.ToVector2()), color);
+        //  The three vertices go into a buffer kept per thread, which is consumed by FillPolygon before it returns (a draw context reads its vertices during the call):
+        //  a new array and a Select iterator at every arrow would be garbage at every frame. Same vertices, same order as GetTriangleArrowVertices.
+        var vertices = _TriangleArrowBuffer ??= new Vector2[3];
+        Span<Point> points = stackalloc Point[3];
+        WriteTriangleArrowVertices(bounds, direction, points);
+        for (var i = 0; i < 3; i++)
+        {
+            vertices[i] = points[i].ToVector2();
+        }
+
+        drawContext.FillPolygon(origin, vertices, color);
     }
+
+    [ThreadStatic]
+    private static Vector2[] _TriangleArrowBuffer;
 
     public static void DrawRadioIndicator(IUIDrawContext drawContext, Vector2 origin, Rectangle bounds, Color borderColor,
         float borderThickness, Color fillColor, Color? overlayColor, bool isChecked, Color checkedColor, int numSides = 32)
@@ -181,28 +194,36 @@ public static class UISymbolDrawing
 
     public static IReadOnlyList<Point> GetTriangleArrowVertices(Rectangle bounds, UITriangleArrowDirection direction)
     {
-        return direction switch
+        var vertices = new Point[3];
+        WriteTriangleArrowVertices(bounds, direction, vertices);
+        return vertices;
+    }
+
+    private static void WriteTriangleArrowVertices(Rectangle bounds, UITriangleArrowDirection direction, Span<Point> vertices)
+    {
+        switch (direction)
         {
-            UITriangleArrowDirection.Up => new[]
-            {
-                new Point(bounds.Left, bounds.Bottom), new Point(bounds.Right, bounds.Bottom), new Point(bounds.Center.X, bounds.Top)
-            },
-            UITriangleArrowDirection.Down => new[]
-            {
-                new Point(bounds.Left, bounds.Top), new Point(bounds.Right, bounds.Top), new Point(bounds.Center.X, bounds.Bottom)
-            },
-            UITriangleArrowDirection.Left => new[]
-            {
-                new Point(bounds.Right, bounds.Top), new Point(bounds.Right, bounds.Bottom), new Point(bounds.Left, bounds.Center.Y)
-            },
-            UITriangleArrowDirection.Right => new[]
-            {
-                new Point(bounds.Left, bounds.Top), new Point(bounds.Left, bounds.Bottom), new Point(bounds.Right, bounds.Center.Y)
-            },
-            _ => new[]
-            {
-                new Point(bounds.Left, bounds.Top), new Point(bounds.Right, bounds.Top), new Point(bounds.Center.X, bounds.Bottom)
-            },
-        };
+            case UITriangleArrowDirection.Up:
+                vertices[0] = new Point(bounds.Left, bounds.Bottom);
+                vertices[1] = new Point(bounds.Right, bounds.Bottom);
+                vertices[2] = new Point(bounds.Center.X, bounds.Top);
+                break;
+            case UITriangleArrowDirection.Left:
+                vertices[0] = new Point(bounds.Right, bounds.Top);
+                vertices[1] = new Point(bounds.Right, bounds.Bottom);
+                vertices[2] = new Point(bounds.Left, bounds.Center.Y);
+                break;
+            case UITriangleArrowDirection.Right:
+                vertices[0] = new Point(bounds.Left, bounds.Top);
+                vertices[1] = new Point(bounds.Left, bounds.Bottom);
+                vertices[2] = new Point(bounds.Right, bounds.Center.Y);
+                break;
+            default:
+                //  Down, and any other value
+                vertices[0] = new Point(bounds.Left, bounds.Top);
+                vertices[1] = new Point(bounds.Right, bounds.Top);
+                vertices[2] = new Point(bounds.Center.X, bounds.Bottom);
+                break;
+        }
     }
 }

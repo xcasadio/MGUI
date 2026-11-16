@@ -291,4 +291,61 @@ public class ControlFamilyZeroAllocationTests
     [Fact]
     public void ListViewOf50Items_DrawJournal_AtRestAndOnHover()
         => FrozenJournal.Assert("list view draw journal", 4430, "C44BDC8BCB28886C", ListDrawJournal(CreateListViewScene()));
+
+    // ---- MGTreeView of 14 nodes, three levels expanded ----
+
+    private static ListScene CreateTreeViewScene()
+    {
+        ControlBench bench = new();
+        MGTreeView tree = new(bench.Window);
+        MGTreeViewItem[] visible = new MGTreeViewItem[2 + 4 + 8];
+        int count = 0;
+        for (int root = 0; root < 2; root++)
+        {
+            MGTreeViewItem rootItem = new(bench.Window) { Header = $"Root {root}", IsExpanded = true };
+            visible[count++] = rootItem;
+            for (int child = 0; child < 2; child++)
+            {
+                MGTreeViewItem childItem = new(bench.Window) { Header = $"Child {root}.{child}", IsExpanded = true };
+                visible[count++] = childItem;
+                rootItem.AddItem(childItem);
+                for (int leaf = 0; leaf < 2; leaf++)
+                {
+                    MGTreeViewItem leafItem = new(bench.Window) { Header = $"Leaf {root}.{child}.{leaf}" };
+                    visible[count++] = leafItem;
+                    childItem.AddItem(leafItem);
+                }
+            }
+
+            tree.AddItem(rootItem);
+        }
+
+        bench.Show(tree);
+        MGTreeViewItem firstNode = visible[2];
+        MGTreeViewItem secondNode = visible[3];
+        Assert.Equal(2, firstNode.Level);
+        ListScene scene = new(bench, firstNode.HeaderContent.ActualLayoutBounds.Center, secondNode.HeaderContent.ActualLayoutBounds.Center);
+        Assert.NotEqual(scene.First, scene.Second);
+        bench.AssertHovers(bench.Window, firstNode.HeaderContent, scene.First);
+        bench.AssertHovers(bench.Window, secondNode.HeaderContent, scene.Second);
+        bench.Mouse = ControlBench.OutsideTheWindow;
+        bench.Frames(2);
+        return scene;
+    }
+
+    [Fact]
+    public void TreeViewOfThreeLevels_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTreeView", CreateTreeViewScene(), false).UpdateTotal);
+
+    [Fact]
+    public void TreeViewOfThreeLevels_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTreeView", CreateTreeViewScene(), false).DrawTotal);
+
+    [Fact]
+    public void TreeViewOfThreeLevels_Update_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTreeView", CreateTreeViewScene(), true).UpdateTotal);
+
+    [Fact]
+    public void TreeViewOfThreeLevels_Draw_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGTreeView", CreateTreeViewScene(), true).DrawTotal);
+
+    [Fact]
+    public void TreeViewOfThreeLevels_DrawJournal_AtRestAndOnHover()
+        => FrozenJournal.Assert("tree view draw journal", 4280, "0F2EE6FCC35D9D5F", ListDrawJournal(CreateTreeViewScene()));
 }
