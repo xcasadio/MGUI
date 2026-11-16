@@ -30,8 +30,34 @@ internal class TextRenderInfo
     public LineRenderInfo FirstLine => Lines[0];
     public LineRenderInfo LastLine => Lines[^1];
 
-    internal CharRenderInfo GetFirstChar() => Lines.First(x => x.Characters.Any()).FirstCharacter;
-    internal CharRenderInfo GetLastChar() => Lines.Last(x => x.Characters.Any()).LastCharacter;
+    //  The first line that has a character, by index: First(predicate) and Last(predicate) over the interface enumerate through a boxed enumerator.
+    internal CharRenderInfo GetFirstChar()
+    {
+        var AllLines = Lines;
+        for (var i = 0; i < AllLines.Count; i++)
+        {
+            if (AllLines[i].HasCharacters)
+            {
+                return AllLines[i].FirstCharacter;
+            }
+        }
+
+        throw new InvalidOperationException("Sequence contains no matching element");
+    }
+
+    internal CharRenderInfo GetLastChar()
+    {
+        var AllLines = Lines;
+        for (var i = AllLines.Count - 1; i >= 0; i--)
+        {
+            if (AllLines[i].HasCharacters)
+            {
+                return AllLines[i].LastCharacter;
+            }
+        }
+
+        throw new InvalidOperationException("Sequence contains no matching element");
+    }
 
     internal TextRenderInfo(MGTextBox TextBox, MGTextBlock TextBlockElement)
     {
@@ -42,6 +68,19 @@ internal class TextRenderInfo
 
         this.TextBox.TextChanged += (sender, e) => { IsDirty = true; };
         this.TextBlockElement.OnLayoutBoundsChanged += (sender, e) => { IsDirty = true; };
+    }
+
+    //  The per-glyph advances of the run being laid out, kept between updates (grown when a run is longer than any before): each one is read and used in the same iteration.
+    private float[] _AdvancesBuffer = new float[64];
+
+    private float[] GetAdvancesBuffer(int length)
+    {
+        if (_AdvancesBuffer.Length < length)
+        {
+            _AdvancesBuffer = new float[Math.Max(length, _AdvancesBuffer.Length * 2)];
+        }
+
+        return _AdvancesBuffer;
     }
 
     private void UpdateLines()
@@ -59,7 +98,8 @@ internal class TextRenderInfo
         // engine is shared; fonts are resolved per-run to respect inline bold/italic formatting
         var engine = TextBlockElement.GetTextEngine();
 
-        if (TextBlockElement.Lines?.Any() != true)
+        var SourceLines = TextBlockElement.Lines;
+        if (SourceLines == null || SourceLines.Count == 0)
         {
             var emptyLineHeight = TextBlockElement.MeasureText("|", false, false).Y;
             var currentY = TextBlockElement.GetRenderedTextStartY(LayoutBounds, emptyLineHeight);
@@ -71,9 +111,10 @@ internal class TextRenderInfo
         }
         else
         {
-            var CurrentY = TextBlockElement.GetRenderedTextStartY(LayoutBounds, TextBlockElement.Lines);
-            foreach (var Line in TextBlockElement.Lines)
+            var CurrentY = TextBlockElement.GetRenderedTextStartY(LayoutBounds, SourceLines);
+            for (var LineNumber = 0; LineNumber < SourceLines.Count; LineNumber++)
             {
+                var Line = SourceLines[LineNumber];
                 var CharacterIndexInWrappedLines = 0;
                 Rectangle LineBounds = new(PaddedBounds.Left, (int)CurrentY, PaddedBounds.Width, (int)Line.LineTotalHeight);
                 float CurrentX = MGElement.ApplyAlignment(LineBounds, TextBlockElement.TextAlignment, VerticalAlignment.Center, new Size((int)Line.LineWidth, (int)Line.LineTotalHeight)).Left;
@@ -82,21 +123,36 @@ internal class TextRenderInfo
                 _Lines.Add(LineInfo);
                 LineIndex++;
 
-                if (!Line.Runs.All(x => x.RunType == TextRunType.Text))
+                //  Indexed loops, not All/Cast/ToList/Any: they allocate an enumerator, a delegate, a list per line at each change of the text.
+                var LineRuns = Line.Runs;
+                var HasNonEmptyRun = false;
+                for (var RunNumber = 0; RunNumber < LineRuns.Count; RunNumber++)
                 {
-                    throw new NotImplementedException($"{nameof(TextRenderInfo)}.{nameof(UpdateLines)} can only handle {nameof(MGTextLine)}s which consist only of {nameof(MGTextRun)}s of type={nameof(TextRunType)}.{nameof(TextRunType.Text)}");
+                    if (LineRuns[RunNumber].RunType != TextRunType.Text)
+                    {
+                        throw new NotImplementedException($"{nameof(TextRenderInfo)}.{nameof(UpdateLines)} can only handle {nameof(MGTextLine)}s which consist only of {nameof(MGTextRun)}s of type={nameof(TextRunType)}.{nameof(TextRunType.Text)}");
+                    }
                 }
 
-                var Runs = Line.Runs.Cast<MGTextRunText>().ToList();
-                if (!Runs.Any(x => !string.IsNullOrEmpty(x.Text)))
+                for (var RunNumber = 0; RunNumber < LineRuns.Count; RunNumber++)
+                {
+                    if (!string.IsNullOrEmpty(((MGTextRunText)LineRuns[RunNumber]).Text))
+                    {
+                        HasNonEmptyRun = true;
+                        break;
+                    }
+                }
+
+                if (!HasNonEmptyRun)
                 {
                     LineInfo.AddCharacter(Line.OriginalCharacterIndices[CharacterIndexInWrappedLines], CharCounter, CurrentX, DefaultCharacterWidth);
                     //CharacterIndexInWrappedLines++;
                 }
                 else
                 {
-                    foreach (var Run in Runs)
+                    for (var RunNumber = 0; RunNumber < LineRuns.Count; RunNumber++)
                     {
+                        var Run = (MGTextRunText)LineRuns[RunNumber];
                         // Resolve the correct font variant for this run's inline style
                         var resolved = TextBlockElement.GetResolvedFont(Run.Settings.IsBold, Run.Settings.IsItalic);
 
@@ -108,7 +164,7 @@ internal class TextRenderInfo
                         // 1. Compute per-glyph advances.
                         //    The first character on a line has its negative LSB clamped to 0 (matching
                         //    SpriteFont behaviour); subsequent characters use the full signed advance.
-                        var advances = new float[Run.Text.Length];
+                        var advances = GetAdvancesBuffer(Run.Text.Length);
                         var glyphSum = 0f;
                         for (var gi = 0; gi < Run.Text.Length; gi++)
                         {
@@ -126,7 +182,7 @@ internal class TextRenderInfo
                             var residual = wholeWidth - glyphSum;
                             if (MathF.Abs(residual) > 0.001f)
                             {
-                                for (var gi = 0; gi < advances.Length; gi++)
+                                for (var gi = 0; gi < Run.Text.Length; gi++)
                                 {
                                     advances[gi] += residual * (advances[gi] / glyphSum);
                                 }
@@ -151,9 +207,10 @@ internal class TextRenderInfo
 
     internal bool TryGetCharAtOriginalIndex(int Index, out CharRenderInfo Result)
     {
-        foreach (var Line in Lines)
+        var AllLines = Lines;
+        for (var i = 0; i < AllLines.Count; i++)
         {
-            if (Line.TryGetCharAtOriginalIndex(Index, out Result))
+            if (AllLines[i].TryGetCharAtOriginalIndex(Index, out Result))
             {
                 return true;
             }
@@ -165,9 +222,10 @@ internal class TextRenderInfo
 
     internal bool TryGetCharAtParsedIndex(int Index, out CharRenderInfo Result)
     {
-        foreach (var Line in Lines)
+        var AllLines = Lines;
+        for (var i = 0; i < AllLines.Count; i++)
         {
-            if (Line.TryGetCharAtParsedIndex(Index, out Result))
+            if (AllLines[i].TryGetCharAtParsedIndex(Index, out Result))
             {
                 return true;
             }
@@ -229,15 +287,16 @@ internal class LineRenderInfo
 
     internal bool TryGetCharAtOriginalIndex(int Index, out CharRenderInfo Result)
     {
-        if (!Characters.Any() || _Characters[^1].IndexInOriginalText < Index || Index < 0)
+        if (_Characters.Count == 0 || _Characters[^1].IndexInOriginalText < Index || Index < 0)
         {
             Result = default;
             return false;
         }
         else
         {
-            foreach (var CharInfo in Characters)
+            for (var CharIndex = 0; CharIndex < _Characters.Count; CharIndex++)
             {
+                var CharInfo = _Characters[CharIndex];
                 if (CharInfo.IndexInOriginalText == Index)
                 {
                     Result = CharInfo;
@@ -252,15 +311,16 @@ internal class LineRenderInfo
 
     internal bool TryGetCharAtParsedIndex(int Index, out CharRenderInfo Result)
     {
-        if (!Characters.Any() || _Characters[^1].IndexInParsedText < Index || Index < 0)
+        if (_Characters.Count == 0 || _Characters[^1].IndexInParsedText < Index || Index < 0)
         {
             Result = default;
             return false;
         }
         else
         {
-            foreach (var CharInfo in Characters)
+            for (var CharIndex = 0; CharIndex < _Characters.Count; CharIndex++)
             {
+                var CharInfo = _Characters[CharIndex];
                 if (CharInfo.IndexInParsedText == Index)
                 {
                     Result = CharInfo;
@@ -283,8 +343,9 @@ internal class LineRenderInfo
     internal LineRenderInfo GetTranslated(Vector2 Offset)
     {
         LineRenderInfo TranslatedLine = new(TextInfo, Source, LineIndex, YPosition + Offset.Y, Height);
-        foreach (var CharInfo in Characters)
+        for (var CharIndex = 0; CharIndex < _Characters.Count; CharIndex++)
         {
+            var CharInfo = _Characters[CharIndex];
             TranslatedLine.AddCharacter(CharInfo.IndexInOriginalText, CharInfo.IndexInParsedText, CharInfo.XPosition + Offset.X, CharInfo.Width);
         }
 

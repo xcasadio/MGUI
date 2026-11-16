@@ -1095,4 +1095,157 @@ public class ControlFamilyZeroAllocationTests
             Assert.Single(scene.Host.CollectSplitContainers());
         }
     }
+
+    // ---- MGTextBox with the keyboard focus ----
+
+    /// <summary>A text box of a window, focused by a real click, empty, with the caret placed. The caret blinks on the wall clock (<c>MGTextCaret.SecondsShown</c> reads DateTime.Now): the default blink
+    /// is measured as it is, and a steady caret (a blink rate of zero) is measured for the frames where the caret is always drawn.</summary>
+    private sealed record TextBoxScene(ControlBench Bench, MGTextBox TextBox)
+    {
+        private static readonly KeyboardState KeyA = new(Keys.A);
+        private static readonly KeyboardState KeyBack = new(Keys.Back);
+
+        /// <summary>One key per frame: A then Backspace, so that the text alternates between "a" and "" and stays bounded. Each frame presses a key the previous frame did not.</summary>
+        public Action<int> Type => frame => Bench.Keyboard = (frame & 1) == 0 ? KeyA : KeyBack;
+    }
+
+    private static TextBoxScene CreateTextBoxScene(bool steadyCaret)
+    {
+        ControlBench bench = new();
+        MGTextBox textBox = new(bench.Window) { PreferredWidth = 200 };
+        bench.Show(textBox);
+        Point inside = textBox.LayoutBounds.Center;
+        bench.Mouse = inside;
+        bench.Left = ButtonState.Pressed;
+        bench.Frame();
+        bench.Left = ButtonState.Released;
+        bench.Frames(2);
+        Assert.Same(textBox, bench.Desktop.FocusedKeyboardHandler);
+        Assert.True(textBox.Caret.HasPosition);
+        if (steadyCaret)
+        {
+            textBox.Caret.BlinkRate = TimeSpan.Zero;
+            bench.Frame();
+            Assert.True(textBox.Caret.IsCurrentlyVisible);
+        }
+
+        return new TextBoxScene(bench, textBox);
+    }
+
+    private FrameBytes MeasureTextBox(bool steadyCaret, bool typing)
+    {
+        TextBoxScene scene = CreateTextBoxScene(steadyCaret);
+        ControlBench bench = scene.Bench;
+        if (typing)
+        {
+            scene.Type(0);
+            bench.Frame();
+            Assert.Equal("a", scene.TextBox.Text);
+            scene.Type(1);
+            bench.Frame();
+            Assert.Equal("", scene.TextBox.Text);
+        }
+
+        long callsBefore = bench.Transaction.CallCount;
+        FrameBytes bytes = FrameAllocationMeter.Measure(typing ? scene.Type : null, bench.Update, bench.Draw);
+        Assert.True(bench.Transaction.CallCount > callsBefore, "the measured frames drew nothing");
+        Assert.Same(scene.TextBox, bench.Desktop.FocusedKeyboardHandler);
+        bench.Keyboard = default;
+        Output.WriteLine($"MGTextBox focused, {(typing ? "one key per frame" : "at rest")}, {(steadyCaret ? "steady caret" : "default caret blink")}: Update {bytes.Update} B/frame, Draw {bytes.Draw} B/frame (totals {bytes.UpdateTotal} and {bytes.DrawTotal} B over {bytes.Iterations} frames)");
+        return bytes;
+    }
+
+    [Fact]
+    public void TextBoxWithTheFocus_Update_AtRest_WithTheDefaultBlink_AllocatesNothing() => Assert.Equal(0, MeasureTextBox(false, false).UpdateTotal);
+
+    [Fact]
+    public void TextBoxWithTheFocus_Draw_AtRest_WithTheDefaultBlink_AllocatesNothing() => Assert.Equal(0, MeasureTextBox(false, false).DrawTotal);
+
+    [Fact]
+    public void TextBoxWithTheFocus_Update_AtRest_WithASteadyCaret_AllocatesNothing() => Assert.Equal(0, MeasureTextBox(true, false).UpdateTotal);
+
+    [Fact]
+    public void TextBoxWithTheFocus_Draw_AtRest_WithASteadyCaret_AllocatesNothing() => Assert.Equal(0, MeasureTextBox(true, false).DrawTotal);
+
+    [Fact]
+    public void TextBoxWithTheFocus_Draw_WhileTyping_WithTheDefaultBlink_AllocatesNothing() => Assert.Equal(0, MeasureTextBox(false, true).DrawTotal);
+
+    [Fact]
+    public void TextBoxWithTheFocus_Draw_WhileTyping_WithASteadyCaret_AllocatesNothing() => Assert.Equal(0, MeasureTextBox(true, true).DrawTotal);
+
+    /// <summary>The draw journal of a focused text box with a steady caret: three frames at rest, then ten frames of the keys (A, Backspace, A, ...), then three frames at rest.
+    /// Frozen on the code before the allocation-free work, kept after it.</summary>
+    [Fact]
+    public void TextBoxWithTheFocus_DrawJournal_AtRestAndWhileTyping()
+    {
+        TextBoxScene scene = CreateTextBoxScene(true);
+        ControlBench bench = scene.Bench;
+        OrderedRecordingDrawTransaction transaction = new(bench.Runtime, DrawSettings.Default);
+        List<string> journal = new();
+        void Record(string label)
+        {
+            transaction.ClearJournal();
+            bench.Update();
+            bench.Desktop.Draw(transaction);
+            journal.Add($"== {label} text=\"{scene.TextBox.Text}\" caret={scene.TextBox.Caret.HasPosition}");
+            journal.AddRange(transaction.Lines);
+        }
+
+        for (int frame = 0; frame < 3; frame++)
+        {
+            Record($"rest {frame}");
+        }
+
+        for (int frame = 0; frame < 10; frame++)
+        {
+            scene.Type(frame);
+            Record($"key {frame}");
+        }
+
+        bench.Keyboard = default;
+        for (int frame = 0; frame < 3; frame++)
+        {
+            Record($"rest after the keys {frame}");
+        }
+
+        FrozenJournal.Assert("text box draw journal", 936, "70E142E4BD23747E", journal);
+    }
+
+    /// <summary>The update of a frame in which a key is pressed in a focused text box that ignores it (F1, then F2, one per frame): what the keyboard input of MGUI.Shared allocates for a key
+    /// (the key pressed, released and clicked event arguments, the input stream and its routing metadata, and the arrays and delegates of <c>KeyboardTracker.IsAnyPressed</c>, which
+    /// <c>IsShiftDown</c> and the other modifier reads go through), and nothing of the text box.</summary>
+    private FrameBytes MeasureTextBoxWithIgnoredKeys()
+    {
+        TextBoxScene scene = CreateTextBoxScene(true);
+        ControlBench bench = scene.Bench;
+        KeyboardState f1 = new(Keys.F1);
+        KeyboardState f2 = new(Keys.F2);
+        FrameBytes bytes = FrameAllocationMeter.Measure(frame => bench.Keyboard = (frame & 1) == 0 ? f1 : f2, bench.Update, bench.Draw);
+        Assert.Same(scene.TextBox, bench.Desktop.FocusedKeyboardHandler);
+        Assert.Equal("", scene.TextBox.Text);
+        Assert.Equal(0, bytes.DrawTotal);
+        Output.WriteLine($"MGTextBox focused, one ignored key per frame (F1, F2): Update {bytes.Update} B/frame (total {bytes.UpdateTotal} B over {bytes.Iterations} frames)");
+        return bytes;
+    }
+
+    /// <summary>What the update of a typing frame (the text alternates between "a" and "") allocates beyond the keyboard input of MGUI.Shared, over the 500 measured frames. Frozen: the new text
+    /// string and the objects that its change makes (the text changed notification, the layout of the text block, the geometry of the characters that the caret reads) are results of the change,
+    /// and the lines of the text block that <c>TextRenderInfo</c> reads, public <c>MGTextLine</c> objects that <c>MGTextBlock.Lines</c> builds again with the legacy line parser at each
+    /// change, are 1.6 KB of the 2.6 KB of each key. The legacy parser cannot be skipped without the layouts of the text block giving the original index of each character (the internal layouts do not
+    /// compute it), and the objects are not reused because the caret keeps references to them. When the caret geometry no longer goes through <c>MGTextBlock.Lines</c>, this value drops: update it with the
+    /// value that the failure message gives.</summary>
+    private const long TypingBytesBeyondTheKeyboardInput = 1300000;
+
+    [Fact]
+    public void TextBoxWithTheFocus_Update_WhileTyping_AllocatesTheKeyboardInputAndTheNewTextLayout()
+    {
+        FrameBytes ignored = MeasureTextBoxWithIgnoredKeys();
+        Assert.True(ignored.UpdateTotal > 0, "the keys create no input object: the baseline is not measuring the keyboard input");
+        foreach (bool steadyCaret in new[] { false, true })
+        {
+            FrameBytes typing = MeasureTextBox(steadyCaret, true);
+            Assert.True(typing.UpdateTotal - ignored.UpdateTotal == TypingBytesBeyondTheKeyboardInput,
+                $"typing allocates {typing.UpdateTotal} B over {typing.Iterations} frames, {ignored.UpdateTotal} B of them for the keyboard input alone: {typing.UpdateTotal - ignored.UpdateTotal} B beyond it, expected {TypingBytesBeyondTheKeyboardInput}");
+        }
+    }
 }

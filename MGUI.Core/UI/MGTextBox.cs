@@ -1280,7 +1280,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             KeyboardHandler.KeyRepeat += (sender, e) =>
             {
                 var streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
-                if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key,
+                if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, IsControlDown(e.Tracker), e.IsPrintableKey, e.Key,
                         streamStartedAsControlShortcut))
                 {
                     return;
@@ -1382,6 +1382,10 @@ public class MGTextBox : MGElement, ITextEntryHost
         KeyboardHandler.RepeatPolicy.Interval = KeyRepeatInterval;
     }
 
+    /// <summary>The same answer as <c>KeyboardTracker.IsControlDown</c>, which allocates an array and a closure at each read (<c>IsAnyPressed(params Keys[])</c>): read at each key of a typing.</summary>
+    private static bool IsControlDown(KeyboardTracker Tracker)
+        => Tracker.IsPressed(Keys.LeftControl) || Tracker.IsPressed(Keys.RightControl);
+
     private void TrackShortcutOriginStream(BaseKeyPressedEventArgs e)
     {
         if (e.Stream == null)
@@ -1389,7 +1393,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             return;
         }
 
-        if (e.Tracker.IsControlDown && IsControlShortcutKey(e.Key))
+        if (IsControlDown(e.Tracker) && IsControlShortcutKey(e.Key))
         {
             ShortcutOriginStreamIds.Add(e.Stream.Id);
         }
@@ -1549,15 +1553,8 @@ public class MGTextBox : MGElement, ITextEntryHost
 
                         if ((IsBackspace && Index > 0) || (IsDelete && Index < CurrentText.Length))
                         {
-                            StringBuilder SB = new();
-                            string NewText;
-                            SB.Append(CurrentText.AsSpan(0, Index - 1 + Offset));
-                            if (Index < CurrentText.Length)
-                            {
-                                SB.Append(CurrentText.AsSpan(Index + Offset));
-                            }
-
-                            NewText = SB.ToString();
+                            //  The new text is the one string that this key makes: the two parts are joined without a StringBuilder.
+                            var NewText = string.Concat(CurrentText.AsSpan(0, Index - 1 + Offset), Index < CurrentText.Length ? CurrentText.AsSpan(Index + Offset) : default);
                             if (SetText(NewText))
                             {
                                 TextBlockElement.UpdateLines();
@@ -1580,7 +1577,7 @@ public class MGTextBox : MGElement, ITextEntryHost
         {
             var Handled = false;
 
-            if (e.Tracker.IsControlDown)
+            if (IsControlDown(e.Tracker))
             {
                 //  Handle keyboard shortcuts such as Ctrl+C or Ctrl+V
                 var IsKeyboardShortcut = IsControlShortcutKey(e.Key);
@@ -1730,7 +1727,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                 }
                 else if (Caret.HasPosition)
                 {
-                    StringBuilder SB = new();
+                    //  The new text is the one string that this key makes: the parts are joined without a StringBuilder.
                     string NewText;
                     var CurrentText = GetTextBackingField();
                     var Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
@@ -1738,24 +1735,10 @@ public class MGTextBox : MGElement, ITextEntryHost
                     switch (TextEntryMode)
                     {
                         case TextEntryMode.Insert:
-                            SB.Append(CurrentText.AsSpan(0, Index));
-                            SB.Append(e.PrintableValue);
-                            if (Index < CurrentText.Length)
-                            {
-                                SB.Append(CurrentText.AsSpan(Index));
-                            }
-
-                            NewText = SB.ToString();
+                            NewText = string.Concat(CurrentText.AsSpan(0, Index), e.PrintableValue.AsSpan(), Index < CurrentText.Length ? CurrentText.AsSpan(Index) : default);
                             break;
                         case TextEntryMode.Overwrite:
-                            SB.Append(CurrentText.AsSpan(0, Index));
-                            SB.Append(e.PrintableValue);
-                            if (Index + 1 < CurrentText.Length)
-                            {
-                                SB.Append(CurrentText.AsSpan(Index + 1));
-                            }
-
-                            NewText = SB.ToString();
+                            NewText = string.Concat(CurrentText.AsSpan(0, Index), e.PrintableValue.AsSpan(), Index + 1 < CurrentText.Length ? CurrentText.AsSpan(Index + 1) : default);
                             break;
                         default: throw new NotImplementedException($"Unrecognized {nameof(UI.TextEntryMode)}: {TextEntryMode}");
                     }
