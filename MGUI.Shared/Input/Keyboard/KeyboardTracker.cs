@@ -139,9 +139,10 @@ namespace MGUI.Shared.Input.Keyboard
         public bool IsCapsLockOn => CurrentState.CapsLock;
         public bool IsNumLockOn => CurrentState.NumLock;
 
-        public bool IsShiftDown => IsAnyPressed(Keys.LeftShift, Keys.RightShift);
-        public bool IsControlDown => IsAnyPressed(Keys.LeftControl, Keys.RightControl);
-        public bool IsAltDown => IsAnyPressed(Keys.LeftAlt, Keys.RightAlt);
+        //  The modifiers are read at each key and each click: they use IsPressed, not IsAnyPressed(params Keys[]), which allocates an array and a closure per read (ADR-0034).
+        public bool IsShiftDown => IsPressed(Keys.LeftShift) || IsPressed(Keys.RightShift);
+        public bool IsControlDown => IsPressed(Keys.LeftControl) || IsPressed(Keys.RightControl);
+        public bool IsAltDown => IsPressed(Keys.LeftAlt) || IsPressed(Keys.RightAlt);
 
         internal bool TryGetInitialPressedEvent(Keys Key, out BaseKeyPressedEventArgs PressedArgs)
             => RecentKeyPressedEvents.TryGetValue(Key, out PressedArgs) && PressedArgs != null;

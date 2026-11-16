@@ -14,18 +14,29 @@ namespace MGUI.Shared.Input.Mouse
         public WeakReference<IMouseHandlerHost> ValidatedTargetHost { get; set; }
     }
 
+    /// <summary>Raised for a mouse wheel movement. <see cref="MouseTracker"/> reuses one instance from one wheel tick to the next (see
+    /// <see cref="MouseTracker.CurrentScrollEvent"/>): read it during the tick, do not keep it. A handler that needs a value later copies the value.
+    /// See ADR-0034.</summary>
     public class BaseMouseScrolledEventArgs : HandledByEventArgs<IMouseHandlerHost>
     {
         public MouseTracker Tracker { get; }
 
-        public int ScrollWheelDelta { get; }
-        public Point Position { get; }
+        public int ScrollWheelDelta { get; private set; }
+        public Point Position { get; private set; }
         public Vector2 AdjustedPosition(IMouseHandlerHost Handler) => Position.ToVector2() + Handler.GetOffset();
 
         public BaseMouseScrolledEventArgs(MouseTracker Tracker, int ScrollWheelDelta, Point Position)
             : base()
         {
             this.Tracker = Tracker;
+            this.ScrollWheelDelta = ScrollWheelDelta;
+            this.Position = Position;
+        }
+
+        /// <summary>Refills this reused instance for a new wheel tick: new values, and the handled state back to not handled.</summary>
+        internal void SetScroll(int ScrollWheelDelta, Point Position)
+        {
+            Reset();
             this.ScrollWheelDelta = ScrollWheelDelta;
             this.Position = Position;
         }

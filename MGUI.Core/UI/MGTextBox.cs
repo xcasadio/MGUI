@@ -1280,7 +1280,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             KeyboardHandler.KeyRepeat += (sender, e) =>
             {
                 var streamStartedAsControlShortcut = e.Stream != null && ShortcutOriginStreamIds.Contains(e.Stream.Id);
-                if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, IsControlDown(e.Tracker), e.IsPrintableKey, e.Key,
+                if (!ShouldHandleRepeatedKey(GetDesktop().FocusedKeyboardHandler == this, IsHeldKeyRepeated, e.Tracker.IsControlDown, e.IsPrintableKey, e.Key,
                         streamStartedAsControlShortcut))
                 {
                     return;
@@ -1382,10 +1382,6 @@ public class MGTextBox : MGElement, ITextEntryHost
         KeyboardHandler.RepeatPolicy.Interval = KeyRepeatInterval;
     }
 
-    /// <summary>The same answer as <c>KeyboardTracker.IsControlDown</c>, which allocates an array and a closure at each read (<c>IsAnyPressed(params Keys[])</c>): read at each key of a typing.</summary>
-    private static bool IsControlDown(KeyboardTracker Tracker)
-        => Tracker.IsPressed(Keys.LeftControl) || Tracker.IsPressed(Keys.RightControl);
-
     private void TrackShortcutOriginStream(BaseKeyPressedEventArgs e)
     {
         if (e.Stream == null)
@@ -1393,7 +1389,7 @@ public class MGTextBox : MGElement, ITextEntryHost
             return;
         }
 
-        if (IsControlDown(e.Tracker) && IsControlShortcutKey(e.Key))
+        if (e.Tracker.IsControlDown && IsControlShortcutKey(e.Key))
         {
             ShortcutOriginStreamIds.Add(e.Stream.Id);
         }
@@ -1577,7 +1573,7 @@ public class MGTextBox : MGElement, ITextEntryHost
         {
             var Handled = false;
 
-            if (IsControlDown(e.Tracker))
+            if (e.Tracker.IsControlDown)
             {
                 //  Handle keyboard shortcuts such as Ctrl+C or Ctrl+V
                 var IsKeyboardShortcut = IsControlShortcutKey(e.Key);

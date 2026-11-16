@@ -123,6 +123,32 @@ public class InputTrackerAllocationTests
         Assert.False(activity);
     }
 
+    [Fact]
+    public void TheModifierProperties_AllocateNothing_AndReadTheLeftAndRightKeys()
+    {
+        InputTracker tracker = new();
+        tracker.Update(CreateUpdateArgs(0, new Point(10, 10), ButtonState.Released, new KeyboardState(Keys.LeftShift, Keys.RightControl, Keys.A)));
+        tracker.Update(CreateUpdateArgs(16, new Point(10, 10), ButtonState.Released, new KeyboardState(Keys.LeftShift, Keys.RightControl, Keys.A)));
+        KeyboardTracker keyboard = tracker.Keyboard;
+        bool all = true;
+
+        Assert.Equal(0, Measure(() => all &= keyboard.IsShiftDown && keyboard.IsControlDown && !keyboard.IsAltDown));
+
+        Assert.True(all);
+        tracker.Update(CreateUpdateArgs(32, new Point(10, 10), ButtonState.Released, new KeyboardState(Keys.RightShift, Keys.LeftControl, Keys.LeftAlt)));
+        Assert.True(keyboard.IsShiftDown);
+        Assert.True(keyboard.IsControlDown);
+        Assert.True(keyboard.IsAltDown);
+        tracker.Update(CreateUpdateArgs(48, new Point(10, 10), ButtonState.Released, new KeyboardState(Keys.RightAlt)));
+        Assert.False(keyboard.IsShiftDown);
+        Assert.False(keyboard.IsControlDown);
+        Assert.True(keyboard.IsAltDown);
+        tracker.Update(CreateUpdateArgs(64, new Point(10, 10), ButtonState.Released, new KeyboardState()));
+        Assert.False(keyboard.IsShiftDown);
+        Assert.False(keyboard.IsControlDown);
+        Assert.False(keyboard.IsAltDown);
+    }
+
     private static long Measure(Action Action)
     {
         for (int i = 0; i < WarmupIterations; i++)

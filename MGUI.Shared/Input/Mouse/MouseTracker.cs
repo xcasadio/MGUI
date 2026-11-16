@@ -196,8 +196,12 @@ namespace MGUI.Shared.Input.Mouse
             => _RecentButtonPressedEvents[Button] != null && Owner.IsInside(_RecentButtonPressedEvents[Button].Position.ToVector2() + Owner.GetOffset());
 
         #region Events
-        /// <summary>The mouse scroll event that occurred on the current Update tick, or null if the mouse wheel didn't change between the previous Update tick and the current Update tick.</summary>
+        /// <summary>The mouse scroll event that occurred on the current Update tick, or null if the mouse wheel didn't change between the previous Update tick and the current Update tick.<para/>
+        /// The same instance is refilled from one wheel tick to the next (with its handled state reset), so that a wheel movement allocates nothing:
+        /// read it during the current tick, do not keep it.</summary>
         public BaseMouseScrolledEventArgs CurrentScrollEvent { get; private set; } = null;
+        /// <summary>The instance behind <see cref="CurrentScrollEvent"/>, created at the first wheel movement.</summary>
+        private BaseMouseScrolledEventArgs _ReusedScrollEvent;
 
         /// <summary>The mouse move event that occurred on the current Update tick, or null if the mouse position didn't change between the previous Update tick and the current Update tick.<para/>
         /// The same instance is refilled from one move to the next, so that a move allocates nothing: read it during the current tick, do not keep it.</summary>
@@ -406,7 +410,17 @@ namespace MGUI.Shared.Input.Mouse
             CurrentScrollEvent = null;
             if (PreviousState.ScrollWheelValue != CurrentState.ScrollWheelValue)
             {
-                CurrentScrollEvent = new(this, CurrentState.ScrollWheelValue - PreviousState.ScrollWheelValue, CurrentPosition);
+                int ScrollWheelDelta = CurrentState.ScrollWheelValue - PreviousState.ScrollWheelValue;
+                if (_ReusedScrollEvent == null)
+                {
+                    _ReusedScrollEvent = new(this, ScrollWheelDelta, CurrentPosition);
+                }
+                else
+                {
+                    _ReusedScrollEvent.SetScroll(ScrollWheelDelta, CurrentPosition);
+                }
+
+                CurrentScrollEvent = _ReusedScrollEvent;
                 //Debug.WriteLine($"Scrolled: {CurrentScrollEvent.ScrollWheelDelta} - {CurrentPosition}");
             }
 

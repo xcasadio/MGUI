@@ -105,25 +105,10 @@ public class ControlFamilyZeroAllocationTests
     [Fact]
     public void ScrollViewerWithTallContent_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureScrollViewerAtRest().DrawTotal);
 
-    /// <summary>The update of a frame whose wheel moved allocates the one <see cref="BaseMouseScrolledEventArgs"/> that <c>MouseTracker.Update</c> creates for the wheel, and nothing else:
-    /// that object lives in MGUI.Shared (public class of the input, whose instance a handler may keep), outside the files of the scroll viewer work. When the tracker reuses
-    /// it, as it does for the move event, the expected value below becomes 0 and this test becomes the zero test of the wheel update.</summary>
+    /// <summary>The update of a frame whose wheel moved allocates nothing: <c>MouseTracker</c> refills one <see cref="BaseMouseScrolledEventArgs"/> at each wheel tick (ADR-0034),
+    /// as it does for the move event.</summary>
     [Fact]
-    public void ScrollViewerWithTallContent_Update_WithTheMouseWheel_AllocatesOnlyTheScrollEventArgs()
-    {
-        MouseTracker tracker = new InputTracker().Mouse;
-        GC.KeepAlive(new BaseMouseScrolledEventArgs(tracker, 120, Point.Zero));
-        AllocationWindow.Start();
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        BaseMouseScrolledEventArgs scrolled = new(tracker, 120, Point.Zero);
-        long scrolledEventBytes = GC.GetAllocatedBytesForCurrentThread() - before;
-        GC.KeepAlive(scrolled);
-        Assert.True(scrolledEventBytes > 0);
-
-        //  Every measured frame moves the wheel (MeasureScrollViewerWithTheWheel), so every one creates one scroll event.
-        FrameBytes bytes = MeasureScrollViewerWithTheWheel();
-        Assert.Equal(scrolledEventBytes * bytes.Iterations, bytes.UpdateTotal);
-    }
+    public void ScrollViewerWithTallContent_Update_WithTheMouseWheel_AllocatesNothing() => Assert.Equal(0, MeasureScrollViewerWithTheWheel().UpdateTotal);
 
     [Fact]
     public void ScrollViewerWithTallContent_Draw_WithTheMouseWheel_AllocatesNothing() => Assert.Equal(0, MeasureScrollViewerWithTheWheel().DrawTotal);
@@ -1212,8 +1197,7 @@ public class ControlFamilyZeroAllocationTests
     }
 
     /// <summary>The update of a frame in which a key is pressed in a focused text box that ignores it (F1, then F2, one per frame): what the keyboard input of MGUI.Shared allocates for a key
-    /// (the key pressed, released and clicked event arguments, the input stream and its routing metadata, and the arrays and delegates of <c>KeyboardTracker.IsAnyPressed</c>, which
-    /// <c>IsShiftDown</c> and the other modifier reads go through), and nothing of the text box.</summary>
+    /// (the key pressed, released and clicked event arguments, the input stream and its routing metadata; the modifier reads no longer allocate, ADR-0034), and nothing of the text box.</summary>
     private FrameBytes MeasureTextBoxWithIgnoredKeys()
     {
         TextBoxScene scene = CreateTextBoxScene(true);
