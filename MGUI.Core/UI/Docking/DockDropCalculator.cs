@@ -42,40 +42,77 @@ public static class DockDropCalculator
         float previewRatio = HostEdgePreviewRatio)
     {
         var targets = new List<DockDropTarget>(4);
+        CalculateHostEdgeZonesInto(targets, hostBounds, edgeBandWidth, previewRatio);
+        return targets;
+    }
 
+    /// <summary>
+    /// <see cref="CalculateHostEdgeZones"/> into a list that its owner keeps: the targets that <paramref name="targets"/> already holds are filled again (all eight
+    /// fields, see <see cref="DockDropTarget.Set"/>), missing ones are created, and the list ends with the zones of the call (no target when the host has no area).
+    /// Allocates nothing once the list holds four targets.
+    /// </summary>
+    internal static void CalculateHostEdgeZonesInto(
+        List<DockDropTarget> targets,
+        Rectangle hostBounds,
+        int edgeBandWidth = HostEdgeBandWidth,
+        float previewRatio = HostEdgePreviewRatio)
+    {
         if (hostBounds.Width <= 0 || hostBounds.Height <= 0)
         {
-            return targets;
+            Trim(targets, 0);
+            return;
         }
 
         var halfW = (int)(hostBounds.Width  * previewRatio);
         var halfH = (int)(hostBounds.Height * previewRatio);
 
         // Left edge
-        targets.Add(new DockDropTarget(null, DockZone.Left,
+        SetHostEdge(Slot(targets, 0), DockZone.Left,
             hitRect:     new Rectangle(hostBounds.X, hostBounds.Y, edgeBandWidth, hostBounds.Height),
-            previewRect: new Rectangle(hostBounds.X, hostBounds.Y, halfW, hostBounds.Height))
-        { IsHostEdge = true });
+            previewRect: new Rectangle(hostBounds.X, hostBounds.Y, halfW, hostBounds.Height));
 
         // Right edge
-        targets.Add(new DockDropTarget(null, DockZone.Right,
+        SetHostEdge(Slot(targets, 1), DockZone.Right,
             hitRect:     new Rectangle(hostBounds.Right - edgeBandWidth, hostBounds.Y, edgeBandWidth, hostBounds.Height),
-            previewRect: new Rectangle(hostBounds.Right - halfW, hostBounds.Y, halfW, hostBounds.Height))
-        { IsHostEdge = true });
+            previewRect: new Rectangle(hostBounds.Right - halfW, hostBounds.Y, halfW, hostBounds.Height));
 
         // Top edge
-        targets.Add(new DockDropTarget(null, DockZone.Top,
+        SetHostEdge(Slot(targets, 2), DockZone.Top,
             hitRect:     new Rectangle(hostBounds.X, hostBounds.Y, hostBounds.Width, edgeBandWidth),
-            previewRect: new Rectangle(hostBounds.X, hostBounds.Y, hostBounds.Width, halfH))
-        { IsHostEdge = true });
+            previewRect: new Rectangle(hostBounds.X, hostBounds.Y, hostBounds.Width, halfH));
 
         // Bottom edge
-        targets.Add(new DockDropTarget(null, DockZone.Bottom,
+        SetHostEdge(Slot(targets, 3), DockZone.Bottom,
             hitRect:     new Rectangle(hostBounds.X, hostBounds.Bottom - edgeBandWidth, hostBounds.Width, edgeBandWidth),
-            previewRect: new Rectangle(hostBounds.X, hostBounds.Bottom - halfH, hostBounds.Width, halfH))
-        { IsHostEdge = true });
+            previewRect: new Rectangle(hostBounds.X, hostBounds.Bottom - halfH, hostBounds.Width, halfH));
 
-        return targets;
+        Trim(targets, 4);
+    }
+
+    private static void SetHostEdge(DockDropTarget target, DockZone zone, Rectangle hitRect, Rectangle previewRect)
+    {
+        target.Set(null, zone, hitRect, previewRect);
+        target.IsHostEdge = true;
+    }
+
+    /// <summary>The target at <paramref name="index"/> of a list that is filled in order: the one it holds, or a new one added at the end.</summary>
+    private static DockDropTarget Slot(List<DockDropTarget> targets, int index)
+    {
+        if (index == targets.Count)
+        {
+            targets.Add(new DockDropTarget());
+        }
+
+        return targets[index];
+    }
+
+    /// <summary>Removes the targets of a kept list that the last call did not fill.</summary>
+    private static void Trim(List<DockDropTarget> targets, int count)
+    {
+        if (targets.Count > count)
+        {
+            targets.RemoveRange(count, targets.Count - count);
+        }
     }
 
     /// <summary>
@@ -94,10 +131,25 @@ public static class DockDropCalculator
         bool isDraggingFromSameGroup = false)
     {
         var zones = new List<DockDropTarget>();
+        CalculateDropZonesInto(zones, tabGroup, groupBounds, marginPercent);
+        return zones;
+    }
 
+    /// <summary>
+    /// <see cref="CalculateDropZones(MGDockTabGroup, Rectangle, float, bool)"/> into a list that its owner keeps: the targets that <paramref name="zones"/> already holds
+    /// are filled again (all eight fields, see <see cref="DockDropTarget.Set"/>), missing ones are created, and the list ends with the zones of the call (no zone when
+    /// the group has no node or no area). Allocates nothing once the list holds five targets.
+    /// </summary>
+    internal static void CalculateDropZonesInto(
+        List<DockDropTarget> zones,
+        MGDockTabGroup tabGroup,
+        Rectangle groupBounds,
+        float marginPercent = DefaultMarginPercent)
+    {
         if (tabGroup?.GroupNode == null || groupBounds.Width <= 0 || groupBounds.Height <= 0)
         {
-            return zones;
+            Trim(zones, 0);
+            return;
         }
 
         // Calculate margin size (25% of the smallest dimension by default)
@@ -108,96 +160,86 @@ public static class DockDropCalculator
                 Math.Min(groupBounds.Width, groupBounds.Height) / 3); // Max 33% to leave room for center
 
         // LEFT ZONE
-        zones.Add(new DockDropTarget
-        {
-            TargetNode = tabGroup.GroupNode,
-            Zone = DockZone.Left,
-            HitRect = new Rectangle(
+        Slot(zones, 0).Set(
+            tabGroup.GroupNode,
+            DockZone.Left,
+            new Rectangle(
                 groupBounds.X,
                 groupBounds.Y,
                 marginSize,
                 groupBounds.Height
             ),
-            PreviewRect = new Rectangle(
+            new Rectangle(
                 groupBounds.X,
                 groupBounds.Y,
                 groupBounds.Width / 2,
                 groupBounds.Height
-            )
-        });
+            ));
 
         // RIGHT ZONE
-        zones.Add(new DockDropTarget
-        {
-            TargetNode = tabGroup.GroupNode,
-            Zone = DockZone.Right,
-            HitRect = new Rectangle(
+        Slot(zones, 1).Set(
+            tabGroup.GroupNode,
+            DockZone.Right,
+            new Rectangle(
                 groupBounds.Right - marginSize,
                 groupBounds.Y,
                 marginSize,
                 groupBounds.Height
             ),
-            PreviewRect = new Rectangle(
+            new Rectangle(
                 groupBounds.X + groupBounds.Width / 2,
                 groupBounds.Y,
                 groupBounds.Width / 2,
                 groupBounds.Height
-            )
-        });
+            ));
 
         // TOP ZONE
-        zones.Add(new DockDropTarget
-        {
-            TargetNode = tabGroup.GroupNode,
-            Zone = DockZone.Top,
-            HitRect = new Rectangle(
+        Slot(zones, 2).Set(
+            tabGroup.GroupNode,
+            DockZone.Top,
+            new Rectangle(
                 groupBounds.X,
                 groupBounds.Y,
                 groupBounds.Width,
                 marginSize
             ),
-            PreviewRect = new Rectangle(
+            new Rectangle(
                 groupBounds.X,
                 groupBounds.Y,
                 groupBounds.Width,
                 groupBounds.Height / 2
-            )
-        });
+            ));
 
         // BOTTOM ZONE
-        zones.Add(new DockDropTarget
-        {
-            TargetNode = tabGroup.GroupNode,
-            Zone = DockZone.Bottom,
-            HitRect = new Rectangle(
+        Slot(zones, 3).Set(
+            tabGroup.GroupNode,
+            DockZone.Bottom,
+            new Rectangle(
                 groupBounds.X,
                 groupBounds.Bottom - marginSize,
                 groupBounds.Width,
                 marginSize
             ),
-            PreviewRect = new Rectangle(
+            new Rectangle(
                 groupBounds.X,
                 groupBounds.Y + groupBounds.Height / 2,
                 groupBounds.Width,
                 groupBounds.Height / 2
-            )
-        });
+            ));
 
         // CENTER ZONE (takes the remaining middle area for merging tabs)
-        zones.Add(new DockDropTarget
-        {
-            TargetNode = tabGroup.GroupNode,
-            Zone = DockZone.Center,
-            HitRect = new Rectangle(
+        Slot(zones, 4).Set(
+            tabGroup.GroupNode,
+            DockZone.Center,
+            new Rectangle(
                 groupBounds.X + marginSize,
                 groupBounds.Y + marginSize,
                 groupBounds.Width - 2 * marginSize,
                 groupBounds.Height - 2 * marginSize
             ),
-            PreviewRect = groupBounds // Center doesn't change the size, just adds a tab
-        });
+            groupBounds); // Center doesn't change the size, just adds a tab
 
-        return zones;
+        Trim(zones, 5);
     }
 
     /// <summary>
@@ -316,6 +358,15 @@ public static class DockDropCalculator
     /// <returns>The target index where the tab should be inserted, or -1 for end.</returns>
     public static int CalculateTabIndex(MGDockTabGroup tabGroup, int mouseX, DockPanelNode draggedPanel)
     {
+        return CalculateTabIndex(tabGroup, mouseX, draggedPanel, new List<MGElement>());
+    }
+
+    /// <summary>
+    /// <see cref="CalculateTabIndex(MGDockTabGroup, int, DockPanelNode)"/> with a list that the caller keeps for the walk of the tab items (cleared and filled here, so that
+    /// the call allocates nothing).
+    /// </summary>
+    internal static int CalculateTabIndex(MGDockTabGroup tabGroup, int mouseX, DockPanelNode draggedPanel, List<MGElement> tabItems)
+    {
         if (tabGroup?.GroupNode == null || tabGroup.GroupNode.Panels.Count <= 1)
         {
             return -1;
@@ -323,13 +374,7 @@ public static class DockDropCalculator
 
         // We need to find which tab the mouse is over
         // Iterate through visible tab items and check their bounds
-        var tabHeadersPanel = tabGroup.GetChildren().FirstOrDefault() as MGStackPanel;
-        if (tabHeadersPanel == null)
-        {
-            return -1;
-        }
-
-        var tabItems = tabHeadersPanel.GetChildren().OfType<MGDockTabItem>().ToList();
+        CollectTabItems(tabGroup, tabItems);
         if (tabItems.Count == 0)
         {
             return -1;
@@ -348,7 +393,7 @@ public static class DockDropCalculator
         
         for (var i = 0; i < tabItems.Count; i++)
         {
-            var tabItem = tabItems[i];
+            var tabItem = (MGDockTabItem)tabItems[i];
             var bounds = tabItem.LayoutBounds;
             var tabMidPoint = bounds.X + bounds.Width / 2;
 
@@ -398,19 +443,22 @@ public static class DockDropCalculator
     /// <returns>A rectangle representing the insertion point, or the full group bounds if calculation fails.</returns>
     public static Rectangle CalculateTabReorderPreviewRect(MGDockTabGroup tabGroup, int targetIndex, DockPanelNode draggedPanel)
     {
+        return CalculateTabReorderPreviewRect(tabGroup, targetIndex, draggedPanel, new List<MGElement>());
+    }
+
+    /// <summary>
+    /// <see cref="CalculateTabReorderPreviewRect(MGDockTabGroup, int, DockPanelNode)"/> with a list that the caller keeps for the walk of the tab items (cleared and filled
+    /// here, so that the call allocates nothing).
+    /// </summary>
+    internal static Rectangle CalculateTabReorderPreviewRect(MGDockTabGroup tabGroup, int targetIndex, DockPanelNode draggedPanel, List<MGElement> tabItems)
+    {
         if (tabGroup?.GroupNode == null)
         {
             return Rectangle.Empty;
         }
 
-        // Get tab headers panel
-        var tabHeadersPanel = tabGroup.GetChildren().FirstOrDefault() as MGStackPanel;
-        if (tabHeadersPanel == null)
-        {
-            return tabGroup.LayoutBounds; // Fallback to full group
-        }
-
-        var tabItems = tabHeadersPanel.GetChildren().OfType<MGDockTabItem>().ToList();
+        // Get the tab items of the tab headers panel
+        CollectTabItems(tabGroup, tabItems);
         if (tabItems.Count == 0)
         {
             return tabGroup.LayoutBounds; // Fallback to full group
@@ -458,5 +506,31 @@ public static class DockDropCalculator
         );
 
         return previewRect;
+    }
+
+    /// <summary>
+    /// Fills <paramref name="tabItems"/> (cleared first) with the <see cref="MGDockTabItem"/> children of the tab headers panel of <paramref name="tabGroup"/> (the first
+    /// child of the group when it is a stack panel), in order. Left empty when the group has no such panel. The same walk as
+    /// <c>GetChildren().FirstOrDefault()</c> then <c>GetChildren().OfType&lt;MGDockTabItem&gt;()</c>, without the iterators and lists it allocates.
+    /// </summary>
+    private static void CollectTabItems(MGDockTabGroup tabGroup, List<MGElement> tabItems)
+    {
+        tabItems.Clear();
+        tabGroup.AddChildrenTo(tabItems);
+        var tabHeadersPanel = tabItems.Count > 0 ? tabItems[0] as MGStackPanel : null;
+        tabItems.Clear();
+        if (tabHeadersPanel == null)
+        {
+            return;
+        }
+
+        tabHeadersPanel.AddChildrenTo(tabItems);
+        for (var i = tabItems.Count - 1; i >= 0; i--)
+        {
+            if (tabItems[i] is not MGDockTabItem)
+            {
+                tabItems.RemoveAt(i);
+            }
+        }
     }
 }

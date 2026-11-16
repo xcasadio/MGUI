@@ -988,24 +988,15 @@ public class ControlFamilyZeroAllocationTests
     [Fact]
     public void DockHostWithATabBehindTheActiveTab_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureDock("one tab behind the active tab, at rest", CreateTabBehindTheActiveTabScene()).DrawTotal);
 
-    /// <summary>The update of a frame of the drag allocates the one <see cref="DockDropTarget"/> that the drop target computation makes for the position of the mouse, and nothing else:
-    /// <c>MGDockHost.CurrentDropTarget</c> is a public property of a public mutable class that notifies when its reference changes, so the object is the result of the computation and is
-    /// kept as it is (reusing one would stop the notification at each frame). Every other part of the computation (the walks of the visual tree, the forbidden zones, the docking rules,
-    /// the zone search) allocates nothing.</summary>
+    /// <summary>The update of a frame of the drag allocates nothing: <c>MGDockHost</c> keeps one <see cref="DockDropTarget"/> for <c>CurrentDropTarget</c> and writes its fields again at
+    /// each computation, and raises <c>PropertyChanged</c> only when a value changes (ADR-0036, decision D18). Before it, every computation made a new object (80 bytes per frame
+    /// over the centre of a group). The other kinds of target are measured in <c>DockDropTargetAllocationTests</c>.</summary>
     [Fact]
-    public void DockHostDuringATabDrag_Update_AllocatesOnlyTheDropTarget()
+    public void DockHostDuringATabDrag_Update_AllocatesNothing()
     {
-        GC.KeepAlive(new DockDropTarget());
-        AllocationWindow.Start();
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        DockDropTarget target = new();
-        long dropTargetBytes = GC.GetAllocatedBytesForCurrentThread() - before;
-        GC.KeepAlive(target);
-        Assert.True(dropTargetBytes > 0);
-
         //  Every measured frame moves the mouse by 10 pixels (between the two positions), more than the 5 that make the host compute the target again.
         FrameBytes bytes = MeasureDockDrag();
-        Assert.Equal(dropTargetBytes * bytes.Iterations, bytes.UpdateTotal);
+        Assert.Equal(0, bytes.UpdateTotal);
     }
 
     [Fact]
