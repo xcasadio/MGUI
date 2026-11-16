@@ -561,6 +561,9 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 		PaintLifecycle.Update(Underlay, UA);
 	}
 
+	[ThreadStatic]
+	private static List<Vector2> PolygonVerticesBuffer;
+
 	private static int PositiveModulo(int x, int m)
 	{
 		var r = x % m;
@@ -793,7 +796,15 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 				}
 				Polygon = Polygon.Distinct().ToList();
 
-				DA.DT.FillPolygon(DA.Offset.ToVector2(), Polygon.Select(x => x.ToVector2()), HighlightColor);
+				//  The vertices go into a list kept per thread, which FillPolygon reads during the call: a Select iterator at every draw would be garbage at every frame.
+				List<Vector2> PolygonVertices = PolygonVerticesBuffer ??= new List<Vector2>();
+				PolygonVertices.Clear();
+				for (int i = 0; i < Polygon.Count; i++)
+				{
+					PolygonVertices.Add(Polygon[i].ToVector2());
+				}
+
+				DA.DT.FillPolygon(DA.Offset.ToVector2(), PolygonVertices, HighlightColor);
 			}
 				break;
 			case HighlightAnimation.Scan:

@@ -91,7 +91,19 @@ public sealed class MGDockedBorderBrush : UIFreezableBrush, IBorderBrush
         RecomputeIsSolidColorsOnly();
     }
 
-    private static IEnumerable<T> AsEnum<T>(params T[] values) => values;
+    /// <summary>The three corner vertices of a triangle, in a buffer kept per thread: <see cref="IUIDrawContext.FillPolygon"/> reads its vertices during the call, so a new array and
+    /// a <c>Select</c> iterator at every border would be garbage at every frame. The buffer is overwritten by the next call.</summary>
+    private static Vector2[] GetTriangle(Point First, Point Second, Point Third)
+    {
+        Vector2[] Vertices = TriangleBuffer ??= new Vector2[3];
+        Vertices[0] = First.ToVector2();
+        Vertices[1] = Second.ToVector2();
+        Vertices[2] = Third.ToVector2();
+        return Vertices;
+    }
+
+    [ThreadStatic]
+    private static Vector2[] TriangleBuffer;
 
     /// <summary>Forwards the per-frame lifecycle call to <see cref="Left"/>, <see cref="Top"/>, <see cref="Right"/> and <see cref="Bottom"/> via <see cref="PaintLifecycle"/>.
     /// The same instance may be passed for several sides, so instances are deduplicated by reference within this brush (kept regardless of
@@ -147,26 +159,26 @@ public sealed class MGDockedBorderBrush : UIFreezableBrush, IBorderBrush
             if (BT.Left > 0)
             {
                 Left.Draw(DA, Element, new(Bounds.Left, Bounds.Top + BT.Top, BT.Left, Bounds.Height - BT.Height));
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(TL, InnerTL, TL + new Point(0, BT.Top)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Left).Color * Opacity);
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(BL, InnerBL, BL + new Point(0, -BT.Bottom)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Left).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(TL, InnerTL, TL + new Point(0, BT.Top)), ((MGSolidFillBrush)Left).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(BL, InnerBL, BL + new Point(0, -BT.Bottom)), ((MGSolidFillBrush)Left).Color * Opacity);
             }
             if (BT.Top > 0)
             {
                 Top.Draw(DA, Element, new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top));
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(TL, InnerTL, TL + new Point(BT.Left, 0)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Top).Color * Opacity);
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(TR, InnerTR, TR + new Point(-BT.Right, 0)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Top).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(TL, InnerTL, TL + new Point(BT.Left, 0)), ((MGSolidFillBrush)Top).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(TR, InnerTR, TR + new Point(-BT.Right, 0)), ((MGSolidFillBrush)Top).Color * Opacity);
             }
             if (BT.Right > 0)
             {
                 Right.Draw(DA, Element, new(Bounds.Right - BT.Right, Bounds.Top + BT.Top, BT.Right, Bounds.Height - BT.Height));
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(TR, InnerTR, TR + new Point(0, BT.Top)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Right).Color * Opacity);
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(BR, InnerBR, BR + new Point(0, -BT.Bottom)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Right).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(TR, InnerTR, TR + new Point(0, BT.Top)), ((MGSolidFillBrush)Right).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(BR, InnerBR, BR + new Point(0, -BT.Bottom)), ((MGSolidFillBrush)Right).Color * Opacity);
             }
             if (BT.Bottom > 0)
             {
                 Bottom.Draw(DA, Element, new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(BL, InnerBL, BL + new Point(BT.Left, 0)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Bottom).Color * Opacity);
-                DT.FillPolygon(DA.Offset.ToVector2(), AsEnum(BR, InnerBR, BR + new Point(-BT.Right, 0)).Select(x => x.ToVector2()), ((MGSolidFillBrush)Bottom).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(BL, InnerBL, BL + new Point(BT.Left, 0)), ((MGSolidFillBrush)Bottom).Color * Opacity);
+                DT.FillPolygon(DA.Offset.ToVector2(), GetTriangle(BR, InnerBR, BR + new Point(-BT.Right, 0)), ((MGSolidFillBrush)Bottom).Color * Opacity);
             }
         }
         else

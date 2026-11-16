@@ -787,17 +787,70 @@ namespace MGUI.Shared.Rendering
             }
         }
 
+        /// <summary>The longest polygon whose buffer is kept by <see cref="FillPolygon"/>: a polygon with more vertices that comes as a list is copied to a new array.</summary>
+        private const int MaxKeptPolygonVertices = 256;
+
+        /// <summary>Indexed by a number of vertices: the array that <see cref="FillPolygon"/> hands to <c>PrimitiveDrawing.DrawSolidPolygon</c>
+        /// for a list of that length. Safe to share between the polygons of a batch because <c>DrawSolidPolygon</c> reads the array during the call, and neither
+        /// modifies it nor keeps it (<c>FillPolygonGpuTests</c> checks it on the GPU).</summary>
+        private Vector2[][] PolygonBuffers;
+
         public void FillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color Color)
         {
+            Vector2[] Polygon = GetPolygonVertices(Vertices);
+
+            BeginDraw(DrawContext.Primitives);
+            //Vector2[] CCWVertices = Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise);
+            //PD.DrawSolidPolygon(Origin, CCWVertices, Color, false);
+            PrimitiveDrawing.DrawSolidPolygon(Origin, Polygon, Color, false);
+        }
+
+        /// <summary>An array is returned as it is, a list is copied to the buffer kept for its length, and only another enumeration is copied to a new array.</summary>
+        private Vector2[] GetPolygonVertices(IEnumerable<Vector2> Vertices)
+        {
+            if (Vertices is Vector2[] VertexArray)
+            {
+                if (VertexArray.Length == 0)
+                {
+                    throw new ArgumentException(null, $"{nameof(Vertices)}");
+                }
+
+                return VertexArray;
+            }
+
+            if (Vertices is IReadOnlyList<Vector2> VertexList)
+            {
+                int Count = VertexList.Count;
+                if (Count == 0)
+                {
+                    throw new ArgumentException(null, $"{nameof(Vertices)}");
+                }
+
+                Vector2[] Buffer;
+                if (Count > MaxKeptPolygonVertices)
+                {
+                    Buffer = new Vector2[Count];
+                }
+                else
+                {
+                    PolygonBuffers ??= new Vector2[MaxKeptPolygonVertices + 1][];
+                    Buffer = PolygonBuffers[Count] ??= new Vector2[Count];
+                }
+
+                for (int i = 0; i < Count; i++)
+                {
+                    Buffer[i] = VertexList[i];
+                }
+
+                return Buffer;
+            }
+
             if (Vertices == null || !Vertices.Any())
             {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
             }
 
-            BeginDraw(DrawContext.Primitives);
-            //Vector2[] CCWVertices = Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise);
-            //PD.DrawSolidPolygon(Origin, CCWVertices, Color, false);
-            PrimitiveDrawing.DrawSolidPolygon(Origin, Vertices.ToArray(), Color, false);
+            return Vertices.ToArray();
         }
         #endregion Polygons
 
