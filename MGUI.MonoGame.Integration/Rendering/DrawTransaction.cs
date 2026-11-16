@@ -68,7 +68,7 @@ namespace MGUI.Shared.Rendering
 
         private DrawContext CurrentContext = DrawContext.None;
 
-        private Matrix PrimitiveProjectionMatrix { get; }
+        private Matrix PrimitiveProjectionMatrix { get; set; }
         private ClipManager ClipManager { get; }
         private Rectangle? CurrentClipBounds => CurrentSettings.UsesScissorTest ? GraphicsDevice.ScissorRectangle : null;
         private RasterizerState CurrentRasterizerState => MonoGameRenderInterop.GetRasterizerState(CurrentSettings);
@@ -92,13 +92,50 @@ namespace MGUI.Shared.Rendering
             ClipManager = new(this);
             _ClipSlots = new ClipSlots(this);
 
-            PrimitiveProjectionMatrix = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
+            PrimitiveProjectionMatrix = CreatePrimitiveProjectionMatrix();
 
             if (!DeferBegin)
             {
                 BeginDraw(DefaultContext);
             }
         }
+
+        /// <summary>Puts the transaction in the state a new <see cref="DrawTransaction"/> built with the same arguments would be in at this moment: the
+        /// initial settings, no previous settings, no batch open, the projection of the primitives from the current viewport, the clip diagnostics at
+        /// zero, and the context started unless <paramref name="DeferBegin"/> (ADR-0032). What the previous use left on the
+        /// <see cref="GraphicsDevice"/> (render target, scissor, states) stays, as it does for a new transaction.<para/>
+        /// The previous use must have ended its batch (<see cref="Dispose"/>): an open batch is not ended here. The temporary changes and the clips
+        /// that the previous use did not dispose are forgotten, and their handles restore nothing (ADR-0031). A mask clip left open keeps the render
+        /// target it rented.</summary>
+        internal void Rearm(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites)
+        {
+            ArgumentNullException.ThrowIfNull(Settings);
+
+            PrimitiveProjectionMatrix = CreatePrimitiveProjectionMatrix();
+            CurrentContext = DrawContext.None;
+            CurrentSettings = Settings;
+            PreviousSettings = null;
+            _TemporarySettings.ReleaseAll();
+            _TemporaryTargets.ReleaseAll();
+            _ClipSlots.ReleaseAll();
+            ClipManager.Rearm();
+
+            //  The pair is kept only for the settings this use starts with: a pair made from other settings could not be found again, and would keep
+            //  those settings and their effect alive.
+            if (!ReferenceEquals(Settings, _RasterizerVariantA) && !ReferenceEquals(Settings, _RasterizerVariantB))
+            {
+                _RasterizerVariantA = null;
+                _RasterizerVariantB = null;
+            }
+
+            if (!DeferBegin)
+            {
+                BeginDraw(DefaultContext);
+            }
+        }
+
+        private Matrix CreatePrimitiveProjectionMatrix()
+            => Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
 
         /// <summary>Should only be invoked if you intend to make a draw-related call that isn't already funneled through <see cref="DrawTransaction"/>.<para/>
         /// Draw-related calls that are funneled through <see cref="DrawTransaction"/> (such as <see cref="DrawTransaction.StrokeRectangle(Vector2, RectangleF, Color, Thickness, DrawContext?)"/>) will already call the begin methods if necessary.</summary>
@@ -362,9 +399,27 @@ namespace MGUI.Shared.Rendering
         #endregion Draw Text
 
         #region Draw Geometry
-        /// <summary>Returns the first non-null, non-None <see cref="DrawContext"/> from given <paramref name="Values"/></summary>
-        private static DrawContext GetFirstValidDrawContext(params DrawContext?[] Values)
-            => Values == null ? DrawContext.Sprites : Values.First(x => x.HasValue && x != DrawContext.None).Value;
+        /// <summary>Returns the first of the three contexts that is set and is not <see cref="DrawContext.None"/>. Three parameters, not a
+        /// <see langword="params"/> array: this runs for every shape drawn, and an array per call was 48 bytes.</summary>
+        private static DrawContext GetFirstValidDrawContext(DrawContext? First, DrawContext Second, DrawContext Third)
+        {
+            if (First.HasValue && First.Value != DrawContext.None)
+            {
+                return First.Value;
+            }
+
+            if (Second != DrawContext.None)
+            {
+                return Second;
+            }
+
+            if (Third != DrawContext.None)
+            {
+                return Third;
+            }
+
+            throw new InvalidOperationException("Sequence contains no matching element");
+        }
 
         #region Rectangles
         public void StrokeAndFillRectangle(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, int StrokeThickness, DrawContext? PreferredContext = null)
@@ -1310,9 +1365,18 @@ namespace MGUI.Shared.Rendering
             }
         }
 
+        /// <summary>Ends the batch and closes the transaction: the renderer hands this same object to its next draw, so it is not to be used after
+        /// this call. The transaction is closed whether ending the batch succeeds or throws.</summary>
         public void Dispose()
         {
-            EndDraw(CurrentContext);
+            try
+            {
+                EndDraw(CurrentContext);
+            }
+            finally
+            {
+                Backend.CloseDrawTransaction(this);
+            }
         }
     }
 }

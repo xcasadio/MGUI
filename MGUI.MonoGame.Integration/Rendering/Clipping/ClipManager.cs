@@ -23,6 +23,19 @@ namespace MGUI.Shared.Rendering.Clipping
             _Capabilities = ClipBackendCapabilities.Default;
         }
 
+        /// <summary>Puts the manager in the state its constructor gives it: the counts and the depths the diagnostics report are back to zero. A stencil
+        /// clip left open by the previous use is forgotten: the next push clears the stencil buffer, as the first push of a new manager does.</summary>
+        public void Rearm()
+        {
+            _ScissorClipCount = 0;
+            _StencilClipCount = 0;
+            _MaskClipCount = 0;
+            _MaxStencilDepth = 0;
+            _TemporaryRenderTargetRentCount = 0;
+            _TemporaryRenderTargetReuseCount = 0;
+            _StencilDepth = 0;
+        }
+
         public ClipResolveResult Resolve(ClipDefinition definition)
             => ClipStrategyResolver.Resolve(definition, _Capabilities);
 

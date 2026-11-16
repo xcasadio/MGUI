@@ -149,6 +149,8 @@ Le clipping est un contrat logique, pas un effet de bord scissor code en dur. Qu
 3. `ClipManager` (`MGUI.MonoGame.Integration/Rendering/Clipping/ClipManager.cs`, compile dans LegacyRenderer) pousse et depile l'etat GPU ;
 4. `DrawTransaction` garde coherents `SpriteBatch`, `PrimitiveBatch`, render targets et transforms a travers les transitions.
 
+Transaction du backend MonoGame : un `MainRenderer` garde une seule `DrawTransaction`, creee au premier `BeginDrawTransaction` puis rearmee a chaque appel (ADR-0032). Une seule est ouverte a la fois : une seconde demande leve `InvalidOperationException`, et la transaction ne s'utilise plus apres son `Dispose`. Les changements temporaires (`SetDrawSettingsTemporary`, `SetRenderTargetTemporary`, `SetTransformTemporary`, `SetEffectTemporary`) rendent une poignee `DrawStateHandle` et n'allouent rien ; une transformation ou un effet dont la valeur ne change pas retrouve ses reglages derives (`DerivedDrawSettingsCache`, 32 entrees), une valeur nouvelle a chaque appel derive encore un `DrawSettings` (ADR-0031).
+
 Etat GPU du chemin primitives : `PrimitiveBatch.Begin` (MonoGame.Extended 6) assigne lui-meme le `BlendState` du device (`BlendState.NonPremultiplied` si aucun n'est fourni) et le restaure a `End`. `DrawTransaction.BeginDraw` lui transmet donc toujours le blend state resolu depuis `DrawSettings` ; l'extension `RenderUtils.Begin` rend ce parametre obligatoire. Sans lui, `BlendType.ColorWriteDisable` est perdu : la geometrie de clip stencil se peint en blanc par-dessus le contenu clippe, et les remplissages semi-transparents melangent en non premultiplie.
 
 ### Modele

@@ -85,8 +85,16 @@ namespace MGUI.Shared.Rendering
         IUIDrawTransaction IUIDesktopRuntime.BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => BeginDrawTransaction(Settings, DeferBegin);
 
+        /// <summary>Opens the draw transaction of this renderer. A renderer has one transaction, created at the first call and re-armed at each
+        /// later one (ADR-0032): the object returned is the same from call to call, in the state of a new transaction, and it is not to be used
+        /// after its <see cref="IDisposable.Dispose"/>. If the re-arm or the begin of the batch throws, the transaction stays closed and the next
+        /// call succeeds.</summary>
+        /// <exception cref="InvalidOperationException">The transaction of this renderer is already open: dispose it first.</exception>
         public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => BeginDrawTransaction(Settings, DeferBegin, DrawContext.Sprites);
+
+        private DrawTransaction _DrawTransaction;
+        private bool _IsDrawTransactionOpen;
 
         /// <summary>The settings the transactions of this renderer derived for temporary transforms and effects, kept from one transaction to the next (ADR-0031).</summary>
         internal DerivedDrawSettingsCache DerivedSettings { get; } = new();
@@ -95,7 +103,42 @@ namespace MGUI.Shared.Rendering
         internal DerivedDrawSettingsCache StencilSettings { get; } = new();
 
         internal IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext)
-            => new DrawTransaction(this, Settings, DeferBegin, DefaultContext);
+        {
+            ArgumentNullException.ThrowIfNull(Settings);
+
+            if (_IsDrawTransactionOpen)
+            {
+                throw new InvalidOperationException(
+                    $"The draw transaction of this {nameof(MainRenderer)} is already open. A renderer has one transaction and one draw at a time: " +
+                    "dispose the transaction returned by the previous BeginDrawTransaction call (or let the draw that holds it finish) before asking for another.");
+            }
+
+            if (_DrawTransaction == null)
+            {
+                //  Created with the begin deferred, then begun here: a begin that throws must not lose the object.
+                _DrawTransaction = new DrawTransaction(this, Settings, true, DefaultContext);
+                if (!DeferBegin)
+                {
+                    _DrawTransaction.ForceBeginDraw(DefaultContext);
+                }
+            }
+            else
+            {
+                _DrawTransaction.Rearm(Settings, DeferBegin, DefaultContext);
+            }
+
+            _IsDrawTransactionOpen = true;
+            return _DrawTransaction;
+        }
+
+        /// <summary>Called by <see cref="DrawTransaction.Dispose"/>, whether the end of its batch succeeded or threw.</summary>
+        internal void CloseDrawTransaction(DrawTransaction Transaction)
+        {
+            if (ReferenceEquals(Transaction, _DrawTransaction))
+            {
+                _IsDrawTransactionOpen = false;
+            }
+        }
 
         internal RenderTargetLease RentRenderTarget(int width, int height, bool preserveContents)
             => RenderTargetPool.Rent(GraphicsDevice, width, height, preserveContents);
@@ -126,9 +169,12 @@ namespace MGUI.Shared.Rendering
             }
         }
 
+        //  Kept: DrawSettings.Default builds a new object at each read.
+        private readonly DrawSettings DefaultDrawSettings = DrawSettings.Default;
+
         public void DrawViews(float Opacity = 1.0f, DrawSettings InitialDrawSettings = null)
         {
-            using DrawTransaction DT = new(this, InitialDrawSettings ?? DrawSettings.Default, false);
+            using DrawTransaction DT = (DrawTransaction)BeginDrawTransaction(InitialDrawSettings ?? DefaultDrawSettings, false, DrawContext.Sprites);
             foreach (IUIView View in MutableViews)
             {
                 View.Draw(DT, Opacity);
@@ -219,13 +265,30 @@ namespace MGUI.Shared.Rendering
             MaximumRadius = Math.Clamp(MaximumRadius ?? GeneralUtils.NextPowerOf2(DesiredRadius), MinimumCircleTextureRadius, MaximumCircleTextureRadius);
             MinimumRadius = Math.Clamp(MinimumRadius ?? (int)Math.Floor(DesiredRadius), MinimumCircleTextureRadius, MaximumRadius.Value);
 
-            IEnumerable<KeyValuePair<int, Texture2D>> Matches = CircleTextures
-                .Where(x => x.Value != null && !x.Value.IsDisposed && x.Key >= MinimumRadius && x.Key <= MaximumRadius)
-                .OrderBy(x => Math.Abs(DesiredRadius - x.Key));
-
-            if (Matches.Any())
+            //  A loop, not LINQ: this runs for every circle and point drawn, and the query was 504 bytes per call.
+            Texture2D BestMatch = null;
+            float BestDifference = float.MaxValue;
+            foreach (KeyValuePair<int, Texture2D> Entry in CircleTextures)
             {
-                return Matches.First().Value;
+                if (Entry.Value == null || Entry.Value.IsDisposed)
+                {
+                    continue;
+                }
+
+                if (Entry.Key >= MinimumRadius && Entry.Key <= MaximumRadius)
+                {
+                    float Difference = Math.Abs(DesiredRadius - Entry.Key);
+                    if (Difference < BestDifference)
+                    {
+                        BestDifference = Difference;
+                        BestMatch = Entry.Value;
+                    }
+                }
+            }
+
+            if (BestMatch != null)
+            {
+                return BestMatch;
             }
             else
             {
