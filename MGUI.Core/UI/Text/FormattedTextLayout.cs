@@ -13,11 +13,19 @@ internal readonly struct FormattedTextPiece
     public readonly int Start;
     public readonly int Length;
 
-    public FormattedTextPiece(int RunIndex, int Start, int Length)
+    /// <summary>Text pieces: the index, in the text of the runs (the characters of the text runs and of the line breaks, in order), of the first character of the piece. The characters of a piece are
+    /// consecutive there, except the last one when <see cref="HasSuffix"/> is true, a hyphen that wrapping inserted: it is not in the text, and takes the index of the character that follows the
+    /// piece, as <see cref="MGTextLine.OriginalCharacterIndices"/> gives it.</summary>
+    public readonly int OriginalStart;
+    public readonly bool HasSuffix;
+
+    public FormattedTextPiece(int RunIndex, int Start, int Length, int OriginalStart, bool HasSuffix)
     {
         this.RunIndex = RunIndex;
         this.Start = Start;
         this.Length = Length;
+        this.OriginalStart = OriginalStart;
+        this.HasSuffix = HasSuffix;
     }
 }
 
@@ -33,7 +41,13 @@ internal readonly struct FormattedTextLine
     public readonly float TotalHeight;
     public readonly bool EndsInLinebreak;
 
-    public FormattedTextLine(int FirstPiece, int PieceCount, float Width, float TextHeight, float ImageHeight, float TotalHeight, bool EndsInLinebreak)
+    /// <summary>The number of characters of the line break that ends the line (2 for "\r\n"), 0 when the line does not end in a line break.</summary>
+    public readonly int LineBreakCharacterCount;
+
+    /// <summary>The index, in the text of the runs, that follows the last character of the line (the first character of its line break when it has one).</summary>
+    public readonly int OriginalEnd;
+
+    public FormattedTextLine(int FirstPiece, int PieceCount, float Width, float TextHeight, float ImageHeight, float TotalHeight, bool EndsInLinebreak, int LineBreakCharacterCount, int OriginalEnd)
     {
         this.FirstPiece = FirstPiece;
         this.PieceCount = PieceCount;
@@ -42,6 +56,8 @@ internal readonly struct FormattedTextLine
         this.ImageHeight = ImageHeight;
         this.TotalHeight = TotalHeight;
         this.EndsInLinebreak = EndsInLinebreak;
+        this.LineBreakCharacterCount = LineBreakCharacterCount;
+        this.OriginalEnd = OriginalEnd;
     }
 }
 
@@ -95,6 +111,10 @@ internal sealed class FormattedTextLayout
     private bool PreviousLineEndsInLinebreak;
     private bool IsTerminated;
 
+    //  The index in the text of the next character that a piece or a line break takes: what the counter of ParseLines (CurrentIndexInOriginalText) is, whether the characters end up in
+    //  a line or in a line that is ignored.
+    private int OriginalIndex;
+
     /// <summary>The width the lines were computed for.</summary>
     public int ParseWidth { get; private set; }
 
@@ -132,6 +152,7 @@ internal sealed class FormattedTextLayout
         HasPreviousLine = false;
         PreviousLineEndsInLinebreak = false;
         IsTerminated = false;
+        OriginalIndex = 0;
 
         if (KeepSource)
         {
@@ -168,7 +189,7 @@ internal sealed class FormattedTextLayout
                     AddEmptyPiece();
                 }
 
-                FlushLine(true);
+                FlushLine(true, Run.LineBreakCharacterCount);
             }
             else if (Run.Kind == ScannedRunKind.Image)
             {
@@ -515,27 +536,31 @@ internal sealed class FormattedTextLayout
             Chars[CharCount + Text.Length] = MultiLineWordSuffix;
         }
 
-        Pieces.Add(new FormattedTextPiece(RunIndex, CharCount, Length));
+        Pieces.Add(new FormattedTextPiece(RunIndex, CharCount, Length, OriginalIndex, WithSuffix));
         CharCount += Length;
+        OriginalIndex += Text.Length;
         CurrentPieceCount++;
     }
 
     /// <summary>The empty run of an empty line: its settings are not those of the text.</summary>
     private void AddEmptyPiece()
     {
-        Pieces.Add(new FormattedTextPiece(-1, CharCount, 0));
+        Pieces.Add(new FormattedTextPiece(-1, CharCount, 0, OriginalIndex, false));
         CurrentPieceCount++;
     }
 
     private void AddImagePiece(int RunIndex)
     {
-        Pieces.Add(new FormattedTextPiece(RunIndex, CharCount, 0));
+        Pieces.Add(new FormattedTextPiece(RunIndex, CharCount, 0, OriginalIndex, false));
         CurrentPieceCount++;
     }
 
     /// <summary>Ends the line being built: measures each of its pieces as a complete string, like <c>FlushLine</c> of <see cref="MGTextLine"/>.</summary>
-    private void FlushLine(bool EndsInLinebreak)
+    private void FlushLine(bool EndsInLinebreak, int LineBreakCharacterCount = 0)
     {
+        var OriginalEnd = OriginalIndex;
+        OriginalIndex += LineBreakCharacterCount;
+
         double TextWidthSum = 0;
         double ImageWidthSum = 0;
         float TextHeight = 0;
@@ -588,7 +613,7 @@ internal sealed class FormattedTextLayout
         }
         else
         {
-            Lines.Add(new FormattedTextLine(CurrentFirstPiece, CurrentPieceCount, Width, TextHeight, ImageHeight, TotalHeight, EndsInLinebreak));
+            Lines.Add(new FormattedTextLine(CurrentFirstPiece, CurrentPieceCount, Width, TextHeight, ImageHeight, TotalHeight, EndsInLinebreak, LineBreakCharacterCount, OriginalEnd));
         }
 
         CurrentFirstPiece = Pieces.Count;
@@ -596,6 +621,47 @@ internal sealed class FormattedTextLayout
         CurrentCharStart = CharCount;
         CurrentX = 0;
         CommittedRunsWidth = 0;
+    }
+
+    /// <summary>Appends to <paramref name="Destination"/> what <see cref="MGTextLine.OriginalCharacterIndices"/> holds for the line at <paramref name="LineIndex"/>: for each character of the line, the index of the
+    /// character in the text of the runs (the hyphen that wrapping inserted shares the index of the character that follows it), then one index for each character of the line break that
+    /// ends the line, or, when the line ends in no line break and has no character of a text run, one index (the one that follows the line).</summary>
+    public void AppendOriginalIndices(int LineIndex, List<int> Destination)
+    {
+        var Line = Lines[LineIndex];
+        var HasCharacters = false;
+        for (var i = 0; i < Line.PieceCount; i++)
+        {
+            var Piece = Pieces[Line.FirstPiece + i];
+            if (Piece.Length == 0)
+            {
+                continue;
+            }
+
+            HasCharacters = true;
+            var TextLength = Piece.HasSuffix ? Piece.Length - 1 : Piece.Length;
+            for (var k = 0; k < TextLength; k++)
+            {
+                Destination.Add(Piece.OriginalStart + k);
+            }
+
+            if (Piece.HasSuffix)
+            {
+                Destination.Add(Piece.OriginalStart + TextLength);
+            }
+        }
+
+        if (Line.EndsInLinebreak)
+        {
+            for (var i = 0; i < Line.LineBreakCharacterCount; i++)
+            {
+                Destination.Add(Line.OriginalEnd + i);
+            }
+        }
+        else if (!HasCharacters)
+        {
+            Destination.Add(Line.OriginalEnd);
+        }
     }
 
     private static int GrownLength(int Current, int Needed)

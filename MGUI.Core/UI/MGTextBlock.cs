@@ -1583,6 +1583,14 @@ public class MGTextBlock : MGElement, ITextMeasurer
     /// <summary>True once lines were computed, whatever their representation (<see cref="Lines"/> is not null).</summary>
     private bool HasLines => _ArePlainLinesKnown || _AreFormattedLinesKnown || _Lines != null;
 
+    /// <summary>The internal layout of a plain text whose lines are known, or null (formatted text, explicit runs, or no lines yet). When it is not null, <see cref="Lines"/> are the
+    /// lines of the same text, built from it when read: a reader that needs the original index of each character (<see cref="TextRenderInfo"/>) takes them from the layout instead
+    /// (<see cref="PlainTextLayout.AppendOriginalIndices"/>), without building the public lines.</summary>
+    internal PlainTextLayout KnownPlainLines => _ArePlainLinesKnown ? PlainLines : null;
+
+    /// <summary>The internal layout of a formatted text whose lines are known, or null. Same contract as <see cref="KnownPlainLines"/>.</summary>
+    internal FormattedTextLayout KnownFormattedLines => _AreFormattedLinesKnown ? _FormattedLines : null;
+
     private int NumCharacters { get; set; }
     private bool AreLinesDirty { get; set; } = true;
     private int LastLineParseWidth { get; set; } = -1;
@@ -1678,6 +1686,18 @@ public class MGTextBlock : MGElement, ITextMeasurer
     }
 
     internal float GetRenderedTextStartY(Rectangle layoutBounds, IReadOnlyList<MGTextLine> lines)
+    {
+        return GetRenderedTextStartY(layoutBounds, GetRenderedTextHeight(lines));
+    }
+
+    /// <summary>Same value as <see cref="GetRenderedTextStartY(Rectangle, IReadOnlyList{MGTextLine})"/> for the lines of a plain text.</summary>
+    internal float GetRenderedTextStartY(Rectangle layoutBounds, PlainTextLayout lines)
+    {
+        return GetRenderedTextStartY(layoutBounds, GetRenderedTextHeight(lines));
+    }
+
+    /// <summary>Same value as <see cref="GetRenderedTextStartY(Rectangle, IReadOnlyList{MGTextLine})"/> for the lines of a formatted text.</summary>
+    internal float GetRenderedTextStartY(Rectangle layoutBounds, FormattedTextLayout lines)
     {
         return GetRenderedTextStartY(layoutBounds, GetRenderedTextHeight(lines));
     }

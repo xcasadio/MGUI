@@ -5,6 +5,8 @@ using MGUI.Core.UI.Containers.Grids;
 using Microsoft.Xna.Framework.Input;
 using MGUI.Core.UI;
 using MGUI.Core.UI.Containers;
+using MGUI.Core.UI.Text;
+using MGUI.Shared.Text;
 using MGUI.Shared.Input;
 using MGUI.Shared.Input.Mouse;
 using MGUI.Shared.Rendering;
@@ -1244,22 +1246,93 @@ public class ControlFamilyZeroAllocationTests
     public void TextBoxWithTheFocus_Update_WithIgnoredKeys_AllocatesNothing() => Assert.Equal(0, MeasureTextBoxWithIgnoredKeys().UpdateTotal);
 
     /// <summary>What the update of a typing frame (the text alternates between "a" and "") allocates, over the 500 measured frames, all of it beyond the keyboard input of MGUI.Shared, which allocates
-    /// nothing since ADR-0034. Frozen: the new text
-    /// string and the objects that its change makes (the text changed notification, the layout of the text block, the geometry of the characters that the caret reads) are results of the change,
-    /// and the lines of the text block that <c>TextRenderInfo</c> reads, public <c>MGTextLine</c> objects that <c>MGTextBlock.Lines</c> builds again with the legacy line parser at each
-    /// change, are 1.6 KB of the 2.6 KB of each key. The legacy parser cannot be skipped without the layouts of the text block giving the original index of each character (the internal layouts do not
-    /// compute it), and the objects are not reused because the caret keeps references to them. When the caret geometry no longer goes through <c>MGTextBlock.Lines</c>, this value drops: update it with the
-    /// value that the failure message gives.</summary>
-    private const long TypingBytes = 1300000;
+    /// nothing since ADR-0034: 178000 B, 356 B per frame (2600 B per frame before T5.8, when the geometry of the caret was read from the public lines of the text block, which the legacy line parser
+    /// built again at each change: about 1.6 KB of each key, and the rest of what the change of the text makes). It is made of the parts below, which are the results of the change of the text
+    /// (sizes of the objects of the 64-bit runtime; the shares were found by the sampling of the allocation ticks of the runtime, by type, over 200000 frames, and the sum is the measured total):<list type="bullet">
+    /// <item><see cref="TypingCaretGeometryBytes"/>: the geometry that the caret reads, <c>TextRenderInfo</c> built again at each change: a <c>LineRenderInfo</c> (48 B), its list (32 B) and the array of
+    /// its characters (120 B), 200 B per change, measured on its own by the test of the rebuild. The objects are not reused because the caret and its readers keep references to them.</item>
+    /// <item><see cref="TypingTextChangedArgsBytes"/>: the arguments of <c>MGTextBox.TextChanged</c> (32 B per change), which <c>TextRenderInfo</c> listens to.</item>
+    /// <item><see cref="TypingLayoutBoundsArgsBytes"/>: the arguments of the layout bounds change event of the text block, which the new text makes (48 B per change).</item>
+    /// <item><see cref="TypingEscapedTextBytes"/>: the markup text of "a" that <c>FTTokenizer.EscapeMarkdown</c> builds (a <c>StringBuilder</c>, its chunk and its result string, 128 B; the empty text allocates nothing),
+    /// measured on its own by the test of the new text.</item>
+    /// <item><see cref="TypingNewTextStringBytes"/>: the string "a" that the key makes (24 B, only by the key A: Backspace makes the empty string, which is not allocated).</item></list>
+    /// When one of these changes, update the part and the sum with the value that the failure message gives.</summary>
+    private const long TypingBytes = 178000;
+
+    private const long TypingCaretGeometryBytes = 100000;
+    private const long TypingTextChangedArgsBytes = 16000;
+    private const long TypingLayoutBoundsArgsBytes = 24000;
+    private const long TypingEscapedTextBytes = 32000;
+    private const long TypingNewTextStringBytes = 6000;
 
     [Fact]
-    public void TextBoxWithTheFocus_Update_WhileTyping_AllocatesOnlyTheNewTextLayout()
+    public void TextBoxWithTheFocus_Update_WhileTyping_AllocatesOnlyTheResultsOfTheChangeOfTheText()
     {
+        Assert.Equal(TypingBytes, TypingCaretGeometryBytes + TypingTextChangedArgsBytes + TypingLayoutBoundsArgsBytes + TypingEscapedTextBytes + TypingNewTextStringBytes);
         foreach (bool steadyCaret in new[] { false, true })
         {
             FrameBytes typing = MeasureTextBox(steadyCaret, true);
             Assert.True(typing.UpdateTotal == TypingBytes,
                 $"typing allocates {typing.UpdateTotal} B over {typing.Iterations} frames, expected {TypingBytes}");
         }
+    }
+
+    /// <summary>The part of the typing remainder that the caret keeps: building the geometry again (<c>TextRenderInfo.UpdateLines</c>), for a text that the internal layout of the text block lays out,
+    /// allocates the line, its list and the array of its characters, 200 B for a text of up to 4 characters (and the empty text, whose single character is a placeholder), and nothing else: the public
+    /// lines of the text block (<c>MGTextBlock.Lines</c>) are not built, which the legacy line parser did for about 1.6 KB.</summary>
+    [Fact]
+    public void TextBoxWithTheFocus_CaretGeometryRebuild_AllocatesOnlyTheLineThatTheCaretKeeps()
+    {
+        TextBoxScene scene = CreateTextBoxScene(true);
+        TextRenderInfo info = scene.TextBox.TextRenderInfo;
+        Action rebuild = typeof(TextRenderInfo).GetMethod("UpdateLines", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, Type.EmptyTypes, null)!.CreateDelegate<Action>(info);
+        foreach (string text in new[] { "", "a", "abc" })
+        {
+            scene.TextBox.SetText(text);
+            scene.Bench.Frames(3);
+            Assert.NotNull(scene.TextBox.TextBlockComponent.Element.KnownFormattedLines);
+            for (int i = 0; i < 200; i++)
+            {
+                rebuild();
+            }
+
+            long before = AllocationWindow.Start();
+            for (int i = 0; i < FrameAllocationMeter.MeasuredFrames; i++)
+            {
+                rebuild();
+            }
+
+            long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.True(bytes == FrameAllocationMeter.MeasuredFrames * 200L, $"text \"{text}\": {bytes} B over {FrameAllocationMeter.MeasuredFrames} rebuilds, expected {FrameAllocationMeter.MeasuredFrames * 200L}");
+        }
+    }
+
+    /// <summary>The part of the typing remainder that is the new text: the markup text of "a" is 128 B (a <c>StringBuilder</c>, its chunk, its result), the empty text allocates nothing.</summary>
+    [Fact]
+    public void EscapeMarkdown_OfTheTypedText_AllocatesTheMarkupTextOnly()
+    {
+        string text = "a".ToString();
+        for (int i = 0; i < 200; i++)
+        {
+            _ = FTTokenizer.EscapeMarkdown(text);
+            _ = FTTokenizer.EscapeMarkdown("");
+        }
+
+        long before = AllocationWindow.Start();
+        for (int i = 0; i < FrameAllocationMeter.MeasuredFrames; i++)
+        {
+            _ = FTTokenizer.EscapeMarkdown(text);
+        }
+
+        long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(bytes == FrameAllocationMeter.MeasuredFrames * 128L, $"{bytes} B over {FrameAllocationMeter.MeasuredFrames} escapes of \"a\", expected {FrameAllocationMeter.MeasuredFrames * 128L}");
+
+        before = AllocationWindow.Start();
+        for (int i = 0; i < FrameAllocationMeter.MeasuredFrames; i++)
+        {
+            _ = FTTokenizer.EscapeMarkdown("");
+        }
+
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 }

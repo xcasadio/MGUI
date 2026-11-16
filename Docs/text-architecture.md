@@ -29,6 +29,16 @@ MGUI n'est pas une replique WPF : pas de `FlowDocument`, pas de document objet. 
 
 Invariant : la logique clavier partageable est extraite dans `MGUI.Core/UI/TextEditing/MGTextEditingInputHelpers.cs` (`ShouldPreserveTextEntryKey`, `ShouldProcessRepeatedKey`, `IsControlShortcutKey`, `NormalizeEditableCaretIndex`) et la pile undo generique dans `MGTextUndoStack<T>`. `MGTextBox` les consomme via des forwards statiques ; ne pas re-inliner ces helpers dans le controle.
 
+## Geometrie du curseur (TextRenderInfo)
+
+`MGUI.Core/UI/Text/TextRenderInfo.cs` calcule la geometrie que le curseur, la selection et les clics lisent : une `LineRenderInfo` par ligne, une `CharRenderInfo` par caractere (position, largeur, index dans le texte d'origine, index dans le texte analyse). Elle est refaite a chaque changement de texte ou de bornes du bloc interne (ADR-0037).
+
+- Un bloc qui a une mise en page interne (texte sans balise : `PlainTextLayout` ; texte a balises : `FormattedTextLayout`, le cas d'un `MGTextBox`, dont le texte est echappe puis balise) donne lui-meme la table des index d'origine : chaque morceau garde l'index de son premier caractere (`OriginalStart`) et la marque du tiret que le retour a la ligne insere (`HasSuffix`, qui prend l'index du caractere suivant) ; chaque ligne garde le nombre de caracteres de son saut de ligne et l'index qui suit son dernier caractere. `AppendOriginalIndices` ecrit la table d'une ligne, entree par entree comme `MGTextLine.OriginalCharacterIndices`. `MGTextBlock.Lines` n'est ni lu ni construit.
+- Un bloc qui a des runs explicites (un `MGRichTextBox` avec des segments styles ou un colorateur ; une simple selection n'en pose pas, elle s'ecrit en balises) n'a pas de mise en page interne : `TextRenderInfo` lit `MGTextBlock.Lines`, comme avant.
+- Le choix du bord d'un caractere par `MGTextCaret.MoveToApproximateScreenPosition` ne lit plus la `MGTextLine` de la ligne : `LineRenderInfo.HasSource` (faux pour l'unique ligne d'un texte sans ligne) et `HasOnlyEmptyText` (vrai pour une ligne vide, dont l'unique caractere est un substitut) le disent.
+- `TextRenderInfo` garde un `List<int>` pour la table de la ligne en cours ; les objets de geometrie (`LineRenderInfo`, sa liste, le tableau de ses caracteres, 200 octets pour une ligne de 4 caracteres au plus) sont refaits a chaque changement : le curseur et ses lecteurs gardent des references vers eux.
+- Mesure : une frappe dans un `MGTextBox` qui a le focus alloue 356 octets de `Update` (2600 avant), tous des resultats du changement de texte (geometrie 200, arguments de `TextChanged` 32, arguments du changement de bornes 48, texte balise de "a" 64 en moyenne, chaine de la touche 12 en moyenne ; `ControlFamilyZeroAllocationTests`).
+
 ## MGRichTextBox
 
 `MGUI.Core/UI/MGRichTextBox.cs` derive de `MGTextBox` et reutilise integralement son pipeline input/caret/undo. Contrats :
@@ -154,7 +164,7 @@ if (value.TryFormat(_valueChars, out int written, "F2", CultureInfo.InvariantCul
 ```
 
 - `SetText(ReadOnlySpan<char>)` equivaut a `Text = ...` (`RelayoutParent`) ; `SetText(ReadOnlySpan<char>, MGTextInvalidationMode)` suit les regles de la section precedente. Le bloc copie les caracteres : le tampon de l'appelant est reutilisable des le retour.
-- `Text`, `Runs` et `Lines` restent disponibles. Ils sont construits a la lecture : les lire apres chaque changement realloue (une `string`, des `MGTextRun`, des `MGTextLine`). Ne pas les lire dans un chemin chaud.
+- `Text`, `Runs` et `Lines` restent disponibles. Ils sont construits a la lecture : les lire apres chaque changement realloue (une `string`, des `MGTextRun`, des `MGTextLine`). Ne pas les lire dans un chemin chaud. `TextRenderInfo` (geometrie du curseur de `MGTextBox`) ne lit plus `Lines` quand le bloc a une mise en page interne (ADR-0037).
 - Moteurs de texte : `SpriteFontTextEngine`, `FontStashSharpTextEngine` et `DrawTransaction` mesurent et dessinent un `ReadOnlySpan<char>` sans allouer. Un autre moteur ou un autre contexte de dessin herite de l'implementation par defaut, qui construit une `string` par appel : il doit redefinir les surcharges `ReadOnlySpan<char>` pour garder le zero.
 
 Ce qui est a zero allocation, apres echauffement (`MGUI.Core/UI/MGTextBlock.cs`, `MGUI.Core/UI/Text/PlainTextLayout.cs`, `FormattedTextScanner.cs`, `FormattedTextRuns.cs`, `FormattedTextLayout.cs`, `TextBoundsTracker.cs`) :
@@ -188,6 +198,7 @@ Balisage invalide (ADR-0030) : un `[` qui n'ouvre pas une balise bien formee (ty
 - `MGUI.Tests/Text/RichTextBox*Tests.cs` : buffer, modele d'edition, helpers input, controleur, highlighter, modele de completion, popup, runs styles ; plus `MGUI.Tests/Architecture/RichTextBoxShellTests.cs`.
 - `MGUI.Tests/Text/TextBlockInvalidationTests.cs` pour l'invalidation stable.
 - `MGUI.Tests/Text/PlainText*Tests.cs`, `FormattedText*Tests.cs`, `TextRevealAllocationTests.cs`, `TextBoundsTrackerTests.cs` et `MGUI.Tests/Integration/TextSpanGpuTests.cs` (GPU reel) pour le texte sans allocation : tests a zero octet, chacun contre-teste, et tests differentiels contre `ForceLegacyTextPath`.
+- `MGUI.Tests/Text/TextBoxCaretGeometryTests.cs` (geometrie figee du curseur : caracteres, grille de points, navigation, 188 scenarios sur deux moteurs de texte ; expectations dans `TextBoxCaretGeometryFrozen.cs`, capturees avec la variable d'environnement `MGUI_CAPTURE_CARET_GEOMETRY`) et `MGUI.Tests/Text/OriginalIndexTableTests.cs` (la table d'index d'origine des mises en page contre `MGTextLine.OriginalCharacterIndices`, corpus et tirage a graine fixe).
 - Filtre utile : `dotnet test .\MGUI.Tests\MGUI.Tests.csproj --filter "RichTextBox|TextEditing|Syntax|Completion"`.
 
 ## Limites connues

@@ -3,16 +3,23 @@ using Microsoft.Xna.Framework;
 namespace MGUI.Core.UI.Text;
 
 /// <summary>A piece of text of a <see cref="PlainTextLine"/>: <see cref="Length"/> characters starting at <see cref="Start"/> in <see cref="PlainTextLayout"/>'s own character buffer.
-/// An empty piece (<see cref="Length"/> is 0) is the empty run that <see cref="MGTextLine.ParseLines(ITextMeasurer, double, bool, IEnumerable{MGTextRun}, bool)"/> puts in an empty line.</summary>
+/// An empty piece (<see cref="Length"/> is 0) is the empty run that <see cref="MGTextLine.ParseLines(ITextMeasurer, double, bool, IEnumerable{MGTextRun}, bool)"/> puts in an empty line.<para/>
+/// <see cref="OriginalStart"/> is the index, in the text the layout was built from, of the first character of the piece: its characters are consecutive in that text (the characters of the
+/// line breaks and of the words that wrapping drops included), except the last one when <see cref="HasSuffix"/> is true, a hyphen that wrapping inserted: it is not in the text,
+/// and takes the index of the character that follows the piece, as <see cref="MGTextLine.OriginalCharacterIndices"/> gives it.</summary>
 internal readonly struct PlainTextPiece
 {
     public readonly int Start;
     public readonly int Length;
+    public readonly int OriginalStart;
+    public readonly bool HasSuffix;
 
-    public PlainTextPiece(int Start, int Length)
+    public PlainTextPiece(int Start, int Length, int OriginalStart, bool HasSuffix)
     {
         this.Start = Start;
         this.Length = Length;
+        this.OriginalStart = OriginalStart;
+        this.HasSuffix = HasSuffix;
     }
 }
 
@@ -27,7 +34,13 @@ internal readonly struct PlainTextLine
     public readonly float TotalHeight;
     public readonly bool EndsInLinebreak;
 
-    public PlainTextLine(int FirstPiece, int PieceCount, float Width, float TextHeight, float TotalHeight, bool EndsInLinebreak)
+    /// <summary>The number of characters of the line break that ends the line (2 for "\r\n"), 0 when the line does not end in a line break.</summary>
+    public readonly int LineBreakCharacterCount;
+
+    /// <summary>The index, in the text the layout was built from, that follows the last character of the line (the first character of its line break when it has one).</summary>
+    public readonly int OriginalEnd;
+
+    public PlainTextLine(int FirstPiece, int PieceCount, float Width, float TextHeight, float TotalHeight, bool EndsInLinebreak, int LineBreakCharacterCount, int OriginalEnd)
     {
         this.FirstPiece = FirstPiece;
         this.PieceCount = PieceCount;
@@ -35,6 +48,8 @@ internal readonly struct PlainTextLine
         this.TextHeight = TextHeight;
         this.TotalHeight = TotalHeight;
         this.EndsInLinebreak = EndsInLinebreak;
+        this.LineBreakCharacterCount = LineBreakCharacterCount;
+        this.OriginalEnd = OriginalEnd;
     }
 }
 
@@ -75,6 +90,10 @@ internal sealed class PlainTextLayout
     private bool HasPreviousLine;
     private bool PreviousLineEndsInLinebreak;
     private bool IsTerminated;
+
+    //  The index in the text of the next character that a piece or a line break takes: what the counter of ParseLines (CurrentIndexInOriginalText) is, whether the characters end up in
+    //  a line or in a line that is ignored.
+    private int OriginalIndex;
 
     /// <summary>The settings of the text runs the lines were computed with.</summary>
     public MGTextRunConfig Settings { get; private set; }
@@ -118,6 +137,7 @@ internal sealed class PlainTextLayout
         HasPreviousLine = false;
         PreviousLineEndsInLinebreak = false;
         IsTerminated = false;
+        OriginalIndex = 0;
 
         if (KeepSource)
         {
@@ -173,13 +193,14 @@ internal sealed class PlainTextLayout
             if (Index < Text.Length)
             {
                 //  A line break run: "\r\n" is one line break, as the tokenizer's (\r\n|\r|\n) pattern matches it
-                Index += Text[Index] == '\r' && Index + 1 < Text.Length && Text[Index + 1] == '\n' ? 2 : 1;
+                var LineBreakLength = Text[Index] == '\r' && Index + 1 < Text.Length && Text[Index + 1] == '\n' ? 2 : 1;
+                Index += LineBreakLength;
                 if (CurrentPieceCount == 0)
                 {
                     AddPiece(ReadOnlySpan<char>.Empty, false);
                 }
 
-                FlushLine(true);
+                FlushLine(true, LineBreakLength);
             }
         }
 
@@ -344,14 +365,18 @@ internal sealed class PlainTextLayout
             Chars[CharCount + Text.Length] = MultiLineWordSuffix;
         }
 
-        Pieces.Add(new PlainTextPiece(CharCount, Length));
+        Pieces.Add(new PlainTextPiece(CharCount, Length, OriginalIndex, WithSuffix));
         CharCount += Length;
+        OriginalIndex += Text.Length;
         CurrentPieceCount++;
     }
 
     /// <summary>Ends the line being built: measures each of its pieces as a complete string, like <c>FlushLine</c> of <see cref="MGTextLine"/>.</summary>
-    private void FlushLine(bool EndsInLinebreak)
+    private void FlushLine(bool EndsInLinebreak, int LineBreakCharacterCount = 0)
     {
+        var OriginalEnd = OriginalIndex;
+        OriginalIndex += LineBreakCharacterCount;
+
         double WidthSum = 0;
         float TextHeight = 0;
         for (var i = 0; i < CurrentPieceCount; i++)
@@ -378,7 +403,7 @@ internal sealed class PlainTextLayout
         }
         else
         {
-            Lines.Add(new PlainTextLine(CurrentFirstPiece, CurrentPieceCount, Width, TextHeight, TotalHeight, EndsInLinebreak));
+            Lines.Add(new PlainTextLine(CurrentFirstPiece, CurrentPieceCount, Width, TextHeight, TotalHeight, EndsInLinebreak, LineBreakCharacterCount, OriginalEnd));
         }
 
         CurrentFirstPiece = Pieces.Count;
@@ -386,6 +411,47 @@ internal sealed class PlainTextLayout
         CurrentCharStart = CharCount;
         CurrentX = 0;
         CommittedRunsWidth = 0;
+    }
+
+    /// <summary>Appends to <paramref name="Destination"/> what <see cref="MGTextLine.OriginalCharacterIndices"/> holds for the line at <paramref name="LineIndex"/>: for each character of the line, the index of the
+    /// character in the text the layout was built from (the hyphen that wrapping inserted shares the index of the character that follows it), then one index for each character of the line break that
+    /// ends the line, or, when the line ends in no line break and has no character, one index (the one that follows the line).</summary>
+    public void AppendOriginalIndices(int LineIndex, List<int> Destination)
+    {
+        var Line = Lines[LineIndex];
+        var HasCharacters = false;
+        for (var i = 0; i < Line.PieceCount; i++)
+        {
+            var Piece = Pieces[Line.FirstPiece + i];
+            if (Piece.Length == 0)
+            {
+                continue;
+            }
+
+            HasCharacters = true;
+            var TextLength = Piece.HasSuffix ? Piece.Length - 1 : Piece.Length;
+            for (var k = 0; k < TextLength; k++)
+            {
+                Destination.Add(Piece.OriginalStart + k);
+            }
+
+            if (Piece.HasSuffix)
+            {
+                Destination.Add(Piece.OriginalStart + TextLength);
+            }
+        }
+
+        if (Line.EndsInLinebreak)
+        {
+            for (var i = 0; i < Line.LineBreakCharacterCount; i++)
+            {
+                Destination.Add(Line.OriginalEnd + i);
+            }
+        }
+        else if (!HasCharacters)
+        {
+            Destination.Add(Line.OriginalEnd);
+        }
     }
 
     private static int GrownLength(int Current, int Needed)

@@ -85,7 +85,7 @@ public class PlainTextDifferentialTests
         "word " + new string('w', 40) + " word " + new string('v', 30) + " tail",
     };
 
-    private static List<string> BuildCorpus()
+    internal static List<string> BuildCorpus()
     {
         List<string> texts = new(FixedTexts);
         Random random = new(20261114);
@@ -122,7 +122,7 @@ public class PlainTextDifferentialTests
     private static List<MGTextRun> LegacyRuns(string text, MGTextRunConfig settings)
         => MGTextRun.ParseRuns(FTTokenizer.TokenizeLineBreaks(text, true).ToList(), settings).ToList();
 
-    private sealed class Fixture
+    internal sealed class Fixture
     {
         public GraphTestRuntime Runtime { get; }
         public MGDesktop Desktop { get; }

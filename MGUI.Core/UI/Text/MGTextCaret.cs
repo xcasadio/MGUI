@@ -217,10 +217,11 @@ public class MGTextCaret
         //Debug.WriteLine($"{nameof(MGTextCaret)}: Move to screen position: {ScreenPosition}");
         if (TextRenderInfo.TryGetCharAtScreenPosition(ScreenPosition, out var CharInfo))
         {
-            var IsLeftEdge = ScreenPosition.X <= CharInfo.CenterX || !CharInfo.Line.HasCharacters || CharInfo.Line.Source == null;
+            //  The right half of a character is its right edge, unless the line has no text (the single character of an empty line is a placeholder): the line says so itself.
+            var IsLeftEdge = ScreenPosition.X <= CharInfo.CenterX || !CharInfo.Line.HasCharacters || !CharInfo.Line.HasSource;
             if (!IsLeftEdge)
             {
-                IsLeftEdge = CharInfo.Line.Source?.Runs.All(x => x is MGTextRunText r && string.IsNullOrEmpty(r.Text)) != false;
+                IsLeftEdge = CharInfo.Line.HasOnlyEmptyText;
             }
 
             return MoveToCharacter(CharInfo, IsLeftEdge);
