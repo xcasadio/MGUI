@@ -626,6 +626,42 @@ public abstract partial class MGSingleContentHost
 {
     private bool? _DrawsChildrenDirectly;
 
+    //  The children of the host as GetVisualTreeChildren gives them (the content, or nothing), kept between calls. The base implementation copies the iterator of GetChildren() into a new
+    //  list at each call for the (true, true) arguments, which is what a layout invalidation of a whole subtree (IsSelected) asks of every element of the subtree. The kept list holds what the
+    //  content is now, or it is replaced: it is compared with Content at each call, so that nothing has to tell this host that its content changed, and a list that was returned is never changed.
+    private List<MGElement> _KeptVisualTreeChildren;
+
+    /// <inheritdoc/>
+    public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool includeActive)
+    {
+        if (!includeActive)
+        {
+            return base.GetVisualTreeChildren(IncludeInactive, includeActive);
+        }
+
+        //  A host that overrides GetChildren() has children that this class does not know: the base implementation gives them.
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGSingleContentHost));
+        if (!_DrawsChildrenDirectly.Value)
+        {
+            return base.GetVisualTreeChildren(IncludeInactive, includeActive);
+        }
+
+        var content = Content;
+        var kept = _KeptVisualTreeChildren;
+        if (kept == null || (content == null ? kept.Count != 0 : (kept.Count != 1 || !ReferenceEquals(kept[0], content))))
+        {
+            kept = new List<MGElement>(1);
+            if (content != null)
+            {
+                kept.Add(content);
+            }
+
+            _KeptVisualTreeChildren = kept;
+        }
+
+        return kept;
+    }
+
     /// <summary>Draws the content. A host that does not override <see cref="GetChildren"/> draws <see cref="Content"/> directly (what the iterator of
     /// <see cref="GetChildren"/> would yield), which allocates nothing.</summary>
     protected override void DrawContents(ElementDrawArgs DA)

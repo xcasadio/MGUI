@@ -1825,6 +1825,27 @@ public class MGWindow : MGSingleContentHost
     }
     #endregion Constructors
 
+    #region End of draw of the submenus
+    //  The context menus created in this window draw their active submenu at the end of this window's draw, over its content. They used to subscribe to OnEndDraw of this window for it,
+    //  which made every draw of the window build the event arguments; the window now draws them from the hook that runs just before OnEndDraw (so, as before, before the subscribers
+    //  that came after the menus). A menu is kept for as long as the window, as the subscription was.
+    private List<MGContextMenu> _EndDrawSubmenuHosts;
+
+    internal void AddEndDrawSubmenuHost(MGContextMenu menu) => (_EndDrawSubmenuHosts ??= new()).Add(menu);
+
+    internal override void EndDrawInternal(ElementDrawArgs DA)
+    {
+        var hosts = _EndDrawSubmenuHosts;
+        if (hosts != null)
+        {
+            for (var i = 0; i < hosts.Count; i++)
+            {
+                hosts[i].DrawActiveSubmenus(DA);
+            }
+        }
+    }
+    #endregion End of draw of the submenus
+
     #region Update hooks
     //  What this window used to do in handlers it subscribed to its own update events (an event subscription makes every Update create an
     //  ElementUpdateEventArgs): the same code, at the same point of Update, still before the handlers other code subscribed.

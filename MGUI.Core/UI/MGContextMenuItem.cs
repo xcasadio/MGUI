@@ -247,6 +247,33 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
 
     protected MGDockPanel Container { get; }
 
+    //  The container draws the submenu arrow of the item at its end of draw, where the item used to subscribe to the OnEndDraw of the container (a subscription makes every draw of the
+    //  container build the event arguments): from the hook that runs just before OnEndDraw, so still before the handlers other code subscribed.
+    private sealed class ItemContainer : MGDockPanel
+    {
+        private readonly MGWrappedContextMenuItem Item;
+
+        public ItemContainer(MGWindow window, MGWrappedContextMenuItem item)
+            : base(window)
+        {
+            Item = item;
+        }
+
+        internal override void EndDrawInternal(ElementDrawArgs DA)
+        {
+            base.EndDrawInternal(DA);
+            Item.DrawSubmenuArrow(DA);
+        }
+    }
+
+    private void DrawSubmenuArrow(ElementDrawArgs DA)
+    {
+        Rectangle ArrowElementFullBounds = SubmenuArrowElement.LayoutBounds;
+        Rectangle ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(SubmenuArrowWidth, SubmenuArrowHeight));
+        UISymbolDrawing.DrawFilledTriangleArrow(DA.DT, DA.Offset.ToVector2(), ArrowPartBounds, UITriangleArrowDirection.Right,
+            GetTheme().DropdownArrowColor * DA.Opacity);
+    }
+
     /// <summary>The width of the dropdown arrow that appears on the right-edge of a <see cref="MGContextMenuItem"/> that has a nested <see cref="Submenu"/></summary>
     public const int SubmenuArrowWidth = 5;
     /// <summary>The height of the dropdown arrow that appears on the right-edge of a <see cref="MGContextMenuItem"/> that has a nested <see cref="Submenu"/></summary>
@@ -363,7 +390,7 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
         : base(Menu, ItemType)
     {
         IsFocusable = true;
-        Container = new(Menu);
+        Container = new ItemContainer(Menu, this);
         Container.ManagedParent = this;
         Container.CanChangeContent = false;
         Container.IsHitTestVisible = false;
@@ -422,14 +449,6 @@ public abstract class MGWrappedContextMenuItem : MGContextMenuItem
         SubmenuArrowComponent = new(SubmenuArrowElement, true, true, false, false, false, false, false,
             (AvailableBounds, ComponentSize) => ApplyAlignment(AvailableBounds, HorizontalAlignment.Right, VerticalAlignment.Center, ComponentSize.Size));
         AddComponent(SubmenuArrowComponent);
-
-        Container.OnEndDraw += (sender, e) =>
-        {
-            Rectangle ArrowElementFullBounds = SubmenuArrowElement.LayoutBounds;
-            Rectangle ArrowPartBounds = ApplyAlignment(ArrowElementFullBounds, HorizontalAlignment.Center, VerticalAlignment.Center, new Size(SubmenuArrowWidth, SubmenuArrowHeight));
-            UISymbolDrawing.DrawFilledTriangleArrow(e.DA.DT, e.DA.Offset.ToVector2(), ArrowPartBounds, UITriangleArrowDirection.Right,
-                GetTheme().DropdownArrowColor * e.DA.Opacity);
-        };
 
         Submenu = null;
 

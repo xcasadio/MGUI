@@ -161,7 +161,7 @@ public class ControlFamilyZeroAllocationTests
     // ---- MGListBox and MGListView of 50 items ----
 
     /// <summary>A list control of 50 items in the window, with two adjacent items for the mouse to alternate between (the centers of two rows).</summary>
-    private sealed record ListScene(ControlBench Bench, Point First, Point Second)
+    private sealed record ListScene(ControlBench Bench, Point First, Point Second, Point? Rest = null)
     {
         public Action<int> Alternate => frame => Bench.Mouse = (frame & 1) == 0 ? First : Second;
     }
@@ -276,11 +276,11 @@ public class ControlFamilyZeroAllocationTests
             }
         }
 
-        Record("rest", ControlBench.OutsideTheWindow);
+        Record("rest", scene.Rest ?? ControlBench.OutsideTheWindow);
         Record("first item", scene.First);
         Record("second item", scene.Second);
         Record("first item again", scene.First);
-        Record("rest again", ControlBench.OutsideTheWindow);
+        Record("rest again", scene.Rest ?? ControlBench.OutsideTheWindow);
         return journal;
     }
 
@@ -415,5 +415,185 @@ public class ControlFamilyZeroAllocationTests
         //  The lists returned before the selection changed still hold what they held.
         Assert.Equal(new MGElement[] { two, three, one }, all);
         Assert.Equal(new MGElement[] { one }, active);
+    }
+
+    // ---- MGContextMenu and MGMenuBar ----
+
+    private static MGContextMenu CreateMenu(MGWindow window, int itemCount)
+    {
+        MGContextMenu menu = new(window, "");
+        for (int i = 0; i < itemCount; i++)
+        {
+            menu.AddButton($"Action {i}", _ => { });
+        }
+
+        return menu;
+    }
+
+    private static ListScene CreateContextMenuScene(bool checkHover = false)
+    {
+        ControlBench bench = new();
+        bench.Show(new MGTextBlock(bench.Window, "under the menu"));
+        MGContextMenu menu = CreateMenu(bench.Window, 6);
+        Assert.True(bench.Desktop.TryOpenContextMenu(menu, new Point(60, 60)));
+        bench.Frames(3);
+        Assert.True(menu.IsContextMenuOpen);
+        ListScene scene = new(bench, menu.Items[1].ActualLayoutBounds.Center, menu.Items[2].ActualLayoutBounds.Center);
+        Assert.NotEqual(scene.First, scene.Second);
+        if (checkHover)
+        {
+            //  Hovering an item then leaving the menu closes it: the states that measure the mouse outside do not hover first.
+            bench.AssertHovers(menu, menu.Items[1], scene.First);
+            bench.AssertHovers(menu, menu.Items[2], scene.Second);
+            Assert.True(menu.IsContextMenuOpen);
+        }
+
+        return scene;
+    }
+
+    private static ListScene CreateMenuBarScene()
+    {
+        ControlBench bench = new();
+        MGMenuBar menuBar = new(bench.Window) { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Top };
+        MGMenuBarItem file = menuBar.AddItem("File", item => item.Submenu = CreateMenu(bench.Window, 4));
+        MGMenuBarItem edit = menuBar.AddItem("Edit", item => item.Submenu = CreateMenu(bench.Window, 4));
+        menuBar.AddItem("View", item => item.Submenu = CreateMenu(bench.Window, 4));
+        bench.Show(menuBar);
+        ListScene scene = new(bench, file.ActualLayoutBounds.Center, edit.ActualLayoutBounds.Center);
+        Assert.NotEqual(scene.First, scene.Second);
+        bench.AssertHovers(bench.Window, file, scene.First);
+        bench.AssertHovers(bench.Window, edit, scene.Second);
+        bench.Mouse = ControlBench.OutsideTheWindow;
+        bench.Frames(2);
+        Assert.False(menuBar.IsMenuActive);
+        return scene;
+    }
+
+    private static ListScene CreateMenuBarDropdownScene()
+    {
+        ControlBench bench = new();
+        MGMenuBar menuBar = new(bench.Window) { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Top };
+        MGMenuBarItem file = menuBar.AddItem("File", item => item.Submenu = CreateMenu(bench.Window, 4));
+        MGMenuBarItem edit = menuBar.AddItem("Edit", item => item.Submenu = CreateMenu(bench.Window, 4));
+        menuBar.AddItem("View", item => item.Submenu = CreateMenu(bench.Window, 4));
+        bench.Show(menuBar);
+
+        //  The dropdown of the first item open (clicked), mouse over two of its entries.
+        bench.Mouse = file.ActualLayoutBounds.Center;
+        bench.Left = Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+        bench.Frame();
+        bench.Left = Microsoft.Xna.Framework.Input.ButtonState.Released;
+        bench.Frames(3);
+        Assert.True(menuBar.IsMenuActive);
+        MGContextMenu dropdown = file.Submenu;
+        Assert.True(dropdown.IsContextMenuOpen);
+        ListScene scene = new(bench, dropdown.Items[1].ActualLayoutBounds.Center, dropdown.Items[2].ActualLayoutBounds.Center, dropdown.Items[1].ActualLayoutBounds.Center);
+        Assert.NotEqual(scene.First, scene.Second);
+        bench.AssertHovers(dropdown, dropdown.Items[1], scene.First);
+        bench.AssertHovers(dropdown, dropdown.Items[2], scene.Second);
+        Assert.True(menuBar.IsMenuActive);
+        return scene;
+    }
+
+    //  Context menu open, the mouse outside it (the menu stays open).
+    [Fact]
+    public void ContextMenuOpen_Update_WithTheMouseOutside_AllocatesNothing() => Assert.Equal(0, MeasureList("MGContextMenu", CreateContextMenuScene(), false).UpdateTotal);
+
+    [Fact]
+    public void ContextMenuOpen_Draw_WithTheMouseOutside_AllocatesNothing() => Assert.Equal(0, MeasureList("MGContextMenu", CreateContextMenuScene(), false).DrawTotal);
+
+    [Fact]
+    public void ContextMenuOpen_Update_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGContextMenu", CreateContextMenuScene(true), true).UpdateTotal);
+
+    [Fact]
+    public void ContextMenuOpen_Draw_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGContextMenu", CreateContextMenuScene(true), true).DrawTotal);
+
+    [Fact]
+    public void MenuBarClosed_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGMenuBar", CreateMenuBarScene(), false).UpdateTotal);
+
+    [Fact]
+    public void MenuBarClosed_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGMenuBar", CreateMenuBarScene(), false).DrawTotal);
+
+    [Fact]
+    public void MenuBarClosed_Update_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGMenuBar", CreateMenuBarScene(), true).UpdateTotal);
+
+    [Fact]
+    public void MenuBarClosed_Draw_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGMenuBar", CreateMenuBarScene(), true).DrawTotal);
+
+    [Fact]
+    public void MenuBarDropdownOpen_Update_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGMenuBar dropdown open", CreateMenuBarDropdownScene(), true).UpdateTotal);
+
+    [Fact]
+    public void MenuBarDropdownOpen_Draw_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGMenuBar dropdown open", CreateMenuBarDropdownScene(), true).DrawTotal);
+
+    [Fact]
+    public void ContextMenuOpen_DrawJournal_OutsideAndOnHover()
+        => FrozenJournal.Assert("context menu draw journal", 1440, "8C19560187849240", ListDrawJournal(CreateContextMenuScene()));
+
+    [Fact]
+    public void MenuBarClosed_DrawJournal_AtRestAndOnHover()
+        => FrozenJournal.Assert("menu bar draw journal", 1111, "8491EDE04F750CF0", ListDrawJournal(CreateMenuBarScene()));
+
+    [Fact]
+    public void MenuBarDropdownOpen_DrawJournal_OnHover()
+        => FrozenJournal.Assert("menu bar dropdown draw journal", 1983, "C9B27046C894BB4E", ListDrawJournal(CreateMenuBarDropdownScene()));
+
+    // ---- The kept arguments and lists that the menu fixes rely on ----
+
+    /// <summary>The visual tree children of a single content host follow its content: the list that was returned before the content changed is not changed by it.</summary>
+    [Fact]
+    public void SingleContentHost_VisualTreeChildren_FollowTheContent()
+    {
+        ControlBench bench = new();
+        MGButton button = new(bench.Window);
+        Assert.Empty(button.GetVisualTreeChildren(true, true));
+        Assert.Empty(button.GetVisualTreeChildren(false, true));
+
+        MGTextBlock first = new(bench.Window, "first");
+        button.SetContent(first);
+        IReadOnlyList<MGElement> withFirst = button.GetVisualTreeChildren(true, true);
+        Assert.Same(first, Assert.Single(withFirst));
+        Assert.Same(withFirst, button.GetVisualTreeChildren(true, true));
+        Assert.Same(first, Assert.Single(button.GetVisualTreeChildren(false, true)));
+        Assert.Empty(button.GetVisualTreeChildren(true, false));
+
+        MGTextBlock second = new(bench.Window, "second");
+        button.SetContent(second);
+        Assert.Same(second, Assert.Single(button.GetVisualTreeChildren(true, true)));
+        Assert.Same(first, Assert.Single(withFirst));
+    }
+
+    /// <summary>The arguments of VisualStateChanged hold the two states of the change, whatever instance carries them.</summary>
+    [Fact]
+    public void VisualStateChanged_ArgumentsHoldTheTwoStates()
+    {
+        ControlBench bench = new();
+        MGButton button = new(bench.Window);
+        button.SetContent("button");
+        bench.Show(button);
+        List<(VisualState Previous, VisualState New)> changes = new();
+        button.VisualStateChanged += (sender, e) =>
+        {
+            Assert.Same(button, sender);
+            changes.Add((e.PreviousValue, e.NewValue));
+        };
+
+        Point inside = button.ActualLayoutBounds.Center;
+        for (int i = 0; i < 3; i++)
+        {
+            bench.Mouse = inside;
+            bench.Frames(2);
+            bench.Mouse = ControlBench.OutsideTheWindow;
+            bench.Frames(2);
+        }
+
+        Assert.Equal(6, changes.Count);
+        for (int i = 0; i < changes.Count; i += 2)
+        {
+            Assert.Equal(SecondaryVisualState.None, changes[i].Previous.Secondary);
+            Assert.Equal(SecondaryVisualState.Hovered, changes[i].New.Secondary);
+            Assert.Equal(changes[i].New, changes[i + 1].Previous);
+            Assert.Equal(SecondaryVisualState.None, changes[i + 1].New.Secondary);
+        }
     }
 }

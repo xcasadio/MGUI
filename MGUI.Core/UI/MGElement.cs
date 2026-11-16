@@ -2971,9 +2971,28 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 var Previous = VisualState;
                 _visualState = value;
                 NotifyPropertyChanged(nameof(VisualState));
-                VisualStateChanged?.Invoke(this, new(Previous, VisualState));
+                VisualStateChanged?.Invoke(this, GetVisualStateChangedArgs(Previous, VisualState));
             }
         }
+    }
+
+    //  The arguments of VisualStateChanged, one per pair of states, made when a pair is first raised: the arguments are read-only and hold only the two states, so the instance of an earlier
+    //  raise with the same pair stands in for a new one (a hover that moves from element to element changes the state of two elements at every frame). 4 x 3 states give 144 pairs.
+    private static readonly EventArgs<VisualState>[] _VisualStateChangedArgs = new EventArgs<VisualState>[12 * 12];
+
+    private static int VisualStateIndex(VisualState state)
+        => (uint)state.Primary < 4u && (uint)state.Secondary < 3u ? (int)state.Primary * 3 + (int)state.Secondary : -1;
+
+    private static EventArgs<VisualState> GetVisualStateChangedArgs(VisualState previous, VisualState current)
+    {
+        var previousIndex = VisualStateIndex(previous);
+        var currentIndex = VisualStateIndex(current);
+        if (previousIndex < 0 || currentIndex < 0)
+        {
+            return new(previous, current);
+        }
+
+        return _VisualStateChangedArgs[previousIndex * 12 + currentIndex] ??= new(previous, current);
     }
 
     /// <summary>Invoked when <see cref="VisualState"/> changes.</summary>
@@ -3772,7 +3791,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             LayoutBounds = LayoutBounds.GetTranslated(Offset);
             StretchedContentBounds = StretchedContentBounds.GetTranslated(Offset);
             AlignedContentBounds = AlignedContentBounds.GetTranslated(Offset);
-            OnLayoutBoundsChanged?.Invoke(this, new(PreviousLayoutBounds, LayoutBounds));
+            OnLayoutBoundsChanged?.Invoke(this, GetLayoutBoundsChangedArgs(PreviousLayoutBounds, LayoutBounds));
         }
     }
 
@@ -5468,6 +5487,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         TempTransform.Dispose();
 
+        EndDrawInternal(DA);
         if (OnEndDraw != null)
         {
             DrawEventArgs ??= new(DA);
@@ -5480,6 +5500,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     /// <summary>Called just before <see cref="OnEndingDraw"/> is invoked, so that an element that has something to draw there does not have to subscribe to its own event
     /// (a subscriber makes every draw of the element build the event arguments).</summary>
     internal virtual void EndingDrawInternal(ElementDrawArgs DA) { }
+
+    /// <summary>Called just before <see cref="OnEndDraw"/> is invoked (so before any subscriber outside of the element), for the same reason as <see cref="EndingDrawInternal"/>.</summary>
+    internal virtual void EndDrawInternal(ElementDrawArgs DA) { }
 
     [DebuggerStepThrough]
     public class MGElementDrawEventArgs : EventArgs
@@ -5908,7 +5931,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             IsLayoutValid = true;
             OnLayoutUpdated?.Invoke(this, EventArgs.Empty);
-            OnLayoutBoundsChanged?.Invoke(this, new(PreviousLayoutBounds, LayoutBounds));
+            OnLayoutBoundsChanged?.Invoke(this, GetLayoutBoundsChangedArgs(PreviousLayoutBounds, LayoutBounds));
         }
         finally
         {
@@ -5996,6 +6019,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     public event EventHandler<EventArgs> OnLayoutUpdated;
     public event EventHandler<EventArgs<Rectangle>> OnLayoutBoundsChanged;
+
+    //  The arguments of the last raise of OnLayoutBoundsChanged, kept: they are read-only and hold only the two rectangles, and a layout pass raises the event even when the bounds did
+    //  not change (previous and new bounds the same), so a layout that finds the same bounds again, at each frame of a hover that invalidates it, gets the same arguments.
+    private EventArgs<Rectangle> _LastLayoutBoundsChangedArgs;
+
+    private EventArgs<Rectangle> GetLayoutBoundsChangedArgs(Rectangle previous, Rectangle current)
+    {
+        var args = _LastLayoutBoundsChangedArgs;
+        if (args == null || args.PreviousValue != previous || args.NewValue != current)
+        {
+            args = _LastLayoutBoundsChangedArgs = new(previous, current);
+        }
+
+        return args;
+    }
 
     protected virtual void UpdateContentLayout(Rectangle Bounds) { }
     #endregion Arrange

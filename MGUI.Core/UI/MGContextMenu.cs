@@ -902,32 +902,14 @@ public class MGContextMenu : MGWindow, IContextMenuHost
             {
                 //  If the ContextMenu is inside of another Window, don't draw the submenu until after the parent window is done drawing,
                 //  so that the submenu is overtop of the rest of the parent window's content
-                ParentWindow.OnEndDraw += (sender, e) =>
-                {
-                    //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
-                    //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
-                    using (e.DA.DT.PushRectangleClip(null, false))
-                    {
-                        ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
-                        //  Y8: an exiting submenu keeps being drawn (never updated) until its run ends.
-                        _ExitingSubmenu?.Draw(e.DA.AsZeroOffset());
-                    }
-                };
+                //  (The window draws it from its end-of-draw hook, see MGWindow.AddEndDrawSubmenuHost: a subscription to OnEndDraw makes every draw of the window build the event arguments.)
+                ParentWindow.AddEndDrawSubmenuHost(this);
             }
             else
             {
                 //  If the ContextMenu is its own root-level window, draw the submenu immediately after we're done drawing this ContextMenu
-                OnEndDraw += (sender, e) =>
-                {
-                    //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
-                    //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
-                    using (e.DA.DT.PushRectangleClip(null, false))
-                    {
-                        ActiveContextMenu?.Draw(e.DA.AsZeroOffset());
-                        //  Y8: an exiting submenu keeps being drawn (never updated) until its run ends.
-                        _ExitingSubmenu?.Draw(e.DA.AsZeroOffset());
-                    }
-                };
+                //  (from the end-of-draw hook below, for the same reason).
+                _DrawsSubmenusAtItsOwnEndDraw = true;
             }
 
             //  Spaghetti logic for cases where you nest a ContextMenu directly inside of a Window,
@@ -941,11 +923,6 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                     InvokeWindowPositionChanged(PreviousPosition, PreviousPosition + Offset);
                 };
             }
-
-            OnBeginUpdateContents += (sender, e) =>
-            {
-                ActiveContextMenu?.Update(e.UA.AsZeroOffset());
-            };
 
             SubmenuOpened += (sender, e) =>
             {
@@ -984,6 +961,37 @@ public class MGContextMenu : MGWindow, IContextMenuHost
                     TryCloseContextMenu();
                 }
             };
+        }
+    }
+
+    //  What this menu used to do in handlers it subscribed to its own events (a subscription makes every Update or every draw build the event arguments): the same code, at the same
+    //  point, still before the handlers other code subscribed.
+    private bool _DrawsSubmenusAtItsOwnEndDraw;
+
+    internal override void BeginUpdateContentsInternal(ElementUpdateArgs UA)
+    {
+        base.BeginUpdateContentsInternal(UA);
+        ActiveContextMenu?.Update(UA.AsZeroOffset());
+    }
+
+    internal override void EndDrawInternal(ElementDrawArgs DA)
+    {
+        base.EndDrawInternal(DA);
+        if (_DrawsSubmenusAtItsOwnEndDraw)
+        {
+            DrawActiveSubmenus(DA);
+        }
+    }
+
+    internal void DrawActiveSubmenus(ElementDrawArgs DA)
+    {
+        //  The submenu must escape the host window's currently active clip: it is drawn at the end of the frame
+        //  on top of the host window's content, whose clip may be restricted to the host bounds while the submenu may extend past them.
+        using (DA.DT.PushRectangleClip(null, false))
+        {
+            ActiveContextMenu?.Draw(DA.AsZeroOffset());
+            //  Y8: an exiting submenu keeps being drawn (never updated) until its run ends.
+            _ExitingSubmenu?.Draw(DA.AsZeroOffset());
         }
     }
 
