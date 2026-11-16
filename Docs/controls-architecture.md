@@ -151,6 +151,20 @@ Environ 40 fichiers dans `MGUI.Core/UI/Color/`. Utilisation : `Docs/mgui_colorpi
 
 `MGUI.Core/UI/MGSlider.cs` : un changement de valeur leve `ValueChanged` (un `EventArgs<float>` alloue par changement tant qu'il a des abonnes) puis `ValueChangedNonAlloc` (`EventHandler<(float PreviousValue, float NewValue)>`, sans allocation), avec les memes valeurs ; le label de valeur est deja a jour quand ils sont leves. Le label (`ShowValueLabel`, `ValueLabelFormat`) est formate par `float.TryFormat` dans un tampon prive, et une chaine n'est construite que si le texte affiche change. `DrawSelf` dessine la surcouche de survol et de glissement sans liste. `MGUI.Core/UI/Color/MGColorSlider.cs` suit le meme modele : `ValueChangedNonAlloc` et `ValueChangingNonAlloc`. Un glissement de slider n'alloue rien sur son propre chemin, de l'entree au dessin (ADR-0022) ; un texte de label qui change vraiment alloue encore (chaine et pipeline de `MGTextBlock`).
 
+## Allocation par image des controles
+
+Mesure et cible (`MGUI.Tests/Architecture/ControlFamilyAllocationMeasurements.cs` pour les chiffres, `ControlFamilyZeroAllocationTests.cs` pour les affirmations) : `MGDesktop.Update` puis `MGDesktop.Draw` allouent 0 octet par image, total exact sur 500 images apres 500 de chauffe, au repos et pendant l'interaction nommee. Sont a zero : `MGScrollViewer` au repos, `MGListBox`, `MGListView`, `MGTreeView`, `MGTabControl`, `MGContextMenu`, `MGMenuBar` (repos et survol), `MGGrid` avec une selection au repos, `MGDockHost` au repos (separations, masquage automatique, onglet cache), `MGTextBox` avec le focus au repos, fenetre en `SizeToContent`.
+
+Regles tirees de ce travail, a suivre dans un nouveau controle :
+
+- pas d'abonnement d'un element a ses propres evenements `OnBeginUpdate`, `OnBeginUpdateContents`, `OnEndDraw` : un abonne fait construire les arguments de l'evenement a chaque image. Utiliser les crochets internes `BeginUpdateInternal`, `BeginUpdateContentsInternal`, `EndingDrawInternal`, `EndDrawInternal` de `MGElement`, appeles juste avant l'evenement ;
+- pas de `foreach` sur `GetChildren()` ni sur une enumeration `yield` dans `Update`, `Draw` ou la recherche de l'element survole : dessiner les enfants directement, ou remplir une liste gardee (`MGElement.AddChildrenTo`) ;
+- `GetVisualTreeChildren` rend une liste gardee, reverifiee a chaque appel et jamais modifiee une fois rendue ;
+- pas de `Enum.HasFlag`, de LINQ, de fermeture ni de `params` dans ces chemins ; une definition de clip, un nom ou une brosse qui ne change pas d'une image a l'autre est garde avec ce qui l'invalide ;
+- un changement de comportement visible n'est pas un moyen d'arriver a zero : chaque correction est prouvee par un journal fige des appels de dessin pris sur le code d'avant.
+
+Restes connus, hors de `MGUI.Core` ou en attente d'une decision : les objets d'evenement de la souris et du clavier crees par `MGUI.Shared/Input` (molette 56 octets, clic 464, touche 696), le `DockDropTarget` cree a chaque recalcul pendant un glissement d'onglet (80), les `ClipDefinition` d'un contenu defile sur des decalages toujours nouveaux, la geometrie du curseur de `MGTextBox` qui relit `MGTextBlock.Lines` a chaque changement de texte, et `FillPolygon` des backends reels qui copie ses sommets.
+
 ## Limites connues
 
 - Slider : un label dont le texte change vraiment alloue (voir la section Slider).
