@@ -157,4 +157,138 @@ public class ControlFamilyZeroAllocationTests
 
         FrozenJournal.Assert("scroll viewer draw journal", 2912, "DDC79E6AEAE75E01", journal);
     }
+
+    // ---- MGListBox and MGListView of 50 items ----
+
+    /// <summary>A list control of 50 items in the window, with two adjacent items for the mouse to alternate between (the centers of two rows).</summary>
+    private sealed record ListScene(ControlBench Bench, Point First, Point Second)
+    {
+        public Action<int> Alternate => frame => Bench.Mouse = (frame & 1) == 0 ? First : Second;
+    }
+
+    private static List<string> Items(int count)
+    {
+        List<string> items = new(count);
+        for (int i = 0; i < count; i++)
+        {
+            items.Add($"Item {i}");
+        }
+
+        return items;
+    }
+
+    private static ListScene CreateListBoxScene()
+    {
+        ControlBench bench = new();
+        MGListBox<string> listBox = new(bench.Window);
+        listBox.SetItemsSource(Items(50));
+        bench.Show(listBox);
+        MGBorder firstItem = listBox.ListBoxItems[1].ContentPresenter;
+        MGBorder secondItem = listBox.ListBoxItems[2].ContentPresenter;
+        ListScene scene = new(bench, firstItem.ActualLayoutBounds.Center, secondItem.ActualLayoutBounds.Center);
+        Assert.NotEqual(scene.First, scene.Second);
+
+        //  The list box tracks its hovered item itself: the item under the mouse draws its hovered background.
+        bench.Mouse = scene.First;
+        bench.Frames(2);
+        Assert.True(firstItem.SpoofIsHoveredWhileDrawingBackground);
+        Assert.False(secondItem.SpoofIsHoveredWhileDrawingBackground);
+        bench.Mouse = scene.Second;
+        bench.Frames(2);
+        Assert.False(firstItem.SpoofIsHoveredWhileDrawingBackground);
+        Assert.True(secondItem.SpoofIsHoveredWhileDrawingBackground);
+        bench.Mouse = ControlBench.OutsideTheWindow;
+        bench.Frames(2);
+        Assert.False(secondItem.SpoofIsHoveredWhileDrawingBackground);
+        return scene;
+    }
+
+    private static ListScene CreateListViewScene()
+    {
+        ControlBench bench = new();
+        MGListView<string> listView = new(bench.Window);
+        MGListViewColumn<string> nameColumn = listView.AddColumn(new ListViewColumnWidth(150), new MGTextBlock(bench.Window, "Name"), item => new MGTextBlock(bench.Window, item));
+        listView.AddColumn(new ListViewColumnWidth(1.0), new MGTextBlock(bench.Window, "Length"), item => new MGTextBlock(bench.Window, item.Length.ToString()));
+        listView.SetItemsSource(Items(50));
+        bench.Show(listView);
+        MGElement firstCell = listView.RowItems[1].GetRowContents()[nameColumn];
+        MGElement secondCell = listView.RowItems[2].GetRowContents()[nameColumn];
+        ListScene scene = new(bench, firstCell.ActualLayoutBounds.Center, secondCell.ActualLayoutBounds.Center);
+        Assert.NotEqual(scene.First, scene.Second);
+        bench.AssertHovers(bench.Window, firstCell, scene.First);
+        bench.AssertHovers(bench.Window, secondCell, scene.Second);
+        bench.Mouse = ControlBench.OutsideTheWindow;
+        bench.Frames(2);
+        return scene;
+    }
+
+    private FrameBytes MeasureList(string label, ListScene scene, bool hover)
+    {
+        ControlBench bench = scene.Bench;
+        long callsBefore = bench.Transaction.CallCount;
+        FrameBytes bytes = FrameAllocationMeter.Measure(hover ? scene.Alternate : null, bench.Update, bench.Draw);
+        Assert.True(bench.Transaction.CallCount > callsBefore, "the measured frames drew nothing");
+        Output.WriteLine($"{label}{(hover ? ", mouse alternating between two adjacent items" : " at rest")}: Update {bytes.Update} B/frame, Draw {bytes.Draw} B/frame (totals {bytes.UpdateTotal} and {bytes.DrawTotal} B over {bytes.Iterations} frames)");
+        return bytes;
+    }
+
+    [Fact]
+    public void ListBoxOf50Items_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListBox", CreateListBoxScene(), false).UpdateTotal);
+
+    [Fact]
+    public void ListBoxOf50Items_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListBox", CreateListBoxScene(), false).DrawTotal);
+
+    [Fact]
+    public void ListBoxOf50Items_Update_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListBox", CreateListBoxScene(), true).UpdateTotal);
+
+    [Fact]
+    public void ListBoxOf50Items_Draw_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListBox", CreateListBoxScene(), true).DrawTotal);
+
+    [Fact]
+    public void ListViewOf50Items_Update_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListView", CreateListViewScene(), false).UpdateTotal);
+
+    [Fact]
+    public void ListViewOf50Items_Draw_AtRest_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListView", CreateListViewScene(), false).DrawTotal);
+
+    [Fact]
+    public void ListViewOf50Items_Update_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListView", CreateListViewScene(), true).UpdateTotal);
+
+    [Fact]
+    public void ListViewOf50Items_Draw_OnHover_AllocatesNothing() => Assert.Equal(0, MeasureList("MGListView", CreateListViewScene(), true).DrawTotal);
+
+    /// <summary>The draw journal of a list control: two frames at rest, then two frames with the mouse on the first item, on the second, and on the first again.
+    /// Frozen on the code before the allocation-free work, kept after it.</summary>
+    private static List<string> ListDrawJournal(ListScene scene)
+    {
+        ControlBench bench = scene.Bench;
+        OrderedRecordingDrawTransaction transaction = new(bench.Runtime, DrawSettings.Default);
+        List<string> journal = new();
+        void Record(string label, Point mouse)
+        {
+            bench.Mouse = mouse;
+            for (int frame = 0; frame < 2; frame++)
+            {
+                transaction.ClearJournal();
+                bench.Update();
+                bench.Desktop.Draw(transaction);
+                journal.Add($"== {label}, frame {frame}");
+                journal.AddRange(transaction.Lines);
+            }
+        }
+
+        Record("rest", ControlBench.OutsideTheWindow);
+        Record("first item", scene.First);
+        Record("second item", scene.Second);
+        Record("first item again", scene.First);
+        Record("rest again", ControlBench.OutsideTheWindow);
+        return journal;
+    }
+
+    [Fact]
+    public void ListBoxOf50Items_DrawJournal_AtRestAndOnHover()
+        => FrozenJournal.Assert("list box draw journal", 5876, "4F799554548B59F5", ListDrawJournal(CreateListBoxScene()));
+
+    [Fact]
+    public void ListViewOf50Items_DrawJournal_AtRestAndOnHover()
+        => FrozenJournal.Assert("list view draw journal", 4430, "C44BDC8BCB28886C", ListDrawJournal(CreateListViewScene()));
 }

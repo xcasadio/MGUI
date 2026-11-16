@@ -1850,19 +1850,19 @@ public class MGGrid : MGMultiContentHost
 
         var FilledHeight = Math.Max(0, resolvedRowSpacing - resolvedRowGridLineMargin * 2);
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.TopEdge))
+        if ((GridLinesVisibility & GridLinesVisibility.TopEdge) != 0)
         {
             Rectangle TopGridLineBounds = new(Left, Top, Right - Left, FilledHeight);
             HorizontalGridLineBrush.Draw(DA, this, TopGridLineBounds);
         }
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.BottomEdge))
+        if ((GridLinesVisibility & GridLinesVisibility.BottomEdge) != 0)
         {
             Rectangle BottomGridLineBounds = new(Left, Bottom - FilledHeight, Right - Left, FilledHeight);
             HorizontalGridLineBrush.Draw(DA, this, BottomGridLineBounds);
         }
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.InnerHorizontal))
+        if ((GridLinesVisibility & GridLinesVisibility.InnerHorizontal) != 0)
         {
             for (var i = 0; i < Rows.Count; i++)
             {
@@ -1900,19 +1900,19 @@ public class MGGrid : MGMultiContentHost
 
         var FilledWidth = Math.Max(0, resolvedColumnSpacing - resolvedColumnGridLineMargin * 2);
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.LeftEdge))
+        if ((GridLinesVisibility & GridLinesVisibility.LeftEdge) != 0)
         {
             Rectangle LeftGridLineBounds = new(Left, Top, FilledWidth, Bottom - Top);
             VerticalGridLineBrush.Draw(DA, this, LeftGridLineBounds);
         }
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.RightEdge))
+        if ((GridLinesVisibility & GridLinesVisibility.RightEdge) != 0)
         {
             Rectangle RightGridLineBounds = new(Right - FilledWidth, Top, FilledWidth, Bottom - Top);
             VerticalGridLineBrush.Draw(DA, this, RightGridLineBounds);
         }
 
-        if (GridLinesVisibility.HasFlag(GridLinesVisibility.InnerVertical))
+        if ((GridLinesVisibility & GridLinesVisibility.InnerVertical) != 0)
         {
             for (var i = 0; i < Columns.Count; i++)
             {
