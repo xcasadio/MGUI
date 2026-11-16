@@ -143,6 +143,7 @@ public class ContextMenuSubmenuClipTests
         public void SetDrawSettings(DrawSettings Settings) => CurrentSettings = Settings ?? DrawSettings.Default;
 
         private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+        private readonly CallbackClipHandleOwner _ClipScopes = new();
 
         public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
         {
@@ -158,7 +159,7 @@ public class ContextMenuSubmenuClipTests
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
             => ClipStrategyResolver.Resolve(Definition ?? ClipDefinition.None(), ClipBackendCapabilities.Default);
 
-        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        public ClipHandle PushClipTemporary(ClipDefinition Definition)
         {
             PushedClips.Add(Definition);
             ClipResolveResult resolution = ResolveClip(Definition);
@@ -170,10 +171,10 @@ public class ContextMenuSubmenuClipTests
                 _currentClipBounds = resolution.Effective.Shape.Bounds;
             }
 
-            return new(resolution, () => _currentClipBounds = previous);
+            return _ClipScopes.Push(resolution, () => _currentClipBounds = previous);
         }
 
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
             if (!Bounds.HasValue)
             {
@@ -186,14 +187,14 @@ public class ContextMenuSubmenuClipTests
 
                 ClipDefinition requested = ClipDefinition.None(false);
                 ClipResolveResult resolution = new(requested, requested, ClipStrategy.None, false);
-                return new(resolution, () => _currentClipBounds = previous);
+                return _ClipScopes.Push(resolution, () => _currentClipBounds = previous);
             }
 
             ClipDefinition definition = ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget);
             return PushClipTemporary(definition);
         }
 
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
             => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
         public void Dispose() { }

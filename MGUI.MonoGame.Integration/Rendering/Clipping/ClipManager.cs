@@ -30,7 +30,7 @@ namespace MGUI.Shared.Rendering.Clipping
             => new(_ScissorClipCount, _StencilClipCount, _MaskClipCount, _MaxStencilDepth,
                 _TemporaryRenderTargetRentCount, _TemporaryRenderTargetReuseCount);
 
-        public ClipScope Push(ClipDefinition definition)
+        public ClipHandle Push(ClipDefinition definition)
         {
             ClipResolveResult resolution = Resolve(definition);
 
@@ -46,37 +46,18 @@ namespace MGUI.Shared.Rendering.Clipping
 
         /// <summary>Pushes the clip that <see cref="Push(ClipDefinition)"/> pushes for <see cref="ClipDefinition.Rectangle"/> (default strategy preference, scissor
         /// available), counted the same, without creating the definition.</summary>
-        public ClipScope PushRectangle(Rectangle bounds, bool intersectWithCurrentClip)
+        public ClipHandle PushRectangle(Rectangle bounds, bool intersectWithCurrentClip)
         {
             _ScissorClipCount++;
             return _Owner.PushRectangleClipCore(bounds, intersectWithCurrentClip);
         }
 
-        private readonly Stack<NoClipSlot> _FreeNoClipSlots = new();
-
-        private ClipScope PushNoClip(ClipResolveResult resolution)
+        private ClipHandle PushNoClip(ClipResolveResult resolution)
         {
-            NoClipSlot slot = _FreeNoClipSlots.Count > 0 ? _FreeNoClipSlots.Pop() : new NoClipSlot(this);
-            slot.Scope.Reset(resolution);
-            return slot.Scope;
+            return _Owner.ClipSlots.Push(ClipSlotState.None(resolution));
         }
 
-        /// <summary>The scope of a clip that changes nothing, kept for reuse once disposed.</summary>
-        private sealed class NoClipSlot
-        {
-            private readonly ClipManager _Owner;
-            public readonly ClipScope Scope;
-
-            public NoClipSlot(ClipManager owner)
-            {
-                _Owner = owner;
-                Scope = new ClipScope(Release);
-            }
-
-            private void Release() => _Owner._FreeNoClipSlots.Push(this);
-        }
-
-        private ClipScope PushScissor(ClipResolveResult resolution)
+        private ClipHandle PushScissor(ClipResolveResult resolution)
         {
             _ScissorClipCount++;
             return _Owner.PushRectangleClipCore(resolution.Effective.Shape.Bounds, resolution.Effective.IntersectWithCurrentClip, resolution);
@@ -85,7 +66,7 @@ namespace MGUI.Shared.Rendering.Clipping
         private int _StencilDepth;
         private const int MaxStencilDepth = 255;
 
-        private ClipScope PushStencil(ClipResolveResult resolution)
+        private ClipHandle PushStencil(ClipResolveResult resolution)
         {
             ClipGeometry geometry = resolution.Effective.Shape.Geometry ?? throw new InvalidOperationException(
                 $"Clip '{resolution.Effective.DebugName ?? resolution.Effective.Kind.ToString()}' requires clip geometry for stencil rendering.");
@@ -124,7 +105,7 @@ namespace MGUI.Shared.Rendering.Clipping
 
             ClipResolveResult effectiveResolution = resolution with { StencilDepth = childDepth };
 
-            return new ClipScope(effectiveResolution, () =>
+            return _Owner.ClipSlots.Push(ClipSlotState.WithCallback(ClipStrategy.Stencil, effectiveResolution, () =>
             {
                 stencilReadScope.Dispose();
 
@@ -139,10 +120,10 @@ namespace MGUI.Shared.Rendering.Clipping
                 }
 
                 _StencilDepth = parentDepth;
-            });
+            }));
         }
 
-        private ClipScope PushMask(ClipResolveResult resolution)
+        private ClipHandle PushMask(ClipResolveResult resolution)
         {
             ClipGeometry geometry = resolution.Effective.Shape.Geometry ?? throw new InvalidOperationException(
                 $"Clip '{resolution.Effective.DebugName ?? resolution.Effective.Kind.ToString()}' requires clip geometry for mask rendering.");
@@ -168,7 +149,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 DepthStencilType = DepthStencilType.None,
             });
             DrawStateHandle renderTargetScope = _Owner.SetRenderTargetTemporary(maskTarget, Color.Transparent);
-            ClipScope clipDisableScope = _Owner.PushRectangleClip(null, false);
+            ClipHandle clipDisableScope = _Owner.PushRectangleClip(null, false);
             DrawStateHandle transformScope = _Owner.SetTransformTemporary(_Owner.CurrentSettings.Transform * Matrix.CreateTranslation(-bounds.Left, -bounds.Top, 0));
 
             using (_Owner.SetDrawSettingsTemporary(_Owner.CurrentSettings with
@@ -192,7 +173,7 @@ namespace MGUI.Shared.Rendering.Clipping
                 DepthStencilType = DepthStencilType.None,
             });
 
-            return new ClipScope(resolution, () =>
+            return _Owner.ClipSlots.Push(ClipSlotState.WithCallback(ClipStrategy.Mask, resolution, () =>
             {
                 maskedContentScope.Dispose();
                 transformScope.Dispose();
@@ -202,7 +183,7 @@ namespace MGUI.Shared.Rendering.Clipping
 
                 _Owner.DrawTextureTo(maskTarget, null, bounds);
                 _Owner.ReturnTemporaryRenderTarget(maskTarget);
-            });
+            }));
         }
     }
 }

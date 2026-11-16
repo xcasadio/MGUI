@@ -142,10 +142,10 @@ public sealed class MyDrawTransaction : IUIDrawTransaction
 
     public void FillRectangle(Vector2 origin, RectangleF destination, Color color) { ... }
     public void DrawTextViaEngine(ResolvedFont font, string text, Vector2 position, Color color, Vector2 origin, float scale, float rotation = 0f, float depth = 0f, UIDrawFlip flip = UIDrawFlip.None) { ... }
-    public IDisposable SetRenderTargetTemporary(IUIRenderTarget target, Color? clearColor) { ... }
-    public IDisposable SetDrawSettingsTemporary(DrawSettings settings) { ... }
-    public IDisposable SetTransformTemporary(Matrix transform) { ... }
-    public ClipScope PushClipTemporary(ClipDefinition definition) { ... }
+    public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget target, Color? clearColor) { ... }
+    public DrawStateHandle SetDrawSettingsTemporary(DrawSettings settings) { ... }
+    public DrawStateHandle SetTransformTemporary(Matrix transform) { ... }
+    public ClipHandle PushClipTemporary(ClipDefinition definition) { ... }
     public void Dispose() { ... }
 }
 

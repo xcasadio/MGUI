@@ -10,8 +10,8 @@ using Xunit;
 namespace MGUI.Tests.Integration;
 
 /// <summary>
-/// Real-GPU proof that <see cref="DrawTransaction"/> pushes and pops its clips without allocating (ADR-0027), and that reusing the scopes
-/// changed nothing observable: the scissor rectangle and the rasterizer state after every push and every dispose of a nested sequence are the
+/// Real-GPU proof that <see cref="DrawTransaction"/> pushes and pops its clips without allocating (ADR-0027, then the handles of ADR-0031), and that neither
+/// changed anything observable: the scissor rectangle and the rasterizer state after every push and every dispose of a nested sequence are the
 /// ones the transaction produced before scopes were reused (frozen from the code before the change).<para/>
 /// All GPU work happens through <see cref="GpuDeviceHost"/> on its single thread.
 /// </summary>
@@ -52,13 +52,13 @@ public class ClipScopeReuseGpuTests
     {
         List<string> trace = new() { Snapshot(dt, "start") };
 
-        ClipScope level1 = dt.PushRectangleClip(new Rectangle(10, 10, 100, 100), true);
+        ClipHandle level1 = dt.PushRectangleClip(new Rectangle(10, 10, 100, 100), true);
         trace.Add(Snapshot(dt, "push1 rect"));
-        ClipScope level2 = dt.PushClipTemporary(ClipDefinition.Rectangle(new Rectangle(50, 50, 100, 100), true));
+        ClipHandle level2 = dt.PushClipTemporary(ClipDefinition.Rectangle(new Rectangle(50, 50, 100, 100), true));
         trace.Add(Snapshot(dt, "push2 rect intersect"));
-        ClipScope level3 = dt.PushRectangleClip(null, false);
+        ClipHandle level3 = dt.PushRectangleClip(null, false);
         trace.Add(Snapshot(dt, "push3 no clip"));
-        ClipScope level4 = dt.PushRectangleClip(new Rectangle(20, 20, 30, 30), true);
+        ClipHandle level4 = dt.PushRectangleClip(new Rectangle(20, 20, 30, 30), true);
         trace.Add(Snapshot(dt, "push4 rect over no clip"));
 
         level4.Dispose();
@@ -77,13 +77,13 @@ public class ClipScopeReuseGpuTests
     {
         List<string> trace = new() { Snapshot(dt, "start") };
 
-        ClipScope level1 = dt.PushClipTemporary(ClipDefinition.None());
+        ClipHandle level1 = dt.PushClipTemporary(ClipDefinition.None());
         trace.Add(Snapshot(dt, "push1 none definition"));
-        ClipScope level2 = dt.PushRectangleClip(new Rectangle(40, 40, 80, 80), true);
+        ClipHandle level2 = dt.PushRectangleClip(new Rectangle(40, 40, 80, 80), true);
         trace.Add(Snapshot(dt, "push2 rect"));
-        ClipScope level3 = dt.PushRectangleClip(new Rectangle(0, 0, 50, 200), true);
+        ClipHandle level3 = dt.PushRectangleClip(new Rectangle(0, 0, 50, 200), true);
         trace.Add(Snapshot(dt, "push3 rect intersect"));
-        ClipScope level4 = dt.PushRectangleClip(new Rectangle(5, 5, 20, 20), false);
+        ClipHandle level4 = dt.PushRectangleClip(new Rectangle(5, 5, 20, 20), false);
         trace.Add(Snapshot(dt, "push4 rect replace"));
 
         level4.Dispose();
@@ -253,10 +253,10 @@ public class ClipScopeReuseGpuTests
 
     private static void PushAndPopFourLevels(DrawTransaction dt)
     {
-        ClipScope level1 = dt.PushRectangleClip(Rectangles[0], true);
-        ClipScope level2 = dt.PushRectangleClip(Rectangles[1], true);
-        ClipScope level3 = dt.PushRectangleClip(null, false);
-        ClipScope level4 = dt.PushRectangleClip(Rectangles[3], true);
+        ClipHandle level1 = dt.PushRectangleClip(Rectangles[0], true);
+        ClipHandle level2 = dt.PushRectangleClip(Rectangles[1], true);
+        ClipHandle level3 = dt.PushRectangleClip(null, false);
+        ClipHandle level4 = dt.PushRectangleClip(Rectangles[3], true);
         level4.Dispose();
         level3.Dispose();
         level2.Dispose();
@@ -271,17 +271,17 @@ public class ClipScopeReuseGpuTests
             using DrawTransaction dt = CreateTransaction(RasterizerType.SolidScissorTest);
             Rectangle bounds = new(12, 14, 50, 60);
 
-            using ClipScope scope = dt.PushRectangleClip(bounds, true);
+            using ClipHandle scope = dt.PushRectangleClip(bounds, true);
             Assert.Equal(dt.ResolveClip(ClipDefinition.Rectangle(bounds, true)), scope.Resolution);
             Assert.Equal(ClipStrategy.Scissor, scope.Resolution.Strategy);
             Assert.Equal(1, dt.ClipDiagnostics.ScissorClipCount);
 
-            using ClipScope definitionScope = dt.PushClipTemporary(ClipDefinition.Rectangle(new Rectangle(1, 2, 3, 4), false));
+            using ClipHandle definitionScope = dt.PushClipTemporary(ClipDefinition.Rectangle(new Rectangle(1, 2, 3, 4), false));
             Assert.Equal(new Rectangle(1, 2, 3, 4), definitionScope.Resolution.Effective.Shape.Bounds);
             Assert.False(definitionScope.Resolution.Effective.IntersectWithCurrentClip);
             Assert.Equal(2, dt.ClipDiagnostics.ScissorClipCount);
 
-            using ClipScope noClip = dt.PushRectangleClip(null, false);
+            using ClipHandle noClip = dt.PushRectangleClip(null, false);
             Assert.Equal(ClipStrategy.None, noClip.Resolution.Strategy);
             Assert.Equal(ClipKind.None, noClip.Resolution.Requested.Kind);
             Assert.Equal(2, dt.ClipDiagnostics.ScissorClipCount);
@@ -289,18 +289,17 @@ public class ClipScopeReuseGpuTests
     }
 
     [GpuFact]
-    public void ScopesDisposedOutOfOrder_AreNotHandedOutWhileTheyAreStillArmed()
+    public void ClipsDisposedOutOfOrder_KeepTheirOwnResolution_AndRestoreWhatTheySaw()
     {
         GpuDeviceHost.Instance.Invoke(() =>
         {
             using DrawTransaction dt = CreateTransaction(RasterizerType.SolidScissorTest);
 
-            ClipScope a = dt.PushRectangleClip(Rectangles[0], true);
-            ClipScope b = dt.PushRectangleClip(Rectangles[1], true);
+            ClipHandle a = dt.PushRectangleClip(Rectangles[0], true);
+            ClipHandle b = dt.PushRectangleClip(Rectangles[1], true);
             a.Dispose();
-            ClipScope c = dt.PushRectangleClip(Rectangles[2], true);
+            ClipHandle c = dt.PushRectangleClip(Rectangles[2], true);
 
-            Assert.NotSame(b, c);
             Assert.Equal(Rectangles[1], b.Resolution.Effective.Shape.Bounds);
             Assert.Equal(Rectangles[2], c.Resolution.Effective.Shape.Bounds);
 
@@ -308,6 +307,36 @@ public class ClipScopeReuseGpuTests
             b.Dispose();
             // Each scope restores what it saw when it was pushed, as before: b was pushed under a.
             Assert.Equal(Rectangles[0], GpuDeviceHost.Instance.GraphicsDevice.ScissorRectangle);
+        });
+    }
+
+    /// <summary>A handle kept after its dispose releases nothing, even when the next clip uses its slot (ADR-0031). With the re-armed scope
+    /// objects of ADR-0027 the kept reference was the next clip, and its dispose released it.</summary>
+    [GpuFact]
+    public void AHandleKeptAfterItsDispose_DoesNotReleaseTheNextClip()
+    {
+        GpuDeviceHost.Instance.Invoke(() =>
+        {
+            using DrawTransaction dt = CreateTransaction(RasterizerType.SolidScissorTest);
+            GraphicsDevice device = GpuDeviceHost.Instance.GraphicsDevice;
+            Rectangle start = device.ScissorRectangle;
+
+            ClipHandle stale = dt.PushRectangleClip(Rectangles[0], true);
+            stale.Dispose();
+            Assert.Equal(start, device.ScissorRectangle);
+
+            ClipHandle next = dt.PushRectangleClip(Rectangles[1], false);
+            Assert.Equal(Rectangles[1], device.ScissorRectangle);
+
+            stale.Dispose();
+            Assert.Equal(Rectangles[1], device.ScissorRectangle);
+            Assert.True(next.IsActive);
+            Assert.False(stale.IsActive);
+            Assert.Equal(Rectangles[1], next.Resolution.Effective.Shape.Bounds);
+
+            next.Dispose();
+            next.Dispose();
+            Assert.Equal(start, device.ScissorRectangle);
         });
     }
 

@@ -1,4 +1,5 @@
 using MGUI.Shared.Rendering;
+using MGUI.Shared.Rendering.Clipping;
 using Microsoft.Xna.Framework;
 
 namespace MGUI.Core.UI.Clipping;
@@ -13,7 +14,7 @@ internal readonly record struct ElementClipRequest(ElementClipKind Kind, Rectang
     public static ElementClipRequest Rectangle(Rectangle bounds, bool intersectWithCurrentClipTarget)
         => new(ElementClipKind.Rectangle, bounds, intersectWithCurrentClipTarget);
 
-    public IDisposable Push(IUIRenderContext context)
+    public ClipHandle Push(IUIRenderContext context)
         => Kind switch
         {
             ElementClipKind.Rectangle => context.SetClipTargetTemporary(Bounds, IntersectWithCurrentClipTarget),

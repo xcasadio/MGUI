@@ -316,6 +316,8 @@ public class GenerationHandleTests
             }
         }
 
+        public bool IsClipInForce(int Slot, int Generation) => _Clips.IsLive(Slot, Generation);
+
         public bool TryGetClipResolution(int Slot, int Generation, out ClipResolveResult Resolution)
             => _Clips.TryGet(Slot, Generation, out Resolution);
     }

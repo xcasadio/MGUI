@@ -107,9 +107,9 @@ public class MGImageBrightnessTests
         public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor) => _inner.SetRenderTargetTemporary(New, ClearColor);
         public DrawStateHandle SetTransformTemporary(Matrix Transform) => _inner.SetTransformTemporary(Transform);
         public ClipResolveResult ResolveClip(ClipDefinition Definition) => _inner.ResolveClip(Definition);
-        public ClipScope PushClipTemporary(ClipDefinition Definition) => _inner.PushClipTemporary(Definition);
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => _inner.PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => _inner.SetClipTargetTemporary(Bounds, IntersectWithCurrentClipTarget);
+        public ClipHandle PushClipTemporary(ClipDefinition Definition) => _inner.PushClipTemporary(Definition);
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => _inner.PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => _inner.SetClipTargetTemporary(Bounds, IntersectWithCurrentClipTarget);
         public void Dispose() => _inner.Dispose();
     }
 

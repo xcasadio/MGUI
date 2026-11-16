@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Xna.Framework;
 using MGUI.Shared.Rendering.Clipping;
 
@@ -15,11 +14,11 @@ namespace MGUI.Shared.Rendering
         public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor);
         public DrawStateHandle SetTransformTemporary(Matrix Transform);
         public ClipResolveResult ResolveClip(ClipDefinition Definition);
-        public ClipScope PushClipTemporary(ClipDefinition Definition);
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
+        public ClipHandle PushClipTemporary(ClipDefinition Definition);
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
 
         // Compatibility shim for existing rectangle-only callers during migration.
         // New code should prefer PushRectangleClip(...) or PushClipTemporary(...).
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget);
     }
 }

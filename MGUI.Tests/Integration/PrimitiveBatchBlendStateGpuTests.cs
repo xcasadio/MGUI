@@ -78,7 +78,7 @@ public class PrimitiveBatchBlendStateGpuTests
         ClipDefinition clipDefinition = ClipDefinition.RoundedRectangle(clipBounds, new ClipCornerRadius(cornerRadius),
             geometry: clipGeometry.ToClipGeometry(), intersectWithCurrentClip: false, debugName: "GpuStencilClipRegressionTest");
 
-        ClipScope scope = dt.PushClipTemporary(clipDefinition);
+        ClipHandle scope = dt.PushClipTemporary(clipDefinition);
         Assert.Equal(ClipStrategy.Stencil, scope.Resolution.Strategy);
 
         dt.FillRectangle(Vector2.Zero, new RectangleF(0, 0, targetSize, targetSize), fill, DrawContext.Primitives);

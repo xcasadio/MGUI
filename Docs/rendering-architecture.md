@@ -159,13 +159,13 @@ Namespace `MGUI.Shared.Rendering.Clipping` (`ClipAbstractions.cs`) :
 - `ClipDefinition` : requete logique emise par la couche UI ; factories `ClipDefinition.None(...)`, `.Rectangle(...)`, `.RoundedRectangle(...)`, `.ArbitraryGeometry(...)` ; options `IntersectWithCurrentClip`, `ClipStrategyPreference`, `AllowRectangleFallback`, `DebugName` ;
 - `ClipShape` : bounds, corner radius optionnel, geometrie optionnelle ;
 - `ClipResolveResult` : clip demande, clip effectif, strategie choisie, info de fallback, profondeur stencil eventuelle ;
-- `ClipScope` : lifetime disposable qui restaure l'etat precedent.
+- `ClipHandle` : poignee `struct` a liberer (`using`) qui restaure l'etat precedent ; elle designe un emplacement du backend et une generation, donc une poignee gardee apres sa liberation ne libere rien (ADR-0031). `GenerationSlots<T>`, `ClipSlots` et `CallbackClipHandleOwner` aident un backend a tenir ses emplacements.
 
 Les controles ne choisissent jamais scissor, stencil ou mask : ils retournent des definitions logiques.
 
 ### API sur `IUIRenderContext`
 
-- `PushClipTemporary(ClipDefinition)` : chemin general, retourne un `ClipScope` ;
+- `PushClipTemporary(ClipDefinition)` : chemin general, retourne un `ClipHandle` ;
 - `PushRectangleClip(Rectangle?, bool intersect)` : chemin prefere pour les clips rectangulaires ;
 - `ResolveClip(ClipDefinition)` : resolution sans push (diagnostic/inspection) ;
 - `SetClipTargetTemporary(Rectangle?, bool intersect)` : shim de compatibilite rectangle-only, conserve pour la migration — le nouveau code doit preferer les deux premiers.

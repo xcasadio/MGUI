@@ -154,6 +154,7 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     }
 
     private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+    private readonly CallbackClipHandleOwner _ClipScopes = new();
 
     public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
     {
@@ -177,16 +178,16 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         return new(effective, effective, ClipStrategy.Scissor, false);
     }
 
-    public ClipScope PushClipTemporary(ClipDefinition Definition)
+    public ClipHandle PushClipTemporary(ClipDefinition Definition)
     {
         ClipResolveResult resolution = ResolveClip(Definition);
         Rectangle? previous = _currentClipBounds;
         _currentClipBounds = resolution.Effective.Kind == ClipKind.None ? null : resolution.Effective.Shape.Bounds;
         ClipPushes.Add((Definition?.DebugName, _currentClipBounds));
-        return new(resolution, () => _currentClipBounds = previous);
+        return _ClipScopes.Push(resolution, () => _currentClipBounds = previous);
     }
 
-    public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+    public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
     {
         ClipDefinition definition = Bounds.HasValue
             ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
@@ -194,7 +195,7 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         return PushClipTemporary(definition);
     }
 
-    public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+    public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
     public void Dispose()

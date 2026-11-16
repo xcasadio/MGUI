@@ -120,6 +120,7 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
     }
 
     private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+    private readonly CallbackClipHandleOwner _ClipScopes = new();
 
     public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
     {
@@ -160,19 +161,19 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
         return Resolve(Definition);
     }
 
-    public ClipScope PushClipTemporary(ClipDefinition Definition)
+    public ClipHandle PushClipTemporary(ClipDefinition Definition)
         => Push("PushClipTemporary/1", Definition, Clp(Definition));
 
-    public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+    public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         => Push("PushRectangleClip/2", RectangleOrNone(Bounds, IntersectWithCurrentClipTarget), Rect(Bounds), "intersect=" + IntersectWithCurrentClipTarget);
 
-    public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+    public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         => Push("SetClipTargetTemporary/2", RectangleOrNone(Bounds, IntersectWithCurrentClipTarget), Rect(Bounds), "intersect=" + IntersectWithCurrentClipTarget);
 
     private static ClipDefinition RectangleOrNone(Rectangle? Bounds, bool Intersect)
         => Bounds.HasValue ? ClipDefinition.Rectangle(Bounds.Value, Intersect) : ClipDefinition.None(Intersect);
 
-    private ClipScope Push(string label, ClipDefinition definition, params string[] arguments)
+    private ClipHandle Push(string label, ClipDefinition definition, params string[] arguments)
     {
         ClipResolveResult resolution = Resolve(definition);
         Rectangle? previous = _currentClipBounds;
@@ -183,7 +184,7 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
         arguments.CopyTo(line, 1);
         line[^1] = "bounds=" + Rect(_currentClipBounds);
         Write(label, line);
-        return new ClipScope(resolution, () =>
+        return _ClipScopes.Push(resolution, () =>
         {
             _currentClipBounds = previous;
             Write("DisposeClip", "scope=" + id, "restored=" + Rect(previous));

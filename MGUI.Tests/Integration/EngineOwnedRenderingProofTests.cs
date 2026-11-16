@@ -301,6 +301,7 @@ public class EngineOwnedRenderingProofTests
         }
 
         private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+        private readonly CallbackClipHandleOwner _ClipScopes = new();
 
         public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
         {
@@ -330,7 +331,7 @@ public class EngineOwnedRenderingProofTests
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
             => ClipStrategyResolver.Resolve(Definition ?? ClipDefinition.None(), ClipBackendCapabilities.Default);
 
-        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        public ClipHandle PushClipTemporary(ClipDefinition Definition)
         {
             ClipResolveResult resolution = ResolveClip(Definition);
             Rectangle? previous = _currentClipBounds;
@@ -343,17 +344,17 @@ public class EngineOwnedRenderingProofTests
             _currentClipBounds = next;
             Record(ProofDrawCallKind.SetClip, ProofDrawCallCategory.Clip, clipBounds: _currentClipBounds);
 
-            return new ClipScope(resolution, () =>
+            return _ClipScopes.Push(resolution, () =>
             {
                 _currentClipBounds = previous;
                 Record(ProofDrawCallKind.SetClip, ProofDrawCallCategory.Clip, clipBounds: _currentClipBounds);
             });
         }
 
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
             => PushClipTemporary(Bounds.HasValue ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget) : ClipDefinition.None(false));
 
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
             => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
         public void Dispose()

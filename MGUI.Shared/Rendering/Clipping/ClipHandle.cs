@@ -9,6 +9,9 @@ namespace MGUI.Shared.Rendering.Clipping
         /// is over: released before, or ended by a re-arm of the owner.</summary>
         public void ReleaseClip(int Slot, int Generation);
 
+        /// <summary>True while the use (<paramref name="Slot"/>, <paramref name="Generation"/>) is not over. Allocates nothing.</summary>
+        public bool IsClipInForce(int Slot, int Generation);
+
         /// <summary>What was asked and how it is satisfied, for a use that is not over. False when it is over.</summary>
         public bool TryGetClipResolution(int Slot, int Generation, out ClipResolveResult Resolution);
     }
@@ -35,7 +38,7 @@ namespace MGUI.Shared.Rendering.Clipping
         public bool IsDefault => _Owner == null;
 
         /// <summary>True while the clip is in force: the handle is not the default one and its clip was not released.</summary>
-        public bool IsActive => _Owner != null && _Owner.TryGetClipResolution(_Slot, _Generation, out _);
+        public bool IsActive => _Owner != null && _Owner.IsClipInForce(_Slot, _Generation);
 
         /// <summary>What was asked and how it is satisfied. False for the default handle and for a clip that was released.</summary>
         public bool TryGetResolution(out ClipResolveResult Resolution)

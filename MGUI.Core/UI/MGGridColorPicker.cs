@@ -883,7 +883,7 @@ public class MGGridColorPicker : MGElement
             ? CreateBorderBackedContentsClipDefinition(DA, LayoutBounds, SwatchesClipName ??= $"{ElementType}.Swatches")
             : null;
 
-        using var _ = swatchClip == null ? null : DA.Context.PushClipTemporary(swatchClip);
+        using ClipHandle _ = swatchClip == null ? default : DA.Context.PushClipTemporary(swatchClip);
 
         var StartX = PaddedBounds.Left;
         var StartY = PaddedBounds.Top;

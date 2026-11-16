@@ -1,6 +1,6 @@
 # ADR-0027: A clip scope can be re-armed, so a backend pushes clips without allocating
 
-- **Status**: Accepted
+- **Status**: Accepted; the class `ClipScope` it describes is replaced by the handle of ADR-0031, its goal (a rectangle clip without allocation) is kept
 - **Date**: 2026-11-15
 - **Source**: this chantier: the allocation-free desktop frame (decision D7 and task T3.1 of the CasaEngine plan `ai-agent/tasks/mgui-desktop-frame-nonalloc-tasks.md`, answered by the author on 2026-11-15)
 

@@ -23,7 +23,7 @@ namespace MGUI.Shared.Rendering
     //Anytime the effect is being changed, must call SetDrawSettings/SetDrawSettingsTemporary just like SetTransform/SetTransformTemporary do
     // --> SetEffect/SetEffectTemporary are now implemented via DrawSettings.Effect; see SetEffect() and SetEffectTemporary() below.
 
-    internal sealed class DrawTransaction : IMonoGameDrawContext
+    internal sealed class DrawTransaction : IMonoGameDrawContext, IClipSlotRestorer
     {
         private MainRenderer Backend { get; }
         private DerivedDrawSettingsCache DerivedSettings => Backend.DerivedSettings;
@@ -89,6 +89,7 @@ namespace MGUI.Shared.Rendering
             PrimitiveDrawing = new PrimitiveDrawing(PrimitiveBatch);
             CurrentSettings = Settings ?? throw new ArgumentNullException(nameof(Settings));
             ClipManager = new(this);
+            _ClipSlots = new ClipSlots(this);
 
             PrimitiveProjectionMatrix = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
 
@@ -1122,13 +1123,13 @@ namespace MGUI.Shared.Rendering
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
             => ClipManager.Resolve(Definition);
 
-        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        public ClipHandle PushClipTemporary(ClipDefinition Definition)
             => ClipManager.Push(Definition);
 
         public string GetClipDiagnosticsDebugText()
             => ClipDiagnostics.ToDebugString();
 
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
             if (!Bounds.HasValue)
             {
@@ -1138,14 +1139,14 @@ namespace MGUI.Shared.Rendering
             return ClipManager.PushRectangle(Bounds.Value, IntersectWithCurrentClipTarget);
         }
 
-        internal ClipScope PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult Resolution)
+        internal ClipHandle PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult Resolution)
             => PushScissorClip(Bounds, IntersectWithCurrentClipTarget, Resolution);
 
-        /// <summary>A scissor push whose scope reports the rectangle clip it was asked for, without creating the <see cref="ClipDefinition"/> that says so.</summary>
-        internal ClipScope PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget)
+        /// <summary>A scissor push whose handle reports the rectangle clip it was asked for, without creating the <see cref="ClipDefinition"/> that says so.</summary>
+        internal ClipHandle PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget)
             => PushScissorClip(Bounds, IntersectWithCurrentClipTarget, null);
 
-        private ClipScope PushScissorClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult? Resolution)
+        private ClipHandle PushScissorClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult? Resolution)
         {
             Rectangle previousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
             bool previousScissorState = CurrentSettings.UsesScissorTest;
@@ -1153,22 +1154,30 @@ namespace MGUI.Shared.Rendering
             SetClipTarget(Bounds, IntersectWithCurrentClipTarget);
             Rectangle currentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
             bool currentScissorState = CurrentSettings.UsesScissorTest;
+            bool clipChanged = currentBounds != previousBounds || currentScissorState != previousScissorState;
 
-            ScissorClipSlot slot = _FreeScissorClipSlots.Count > 0 ? _FreeScissorClipSlots.Pop() : new ScissorClipSlot(this);
-            slot.PreviousBounds = previousBounds;
-            slot.PreviousScissorState = previousScissorState;
-            slot.ClipChanged = currentBounds != previousBounds || currentScissorState != previousScissorState;
+            return _ClipSlots.Push(Resolution.HasValue
+                ? ClipSlotState.Scissor(Resolution.Value, previousBounds, previousScissorState, clipChanged)
+                : ClipSlotState.ScissorRectangle(Bounds.Value, IntersectWithCurrentClipTarget, previousBounds, previousScissorState, clipChanged));
+        }
 
-            if (Resolution.HasValue)
+        /// <summary>The clips in force of this transaction: scissor, stencil and mask clips each take a slot, which holds what their release restores
+        /// (ADR-0031).</summary>
+        internal ClipSlots ClipSlots => _ClipSlots;
+
+        void IClipSlotRestorer.RestoreClip(in ClipSlotState State)
+        {
+            if (State.Strategy == ClipStrategy.Scissor)
             {
-                slot.Scope.Reset(Resolution.Value);
+                if (State.ScissorChanged)
+                {
+                    RestoreScissor(State.PreviousScissorBounds, State.PreviousScissorState);
+                }
             }
             else
             {
-                slot.Scope.ResetRectangle(Bounds.Value, IntersectWithCurrentClipTarget);
+                State.Restore?.Invoke();
             }
-
-            return slot.Scope;
         }
 
         private void RestoreScissor(Rectangle PreviousBounds, bool PreviousScissorState)
@@ -1216,36 +1225,9 @@ namespace MGUI.Shared.Rendering
             return new ClipResolveResult(none, none, ClipStrategy.None, false);
         }
 
-        private readonly Stack<ScissorClipSlot> _FreeScissorClipSlots = new();
+        private readonly ClipSlots _ClipSlots;
         private DrawSettings _RasterizerVariantA;
         private DrawSettings _RasterizerVariantB;
-
-        /// <summary>A scissor clip's scope and what it restores, kept in fields so that a push creates no closure. A slot goes back to its transaction's
-        /// free stack when its scope is disposed, so nested clips use one slot per level and any order of disposal stays correct.</summary>
-        private sealed class ScissorClipSlot
-        {
-            private readonly DrawTransaction _Owner;
-            public readonly ClipScope Scope;
-            public Rectangle PreviousBounds;
-            public bool PreviousScissorState;
-            public bool ClipChanged;
-
-            public ScissorClipSlot(DrawTransaction owner)
-            {
-                _Owner = owner;
-                Scope = new ClipScope(Restore);
-            }
-
-            private void Restore()
-            {
-                if (ClipChanged)
-                {
-                    _Owner.RestoreScissor(PreviousBounds, PreviousScissorState);
-                }
-
-                _Owner._FreeScissorClipSlots.Push(this);
-            }
-        }
 
         /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering.</summary>
         public void SetEffect(Effect Effect)
@@ -1309,7 +1291,7 @@ namespace MGUI.Shared.Rendering
         /// <summary>Compatibility wrapper kept for rectangle-only migration paths.</summary>
         /// <param name="IntersectWithCurrentClipTarget">If true, rather than replacing the clip target with the given <paramref name="Bounds"/>,<br/>
         /// the clip target will be the intersection of the current clip target and the given <paramref name="Bounds"/></param>
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
             return PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
         }

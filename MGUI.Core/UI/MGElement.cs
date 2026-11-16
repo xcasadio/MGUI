@@ -5410,7 +5410,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         if (!DA.DT.CurrentSettings.UsesScissorTest || !DA.DT.CurrentClipBounds.HasValue || TargetBounds.Intersects(DA.DT.CurrentClipBounds.Value))
         {
-            using (SelfClipDefinition == null ? null : DA.Context.PushClipTemporary(SelfClipDefinition))
+            using (SelfClipDefinition == null ? default : DA.Context.PushClipTemporary(SelfClipDefinition))
             {
                 // Decorative layers follow the element's self clip. Content-only clipping starts later,
                 // so rounded shape paint remains independent from whichever clip backend gets selected.
@@ -5431,7 +5431,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
                 DrawSelf(DA, LayoutBounds);
 
-                using (ContentsClipDefinition == null ? null : DA.Context.PushClipTemporary(ContentsClipDefinition))
+                using (ContentsClipDefinition == null ? default : DA.Context.PushClipTemporary(ContentsClipDefinition))
                 {
                     foreach (var Component in _componentsDrawBeforeContents)
                     {

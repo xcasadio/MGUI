@@ -12,13 +12,11 @@ namespace MGUI.Tests.Graph;
 /// A draw transaction for allocation measurements: it records nothing and allocates nothing of its own, so the bytes counted around a
 /// draw belong to the code under test.<para/>
 /// Trade-off: it does not track the clip or the draw settings. <see cref="CurrentClipBounds"/> is always null, and every temporary scope
-/// is one shared object whose disposal does nothing (<see cref="ClipScope"/> is a class that runs its action once, so a scope that restored
-/// a clip could not be reused). Use <see cref="GraphNoOpDrawTransaction"/> when a test needs the calls or the clip.
+/// is one shared object whose disposal does nothing (<see cref="ClipHandle"/> is a struct whose default value does nothing on disposal, so no scope object is needed). Use <see cref="GraphNoOpDrawTransaction"/> when a test needs the calls or the clip.
 /// </summary>
 internal sealed class NonRecordingDrawTransaction : IUIDrawTransaction
 {
     private static readonly ClipDefinition NoClip = ClipDefinition.None();
-    private readonly ClipScope SharedClipScope = new(new ClipResolveResult(NoClip, NoClip, ClipStrategy.Scissor, false), static () => { });
 
     public DrawSettings CurrentSettings { get; private set; }
     public IUIDesktopRuntime Renderer { get; }
@@ -92,11 +90,11 @@ internal sealed class NonRecordingDrawTransaction : IUIDrawTransaction
         return new(effective, effective, ClipStrategy.Scissor, false);
     }
 
-    public ClipScope PushClipTemporary(ClipDefinition Definition) => SharedClipScope;
+    public ClipHandle PushClipTemporary(ClipDefinition Definition) => default;
 
-    public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => SharedClipScope;
+    public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => default;
 
-    public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => SharedClipScope;
+    public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget) => default;
 
     public void Dispose()
     {
