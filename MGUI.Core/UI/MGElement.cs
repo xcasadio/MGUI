@@ -5258,7 +5258,9 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     //  The clips of the bounds an element had recently: an element that changes between a few sizes (a text block whose text wraps on one line, then two, then one again) gets the clip
     //  of a size it already had instead of a new one. The array is made the first time the bounds of a clip change; an element whose clips never change does not pay for it.
-    private const int RecentRectangleClipDefinitionCount = 8;
+    //  Sixteen: the self and the contents hooks share the array, and an element that moves draws both with each of its positions (the content of a scroll viewer
+    //  moved by the wheel: two clips per offset it has had), so eight positions take sixteen definitions.
+    private const int RecentRectangleClipDefinitionCount = 16;
     private ClipDefinition[] _RecentRectangleClipDefinitions;
     private int _NextRecentRectangleClipDefinition;
 
