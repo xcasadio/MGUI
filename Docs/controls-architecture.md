@@ -165,6 +165,8 @@ Regles tirees de ce travail, a suivre dans un nouveau controle :
 
 Restes connus, hors de `MGUI.Core` ou en attente d'une decision : les objets d'evenement de la souris et du clavier crees par `MGUI.Shared/Input` (molette 56 octets, clic 464, touche 696), les `ClipDefinition` d'un contenu defile sur des decalages toujours nouveaux, la geometrie du curseur de `MGTextBox` qui relit `MGTextBlock.Lines` a chaque changement de texte, et `FillPolygon` des backends reels qui copie ses sommets.
 
+Formes, notation, bordure en surbrillance et onglets de dock (mesures et affirmations dans `ShapeDrawAllocationTests.cs`, `RatingTriangleAllocationTests.cs`, `HighlightBorderBrushAllocationTests.cs`, `DockGroupChangeAllocationTests.cs`) : `MGEllipse`, `MGPolygon` et `MGPathLite` gardent une geometrie de clip triangulee et sa definition par usage (remplissage par pinceau, clip propre, une par figure remplie pour un chemin), refaites quand le tableau de sommets, la translation ou les bornes changent : 0 octet au repos, une reconstruction par deplacement ou redimensionnement ; le triangle de `MGRatingControl` et les animations `Progress` et `Scan` de `MGHighlightBorderBrush` (coins droits et anneau a coins arrondis) dessinent a 0 octet, avec des tampons gardes par thread ; `MGDockTabItem` garde le pinceau de son lisere avec sa couleur, si bien qu'un changement de survol ne cree plus de pinceau. Deux regles en decoulent : un cache cle sur la reference d'un tableau suppose que ce tableau est remplace et jamais ecrit en place ; un tampon garde par thread suppose qu'aucun appel fait pendant son usage ne redessine avec le meme type.
+
 ## Limites connues
 
 - Slider : un label dont le texte change vraiment alloue (voir la section Slider).
