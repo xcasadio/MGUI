@@ -281,6 +281,10 @@ Preuve executable dans le repo : `MGUI.Tests/Integration/EngineOwnedRenderingPro
 
 Guide pas-a-pas : `Docs/custom-render-backend-integration.md`.
 
+## Triangulation d'un polygone rempli
+
+`MGUI.Shared.Rendering.PolygonTriangulator` (ADR-0038) triangule un polygone sans allouer : classe publique scellee, une instance par utilisateur (transaction de dessin, rendu du moteur), aucun etat statique, tampons qui grandissent jusqu'au plus grand polygone vu et ne retrecissent pas. Il porte l'algorithme de `Triangulator.Triangulate` de MonoGame.Extended 6.1.1 (decoupe d'oreilles) et rend les memes sommets ordonnes et les memes indices, entree par entree, y compris pour un polygone degenere dont le remplissage n'est que partiel ; un polygone convexe (aucun sommet reflexe) prend directement l'eventail que la decoupe d'origine produit. `Triangulate(Vector2[])` et `Triangulate(IReadOnlyList<Vector2>)` rendent le nombre de triangles ; `Vertices` et `Indices` sont lus en place et valent jusqu'a l'appel suivant de `Triangulate` sur la meme instance (ne pas garder un span au-dela). Il n'emploie que `Vector2` et des entiers : `MGUI.Shared` ne nomme toujours aucun type de backend. Les backends l'utiliseront pour `FillPolygon` a la place de `DrawSolidPolygon` ; tant que ce branchement n'est pas livre, la limite connue de `FillPolygon` ci-dessous reste vraie.
+
 ## Garde-fous : tests d'architecture
 
 La frontiere est epinglee par des suites de tests dans `MGUI.Tests/Architecture/` qui ne doivent pas etre affaiblies : `RenderingBoundaryArchitectureTests`, `Phase4RenderingArchitectureTests`, `BackendProjectSplitTests`, `HostRuntimeContractTests`, `RenderContextTests`, `SurfaceAbstractionTests`, `AssetProviderTests`, `UIViewTests`, `ClipPipelineStrategyTests`, plus `MGUI.Tests/Integration/EngineOwnedRenderingProofTests`. Reintroduire des tokens `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `Texture2D`, `RenderTarget2D`, `ContentManager` ou `MainRenderer` dans `MGUI.Shared` / `MGUI.Core` les fait echouer.

@@ -51,3 +51,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0035 | The rectangle clips of an element are pushed as rectangles, without a clip definition | Accepted | 2026-11-16 |
 | ADR-0036 | The dock host keeps one drop target | Accepted | 2026-11-16 |
 | ADR-0037 | The caret geometry of a text box reads the text layouts | Accepted | 2026-11-16 |
+| ADR-0038 | A polygon is triangulated by a public triangulator that keeps its buffers, with the same algorithm as MonoGame.Extended | Accepted | 2026-11-17 |
