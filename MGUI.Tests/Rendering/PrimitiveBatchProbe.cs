@@ -98,4 +98,52 @@ internal static class PrimitiveBatchProbe
 
         return null;
     }
+
+    /// <summary>Runs <paramref name="referenceCall"/> then <paramref name="newCall"/> from the same count <paramref name="offset"/> (at least 3, so that a flush during a call, which leaves fewer than three
+    /// vertices in the buffer, is seen) and compares what each wrote, whatever the number of triangles (T1.1: a contour writes a number of triangles that depends on the polygon). Returns null when both wrote
+    /// the same vertices (position with Z, bit for bit, colour, order), otherwise the first difference. <paramref name="written"/> receives what the new call wrote.</summary>
+    public static string CompareCalls(PrimitiveBatch batch, int offset, Action referenceCall, Action newCall, out VertexPositionColor[] written)
+    {
+        SetCount(batch, offset);
+        referenceCall();
+        int referenceEnd = GetCount(batch);
+        VertexPositionColor[] expected = referenceEnd >= offset ? Copy(batch, offset, referenceEnd) : Array.Empty<VertexPositionColor>();
+
+        SetCount(batch, offset);
+        newCall();
+        int newEnd = GetCount(batch);
+        written = newEnd >= offset ? Copy(batch, offset, newEnd) : Array.Empty<VertexPositionColor>();
+
+        SetCount(batch, 0);
+
+        if (referenceEnd < offset || newEnd < offset)
+        {
+            return $"a flush happened during a call (offset {offset}, reference ends at {referenceEnd}, new call ends at {newEnd})";
+        }
+
+        if ((referenceEnd - offset) % 3 != 0)
+        {
+            return $"the reference left the count at {referenceEnd} from {offset}: not a whole number of triangles";
+        }
+
+        if (referenceEnd != newEnd)
+        {
+            return $"the reference wrote {expected.Length} vertices, the new call wrote {written.Length}";
+        }
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            VertexPositionColor e = expected[i];
+            VertexPositionColor a = written[i];
+            if (BitConverter.SingleToInt32Bits(e.Position.X) != BitConverter.SingleToInt32Bits(a.Position.X)
+                || BitConverter.SingleToInt32Bits(e.Position.Y) != BitConverter.SingleToInt32Bits(a.Position.Y)
+                || BitConverter.SingleToInt32Bits(e.Position.Z) != BitConverter.SingleToInt32Bits(a.Position.Z)
+                || e.Color != a.Color)
+            {
+                return $"vertex {i} (triangle {i / 3}): the reference wrote {e.Position} {e.Color}, the new call wrote {a.Position} {a.Color}";
+            }
+        }
+
+        return null;
+    }
 }

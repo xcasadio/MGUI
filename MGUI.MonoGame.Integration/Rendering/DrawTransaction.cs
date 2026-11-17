@@ -703,7 +703,7 @@ namespace MGUI.Shared.Rendering
         public void StrokeAndFillPolygon(Vector2 Origin, IReadOnlyList<Vector2> Vertices, Color StrokeColor, Color FillColor, float StrokeThickness = 1.0f,
             bool CenterLinesOnVertices = true, WindingOrder? Order = null)
         {
-            if (Vertices == null || !Vertices.Any())
+            if (Vertices == null || Vertices.Count == 0)
             {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
             }
@@ -729,7 +729,7 @@ namespace MGUI.Shared.Rendering
             {
                 return;
             }
-            else if (Vertices == null || !Vertices.Any())
+            else if (Vertices == null || Vertices.Count == 0)
             {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
             }
@@ -737,40 +737,55 @@ namespace MGUI.Shared.Rendering
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
 
+            //  The edges are the consecutive pairs of vertices, and the last vertex paired with the first one when there are more than two vertices
+            //  (what GeneralUtils.SelectConsecutivePairs(true) enumerates), walked by index: a contour allocates nothing.
+            int Count = Vertices.Count;
+            int EdgeCount = Count < 3 ? Count - 1 : Count;
+
             if (CenterLinesOnVertices)
             {
-                var Edges = Vertices.SelectConsecutivePairs(true);
-                foreach ((Vector2 Start, Vector2 End) in Edges)
+                for (int i = 0; i < EdgeCount; i++)
                 {
-                    StrokeLineSegment(Origin, Start, End, Color, Thickness, Ctx);
+                    StrokeLineSegment(Origin, Vertices[i], Vertices[i + 1 == Count ? 0 : i + 1], Color, Thickness, Ctx);
                 }
             }
             else
             {
-                Order = Order ?? Triangulator.DetermineWindingOrder(Vertices.Append(Vertices[0]).ToArray());
-
                 switch (Ctx)
                 {
                     case DrawContext.Sprites:
-                        SpriteBatch.DrawPolygon(Origin, Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise), Color, Thickness, 0.0f);
+                        //  DrawPolygon draws the polygon counter-clockwise: the polygon of the caller as it is, or a view of it in the opposite order. It reads the polygon during the call and neither modifies nor keeps it.
+                        if (GetWindingOrder(Vertices, false) == WindingOrder.CounterClockwise)
+                        {
+                            SpriteBatch.DrawPolygon(Origin, Vertices, Color, Thickness, 0.0f);
+                        }
+                        else
+                        {
+                            ReversedPolygon.Source = Vertices;
+                            SpriteBatch.DrawPolygon(Origin, ReversedPolygon, Color, Thickness, 0.0f);
+                            ReversedPolygon.Source = null;
+                        }
                         break;
                     case DrawContext.Primitives:
-                        var Edges = Vertices.SelectConsecutivePairs(true);
-                        switch (Order.Value)
+                        switch (Order ?? GetWindingOrder(Vertices, true))
                         {
                             //  Note: We offset the vertices towards the center by the thickness amount when drawing the triangles,
                             //  so that the vertices represent the outer bounds of the shape and the line is drawn inwards
                             case WindingOrder.Clockwise:
-                                foreach ((Vector2 Start, Vector2 End) in Edges)
+                                for (int i = 0; i < EdgeCount; i++)
                                 {
+                                    Vector2 Start = Vertices[i];
+                                    Vector2 End = Vertices[i + 1 == Count ? 0 : i + 1];
                                     Vector2 Offset = (End - Start).RightNormal().NormalizedCopy().Scale(Thickness);
                                     FillTrianglePrimitive(Origin, Start, End, End + Offset, Color);
                                     FillTrianglePrimitive(Origin, End + Offset, Start + Offset, Start, Color);
                                 }
                                 break;
                             case WindingOrder.CounterClockwise:
-                                foreach ((Vector2 Start, Vector2 End) in Edges)
+                                for (int i = 0; i < EdgeCount; i++)
                                 {
+                                    Vector2 Start = Vertices[i];
+                                    Vector2 End = Vertices[i + 1 == Count ? 0 : i + 1];
                                     Vector2 Offset = (End - Start).LeftNormal().NormalizedCopy().Scale(Thickness);
                                     FillTrianglePrimitive(Origin, Start, End, End + Offset, Color);
                                     FillTrianglePrimitive(Origin, End + Offset, Start + Offset, Start, Color);
@@ -783,6 +798,46 @@ namespace MGUI.Shared.Rendering
                 }
             }
         }
+
+        /// <summary>The winding order that <see cref="Triangulator.DetermineWindingOrder"/> gives, by the same sum in the same order, without the array it takes.
+        /// <paramref name="Closed"/> true: the polygon closed by its first vertex, as <c>Triangulator.DetermineWindingOrder(Vertices.Append(Vertices[0]).ToArray())</c> (the winding of the lines inside the vertices).
+        /// <paramref name="Closed"/> false: the polygon as it is, as <c>Triangulator.DetermineWindingOrder(Vertices.ToArray())</c> (the winding that <c>EnsureWindingOrder</c> tests in the sprites context).</summary>
+        private static WindingOrder GetWindingOrder(IReadOnlyList<Vector2> Vertices, bool Closed)
+        {
+            int Count = Vertices.Count;
+            Vector2 Previous = Closed ? Vertices[0] : Vertices[Count - 1];
+            float Sum = 0f;
+            for (int i = 0; i <= (Closed ? Count : Count - 1); i++)
+            {
+                Vector2 Current = i == Count ? Vertices[0] : Vertices[i];
+                Sum += (Current.X - Previous.X) * (Current.Y + Previous.Y);
+                Previous = Current;
+            }
+
+            return Sum > 0f ? WindingOrder.Clockwise : WindingOrder.CounterClockwise;
+        }
+
+        /// <summary>The polygon that <c>Triangulator.ReverseWindingOrder</c> gives (the first vertex, then the others in the opposite order), read through the polygon it reverses instead of copied.
+        /// The transaction keeps one: <see cref="StrokePolygon"/> sets <see cref="Source"/> for the duration of one call.</summary>
+        private sealed class ReversedPolygonView : IReadOnlyList<Vector2>
+        {
+            public IReadOnlyList<Vector2> Source;
+
+            public int Count => Source.Count;
+            public Vector2 this[int index] => index == 0 ? Source[0] : Source[Source.Count - index];
+
+            public IEnumerator<Vector2> GetEnumerator()
+            {
+                for (int i = 0; i < Count; i++)
+                {
+                    yield return this[i];
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private readonly ReversedPolygonView ReversedPolygon = new();
 
         /// <summary>Triangulates the polygons that <see cref="FillPolygon"/> and <see cref="FillRectangle"/> (primitives context) fill: it keeps its buffers, so a fill allocates nothing
         /// once they have grown to the biggest polygon seen (MGUI ADR-0038). It gives the triangles that <c>PrimitiveDrawing.DrawSolidPolygon</c> would give.</summary>
