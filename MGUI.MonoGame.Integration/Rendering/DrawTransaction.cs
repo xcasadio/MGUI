@@ -486,14 +486,11 @@ namespace MGUI.Shared.Rendering
                     SpriteBatch.FillRectangle(Destination.GetTranslated(Origin), Color);
                     break;
                 case DrawContext.Primitives:
-                    Vector2[] RectangleVertices = new Vector2[4]
-                    {
-                        new Vector2(0, 0),
-                        new Vector2(Destination.Width, 0),
-                        new Vector2(Destination.Width, Destination.Height),
-                        new Vector2(0, Destination.Height)
-                    };
-                    PrimitiveDrawing.DrawSolidPolygon(Destination.Position + Origin, RectangleVertices, Color, false);
+                    RectangleVertices[0] = new Vector2(0, 0);
+                    RectangleVertices[1] = new Vector2(Destination.Width, 0);
+                    RectangleVertices[2] = new Vector2(Destination.Width, Destination.Height);
+                    RectangleVertices[3] = new Vector2(0, Destination.Height);
+                    FillPolygonPrimitive(Destination.Position + Origin, RectangleVertices, Color);
                     //PD.DrawSolidRectangle(Origin + Destination.Position, Destination.Width, Destination.Height, Color); // This defaults to DrawSolidPolygon(outline: true) which renders differently
                     //https://github.com/craftworkgames/MonoGame.Extended/blob/a3373ac26d90c9801b71b55679f1199fa4ec22a6/src/cs/MonoGame.Extended/VectorDraw/PrimitiveDrawing.cs
                     break;
@@ -787,62 +784,37 @@ namespace MGUI.Shared.Rendering
             }
         }
 
-        /// <summary>The longest polygon whose buffer is kept by <see cref="FillPolygon"/>: a polygon with more vertices that comes as a list is copied to a new array.</summary>
-        private const int MaxKeptPolygonVertices = 256;
+        /// <summary>Triangulates the polygons that <see cref="FillPolygon"/> and <see cref="FillRectangle"/> (primitives context) fill: it keeps its buffers, so a fill allocates nothing
+        /// once they have grown to the biggest polygon seen (MGUI ADR-0038). It gives the triangles that <c>PrimitiveDrawing.DrawSolidPolygon</c> would give.</summary>
+        private readonly PolygonTriangulator FillTriangulator = new();
 
-        /// <summary>Indexed by a number of vertices: the array that <see cref="FillPolygon"/> hands to <c>PrimitiveDrawing.DrawSolidPolygon</c>
-        /// for a list of that length. Safe to share between the polygons of a batch because <c>DrawSolidPolygon</c> reads the array during the call, and neither
-        /// modifies it nor keeps it (<c>FillPolygonGpuTests</c> checks it on the GPU).</summary>
-        private Vector2[][] PolygonBuffers;
+        /// <summary>The four vertices of the rectangle that <see cref="FillRectangle"/> fills in the primitives context. Rewritten at each call, read during it.</summary>
+        private readonly Vector2[] RectangleVertices = new Vector2[4];
+
+        /// <summary>The array of <see cref="FillPolygonPrimitive"/> for a polygon of two vertices that does not come as an array (<c>DrawSolidPolygon</c> takes an array).</summary>
+        private readonly Vector2[] TwoVertices = new Vector2[2];
 
         public void FillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color Color)
         {
-            Vector2[] Polygon = GetPolygonVertices(Vertices);
+            IReadOnlyList<Vector2> Polygon = GetPolygonVertices(Vertices);
 
             BeginDraw(DrawContext.Primitives);
             //Vector2[] CCWVertices = Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise);
             //PD.DrawSolidPolygon(Origin, CCWVertices, Color, false);
-            PrimitiveDrawing.DrawSolidPolygon(Origin, Polygon, Color, false);
+            FillPolygonPrimitive(Origin, Polygon, Color);
         }
 
-        /// <summary>An array is returned as it is, a list is copied to the buffer kept for its length, and only another enumeration is copied to a new array.</summary>
-        private Vector2[] GetPolygonVertices(IEnumerable<Vector2> Vertices)
+        /// <summary>An array or a list is returned as it is, and only another enumeration is copied to a new array.</summary>
+        private static IReadOnlyList<Vector2> GetPolygonVertices(IEnumerable<Vector2> Vertices)
         {
-            if (Vertices is Vector2[] VertexArray)
-            {
-                if (VertexArray.Length == 0)
-                {
-                    throw new ArgumentException(null, $"{nameof(Vertices)}");
-                }
-
-                return VertexArray;
-            }
-
             if (Vertices is IReadOnlyList<Vector2> VertexList)
             {
-                int Count = VertexList.Count;
-                if (Count == 0)
+                if (VertexList.Count == 0)
                 {
                     throw new ArgumentException(null, $"{nameof(Vertices)}");
                 }
 
-                Vector2[] Buffer;
-                if (Count > MaxKeptPolygonVertices)
-                {
-                    Buffer = new Vector2[Count];
-                }
-                else
-                {
-                    PolygonBuffers ??= new Vector2[MaxKeptPolygonVertices + 1][];
-                    Buffer = PolygonBuffers[Count] ??= new Vector2[Count];
-                }
-
-                for (int i = 0; i < Count; i++)
-                {
-                    Buffer[i] = VertexList[i];
-                }
-
-                return Buffer;
+                return VertexList;
             }
 
             if (Vertices == null || !Vertices.Any())
@@ -851,6 +823,48 @@ namespace MGUI.Shared.Rendering
             }
 
             return Vertices.ToArray();
+        }
+
+        /// <summary>What <c>PrimitiveDrawing.DrawSolidPolygon(Origin, Polygon, Color, false)</c> of MonoGame.Extended does, without its allocations (it triangulates with a
+        /// <c>Triangulator</c> that allocates at each call): the same guard when the batch is not ready, the same outline for a polygon of two vertices (it is still delegated to
+        /// <c>DrawSolidPolygon</c>), otherwise the same triangles, each vertex added to the batch as <c>DrawSolidPolygon</c> adds it (<c>FillPolygonGpuTests</c> reads the batch to prove it).</summary>
+        private void FillPolygonPrimitive(Vector2 Origin, IReadOnlyList<Vector2> Polygon, Color Color)
+        {
+            if (!PrimitiveBatch.IsReady())
+            {
+                throw new InvalidOperationException("BeginCustomDraw must be called before drawing anything.");
+            }
+
+            if (Polygon is Vector2[] PolygonArray)
+            {
+                if (PolygonArray.Length == 2)
+                {
+                    PrimitiveDrawing.DrawSolidPolygon(Origin, PolygonArray, Color, false);
+                    return;
+                }
+
+                FillTriangulator.Triangulate(PolygonArray);
+            }
+            else
+            {
+                if (Polygon.Count == 2)
+                {
+                    TwoVertices[0] = Polygon[0];
+                    TwoVertices[1] = Polygon[1];
+                    PrimitiveDrawing.DrawSolidPolygon(Origin, TwoVertices, Color, false);
+                    return;
+                }
+
+                FillTriangulator.Triangulate(Polygon);
+            }
+
+            ReadOnlySpan<Vector2> OrderedVertices = FillTriangulator.Vertices;
+            ReadOnlySpan<int> Indices = FillTriangulator.Indices;
+            for (int i = 0; i < Indices.Length; i++)
+            {
+                Vector2 Vertex = OrderedVertices[Indices[i]];
+                PrimitiveBatch.AddVertex(new Vector2(Vertex.X + Origin.X, Vertex.Y + Origin.Y), Color, PrimitiveType.TriangleList);
+            }
         }
         #endregion Polygons
 
