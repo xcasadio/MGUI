@@ -21,7 +21,8 @@ namespace MGUI.Tests.Architecture;
 /// <c>DrawProgressOnRing</c> and <c>DrawScanOnRing</c>.</item></list>
 /// Each case proves the path with a draw into an <see cref="OrderedRecordingDrawTransaction"/> at every instant: the rectangle path of <c>Progress</c> fills one polygon, the rectangle path of
 /// <c>Scan</c> fills rectangles, the ring paths fill triangles and nothing else; <c>Pulse</c> and <c>Flash</c> draw only while their phase says so.<para/>
-/// The numbers asserted are the totals over <see cref="FrameAllocationMeter.MeasuredFrames"/> draws at each instant, as measured before T1.4 (T1.4 replaces them by 0).
+/// Before T1.4 <c>Pulse</c> and <c>Flash</c> measured 0, <c>Progress</c> on the rectangle path 2248 to 2472 bytes per draw, <c>Scan</c> on the rectangle path 240, <c>Progress</c> on the ring 488 and
+/// <c>Scan</c> on the ring 448. Every row now asserts 0 over <see cref="FrameAllocationMeter.MeasuredFrames"/> draws at each instant, for four boxes (the one above, equal thicknesses, a zero thickness side, a small box).
 /// </summary>
 [Collection(AllocationMeasurementsCollection.Name)]
 public class HighlightBorderBrushAllocationTests
@@ -91,36 +92,41 @@ public class HighlightBorderBrushAllocationTests
         _ => true
     };
 
-    [Theory]
-    [InlineData("bounds", HighlightAnimation.Pulse, "default", 0L, 0L, 0L, 0L, 0L, 0L)]
-    [InlineData("bounds", HighlightAnimation.Flash, "default", 0L, 0L, 0L, 0L, 0L, 0L)]
-    [InlineData("bounds", HighlightAnimation.Progress, "clockwise", 1128000L, 1128000L, 1128000L, 1128000L, 1128000L, 1128000L)]
-    [InlineData("bounds", HighlightAnimation.Progress, "counter-clockwise", 1128000L, 1236000L, 1124000L, 1128000L, 1124000L, 1128000L)]
-    [InlineData("bounds", HighlightAnimation.Scan, "horizontal", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("bounds", HighlightAnimation.Scan, "horizontal reversed", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("bounds", HighlightAnimation.Scan, "vertical", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("bounds", HighlightAnimation.Scan, "vertical reversed", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("square", HighlightAnimation.Pulse, "default", 0L, 0L, 0L, 0L, 0L, 0L)]
-    [InlineData("square", HighlightAnimation.Flash, "default", 0L, 0L, 0L, 0L, 0L, 0L)]
-    [InlineData("square", HighlightAnimation.Progress, "clockwise", 1128000L, 1128000L, 1128000L, 1128000L, 1128000L, 1128000L)]
-    [InlineData("square", HighlightAnimation.Progress, "counter-clockwise", 1128000L, 1236000L, 1124000L, 1128000L, 1124000L, 1128000L)]
-    [InlineData("square", HighlightAnimation.Scan, "horizontal", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("square", HighlightAnimation.Scan, "horizontal reversed", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("square", HighlightAnimation.Scan, "vertical", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("square", HighlightAnimation.Scan, "vertical reversed", 120000L, 120000L, 120000L, 120000L, 120000L, 120000L)]
-    [InlineData("ring", HighlightAnimation.Pulse, "default", 0L, 0L, 0L, 0L, 0L, 0L)]
-    [InlineData("ring", HighlightAnimation.Flash, "default", 0L, 0L, 0L, 0L, 0L, 0L)]
-    [InlineData("ring", HighlightAnimation.Progress, "clockwise", 244000L, 244000L, 244000L, 244000L, 244000L, 244000L)]
-    [InlineData("ring", HighlightAnimation.Progress, "counter-clockwise", 244000L, 244000L, 244000L, 244000L, 244000L, 244000L)]
-    [InlineData("ring", HighlightAnimation.Scan, "horizontal", 224000L, 224000L, 224000L, 224000L, 224000L, 224000L)]
-    [InlineData("ring", HighlightAnimation.Scan, "horizontal reversed", 224000L, 224000L, 224000L, 224000L, 224000L, 224000L)]
-    [InlineData("ring", HighlightAnimation.Scan, "vertical", 224000L, 224000L, 224000L, 224000L, 224000L, 224000L)]
-    [InlineData("ring", HighlightAnimation.Scan, "vertical reversed", 224000L, 224000L, 224000L, 224000L, 224000L, 224000L)]
-    public void HighlightBorderBrush_Draw_AllocatesTheMeasuredRemainderAtEachInstant(string geometryName, HighlightAnimation animation, string option,
-        long total0, long total1, long total2, long total3, long total4, long total5)
+    private static readonly (string Name, Rectangle Bounds, Thickness Thickness, int Radius)[] Boxes =
     {
-        long[] expected = { total0, total1, total2, total3, total4, total5 };
-        MGBoxShape shape = new(Bounds, BorderThickness, new MGCornerRadius(geometryName == "ring" ? 12 : 0));
+        ("default", Bounds, BorderThickness, 12),
+        ("equal thickness", new Rectangle(0, 0, 90, 50), new Thickness(3), 10),
+        ("zero side", new Rectangle(5, 5, 64, 64), new Thickness(0, 5, 2, 0), 8),
+        ("small box", new Rectangle(3, 4, 20, 20), new Thickness(2), 8)
+    };
+
+    public static IEnumerable<object[]> Rows()
+    {
+        foreach ((string boxName, _, _, _) in Boxes)
+        {
+            foreach (string geometryName in new[] { "bounds", "square", "ring" })
+            {
+                yield return new object[] { boxName, geometryName, HighlightAnimation.Pulse, "default" };
+                yield return new object[] { boxName, geometryName, HighlightAnimation.Flash, "default" };
+                foreach (string option in new[] { "clockwise", "counter-clockwise" })
+                {
+                    yield return new object[] { boxName, geometryName, HighlightAnimation.Progress, option };
+                }
+
+                foreach (string option in new[] { "horizontal", "horizontal reversed", "vertical", "vertical reversed" })
+                {
+                    yield return new object[] { boxName, geometryName, HighlightAnimation.Scan, option };
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Rows))]
+    public void HighlightBorderBrush_Draw_AllocatesNothingAtEachInstant(string boxName, string geometryName, HighlightAnimation animation, string option)
+    {
+        (_, Rectangle bounds, Thickness borderThickness, int radius) = Boxes.Single(x => x.Name == boxName);
+        MGBoxShape shape = new(bounds, borderThickness, new MGCornerRadius(geometryName == "ring" ? radius : 0));
         MGBoxGeometry geometry = MGBoxGeometryBuilder.Build(shape);
         switch (geometryName)
         {
@@ -137,7 +143,7 @@ public class HighlightBorderBrushAllocationTests
         NonRecordingDrawTransaction measured = new(new GraphTestRuntime(new Rectangle(0, 0, 640, 360)), DrawSettings.Default);
         ElementDrawArgs measuredArgs = Args(measured);
         Action draw = geometryName == "bounds"
-            ? () => brush.Draw(measuredArgs, null, Bounds, BorderThickness)
+            ? () => brush.Draw(measuredArgs, null, bounds, borderThickness)
             : () => brush.Draw(measuredArgs, null, shape, geometry);
 
         long[] totals = new long[Instants.Length];
@@ -155,7 +161,7 @@ public class HighlightBorderBrushAllocationTests
             OrderedRecordingDrawTransaction recording = new(new GraphTestRuntime(new Rectangle(0, 0, 640, 360)), DrawSettings.Default);
             if (geometryName == "bounds")
             {
-                brush.Draw(Args(recording), null, Bounds, BorderThickness);
+                brush.Draw(Args(recording), null, bounds, borderThickness);
             }
             else
             {
@@ -179,13 +185,13 @@ public class HighlightBorderBrushAllocationTests
                     $"Scan on {geometryName} at {Instants[i]}: {counts}");
             }
 
-            Output.WriteLine($"{geometryName}, {animation}, {option}, progress {Instants[i]}: {bytes.Draw} B/draw ({bytes.DrawTotal} B over {bytes.Iterations} draws); journal {journal.Count} line(s): {counts}");
-            if (bytes.DrawTotal != expected[i])
+            Output.WriteLine($"{boxName}, {geometryName}, {animation}, {option}, progress {Instants[i]}: {bytes.Draw} B/draw ({bytes.DrawTotal} B over {bytes.Iterations} draws); journal {journal.Count} line(s): {counts}");
+            if (bytes.DrawTotal != 0)
             {
-                failures.Add($"progress {Instants[i]}: {bytes.DrawTotal} B over {bytes.Iterations} draws, expected {expected[i]}");
+                failures.Add($"progress {Instants[i]}: {bytes.DrawTotal} B over {bytes.Iterations} draws, expected 0");
             }
         }
 
-        Assert.True(failures.Count == 0, $"{geometryName}, {animation}, {option}: measured {string.Join(", ", totals)}; {string.Join("; ", failures)}");
+        Assert.True(failures.Count == 0, $"{boxName}, {geometryName}, {animation}, {option}: measured {string.Join(", ", totals)}; {string.Join("; ", failures)}");
     }
 }
