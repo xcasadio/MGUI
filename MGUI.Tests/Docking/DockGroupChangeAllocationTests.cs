@@ -88,7 +88,7 @@ public class DockGroupChangeAllocationTests
     [InlineData(SplitLeftOfBThenC, 0L, 0L)]
     [InlineData(SplitTopOfBThenC, 0L, 0L)]
     [InlineData(ProximityBandOfBThenC, 0L, 0L)]
-    [InlineData(HostEdgeTopAcrossAAndB, 16000L, 0L)]
+    [InlineData(HostEdgeTopAcrossAAndB, 0L, 0L)]
     [InlineData(HostEdgeBottomAcrossAAndC, 0L, 0L)]
     public void TabDrag_ThatChangesTheHoveredGroupAtEachFrame_UpdateAndDraw_AllocateTheMeasuredRemainder(string name, long expectedUpdateTotal, long expectedDrawTotal)
     {

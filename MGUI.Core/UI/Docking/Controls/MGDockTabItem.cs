@@ -568,6 +568,23 @@ public class MGDockTabItem : MGElement
     /// <summary>
     /// Updates the visual appearance based on panel data and active state.
     /// </summary>
+    //  The solid brush of the accent part, kept with the color it was made for, as MGDockSplitterBar keeps its own: the visuals are synced at every change of the
+    //  hover, and a mouse that goes from one tab to another during a drag changes it at every frame, so a new brush at every sync is garbage at every frame. A
+    //  brush for another color (the tab became active, or the theme changed) replaces it.
+    private MGSolidFillBrush _accentBrush;
+    private Color _accentBrushColor;
+
+    private MGSolidFillBrush GetAccentBrush(Color color)
+    {
+        if (_accentBrush == null || _accentBrushColor != color)
+        {
+            _accentBrush = new MGSolidFillBrush(color);
+            _accentBrushColor = color;
+        }
+
+        return _accentBrush;
+    }
+
     private void UpdateVisuals()
     {
         if (_titleText != null && Panel != null)
@@ -604,7 +621,7 @@ public class MGDockTabItem : MGElement
             _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Hidden;
             _accentElement.Width = LayoutBounds.Width;
             _accentElement.Height = IsActive ? 3 : 2;
-            _accentElement.Fill = accentColor.AsFillBrush();
+            _accentElement.Fill = GetAccentBrush(accentColor);
         }
 
         // Reveal on hover/active: the close/pin accessories (button + icon) are shown only while
