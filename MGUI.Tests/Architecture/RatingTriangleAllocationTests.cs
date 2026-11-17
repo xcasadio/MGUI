@@ -8,16 +8,16 @@ using Xunit.Abstractions;
 namespace MGUI.Tests.Architecture;
 
 /// <summary>
-/// T0.1 of the plan "end of the zero allocation of the drawing", for T1.3: what a frame of the desktop allocates for an <see cref="MGRatingControl"/> of the
+/// T0.1 and T1.3 of the plan "end of the zero allocation of the drawing": what a frame of the desktop allocates for an <see cref="MGRatingControl"/> of the
 /// <see cref="RatingItemShape.Triangle"/> shape (four items), fully filled and partially filled, with and without stroke, horizontal and vertical. The star and the diamond
 /// (T5.6 of the previous plan) are not in this table: they are the shapes that T1.3 gives the triangle the way of.<para/>
-/// The triangle is the only shape whose vertices are scaled into a new list at each draw of each item (<c>ShapeVertices256[Triangle].Select(...).ToList()</c>), and whose stroke goes through
-/// <c>SelectConsecutivePairs(true)</c> and <c>StrokeLineSegment</c>, so the stroke is measured here: the bench draws through a <see cref="NonRecordingDrawTransaction"/> that
-/// counts the calls without running a backend.<para/>
+/// Before T1.3 the triangle scaled its vertices into a new list at each draw of each item (<c>ShapeVertices256[Triangle].Select(...).ToList()</c>), took the bounds of its partial clip with
+/// <c>Min</c> and <c>Max</c> lambdas and its stroke from <c>SelectConsecutivePairs(true)</c> (1792, 4096, 1712 and 3728 bytes per frame, horizontal and vertical alike); it now draws from the
+/// buffer that the star and the diamond use, by index. The stroke is measured here: the bench draws through a <see cref="NonRecordingDrawTransaction"/> that
+/// counts the calls without running a backend. The journal of the calls is frozen in <see cref="RatingTriangleJournalTests"/>.<para/>
 /// Each case proves its path with one frame drawn into an <see cref="OrderedRecordingDrawTransaction"/>: the number of triangles filled (an item draws its unfilled triangle, then the filled part),
 /// of line segments of the stroke (three per triangle that has a stroke), and of rectangle clips right before a triangle (the clip of the control itself, plus one for a partially filled item).
-/// The numbers asserted are the totals over <see cref="FrameAllocationMeter.MeasuredFrames"/> frames as measured before T1.3 (the first measured frame is not over-counted here: no enum is
-/// formatted); T1.3 replaces them by 0.
+/// The totals asserted are 0 over <see cref="FrameAllocationMeter.MeasuredFrames"/> frames, for Update and for Draw.
 /// </summary>
 [Collection(AllocationMeasurementsCollection.Name)]
 public class RatingTriangleAllocationTests
@@ -63,15 +63,15 @@ public class RatingTriangleAllocationTests
     }
 
     [Theory]
-    [InlineData(Orientation.Horizontal, 4.0f, false, 0L, 896000L)]
-    [InlineData(Orientation.Horizontal, 4.0f, true, 0L, 2048000L)]
-    [InlineData(Orientation.Horizontal, 2.4f, false, 0L, 856000L)]
-    [InlineData(Orientation.Horizontal, 2.4f, true, 0L, 1864000L)]
-    [InlineData(Orientation.Vertical, 4.0f, false, 0L, 896000L)]
-    [InlineData(Orientation.Vertical, 4.0f, true, 0L, 2048000L)]
-    [InlineData(Orientation.Vertical, 2.4f, false, 0L, 856000L)]
-    [InlineData(Orientation.Vertical, 2.4f, true, 0L, 1864000L)]
-    public void RatingTriangle_UpdateAndDraw_AllocateTheMeasuredRemainder(Orientation orientation, float value, bool stroke, long expectedUpdateTotal, long expectedDrawTotal)
+    [InlineData(Orientation.Horizontal, 4.0f, false, 0L, 0L)]
+    [InlineData(Orientation.Horizontal, 4.0f, true, 0L, 0L)]
+    [InlineData(Orientation.Horizontal, 2.4f, false, 0L, 0L)]
+    [InlineData(Orientation.Horizontal, 2.4f, true, 0L, 0L)]
+    [InlineData(Orientation.Vertical, 4.0f, false, 0L, 0L)]
+    [InlineData(Orientation.Vertical, 4.0f, true, 0L, 0L)]
+    [InlineData(Orientation.Vertical, 2.4f, false, 0L, 0L)]
+    [InlineData(Orientation.Vertical, 2.4f, true, 0L, 0L)]
+    public void RatingTriangle_UpdateAndDraw_AllocateNothing(Orientation orientation, float value, bool stroke, long expectedUpdateTotal, long expectedDrawTotal)
     {
         ControlBench bench = CreateBench(orientation, value, stroke, out MGRatingControl rating);
         string label = $"MGRatingControl triangle, {orientation}, value {value}, {(stroke ? "with" : "without")} stroke";
