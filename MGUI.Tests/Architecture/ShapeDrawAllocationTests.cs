@@ -13,7 +13,7 @@ namespace MGUI.Tests.Architecture;
 /// in the cases that reach the code the plan tightens (T1.1 and T1.2). Each case is measured as the other control families are: a desktop with one window and one shape, driven frame by frame
 /// (<see cref="ControlBench"/>), <see cref="FrameAllocationMeter.WarmupFrames"/> warm-up frames then <see cref="FrameAllocationMeter.MeasuredFrames"/> measured ones, the update and the draw told apart.
 /// <para/>
-/// The numbers asserted are the remainder as it is measured now (on the code before T1.1 and T1.2): the task that removes a remainder replaces its number by 0 here. The bench draws
+/// The numbers asserted are 0: T0.1 measured a remainder in the cases of a geometry clip, and T1.2 removed it (the shapes keep the geometry and the definition of each clip, ShapeClipGeometryTests). The bench draws
 /// through a <see cref="NonRecordingDrawTransaction"/>, which allocates nothing and does not run a backend, so what is measured is what <c>MGUI.Core</c> allocates before the calls to the
 /// transaction: the contour of a polygon (<c>StrokePolygon</c>) is measured in the backends instead (<c>StrokePolygonGpuTests</c> of both test projects), and the geometry of the clips
 /// is measured here (the definitions are built, then handed to a transaction that ignores them).<para/>
@@ -30,19 +30,19 @@ public class ShapeDrawAllocationTests
         Output = output;
     }
 
-    private const string SolidFillAndStroke = "solid fill and stroke";
-    private const string SolidFillOnly = "solid fill only";
-    private const string StrokeOnly = "stroke only";
-    private const string BrushFill = "brush fill";
-    private const string SelfClip = "self clip";
-    private const string BrushFillAndSelfClip = "brush fill and self clip";
-    private const string BrushFillAndSelfClipOpacityAnimated = "brush fill and self clip, opacity animated";
-    private const string TwoFiguresBrushFill = "two closed figures, brush fill";
+    internal const string SolidFillAndStroke = "solid fill and stroke";
+    internal const string SolidFillOnly = "solid fill only";
+    internal const string StrokeOnly = "stroke only";
+    internal const string BrushFill = "brush fill";
+    internal const string SelfClip = "self clip";
+    internal const string BrushFillAndSelfClip = "brush fill and self clip";
+    internal const string BrushFillAndSelfClipOpacityAnimated = "brush fill and self clip, opacity animated";
+    internal const string TwoFiguresBrushFill = "two closed figures, brush fill";
 
     //  A seven-vertex arrow (concave), the polygon of the polygon and of the figure of the path.
-    private static Vector2[] Arrow() => new Vector2[] { new(0, 10), new(40, 10), new(40, 0), new(70, 20), new(40, 40), new(40, 30), new(0, 30) };
+    internal static Vector2[] Arrow() => new Vector2[] { new(0, 10), new(40, 10), new(40, 0), new(70, 20), new(40, 40), new(40, 30), new(0, 30) };
 
-    private static MGPathLiteCommand[] ArrowCommands()
+    internal static MGPathLiteCommand[] ArrowCommands()
     {
         Vector2[] arrow = Arrow();
         List<MGPathLiteCommand> commands = new() { MGPathLiteCommand.MoveTo(arrow[0]) };
@@ -56,18 +56,18 @@ public class ShapeDrawAllocationTests
     }
 
     /// <summary>Two closed triangles, side by side: two figures that a brush fills one clip each.</summary>
-    private static MGPathLiteCommand[] TwoTrianglesCommands() => new[]
+    internal static MGPathLiteCommand[] TwoTrianglesCommands() => new[]
     {
         MGPathLiteCommand.MoveTo(new Vector2(0, 0)), MGPathLiteCommand.LineTo(new Vector2(40, 0)), MGPathLiteCommand.LineTo(new Vector2(20, 40)), MGPathLiteCommand.Close(),
         MGPathLiteCommand.MoveTo(new Vector2(60, 0)), MGPathLiteCommand.LineTo(new Vector2(100, 0)), MGPathLiteCommand.LineTo(new Vector2(80, 40)), MGPathLiteCommand.Close(),
     };
 
     /// <summary>A brush that is not a solid one: <c>HasVisibleFill</c> is true and <c>TryGetSolidFillColor</c> false, which is what makes a shape draw its fill through the clip of its geometry.</summary>
-    private static MGGradientFillBrush Gradient() => new(Color.Red, Color.Green, Color.Blue, Color.Yellow);
+    internal static MGGradientFillBrush Gradient() => new(Color.Red, Color.Green, Color.Blue, Color.Yellow);
 
-    private sealed record Scene(ControlBench Bench, MGShapeElementBase Shape, Action<int> Prepare, int FilledFigures, bool HasBrushFill, bool HasSelfClip, string Fill, string Contour);
+    internal sealed record Scene(ControlBench Bench, MGShapeElementBase Shape, Action<int> Prepare, int FilledFigures, bool HasBrushFill, bool HasSelfClip, string Fill, string Contour);
 
-    private static Scene CreateScene(string shapeName, string caseName)
+    internal static Scene CreateScene(string shapeName, string caseName)
     {
         ControlBench bench = new();
         MGShapeElementBase shape = shapeName switch
@@ -200,36 +200,34 @@ public class ShapeDrawAllocationTests
         return bytes;
     }
 
-    /// <summary>The totals over <see cref="FrameAllocationMeter.MeasuredFrames"/> frames, as measured on the code before T1.1 and T1.2 (T1.1 and T1.2 replace them by 0 where they remove the remainder).
-    /// Each non-zero total is <see cref="FrameAllocationMeter.MeasuredFrames"/> times the bytes of one frame, plus 4872 B that the first measured frame allocates: the name of a clip
-    /// (<c>$"{ElementType}.Fill"</c>, <c>$"{ElementType}.Self"</c>) is built at each draw with the <c>ToString</c> of an enum, whose cache of names the collection that opens the measure window
-    /// (<see cref="AllocationWindow.Start"/>) empties, and the first draw builds it again (checked: the same 4872 B follow every collection, <c>GC.GetTotalAllocatedBytes(true)</c> reports them as the thread counter
-    /// does). Bytes of one frame: <see cref="MGEllipse"/> 4392 per geometry clip, <see cref="MGPolygon"/> and <see cref="MGPathLite"/> 1152 per geometry clip (two triangles of
-    /// <c>TwoFiguresBrushFill</c>: 1136 for both).</summary>
+    /// <summary>The totals over <see cref="FrameAllocationMeter.MeasuredFrames"/> frames: 0 in every case. Before T1.2 the cases that fill with a brush or clip the shape itself allocated
+    /// the geometry and the definition of each clip at each draw (<see cref="MGEllipse"/> 4392 B per clip and frame, <see cref="MGPolygon"/> and <see cref="MGPathLite"/> 1152 B, the two triangles of
+    /// <c>TwoFiguresBrushFill</c> 1136 B for both, and 48 B of the name of each clip), plus 4872 B on the first measured frame (the cache of the names of an enum, emptied by the collection that opens
+    /// the measure window): the shapes keep them now, and the names are built once.</summary>
     [Theory]
     [InlineData(nameof(MGEllipse), SolidFillAndStroke, 0L, 0L)]
     [InlineData(nameof(MGEllipse), SolidFillOnly, 0L, 0L)]
     [InlineData(nameof(MGEllipse), StrokeOnly, 0L, 0L)]
-    [InlineData(nameof(MGEllipse), BrushFill, 0L, 2200872L)]
-    [InlineData(nameof(MGEllipse), SelfClip, 0L, 2200872L)]
-    [InlineData(nameof(MGEllipse), BrushFillAndSelfClip, 0L, 4396872L)]
-    [InlineData(nameof(MGEllipse), BrushFillAndSelfClipOpacityAnimated, 0L, 4396872L)]
+    [InlineData(nameof(MGEllipse), BrushFill, 0L, 0L)]
+    [InlineData(nameof(MGEllipse), SelfClip, 0L, 0L)]
+    [InlineData(nameof(MGEllipse), BrushFillAndSelfClip, 0L, 0L)]
+    [InlineData(nameof(MGEllipse), BrushFillAndSelfClipOpacityAnimated, 0L, 0L)]
     [InlineData(nameof(MGPolygon), SolidFillAndStroke, 0L, 0L)]
     [InlineData(nameof(MGPolygon), SolidFillOnly, 0L, 0L)]
     [InlineData(nameof(MGPolygon), StrokeOnly, 0L, 0L)]
-    [InlineData(nameof(MGPolygon), BrushFill, 0L, 580872L)]
-    [InlineData(nameof(MGPolygon), SelfClip, 0L, 580872L)]
-    [InlineData(nameof(MGPolygon), BrushFillAndSelfClip, 0L, 1156872L)]
-    [InlineData(nameof(MGPolygon), BrushFillAndSelfClipOpacityAnimated, 0L, 1156872L)]
+    [InlineData(nameof(MGPolygon), BrushFill, 0L, 0L)]
+    [InlineData(nameof(MGPolygon), SelfClip, 0L, 0L)]
+    [InlineData(nameof(MGPolygon), BrushFillAndSelfClip, 0L, 0L)]
+    [InlineData(nameof(MGPolygon), BrushFillAndSelfClipOpacityAnimated, 0L, 0L)]
     [InlineData(nameof(MGPathLite), SolidFillAndStroke, 0L, 0L)]
     [InlineData(nameof(MGPathLite), SolidFillOnly, 0L, 0L)]
     [InlineData(nameof(MGPathLite), StrokeOnly, 0L, 0L)]
-    [InlineData(nameof(MGPathLite), BrushFill, 0L, 580872L)]
-    [InlineData(nameof(MGPathLite), SelfClip, 0L, 580872L)]
-    [InlineData(nameof(MGPathLite), BrushFillAndSelfClip, 0L, 1156872L)]
-    [InlineData(nameof(MGPathLite), BrushFillAndSelfClipOpacityAnimated, 0L, 1156872L)]
-    [InlineData(nameof(MGPathLite), TwoFiguresBrushFill, 0L, 572872L)]
-    public void Shape_UpdateAndDraw_AllocateTheMeasuredRemainder(string shapeName, string caseName, long expectedUpdateTotal, long expectedDrawTotal)
+    [InlineData(nameof(MGPathLite), BrushFill, 0L, 0L)]
+    [InlineData(nameof(MGPathLite), SelfClip, 0L, 0L)]
+    [InlineData(nameof(MGPathLite), BrushFillAndSelfClip, 0L, 0L)]
+    [InlineData(nameof(MGPathLite), BrushFillAndSelfClipOpacityAnimated, 0L, 0L)]
+    [InlineData(nameof(MGPathLite), TwoFiguresBrushFill, 0L, 0L)]
+    public void Shape_UpdateAndDraw_AllocateNothing(string shapeName, string caseName, long expectedUpdateTotal, long expectedDrawTotal)
     {
         Scene scene = CreateScene(shapeName, caseName);
         string label = $"{shapeName}, {caseName}";

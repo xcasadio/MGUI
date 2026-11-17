@@ -32,6 +32,11 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
     /// <summary>The lines written so far, one per call, in call order.</summary>
     public IReadOnlyList<string> Lines => JournalLines;
 
+    private readonly List<ClipDefinition> PushedDefinitionList = new();
+
+    /// <summary>The definitions given to <see cref="PushClipTemporary"/> so far, in call order, as the objects themselves: a test reads their geometry as values or compares them by reference.</summary>
+    public IReadOnlyList<ClipDefinition> PushedDefinitions => PushedDefinitionList;
+
     public OrderedRecordingDrawTransaction(IUIDesktopRuntime renderer, DrawSettings settings)
     {
         Renderer = renderer;
@@ -162,7 +167,10 @@ internal sealed class OrderedRecordingDrawTransaction : IUIDrawTransaction
     }
 
     public ClipHandle PushClipTemporary(ClipDefinition Definition)
-        => Push("PushClipTemporary/1", Definition, Clp(Definition));
+    {
+        PushedDefinitionList.Add(Definition);
+        return Push("PushClipTemporary/1", Definition, Clp(Definition));
+    }
 
     public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         => Push("PushRectangleClip/2", RectangleOrNone(Bounds, IntersectWithCurrentClipTarget), Rect(Bounds), "intersect=" + IntersectWithCurrentClipTarget);

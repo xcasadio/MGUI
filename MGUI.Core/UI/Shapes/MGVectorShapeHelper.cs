@@ -1,3 +1,4 @@
+using MGUI.Shared.Rendering;
 using MGUI.Shared.Rendering.Clipping;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Triangulation;
@@ -8,6 +9,75 @@ namespace MGUI.Core.UI.Shapes;
 internal readonly record struct MGPointShapePlacement(Rectangle Bounds, Vector2 GeometryOrigin);
 
 internal readonly record struct MGPathLiteFigure(IReadOnlyList<Vector2> Points, bool IsClosed);
+
+/// <summary>The triangulated geometry of the clip of one use of a shape (its fill brush, or the shape itself) and the <see cref="ClipDefinition"/> that holds it, kept while what they were
+/// built from is the same: the array of source vertices (by reference: a shape replaces such an array when its geometry changes, and never writes in one), the translation and the
+/// bounds of the clip target. A change of any of them builds a new geometry and a new definition: a definition that was given out is never rewritten, because the clip pipeline keeps
+/// a definition from its push to its pop (a stencil clip draws its geometry again on release). What it builds is what <see cref="MGVectorShapeHelper.CreateTriangulatedClipGeometry"/>
+/// and <see cref="ClipDefinition.ArbitraryGeometry"/> build, with the same arguments as <c>MGElement.CreateGeometryClipDefinition</c>. An entry is for one use: two uses of a shape
+/// (their translations and their names differ) have an entry each. Not for several threads.</summary>
+internal sealed class MGTriangulatedClipEntry
+{
+    private readonly string _DebugName;
+    private readonly bool _AllowRectangleFallback;
+    private readonly PolygonTriangulator _Triangulator = new();
+    private IReadOnlyList<Vector2> _Source;
+    private Vector2 _Translation;
+    private Rectangle _TargetBounds;
+    private ClipDefinition _Definition;
+
+    /// <param name="debugName">The name of the clip, built once by the owner.</param>
+    public MGTriangulatedClipEntry(string debugName, bool allowRectangleFallback)
+    {
+        _DebugName = debugName;
+        _AllowRectangleFallback = allowRectangleFallback;
+    }
+
+    /// <summary>The definition of the clip of the polygon <paramref name="source"/> moved by <paramref name="translation"/>, for the clip target <paramref name="targetBounds"/>:
+    /// the one given last time while the three are the same, a new one otherwise.</summary>
+    public ClipDefinition GetDefinition(IReadOnlyList<Vector2> source, Vector2 translation, Rectangle targetBounds)
+    {
+        ClipDefinition definition = _Definition;
+        if (definition == null || !ReferenceEquals(_Source, source) || _Translation != translation || _TargetBounds != targetBounds)
+        {
+            definition = ClipDefinition.ArbitraryGeometry(targetBounds, CreateGeometry(source, translation), intersectWithCurrentClip: true,
+                allowRectangleFallback: _AllowRectangleFallback, debugName: _DebugName);
+            _Source = source;
+            _Translation = translation;
+            _TargetBounds = targetBounds;
+            _Definition = definition;
+        }
+
+        return definition;
+    }
+
+    private ClipGeometry CreateGeometry(IReadOnlyList<Vector2> source, Vector2 translation)
+    {
+        if (source == null || source.Count < 3)
+        {
+            return new ClipGeometry(Array.Empty<Vector2>(), Array.Empty<int>());
+        }
+
+        //  The two steps of CreateTriangulatedClipGeometry, in its order: the polygon is put counter-clockwise (EnsureWindingOrder: the float sum of the winding, the reversal that keeps the first
+        //  vertex), then that polygon is triangulated, and the triangulation tests the winding of its input again and reverses it again when it finds it clockwise. The two tests can disagree
+        //  (a signed area about 0 sums positive for the polygon and for its reversal): a single test would triangulate another polygon. A rebuild is one-off, the copy is the one array it owns.
+        Vector2[] copy = new Vector2[source.Count];
+        for (int i = 0; i < copy.Length; i++)
+        {
+            copy[i] = source[i];
+        }
+
+        _Triangulator.Triangulate(Triangulator.EnsureWindingOrder(copy, WindingOrder.CounterClockwise));
+        ReadOnlySpan<Vector2> ordered = _Triangulator.Vertices;
+        Vector2[] vertices = new Vector2[ordered.Length];
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            vertices[i] = ordered[i] + translation;
+        }
+
+        return new ClipGeometry(vertices, _Triangulator.Indices.ToArray());
+    }
+}
 
 internal static class MGVectorShapeHelper
 {
