@@ -41,7 +41,7 @@ public class AssetProviderTests
             {
                 nameof(IUIAssetProvider.LoadImage), nameof(IUIAssetProvider.TryLoadImage),
                 nameof(IUIAssetProvider.TryResolveImage), nameof(IUIAssetProvider.TryCreateAnimatedImage),
-                nameof(IUIAssetProvider.TryCreateVideo) // ADR-0026
+                nameof(IUIAssetProvider.TryCreateVideo) // ADR-0039
             }.OrderBy(x => x),
             methodNames);
     }

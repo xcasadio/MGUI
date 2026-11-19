@@ -1,8 +1,9 @@
-# ADR-0026: A video element plays host video sources
+# ADR-0039: A video element plays host video sources
 
 - **Status**: Accepted
 - **Date**: 2026-11-08
 - **Source**: this chantier: branch `chantier/video-element` from `develop` at `a3c42cb0`, requested by CasaEngine (its chantier `video-playback`, task T2.1).
+- Renumbered from ADR-0026 on 2026-11-19 when origin/develop was merged (its ADR-0026 is another decision)
 
 ## Context
 

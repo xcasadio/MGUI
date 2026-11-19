@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 
 namespace MGUI.Shared.Assets
 {
-    /// <summary>A host-created, per-element handle to a playing video (ADR-0026).<para/>
+    /// <summary>A host-created, per-element handle to a playing video (ADR-0039).<para/>
     /// Like <see cref="IUIAnimatedImage"/>, it advances by elapsed wall-clock time via <see cref="Advance(TimeSpan)"/> and exposes its
     /// current frame. Unlike an animation it plays once: <see cref="IsEnded"/> turns true when the last frame has been shown and the last
     /// frame stays displayed.<para/>

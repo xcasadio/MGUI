@@ -17,7 +17,7 @@ using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 namespace MGUI.Tests.Architecture;
 
-/// <summary>ADR-0026 coverage: an <see cref="MGVideo"/> whose <see cref="MGImage.SourceName"/> names a video (as decided by the host's
+/// <summary>ADR-0039 coverage: an <see cref="MGVideo"/> whose <see cref="MGImage.SourceName"/> names a video (as decided by the host's
 /// <see cref="IUIAssetProvider.TryCreateVideo"/>) advances its own <see cref="IUIVideo"/> in <see cref="MGVideo.UpdateSelf"/>, draws its current frame,
 /// reports its end or its skip once (event and named command), and disposes the video when the source changes or the element is disposed.</summary>
 [Collection(DataBindingRegistryCollection.Name)]

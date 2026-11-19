@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace MGUI.Core.UI;
 
-/// <summary>Plays a host-provided video (ADR-0026). It draws like an <see cref="MGImage"/> (same stretching and filtering) and takes its image from an
+/// <summary>Plays a host-provided video (ADR-0039). It draws like an <see cref="MGImage"/> (same stretching and filtering) and takes its image from an
 /// <see cref="IUIVideo"/> that the host creates for <see cref="MGImage.SourceName"/> through <see cref="IUIAssetProvider.TryCreateVideo(string, out IUIVideo)"/>.<para/>
 /// The video advances in <see cref="UpdateSelf(ElementUpdateArgs)"/>, so a collapsed element does not advance it. Reaching the end raises
 /// <see cref="Ended"/> once and runs <see cref="EndedCommandName"/>. <see cref="Skip"/> raises <see cref="Skipped"/> once and runs

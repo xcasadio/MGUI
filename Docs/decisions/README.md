@@ -39,7 +39,6 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0023 | Text lines are sized by the ink of a shared repertoire, and drawn at the scale they are measured with | Accepted | 2026-10-08 |
 | ADR-0024 | An image picks its blend mode, and the subtractive mode joins BlendType | Accepted | 2026-10-31 |
 | ADR-0025 | A host can pause the raw navigation path, and what was held stays silent afterwards | Accepted | 2026-11-01 |
-| ADR-0026 | A video element plays host video sources | Accepted | 2026-11-08 |
 | ADR-0026 | Text engines measure and draw a span of characters | Accepted | 2026-11-14 |
 | ADR-0027 | A clip scope can be re-armed, so a backend pushes clips without allocating | Accepted | 2026-11-15 |
 | ADR-0028 | The runtime method that opens a draw transaction is named BeginDrawTransaction | Accepted | 2026-11-15 |
@@ -53,3 +52,4 @@ This folder records the architecture decisions of this repository: architecture,
 | ADR-0036 | The dock host keeps one drop target | Accepted | 2026-11-16 |
 | ADR-0037 | The caret geometry of a text box reads the text layouts | Accepted | 2026-11-16 |
 | ADR-0038 | A polygon is triangulated by a public triangulator that keeps its buffers, with the same algorithm as MonoGame.Extended | Accepted | 2026-11-17 |
+| ADR-0039 | A video element plays host video sources (numbered ADR-0026 until 2026-11-19) | Accepted | 2026-11-08 |

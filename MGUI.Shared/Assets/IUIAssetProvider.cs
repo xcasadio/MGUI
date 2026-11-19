@@ -35,7 +35,7 @@ namespace MGUI.Shared.Assets
             return false;
         }
 
-        /// <summary>Creates a new, independent video instance for a name the host recognizes as a video (ADR-0026), so each
+        /// <summary>Creates a new, independent video instance for a name the host recognizes as a video (ADR-0039), so each
         /// <c>MGUI.Core.UI.MGVideo</c> whose <c>SourceName</c> names it can play its own copy.<para/>
         /// The default implementation creates nothing, so existing implementers of <see cref="IUIAssetProvider"/> keep compiling
         /// unchanged.</summary>

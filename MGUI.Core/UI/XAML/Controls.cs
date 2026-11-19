@@ -1327,7 +1327,7 @@ public class Image : Element
     protected internal override IEnumerable<Element> GetChildren() => Enumerable.Empty<Element>();
 }
 
-/// <summary>An <see cref="MGVideo"/> (ADR-0026): plays the video that the host resolves from <see cref="SourceName"/>.</summary>
+/// <summary>An <see cref="MGVideo"/> (ADR-0039): plays the video that the host resolves from <see cref="SourceName"/>.</summary>
 public class Video : Element
 {
     public override MGElementType ElementType => MGElementType.Video;
