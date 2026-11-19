@@ -11,7 +11,7 @@ public class ClipPipelineStrategyTests
         var method = typeof(MGUI.Shared.Rendering.IUIRenderContext).GetMethod("SetClipTargetTemporary");
 
         Assert.NotNull(method);
-        Assert.Equal(typeof(IDisposable), method!.ReturnType);
+        Assert.Equal(typeof(ClipHandle), method!.ReturnType);
     }
 
     [Fact]

@@ -248,13 +248,17 @@ public class MGResizeGrip : MGElement, IActiveMouseDragCapture
         return new(0, 0, Size, Size);
     }
 
+    //  The positions of the dots, rebuilt by every DrawSelf in a list kept between frames.
+    private readonly List<Vector2> DotPositions = new();
+
     public override void DrawSelf(ElementDrawArgs DA, Rectangle LayoutBounds)
     {
         var Region = ApplyAlignment(LayoutBounds, HorizontalAlignment.Right, VerticalAlignment.Bottom, new Size(Size, Size));
         var BottomRight = Region.BottomRight().ToVector2().Translate(-1, -1);
 
         //  Draw several small dots in the shape of a right-triangle
-        List<Vector2> Points = new();
+        List<Vector2> Points = DotPositions;
+        Points.Clear();
         for (var i = 0; i < MaxDots; i++)
         {
             for (var j = 0; j < MaxDots - i; j++)

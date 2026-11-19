@@ -196,8 +196,12 @@ namespace MGUI.Shared.Input.Mouse
             => _RecentButtonPressedEvents[Button] != null && Owner.IsInside(_RecentButtonPressedEvents[Button].Position.ToVector2() + Owner.GetOffset());
 
         #region Events
-        /// <summary>The mouse scroll event that occurred on the current Update tick, or null if the mouse wheel didn't change between the previous Update tick and the current Update tick.</summary>
+        /// <summary>The mouse scroll event that occurred on the current Update tick, or null if the mouse wheel didn't change between the previous Update tick and the current Update tick.<para/>
+        /// The same instance is refilled from one wheel tick to the next (with its handled state reset), so that a wheel movement allocates nothing:
+        /// read it during the current tick, do not keep it.</summary>
         public BaseMouseScrolledEventArgs CurrentScrollEvent { get; private set; } = null;
+        /// <summary>The instance behind <see cref="CurrentScrollEvent"/>, created at the first wheel movement.</summary>
+        private BaseMouseScrolledEventArgs _ReusedScrollEvent;
 
         /// <summary>The mouse move event that occurred on the current Update tick, or null if the mouse position didn't change between the previous Update tick and the current Update tick.<para/>
         /// The same instance is refilled from one move to the next, so that a move allocates nothing: read it during the current tick, do not keep it.</summary>
@@ -205,14 +209,88 @@ namespace MGUI.Shared.Input.Mouse
         /// <summary>The instance behind <see cref="CurrentMoveEvent"/>, created at the first move.</summary>
         private BaseMouseMovedEventArgs _ReusedMoveEvent;
 
-        /// <summary>The most recent MouseButton Press events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the button is released.</summary>
+        //  The press, release, click, drag start and drag end events are instances kept by the tracker (one per button, and per drag start condition for the drag events),
+        //  created at the first use and refilled, with their handled state reset, at each event of their kind (ADR-0034). The Current* and Recent* members below designate them.
+        private readonly Dictionary<MouseButton, BaseMousePressedEventArgs> _ReusedPressedEvents = new()
+        {
+            { MouseButton.Left, null },
+            { MouseButton.Middle, null },
+            { MouseButton.Right, null }
+        };
+        private readonly Dictionary<MouseButton, BaseMouseReleasedEventArgs> _ReusedReleasedEvents = new()
+        {
+            { MouseButton.Left, null },
+            { MouseButton.Middle, null },
+            { MouseButton.Right, null }
+        };
+        private readonly Dictionary<MouseButton, BaseMouseClickedEventArgs> _ReusedClickedEvents = new()
+        {
+            { MouseButton.Left, null },
+            { MouseButton.Middle, null },
+            { MouseButton.Right, null }
+        };
+        /// <summary>The click sequence of each button, restarted at the first click of each sequence of that button.</summary>
+        private readonly Dictionary<MouseButton, MouseClickSequence> _ReusedClickSequences = new()
+        {
+            { MouseButton.Left, null },
+            { MouseButton.Middle, null },
+            { MouseButton.Right, null }
+        };
+        /// <summary>The values of the previous click of each button, indexed by <see cref="MouseButton"/>.</summary>
+        private readonly PreviousClickValues[] _PreviousClicks = new PreviousClickValues[3];
+        private readonly Dictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDragStartEventArgs>> _ReusedDragStartEvents = new()
+        {
+            {
+                DragStartCondition.MouseMovedAfterPress,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            },
+            {
+                DragStartCondition.MousePressed,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            }
+        };
+        private readonly Dictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDragEndEventArgs>> _ReusedDragEndEvents = new()
+        {
+            {
+                DragStartCondition.MouseMovedAfterPress,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            },
+            {
+                DragStartCondition.MousePressed,
+                new()
+                {
+                    { MouseButton.Left, null },
+                    { MouseButton.Middle, null },
+                    { MouseButton.Right, null }
+                }
+            }
+        };
+
+        /// <summary>The most recent MouseButton Press events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the button is released.<para/>
+        /// The instance of a button is refilled at each press of that button, so it is valid until the next press of that button: read it, do not keep it.</summary>
         private readonly Dictionary<MouseButton, BaseMousePressedEventArgs> _RecentButtonPressedEvents = new()
         {
             { MouseButton.Left, null },
             { MouseButton.Middle, null },
             { MouseButton.Right, null }
         };
-        /// <summary>The most recent MouseButton Press events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the button is released.</summary>
+        /// <summary>The most recent MouseButton Press events that have occurred, even if they occurred on a prior Update tick. These values are set back to null when the button is released.<para/>
+        /// The instance of a button is refilled at each press of that button, so it is valid until the next press of that button: read it, do not keep it.</summary>
         public IReadOnlyDictionary<MouseButton, BaseMousePressedEventArgs> RecentButtonPressedEvents => _RecentButtonPressedEvents;
 
         private readonly Dictionary<MouseButton, BaseMousePressedEventArgs> _CurrentButtonPressedEvents = new()
@@ -221,7 +299,8 @@ namespace MGUI.Shared.Input.Mouse
             { MouseButton.Middle, null },
             { MouseButton.Right, null }
         };
-        /// <summary>The MouseButton Press events that occurred on the current Update tick, or null if the button's <see cref="ButtonState"/> wasn't just set to <see cref="ButtonState.Pressed"/> on the current Update tick.</summary>
+        /// <summary>The MouseButton Press events that occurred on the current Update tick, or null if the button's <see cref="ButtonState"/> wasn't just set to <see cref="ButtonState.Pressed"/> on the current Update tick.<para/>
+        /// The instance of a button is refilled at each press of that button (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<MouseButton, BaseMousePressedEventArgs> CurrentButtonPressedEvents => _CurrentButtonPressedEvents;
         internal bool HasCurrentButtonPressedEvents;
 
@@ -231,7 +310,8 @@ namespace MGUI.Shared.Input.Mouse
             { MouseButton.Middle, null },
             { MouseButton.Right, null }
         };
-        /// <summary>The MouseButton Release events that occurred on the current Update tick, or null if the button's <see cref="ButtonState"/> wasn't just set to <see cref="ButtonState.Released"/> on the current Update tick.</summary>
+        /// <summary>The MouseButton Release events that occurred on the current Update tick, or null if the button's <see cref="ButtonState"/> wasn't just set to <see cref="ButtonState.Released"/> on the current Update tick.<para/>
+        /// The instance of a button is refilled at each release of that button (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<MouseButton, BaseMouseReleasedEventArgs> CurrentButtonReleasedEvents => _CurrentButtonReleasedEvents;
         internal bool HasCurrentButtonReleasedEvents;
 
@@ -242,7 +322,8 @@ namespace MGUI.Shared.Input.Mouse
             { MouseButton.Middle, null },
             { MouseButton.Right, null }
         };
-        /// <summary>The MouseButton Click events that occurred on the current Update tick, or null if the button didn't just finish clicking on the current Update tick.</summary>
+        /// <summary>The MouseButton Click events that occurred on the current Update tick, or null if the button didn't just finish clicking on the current Update tick.<para/>
+        /// The instance of a button is refilled at each click of that button (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<MouseButton, BaseMouseClickedEventArgs> CurrentButtonClickedEvents => _CurrentButtonClickedEvents;
         internal bool HasCurrentButtonClickedEvents;
 
@@ -252,6 +333,8 @@ namespace MGUI.Shared.Input.Mouse
             { MouseButton.Middle, null },
             { MouseButton.Right, null }
         };
+        /// <summary>The latest click of each button, or null before the first click of the button. It is the instance of the button that is refilled at each click (ADR-0034), so it always
+        /// reads as the latest click: read it, do not keep it.</summary>
         public IReadOnlyDictionary<MouseButton, BaseMouseClickedEventArgs> RecentButtonClickedEvents => _RecentButtonClickedEvents;
 
         private long _NextClickSequenceId = 1;
@@ -262,7 +345,8 @@ namespace MGUI.Shared.Input.Mouse
             { MouseButton.Middle, null },
             { MouseButton.Right, null }
         };
-        /// <summary>The MouseButton Double-Click events that occurred on the current Update tick, or null if the button did not just finish a double-click on the current Update tick.</summary>
+        /// <summary>The MouseButton Double-Click events that occurred on the current Update tick, or null if the button did not just finish a double-click on the current Update tick.<para/>
+        /// This is the click instance of the button (see <see cref="CurrentButtonClickedEvents"/>), valid until the next click of that button (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<MouseButton, BaseMouseClickedEventArgs> CurrentButtonDoubleClickedEvents => _CurrentButtonDoubleClickedEvents;
         internal bool HasCurrentButtonDoubleClickedEvents;
 
@@ -310,7 +394,9 @@ namespace MGUI.Shared.Input.Mouse
                 }
             }
         };
-        /// <summary>The Mouse DragStart events that occurred on the current Update tick, or null if a DragStart didn't just occur the current Update tick.</summary>
+        /// <summary>The Mouse DragStart events that occurred on the current Update tick, or null if a DragStart didn't just occur the current Update tick.<para/>
+        /// The instance of a condition and button is refilled at each drag start of that condition and button, so it is valid, handled state included, until the next one: it covers the
+        /// drag and its drag end (ADR-0034). Read it, do not keep it.</summary>
         public IReadOnlyDictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDragStartEventArgs>> CurrentDragStartEvents => _CurrentDragStartEvents;
         internal bool HasCurrentDragStartEvents;
 
@@ -384,7 +470,8 @@ namespace MGUI.Shared.Input.Mouse
                 }
             }
         };
-        /// <summary>The Mouse DragEnd events that occurred on the current Update tick, or null if a DragEnd didn't just occur the current Update tick.</summary>
+        /// <summary>The Mouse DragEnd events that occurred on the current Update tick, or null if a DragEnd didn't just occur the current Update tick.<para/>
+        /// The instance of a condition and button is refilled at each drag end of that condition and button (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<DragStartCondition, Dictionary<MouseButton, BaseMouseDragEndEventArgs>> CurrentDragEndEvents => _CurrentDragEndEvents;
         internal bool HasCurrentDragEndEvents;
 
@@ -406,7 +493,17 @@ namespace MGUI.Shared.Input.Mouse
             CurrentScrollEvent = null;
             if (PreviousState.ScrollWheelValue != CurrentState.ScrollWheelValue)
             {
-                CurrentScrollEvent = new(this, CurrentState.ScrollWheelValue - PreviousState.ScrollWheelValue, CurrentPosition);
+                int ScrollWheelDelta = CurrentState.ScrollWheelValue - PreviousState.ScrollWheelValue;
+                if (_ReusedScrollEvent == null)
+                {
+                    _ReusedScrollEvent = new(this, ScrollWheelDelta, CurrentPosition);
+                }
+                else
+                {
+                    _ReusedScrollEvent.SetScroll(ScrollWheelDelta, CurrentPosition);
+                }
+
+                CurrentScrollEvent = _ReusedScrollEvent;
                 //Debug.WriteLine($"Scrolled: {CurrentScrollEvent.ScrollWheelDelta} - {CurrentPosition}");
             }
 
@@ -440,7 +537,17 @@ namespace MGUI.Shared.Input.Mouse
                 if (GetButtonState(PreviousState, Button) == ButtonState.Released && GetButtonState(CurrentState, Button) == ButtonState.Pressed)
                 {
                     //Debug.WriteLine($"Pressed: {Button} - {CurrentPosition}");
-                    BaseMousePressedEventArgs Args = new(this, Button, CurrentPosition, BA.TotalElapsed);
+                    BaseMousePressedEventArgs Args = _ReusedPressedEvents[Button];
+                    if (Args == null)
+                    {
+                        Args = new(this, Button, CurrentPosition, BA.TotalElapsed);
+                        _ReusedPressedEvents[Button] = Args;
+                    }
+                    else
+                    {
+                        Args.Set(CurrentPosition, BA.TotalElapsed);
+                    }
+
                     _RecentButtonPressedEvents[Button] = Args;
                     _CurrentButtonPressedEvents[Button] = Args;
 
@@ -448,7 +555,7 @@ namespace MGUI.Shared.Input.Mouse
                     bool IsDragging = RecentDragStartEvents[DragStartCondition.MousePressed][Button] != null;
                     if (!IsDragging)
                     {
-                        BaseMouseDragStartEventArgs DragStartArgs = new(this, Button, CurrentPosition, DragStartCondition.MousePressed, BA.TotalElapsed);
+                        BaseMouseDragStartEventArgs DragStartArgs = GetDragStartEvent(DragStartCondition.MousePressed, Button, CurrentPosition, BA.TotalElapsed);
                         RecentDragStartEvents[DragStartCondition.MousePressed][Button] = DragStartArgs;
                         _CurrentDragStartEvents[DragStartCondition.MousePressed][Button] = DragStartArgs;
                     }
@@ -459,18 +566,52 @@ namespace MGUI.Shared.Input.Mouse
                     _RecentButtonPressedEvents.TryGetValue(Button, out BaseMousePressedEventArgs PressedArgs) && PressedArgs != null)
                 {
                     //Debug.WriteLine($"Released: {Button} - {CurrentPosition}");
-                    BaseMouseReleasedEventArgs ReleasedArgs = new(this, PressedArgs, Button, CurrentPosition, BA.TotalElapsed);
+                    BaseMouseReleasedEventArgs ReleasedArgs = _ReusedReleasedEvents[Button];
+                    if (ReleasedArgs == null)
+                    {
+                        ReleasedArgs = new(this, PressedArgs, Button, CurrentPosition, BA.TotalElapsed);
+                        _ReusedReleasedEvents[Button] = ReleasedArgs;
+                    }
+                    else
+                    {
+                        ReleasedArgs.Set(PressedArgs, CurrentPosition, BA.TotalElapsed);
+                    }
+
                     _CurrentButtonReleasedEvents[Button] = ReleasedArgs;
 
                     //  Detect buttons that were just clicked
                     if (Math.Abs(PressedArgs.Position.X - ReleasedArgs.Position.X) <= ClickPositionThreshold && Math.Abs(PressedArgs.Position.Y - ReleasedArgs.Position.Y) <= ClickPositionThreshold &&
                         ReleasedArgs.HeldDuration <= ClickTimeThreshold)
                     {
-                        BaseMouseClickedEventArgs PreviousClickedArgs = _RecentButtonClickedEvents[Button];
-                        int clickCount = GetMultiClickCount(PreviousClickedArgs, ReleasedArgs, MultiClickTimeThreshold, MultiClickPositionThreshold);
-                        BaseMouseClickedEventArgs previousClickInSequence = clickCount > 1 ? PreviousClickedArgs : null;
-                        MouseClickSequence sequence = previousClickInSequence?.Sequence ?? new MouseClickSequence(_NextClickSequenceId++, Button, ReleasedArgs.ReleasedAt);
-                        BaseMouseClickedEventArgs ClickedArgs = new(this, ReleasedArgs, Button, CurrentPosition, clickCount, previousClickInSequence, sequence);
+                        //  The multi click is detected on the values of the previous click of this button, kept here: the previous click object is the one that is refilled below.
+                        ref PreviousClickValues Previous = ref _PreviousClicks[(int)Button];
+                        int clickCount = GetMultiClickCount(Previous.ClickCount, Previous.ReleasedAt, Previous.Position, ReleasedArgs, MultiClickTimeThreshold, MultiClickPositionThreshold);
+                        MouseClickSequence sequence = _ReusedClickSequences[Button];
+                        if (sequence == null)
+                        {
+                            sequence = new MouseClickSequence(_NextClickSequenceId++, Button, ReleasedArgs.ReleasedAt);
+                            _ReusedClickSequences[Button] = sequence;
+                        }
+                        else if (clickCount <= 1)
+                        {
+                            //  A click that does not continue the sequence of its button starts a new one, with a new identity and no adopted target.
+                            sequence.Restart(_NextClickSequenceId++, Button, ReleasedArgs.ReleasedAt);
+                        }
+
+                        BaseMouseClickedEventArgs ClickedArgs = _ReusedClickedEvents[Button];
+                        if (ClickedArgs == null)
+                        {
+                            ClickedArgs = new(this, ReleasedArgs, Button, CurrentPosition, clickCount, sequence);
+                            _ReusedClickedEvents[Button] = ClickedArgs;
+                        }
+                        else
+                        {
+                            ClickedArgs.Set(ReleasedArgs, CurrentPosition, clickCount, sequence);
+                        }
+
+                        Previous.ClickCount = ClickedArgs.ClickCount;
+                        Previous.ReleasedAt = ReleasedArgs.ReleasedAt;
+                        Previous.Position = ClickedArgs.Position;
                         _CurrentButtonClickedEvents[Button] = ClickedArgs;
                         _RecentButtonClickedEvents[Button] = ClickedArgs;
 
@@ -508,7 +649,7 @@ namespace MGUI.Shared.Input.Mouse
                             (Math.Abs(CurrentPosition.X - PressedArgs.Position.X) >= DragThreshold || Math.Abs(CurrentPosition.Y - PressedArgs.Position.Y) >= DragThreshold))
                         {
                             //Debug.WriteLine($"Drag Start: {Button} - {PressedArgs.Position}");
-                            BaseMouseDragStartEventArgs DragStartArgs = new(this, Button, PressedArgs.Position, Condition, BA.TotalElapsed);
+                            BaseMouseDragStartEventArgs DragStartArgs = GetDragStartEvent(Condition, Button, PressedArgs.Position, BA.TotalElapsed);
                             RecentDragStartEvents[Condition][Button] = DragStartArgs;
                             _CurrentDragStartEvents[Condition][Button] = DragStartArgs;
                         }
@@ -539,9 +680,18 @@ namespace MGUI.Shared.Input.Mouse
                         {
                             BaseMouseDragStartEventArgs StartArgs = RecentDragStartEvents[Condition][Button];
                             //Debug.WriteLine($"Drag End: {Button} - {StartArgs.Position} - {CurrentPosition}");
-                            BaseMouseDragEndEventArgs DragEndArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
+                            BaseMouseDragEndEventArgs DragEndArgs = _ReusedDragEndEvents[Condition][Button];
+                            if (DragEndArgs == null)
+                            {
+                                DragEndArgs = new(this, StartArgs, Button, CurrentPosition, BA.TotalElapsed);
+                                _ReusedDragEndEvents[Condition][Button] = DragEndArgs;
+                            }
+                            else
+                            {
+                                DragEndArgs.Set(StartArgs, CurrentPosition, BA.TotalElapsed);
+                            }
+
                             _CurrentDragEndEvents[Condition][Button] = DragEndArgs;
-                            RecentDragStartEvents[Condition][Button] = null;
                             RecentDragStartEvents[Condition][Button] = null;
                         }
                     }
@@ -559,18 +709,48 @@ namespace MGUI.Shared.Input.Mouse
             HasCurrentDragEvents = HasCurrentDragStartEvents || HasCurrentDraggedEvents || HasCurrentDragEndEvents;
         }
 
-        public static int GetMultiClickCount(BaseMouseClickedEventArgs PreviousClickedArgs, BaseMouseReleasedEventArgs ReleasedArgs, TimeSpan multiClickTimeThreshold, int multiClickPositionThreshold)
+        /// <summary>The click count of a click, given the values of the previous click of the same button (not the previous click object, which <see cref="MouseTracker"/> refills for the
+        /// new click): the count after it if the release is close enough in time and position, 1 otherwise.</summary>
+        /// <param name="PreviousClickCount">The click count of the previous click of the button, or 0 or less if the button was never clicked.</param>
+        /// <param name="PreviousReleasedAt">The release time of the previous click.</param>
+        /// <param name="PreviousPosition">The position of the previous click.</param>
+        public static int GetMultiClickCount(int PreviousClickCount, TimeSpan PreviousReleasedAt, Point PreviousPosition, BaseMouseReleasedEventArgs ReleasedArgs, TimeSpan multiClickTimeThreshold, int multiClickPositionThreshold)
         {
-            if (PreviousClickedArgs == null || ReleasedArgs == null)
+            if (PreviousClickCount <= 0 || ReleasedArgs == null)
             {
                 return 1;
             }
 
-            bool isWithinTime = ReleasedArgs.ReleasedAt - PreviousClickedArgs.ReleasedArgs.ReleasedAt <= multiClickTimeThreshold;
-            bool isWithinPosition = Math.Abs(PreviousClickedArgs.Position.X - ReleasedArgs.Position.X) <= multiClickPositionThreshold
-                && Math.Abs(PreviousClickedArgs.Position.Y - ReleasedArgs.Position.Y) <= multiClickPositionThreshold;
+            bool isWithinTime = ReleasedArgs.ReleasedAt - PreviousReleasedAt <= multiClickTimeThreshold;
+            bool isWithinPosition = Math.Abs(PreviousPosition.X - ReleasedArgs.Position.X) <= multiClickPositionThreshold
+                && Math.Abs(PreviousPosition.Y - ReleasedArgs.Position.Y) <= multiClickPositionThreshold;
 
-            return isWithinTime && isWithinPosition ? PreviousClickedArgs.ClickCount + 1 : 1;
+            return isWithinTime && isWithinPosition ? PreviousClickCount + 1 : 1;
+        }
+
+        /// <summary>The values of the previous click of a button, kept for the detection of the multi click (the click object is refilled at each click).</summary>
+        private struct PreviousClickValues
+        {
+            public int ClickCount;
+            public TimeSpan ReleasedAt;
+            public Point Position;
+        }
+
+        /// <summary>The reused drag start instance of a condition and a button, created at its first use, refilled with its handled state reset afterwards.</summary>
+        private BaseMouseDragStartEventArgs GetDragStartEvent(DragStartCondition Condition, MouseButton Button, Point Position, TimeSpan StartedAt)
+        {
+            BaseMouseDragStartEventArgs DragStartArgs = _ReusedDragStartEvents[Condition][Button];
+            if (DragStartArgs == null)
+            {
+                DragStartArgs = new(this, Button, Position, Condition, StartedAt);
+                _ReusedDragStartEvents[Condition][Button] = DragStartArgs;
+            }
+            else
+            {
+                DragStartArgs.Set(Position, StartedAt);
+            }
+
+            return DragStartArgs;
         }
 
         /// <summary>True if any button has an event. Walks the dictionary with its struct enumerator, so it allocates nothing.</summary>

@@ -10,7 +10,7 @@ using MGUI.Core.UI.Styling;
 namespace MGUI.Core.UI.Containers;
 
 /// <summary>Represents an <see cref="MGElement"/> that is capable of hosting one or more child <see cref="MGElement"/>s as its content.</summary>
-public abstract class MGContentHost : MGElement
+public abstract partial class MGContentHost : MGElement
 {
     protected override void AddComponent(MGComponentBase Component)
     {
@@ -221,7 +221,7 @@ public abstract class MGContentHost : MGElement
 }
 
 /// <summary>Represents an <see cref="MGElement"/> that is capable of hosting 1 or more <see cref="MGElement"/>s as its content, such as an <see cref="MGStackPanel"/>.</summary>
-public abstract class MGMultiContentHost : MGContentHost
+public abstract partial class MGMultiContentHost : MGContentHost
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     protected ObservableCollection<MGElement> _Children { get; }
@@ -269,7 +269,7 @@ public abstract class MGMultiContentHost : MGContentHost
 }
 
 /// <summary>Represents an <see cref="MGElement"/> that is capable of hosting exactly one child <see cref="MGElement"/> as its content, such as an <see cref="MGBorder"/>.</summary>
-public abstract class MGSingleContentHost : MGContentHost
+public abstract partial class MGSingleContentHost : MGContentHost
 {
     public const string ContentPartName = "PART_Content";
 
@@ -605,6 +605,131 @@ public class MGHeaderedContentPresenter : MGSingleContentHost
 
             this.Header = Header;
             SetContent(Content);
+        }
+    }
+}
+
+//  How a content host draws its children (kept apart from the declarations above, whose line numbers other tests pin).
+public abstract partial class MGContentHost
+{
+    //  Whether a host type draws its children without going through GetChildren(), by runtime type: true when the type does not override
+    //  GetChildren() below the base host that implements it (MGSingleContentHost or MGMultiContentHost), so that the children that GetChildren() would
+    //  enumerate are exactly the ones the base host holds. The answer is looked up once per host instance (at its first draw) and read from a field after.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> DrawsChildrenDirectlyByType = new();
+
+    internal static bool DrawsChildrenDirectly(Type hostType, Type baseHostType)
+        => DrawsChildrenDirectlyByType.GetOrAdd(hostType, static (type, baseType) =>
+            type.GetMethod(nameof(GetChildren), Type.EmptyTypes)?.DeclaringType == baseType, baseHostType);
+}
+
+public abstract partial class MGSingleContentHost
+{
+    private bool? _DrawsChildrenDirectly;
+
+    //  The children of the host as GetVisualTreeChildren gives them (the content, or nothing), kept between calls. The base implementation copies the iterator of GetChildren() into a new
+    //  list at each call for the (true, true) arguments, which is what a layout invalidation of a whole subtree (IsSelected) asks of every element of the subtree. The kept list holds what the
+    //  content is now, or it is replaced: it is compared with Content at each call, so that nothing has to tell this host that its content changed, and a list that was returned is never changed.
+    private List<MGElement> _KeptVisualTreeChildren;
+
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        //  A host that overrides GetChildren() has children that this class does not know.
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGSingleContentHost));
+        if (!_DrawsChildrenDirectly.Value)
+        {
+            base.AddChildrenTo(buffer);
+        }
+        else if (Content != null)
+        {
+            buffer.Add(Content);
+        }
+    }
+
+    /// <inheritdoc/>
+    public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool includeActive)
+    {
+        if (!includeActive)
+        {
+            return base.GetVisualTreeChildren(IncludeInactive, includeActive);
+        }
+
+        //  A host that overrides GetChildren() has children that this class does not know: the base implementation gives them.
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGSingleContentHost));
+        if (!_DrawsChildrenDirectly.Value)
+        {
+            return base.GetVisualTreeChildren(IncludeInactive, includeActive);
+        }
+
+        var content = Content;
+        var kept = _KeptVisualTreeChildren;
+        if (kept == null || (content == null ? kept.Count != 0 : (kept.Count != 1 || !ReferenceEquals(kept[0], content))))
+        {
+            kept = new List<MGElement>(1);
+            if (content != null)
+            {
+                kept.Add(content);
+            }
+
+            _KeptVisualTreeChildren = kept;
+        }
+
+        return kept;
+    }
+
+    /// <summary>Draws the content. A host that does not override <see cref="GetChildren"/> draws <see cref="Content"/> directly (what the iterator of
+    /// <see cref="GetChildren"/> would yield), which allocates nothing.</summary>
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGSingleContentHost));
+        if (_DrawsChildrenDirectly.Value)
+        {
+            if (Content != null)
+            {
+                Content.Draw(DA);
+            }
+        }
+        else
+        {
+            base.DrawContents(DA);
+        }
+    }
+}
+
+public abstract partial class MGMultiContentHost
+{
+    private bool? _DrawsChildrenDirectly;
+
+    /// <summary>Draws the children in order. A host that does not override <see cref="GetChildren"/> is walked by index, reading the count at each step,
+    /// which allocates nothing; a child that adds or removes children of this host while it is drawn no longer makes the walk throw
+    /// (the enumerator of the collection did): the walk goes on from the next index of the changed collection.</summary>
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGMultiContentHost));
+        if (!_DrawsChildrenDirectly.Value)
+        {
+            base.AddChildrenTo(buffer);
+            return;
+        }
+
+        for (var i = 0; i < _Children.Count; i++)
+        {
+            buffer.Add(_Children[i]);
+        }
+    }
+
+    protected override void DrawContents(ElementDrawArgs DA)
+    {
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGMultiContentHost));
+        if (_DrawsChildrenDirectly.Value)
+        {
+            for (var i = 0; i < _Children.Count; i++)
+            {
+                _Children[i].Draw(DA);
+            }
+        }
+        else
+        {
+            base.DrawContents(DA);
         }
     }
 }

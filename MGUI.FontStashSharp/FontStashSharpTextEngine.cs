@@ -100,6 +100,11 @@ namespace MGUI.FontStashSharp
         /// <summary>Cache: FontSpec → ResolvedFont (+ embedded FSSFontHandle as NativeFont).</summary>
         private readonly Dictionary<FontSpec, ResolvedFont> _cache = new();
 
+        // Characters of a span overload are copied here, then handed to the font through its StringBuilder overloads:
+        // the font API takes no span, and a reused builder keeps the call free of allocation.
+        private readonly System.Text.StringBuilder _spanBuffer = new();
+
+
         /// <summary>
         /// Per font-size effective-pt table built by <see cref="MatchSpriteFontSizing"/>.
         /// Maps logical pt size → the effective pt size used for FSS rasterisation
@@ -678,6 +683,25 @@ namespace MGUI.FontStashSharp
         }
 
         /// <inheritdoc/>
+        public Vector2 MeasureText(ResolvedFont font, ReadOnlySpan<char> text)
+        {
+            if (text.IsEmpty)
+            {
+                return Vector2.Zero;
+            }
+
+            var h = GetHandle(font);
+            if (h is null)
+            {
+                return Vector2.Zero;
+            }
+
+            _spanBuffer.Clear();
+            _spanBuffer.Append(text);
+            return new Vector2(h.Font.MeasureString(_spanBuffer).X, font.LineHeight);
+        }
+
+        /// <inheritdoc/>
         /// <remarks>
         /// <b>Consistency with <see cref="MeasureText"/>:</b> this method always returns
         /// FSS-native glyph widths (via <see cref="FSSFontHandle.GetGlyphWidth"/>), not
@@ -754,6 +778,57 @@ namespace MGUI.FontStashSharp
             // caller's origin lands, so the box top is the draw point (ADR-0023).
             Vector2 lineOrigin = new(origin.X, origin.Y + h.LineTop);
             h.Font.DrawText(monoGameContext.SpriteBatch, text, position, color,
+                rotation:   rotation,
+                origin:     lineOrigin,
+                scale:      new Vector2(sx, sy),
+                layerDepth: depth);
+        }
+
+        /// <inheritdoc/>
+        public void DrawText(
+            IUIDrawContext drawContext,
+            ResolvedFont font,
+            ReadOnlySpan<char> text,
+            Vector2 position,
+            Color color,
+            Vector2 origin,
+            float scale,
+            float rotation    = 0f,
+            float depth       = 0f,
+            UIDrawFlip flip = UIDrawFlip.None)
+        {
+            if (text.IsEmpty)
+            {
+                return;
+            }
+
+            var h = GetHandle(font);
+            if (h is null)
+            {
+                return;
+            }
+
+            if (drawContext is not IMonoGameDrawContext monoGameContext)
+            {
+                throw new InvalidOperationException($"{nameof(FontStashSharpTextEngine)} requires a {nameof(IMonoGameDrawContext)} for the MonoGame backend.");
+            }
+
+            float sx = scale;
+            float sy = scale;
+            if ((flip & UIDrawFlip.Horizontal) != 0)
+            {
+                sx = -sx;
+            }
+
+            if ((flip & UIDrawFlip.Vertical) != 0)
+            {
+                sy = -sy;
+            }
+
+            _spanBuffer.Clear();
+            _spanBuffer.Append(text);
+            Vector2 lineOrigin = new(origin.X, origin.Y + h.LineTop);
+            h.Font.DrawText(monoGameContext.SpriteBatch, _spanBuffer, position, color,
                 rotation:   rotation,
                 origin:     lineOrigin,
                 scale:      new Vector2(sx, sy),

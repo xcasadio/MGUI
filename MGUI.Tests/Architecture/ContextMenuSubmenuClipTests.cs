@@ -142,21 +142,24 @@ public class ContextMenuSubmenuClipTests
 
         public void SetDrawSettings(DrawSettings Settings) => CurrentSettings = Settings ?? DrawSettings.Default;
 
-        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+        private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+        private readonly CallbackClipHandleOwner _ClipScopes = new();
+
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
             SetDrawSettings(Settings);
-            return new DisposableAction(() => CurrentSettings = previous);
+            return _DrawStateScopes.Push(() => CurrentSettings = previous);
         }
 
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor) => new DisposableAction(() => { });
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor) => default;
 
-        public IDisposable SetTransformTemporary(Matrix Transform) => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
+        public DrawStateHandle SetTransformTemporary(Matrix Transform) => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
             => ClipStrategyResolver.Resolve(Definition ?? ClipDefinition.None(), ClipBackendCapabilities.Default);
 
-        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        public ClipHandle PushClipTemporary(ClipDefinition Definition)
         {
             PushedClips.Add(Definition);
             ClipResolveResult resolution = ResolveClip(Definition);
@@ -168,10 +171,10 @@ public class ContextMenuSubmenuClipTests
                 _currentClipBounds = resolution.Effective.Shape.Bounds;
             }
 
-            return new(resolution, () => _currentClipBounds = previous);
+            return _ClipScopes.Push(resolution, () => _currentClipBounds = previous);
         }
 
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
             if (!Bounds.HasValue)
             {
@@ -184,35 +187,16 @@ public class ContextMenuSubmenuClipTests
 
                 ClipDefinition requested = ClipDefinition.None(false);
                 ClipResolveResult resolution = new(requested, requested, ClipStrategy.None, false);
-                return new(resolution, () => _currentClipBounds = previous);
+                return _ClipScopes.Push(resolution, () => _currentClipBounds = previous);
             }
 
             ClipDefinition definition = ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget);
             return PushClipTemporary(definition);
         }
 
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
             => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
         public void Dispose() { }
-    }
-
-    private sealed class DisposableAction : IDisposable
-    {
-        private readonly Action _disposeAction;
-        private bool _disposed;
-
-        public DisposableAction(Action disposeAction) => _disposeAction = disposeAction;
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-            _disposeAction();
-        }
     }
 }

@@ -41,6 +41,10 @@ namespace MGUI.Shared.Input.Keyboard
 
         private readonly Dictionary<Keys, TimeSpan?> _LastRepeatedAt = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
 
+        /// <summary>The repeat event of each key that this handler has repeated, created at the first repeat of the key and refilled, with its handled state reset, at each later one (ADR-0034).
+        /// The instances belong to the handler: each handler has its own handled state for the repeat of a key, as it had when each repeat was a new object. Null until the first repeat.</summary>
+        private Dictionary<Keys, BaseKeyRepeatedEventArgs> _ReusedRepeatEvents;
+
         public override string ToString() => $"{nameof(KeyboardHandler)}: {nameof(Owner)} = {Owner}";
 
         internal KeyboardHandler(KeyboardTracker Tracker, IKeyboardHandlerHost Owner, double? UpdatePriority, bool AlwaysHandlesEvents, bool InvokeEvenIfHandled)
@@ -73,7 +77,8 @@ namespace MGUI.Shared.Input.Keyboard
         private void RecomputeHasSubscribedEvents()
             => _hasSubscribedEvents = _pressed != null || _released != null || _clicked != null || _repeated != null;
 
-        /// <summary>Invoked immediately after a Key has been pressed.</summary>
+        /// <summary>Invoked immediately after a Key has been pressed.<para/>
+        /// The event is an instance of the key that the tracker refills at each press of that key (ADR-0034): read it during the event, do not keep it.</summary>
         public event EventHandler<BaseKeyPressedEventArgs> Pressed
         {
             add    { _pressed += value; RecomputeHasSubscribedEvents(); }
@@ -86,7 +91,8 @@ namespace MGUI.Shared.Input.Keyboard
             remove { _pressed -= value; RecomputeHasSubscribedEvents(); }
         }
         /// <summary>Invoked immediately after a Key has been released.<para/>
-        /// Note: This event is invoked before <see cref="Clicked"/></summary>
+        /// Note: This event is invoked before <see cref="Clicked"/><para/>
+        /// The event is an instance of the key that the tracker refills at each release of that key (ADR-0034): read it during the event, do not keep it.</summary>
         public event EventHandler<BaseKeyReleasedEventArgs> Released
         {
             add    { _released += value; RecomputeHasSubscribedEvents(); }
@@ -99,13 +105,15 @@ namespace MGUI.Shared.Input.Keyboard
             remove { _released -= value; RecomputeHasSubscribedEvents(); }
         }
         /// <summary>Invoked immediately after a Key has been clicked.<para/>
-        /// Note: This event is invoked after <see cref="Released"/></summary>
+        /// Note: This event is invoked after <see cref="Released"/><para/>
+        /// The event is an instance of the key that the tracker refills at each click of that key (ADR-0034): read it during the event, do not keep it.</summary>
         public event EventHandler<BaseKeyClickedEventArgs> Clicked
         {
             add    { _clicked += value; RecomputeHasSubscribedEvents(); }
             remove { _clicked -= value; RecomputeHasSubscribedEvents(); }
         }
-        /// <summary>Invoked after the initial key press while the key remains held and the repeat thresholds are met.</summary>
+        /// <summary>Invoked after the initial key press while the key remains held and the repeat thresholds are met.<para/>
+        /// The event is an instance of the key that belongs to this handler and that it refills at each repeat (ADR-0034): read it during the event, do not keep it.</summary>
         public event EventHandler<BaseKeyRepeatedEventArgs> KeyRepeat
         {
             add    { _repeated += value; RecomputeHasSubscribedEvents(); }
@@ -275,7 +283,17 @@ namespace MGUI.Shared.Input.Keyboard
             }
 
             string keyValue = initialPressedArgs.PrintableValue;
-            BaseKeyRepeatedEventArgs repeatedArgs = new(Tracker, initialPressedArgs, key, keyValue);
+            _ReusedRepeatEvents ??= new();
+            if (_ReusedRepeatEvents.TryGetValue(key, out BaseKeyRepeatedEventArgs repeatedArgs))
+            {
+                repeatedArgs.SetRepeat(initialPressedArgs, keyValue);
+            }
+            else
+            {
+                repeatedArgs = new(Tracker, initialPressedArgs, key, keyValue);
+                _ReusedRepeatEvents[key] = repeatedArgs;
+            }
+
             _LastRepeatedAt[key] = Tracker.CurrentTotalElapsed;
             return repeatedArgs;
         }

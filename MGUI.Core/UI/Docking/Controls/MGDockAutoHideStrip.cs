@@ -388,11 +388,17 @@ public class MGDockAutoHideStrip : MGElement
         SyncSeparatorVisuals();
     }
 
+    private static void DrawChild(MGElement child, ElementDrawArgs DA)
+    {
+        child?.Draw(DA);
+    }
+
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
+        //  The children GetChildren() yields, in the same order, read by index so that no iterator is allocated.
+        for (var i = 0; i < _buttons.Count; i++)
         {
-            child?.Draw(DA);
+            DrawChild(_buttons[i], DA);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MGUI.Core.UI.Clipping;
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MonoGame.Extended;
 using MGUI.Core.UI.Containers;
@@ -851,24 +852,6 @@ public class MGScrollViewer : MGSingleContentHost
                 }
             };
 
-            //  Pre-emptively handle mouse events if user was dragging a scrollbar so that the child content doesn't also react to the mouse event
-            OnBeginUpdateContents += (sender, e) =>
-            {
-                if (IsDraggingVSB || IsDraggingHSB || IsDraggingContent)
-                {
-                    MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
-                    foreach (var StartCondition in MouseHandler.DragStartConditions)
-                    {
-                        MouseHandler.Tracker.CurrentDragStartEvents[StartCondition][MouseButton.Left]?.SetHandledBy(this, false);
-                    }
-                }
-
-                if (IsHoveringVSB || IsHoveringHSB)
-                {
-                    MouseHandler.Tracker.CurrentButtonPressedEvents[MouseButton.Left]?.SetHandledBy(this, false);
-                }
-            };
-
             //  This probably isn't needed
             MouseHandler.ReleasedOutside += (sender, e) =>
             {
@@ -939,6 +922,25 @@ public class MGScrollViewer : MGSingleContentHost
     {
         InvalidateRequestedContentSizeCache();
         base.LayoutChanged(Source, NotifyParent);
+    }
+
+    //  Pre-emptively handle mouse events if user was dragging a scrollbar so that the child content doesn't also react to the mouse event.
+    //  A hook, not a subscription to OnBeginUpdateContents: a subscription makes every Update create an ElementUpdateEventArgs.
+    internal override void BeginUpdateContentsInternal(ElementUpdateArgs UA)
+    {
+        if (IsDraggingVSB || IsDraggingHSB || IsDraggingContent)
+        {
+            MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
+            foreach (var StartCondition in MouseHandler.DragStartConditions)
+            {
+                MouseHandler.Tracker.CurrentDragStartEvents[StartCondition][MouseButton.Left]?.SetHandledBy(this, false);
+            }
+        }
+
+        if (IsHoveringVSB || IsHoveringHSB)
+        {
+            MouseHandler.Tracker.CurrentButtonPressedEvents[MouseButton.Left]?.SetHandledBy(this, false);
+        }
     }
 
     protected override void UpdateContents(ElementUpdateArgs UA)
@@ -1213,6 +1215,20 @@ public class MGScrollViewer : MGSingleContentHost
 
         // CPU-side frustum culling (Task 15): skip direct content children whose ActualLayoutBounds
         // is empty (fully clipped), avoiding unnecessary Draw() call overhead for off-viewport elements.
+        //  A viewer that does not override GetChildren() draws its Content directly (what the iterator of GetChildren() would yield), which allocates nothing;
+        //  the answer is looked up once per viewer, by runtime type (see MGSingleContentHost.DrawContents).
+        _DrawsChildrenDirectly ??= DrawsChildrenDirectly(GetType(), typeof(MGSingleContentHost));
+        if (_DrawsChildrenDirectly.Value)
+        {
+            var content = Content;
+            if (content != null && !content.ActualLayoutBounds.IsEmpty)
+            {
+                content.Draw(adjustedDA);
+            }
+
+            return;
+        }
+
         foreach (var child in GetChildren())
         {
             if (!child.ActualLayoutBounds.IsEmpty)
@@ -1222,14 +1238,16 @@ public class MGScrollViewer : MGSingleContentHost
         }
     }
 
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    private bool? _DrawsChildrenDirectly;
+
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         //  Y10: built from the ambient draw transform (the same way MGElement.Draw computes targetBounds), instead of a coordinate-space
         //  conversion that only knew about MGWindow.Scale. Without any transform pushed, or under a pure scale (MGWindow.Scale != 1),
         //  this produces the exact same rectangle: CreateTransformedBoundsF reduces to the old two-corner mapping for a non-rotated matrix,
         //  and the ambient transform already carries MGWindow.Scale, the same matrix the previous ConvertCoordinateSpace call applied.
         //  Under a transformed ancestor (a sliding window, a RenderTransform), the clip now follows the content to where it is actually drawn.
-        var screenBounds = TransformClipBounds(DA, ContentViewport);
-        return CreateRectangleClipDefinition(screenBounds, $"{ElementType}.Viewport");
+        //  A rectangle, not a definition: the viewport is read at every draw, from the viewport, the draw offset and the ambient transform, and costs no object (ADR-0035).
+        return ElementClipRequest.Rectangle(TransformClipBounds(DA, ContentViewport));
     }
 }

@@ -140,7 +140,7 @@ public class DataGridLiteTests
             _textEngine = new DataGridTestTextEngine(DefaultFontFamily);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new DataGridNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
 
         public void ApplyFrame(UpdateBaseArgs updateArgs)
@@ -244,17 +244,20 @@ public class DataGridLiteTests
             CurrentSettings = Settings ?? DrawSettings.Default;
         }
 
-        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+        private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+        private readonly CallbackClipHandleOwner _ClipScopes = new();
+
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
             SetDrawSettings(Settings);
-            return new DisposableAction(() => CurrentSettings = previous);
+            return _DrawStateScopes.Push(() => CurrentSettings = previous);
         }
 
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
-            => new DisposableAction(() => { });
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+            => default;
 
-        public IDisposable SetTransformTemporary(Matrix Transform)
+        public DrawStateHandle SetTransformTemporary(Matrix Transform)
             => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
@@ -263,15 +266,15 @@ public class DataGridLiteTests
             return new(effective, effective, ClipStrategy.Scissor, false);
         }
 
-        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        public ClipHandle PushClipTemporary(ClipDefinition Definition)
         {
             ClipResolveResult resolution = ResolveClip(Definition);
             Rectangle? previous = _currentClipBounds;
             _currentClipBounds = resolution.Effective.Kind == ClipKind.None ? null : resolution.Effective.Shape.Bounds;
-            return new(resolution, () => _currentClipBounds = previous);
+            return _ClipScopes.Push(resolution, () => _currentClipBounds = previous);
         }
 
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
             ClipDefinition definition = Bounds.HasValue
                 ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
@@ -279,7 +282,7 @@ public class DataGridLiteTests
             return PushClipTemporary(definition);
         }
 
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
             => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
         public void Dispose()
@@ -382,28 +385,6 @@ public class DataGridLiteTests
 
         public void InvalidateCache()
         {
-        }
-    }
-
-    private sealed class DisposableAction : IDisposable
-    {
-        private readonly Action _disposeAction;
-        private bool _disposed;
-
-        public DisposableAction(Action disposeAction)
-        {
-            _disposeAction = disposeAction;
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-            _disposeAction();
         }
     }
 }

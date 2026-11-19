@@ -18,7 +18,7 @@ public class UIFocusNavigationService
         }
     }
 
-    private static readonly IReadOnlyList<GamePadButton> GamePadNavigationButtons = new[]
+    private static readonly GamePadButton[] GamePadNavigationButtons = new[]
     {
         GamePadButton.A,
         GamePadButton.B,
@@ -280,8 +280,8 @@ public class UIFocusNavigationService
             var focusedElement = Desktop.CanElementReceiveKeyboardInput(Desktop.FocusedKeyboardHandler)
                 ? Desktop.FocusedKeyboardHandler
                 : null;
-            var tryHandleFocusedAction = focusedElement == null ? null : new Func<UINavigationAction, bool>(actionToHandle => focusedElement.TryHandleNavigationAction(actionToHandle));
-            if (tryHandleFocusedAction?.Invoke(action) == true)
+            //  No delegate around the call: a closure over focusedElement would be created at the top of every iteration, handled button or not.
+            if (focusedElement != null && focusedElement.TryHandleNavigationAction(action))
             {
                 EnsureNavigationTargetVisible(focusedElement);
                 handledAny = true;
@@ -390,16 +390,58 @@ public class UIFocusNavigationService
     /// (<see cref="GetFocusableElements(MGElement)"/>) is not filtered at all.</summary>
     private MGElement GetFirstAutoFocusCandidate(MGElement root)
     {
-        var candidates = GetFocusableElements(root);
-        foreach (var candidate in candidates)
+        //  The first element of GetFocusableElements(root) that is not a text entry host, else the first element of it, found in one walk of the tree without building the sorted list
+        //  (a click on a window asks for it at every press): the element that comes first in the order of that list is the one with the lowest tab index, then the lowest top, then the lowest
+        //  left, and, among equal keys, the one met first in the walk (the sort of the list is stable). An element that the walk meets twice has the same keys both times, so it counts once.
+        if (root == null)
         {
-            if (candidate is not ITextEntryHost)
+            return null;
+        }
+
+        MGElement firstNotTextEntry = null;
+        MGElement first = null;
+        FindFirstAutoFocusCandidates(root, ref first, ref firstNotTextEntry);
+        return firstNotTextEntry ?? first;
+    }
+
+    private void FindFirstAutoFocusCandidates(MGElement element, ref MGElement first, ref MGElement firstNotTextEntry)
+    {
+        if (IsNavigationTarget(element))
+        {
+            if (first == null || PrecedesInTabOrder(element, first))
             {
-                return candidate;
+                first = element;
+            }
+
+            if (element is not ITextEntryHost && (firstNotTextEntry == null || PrecedesInTabOrder(element, firstNotTextEntry)))
+            {
+                firstNotTextEntry = element;
             }
         }
 
-        return candidates.FirstOrDefault();
+        var children = element.GetVisualTreeChildren(true, true);
+        for (var i = 0; i < children.Count; i++)
+        {
+            FindFirstAutoFocusCandidates(children[i], ref first, ref firstNotTextEntry);
+        }
+    }
+
+    /// <summary>True when <paramref name="element"/> comes strictly before <paramref name="other"/> in the order of <see cref="GetFocusableElements(MGElement)"/> (tab index, then top, then left).</summary>
+    private static bool PrecedesInTabOrder(MGElement element, MGElement other)
+    {
+        if (element.TabIndex != other.TabIndex)
+        {
+            return element.TabIndex < other.TabIndex;
+        }
+
+        var top = element.ActualLayoutBounds.Top;
+        var otherTop = other.ActualLayoutBounds.Top;
+        if (top != otherTop)
+        {
+            return top < otherTop;
+        }
+
+        return element.ActualLayoutBounds.Left < other.ActualLayoutBounds.Left;
     }
 
     private MGElement GetHoveredNavigationTarget()

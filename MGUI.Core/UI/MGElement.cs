@@ -24,6 +24,7 @@ using MGUI.Core.UI.Shapes;
 using MGUI.Core.UI.Responsive;
 using MGUI.Core.Tooling;
 using MGUI.Shared.Rendering.Clipping;
+using MGUI.Core.UI.Clipping;
 using System.Threading;
 using MGUI.Core.UI.Brushes.BorderBrushes;
 using MGUI.Core.UI.Brushes.FillBrushes;
@@ -2971,9 +2972,28 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                 var Previous = VisualState;
                 _visualState = value;
                 NotifyPropertyChanged(nameof(VisualState));
-                VisualStateChanged?.Invoke(this, new(Previous, VisualState));
+                VisualStateChanged?.Invoke(this, GetVisualStateChangedArgs(Previous, VisualState));
             }
         }
+    }
+
+    //  The arguments of VisualStateChanged, one per pair of states, made when a pair is first raised: the arguments are read-only and hold only the two states, so the instance of an earlier
+    //  raise with the same pair stands in for a new one (a hover that moves from element to element changes the state of two elements at every frame). 4 x 3 states give 144 pairs.
+    private static readonly EventArgs<VisualState>[] _VisualStateChangedArgs = new EventArgs<VisualState>[12 * 12];
+
+    private static int VisualStateIndex(VisualState state)
+        => (uint)state.Primary < 4u && (uint)state.Secondary < 3u ? (int)state.Primary * 3 + (int)state.Secondary : -1;
+
+    private static EventArgs<VisualState> GetVisualStateChangedArgs(VisualState previous, VisualState current)
+    {
+        var previousIndex = VisualStateIndex(previous);
+        var currentIndex = VisualStateIndex(current);
+        if (previousIndex < 0 || currentIndex < 0)
+        {
+            return new(previous, current);
+        }
+
+        return _VisualStateChangedArgs[previousIndex * 12 + currentIndex] ??= new(previous, current);
     }
 
     /// <summary>Invoked when <see cref="VisualState"/> changes.</summary>
@@ -3551,6 +3571,16 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     public virtual IEnumerable<MGElement> GetChildren() => Enumerable.Empty<MGElement>();
 
+    /// <summary>Appends the children that <see cref="GetChildren"/> yields, in the same order, to <paramref name="buffer"/>, for a walk of the tree that allocates nothing: the types that
+    /// know their children without an iterator say so by overriding this. The default goes through <see cref="GetChildren"/>.</summary>
+    internal virtual void AddChildrenTo(List<MGElement> buffer)
+    {
+        foreach (var child in GetChildren())
+        {
+            buffer.Add(child);
+        }
+    }
+
     public virtual MGBorder GetBorder() => null;
     public bool HasBorder => GetBorder() != null;
 
@@ -3772,7 +3802,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             LayoutBounds = LayoutBounds.GetTranslated(Offset);
             StretchedContentBounds = StretchedContentBounds.GetTranslated(Offset);
             AlignedContentBounds = AlignedContentBounds.GetTranslated(Offset);
-            OnLayoutBoundsChanged?.Invoke(this, new(PreviousLayoutBounds, LayoutBounds));
+            OnLayoutBoundsChanged?.Invoke(this, GetLayoutBoundsChangedArgs(PreviousLayoutBounds, LayoutBounds));
         }
     }
 
@@ -4042,6 +4072,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
         ElementUpdateEventArgs UpdateEventArgs = null;
 
+        BeginUpdateInternal(UA);
         RaiseUpdateEvent(OnBeginUpdate, UA, ref UpdateEventArgs);
 
         TickOwnBrushes(UA.BA);
@@ -4099,6 +4130,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             _cachedHasModalWindow        = hasModalWindow;
         }
 
+        BeginUpdateContentsInternal(UA);
         RaiseUpdateEvent(OnBeginUpdateContents, UA, ref UpdateEventArgs);
 
         // Compute the content-area bounds: ActualLayoutBounds shrunk by this element's Padding.
@@ -4128,6 +4160,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             Component.Update(UA);              // components get the full (unpadded) bounds
         }
 
+        EndUpdateContentsInternal(UA);
         RaiseUpdateEvent(OnEndUpdateContents, UA, ref UpdateEventArgs);
 
         if (ComputedIsHitTestVisible)
@@ -4156,8 +4189,17 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
         UpdateSelf(UA);
 
+        EndUpdateInternal(UA);
         RaiseUpdateEvent(OnEndUpdate, UA, ref UpdateEventArgs);
     }
+
+    //  The four hooks below run what an element used to subscribe to its own update events for, at the same point of Update and before
+    //  the event is raised, so before any subscriber outside of the element (they subscribe after the constructor ran). An element that
+    //  subscribes to its own event makes every Update create an ElementUpdateEventArgs; a hook costs nothing.
+    internal virtual void BeginUpdateInternal(ElementUpdateArgs UA) { }
+    internal virtual void BeginUpdateContentsInternal(ElementUpdateArgs UA) { }
+    internal virtual void EndUpdateContentsInternal(ElementUpdateArgs UA) { }
+    internal virtual void EndUpdateInternal(ElementUpdateArgs UA) { }
 
     /// <summary>Raises one of the four update events. <paramref name="Args"/> is created at the first of them that has a subscriber and shared
     /// by the later ones of the same update, so an element whose update events have no subscriber allocates nothing per frame.</summary>
@@ -5230,8 +5272,10 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
     protected Rectangle TransformClipBounds(ElementDrawArgs DA, Rectangle bounds)
         => bounds.GetTranslated(DA.Offset).CreateTransformedBoundsF(DA.DT.CurrentSettings.Transform).RoundUp();
 
-    protected ClipDefinition CreateRectangleClipDefinition(Rectangle targetBounds, string debugName)
-        => ClipDefinition.Rectangle(targetBounds, true, debugName: debugName);
+    //  The name of the contents clip of the element, built once: a name built at each draw would be a new string per frame.
+    private string _ContentsClipDebugName;
+
+    internal string ContentsClipDebugName => _ContentsClipDebugName ??= $"{ElementType}.Contents";
 
     protected ClipDefinition CreateRoundedClipDefinition(Rectangle targetBounds, MGCornerRadius cornerRadius, MGBoxGeometry geometry,
         string debugName, bool allowRectangleFallback = false)
@@ -5248,37 +5292,63 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         => ClipDefinition.ArbitraryGeometry(targetBounds, geometry, intersectWithCurrentClip: true,
             allowRectangleFallback: allowRectangleFallback, debugName: debugName);
 
-    protected ClipDefinition CreateBorderBackedContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, string debugName)
+    /// <summary>The contents clip of an element that has a border: the inside of the border, which follows the rounded corners of the background when it has them. A rectangle when
+    /// the inside is one (no object is made for it), a definition named <paramref name="debugName"/> when it is rounded.</summary>
+    internal ElementClipRequest GetBorderBackedContentsClip(ElementDrawArgs DA, Rectangle layoutBounds, string debugName)
     {
         if (!HasBorder)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         if (!TryGetRoundedBackgroundShapeAndGeometry(layoutBounds, out var backgroundShape, out var backgroundGeometry, false))
         {
             var backgroundBounds = GetBackgroundBounds(layoutBounds);
-            var rectangleClipBounds = TransformClipBounds(DA, backgroundBounds);
-            return CreateRectangleClipDefinition(rectangleClipBounds, debugName);
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, backgroundBounds));
         }
 
         var clipBounds = TransformClipBounds(DA, backgroundShape.OuterBounds);
         if (backgroundShape.InnerCornerRadius.IsZero)
         {
-            return CreateRectangleClipDefinition(clipBounds, debugName);
+            return ElementClipRequest.Rectangle(clipBounds);
         }
 
-        return CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry.ToClipGeometry(DA.Offset),
-            debugName, allowRectangleFallback: true);
+        return ElementClipRequest.FromDefinition(CreateRoundedClipDefinition(clipBounds, backgroundShape.InnerCornerRadius, backgroundGeometry.ToClipGeometry(DA.Offset),
+            debugName, allowRectangleFallback: true));
+    }
+
+    //  The rectangle definition CreateBorderBackedContentsClipDefinition made last: a ClipDefinition is immutable, so it stands in for a new one while the bounds
+    //  and the name are the same (a control that does not move draws every frame with the same clip).
+    private ClipDefinition _CachedBorderBackedRectangleClipDefinition;
+
+    /// <summary><see cref="GetBorderBackedContentsClip"/> for a control that pushes the clip itself, with <see cref="IUIRenderContext.PushClipTemporary"/>: the rectangle is a
+    /// definition, a new one when its bounds or its name change. Null when there is no border.</summary>
+    protected ClipDefinition CreateBorderBackedContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, string debugName)
+    {
+        ElementClipRequest clip = GetBorderBackedContentsClip(DA, layoutBounds, debugName);
+        if (clip.Kind != ElementClipKind.Rectangle)
+        {
+            return clip.Definition;
+        }
+
+        ClipDefinition cached = _CachedBorderBackedRectangleClipDefinition;
+        if (cached == null || cached.Shape.Bounds != clip.Bounds || !ReferenceEquals(cached.DebugName, debugName))
+        {
+            cached = ClipDefinition.Rectangle(clip.Bounds, true, debugName: debugName);
+            _CachedBorderBackedRectangleClipDefinition = cached;
+        }
+
+        return cached;
     }
 
     // These hooks describe the logical clip that should constrain drawing. They do not participate in
     // background, border, or overlay painting; those continue to use the existing shape paint pipeline.
-    internal virtual ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => ClipToBounds ? CreateRectangleClipDefinition(targetBounds, $"{ElementType}.Self") : null;
+    // A rectangle is returned as a rectangle, not as a definition: Draw pushes it with PushRectangleClip (ADR-0035).
+    internal virtual ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ClipToBounds ? ElementClipRequest.Rectangle(targetBounds) : ElementClipRequest.None;
 
-    internal virtual ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal virtual ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 
     public virtual void Draw(ElementDrawArgs DA)
     {
@@ -5286,9 +5356,14 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         RecentDrawWasClipped = false;
 
         DA = DA.SetOpacity(DA.Opacity * Opacity) with { VisualState = VisualState };
-        MGElementDrawEventArgs DrawEventArgs = new(DA);
+        //  The event args are built when a handler is subscribed (and shared by the three events of this draw), not for every draw of every element.
+        MGElementDrawEventArgs DrawEventArgs = null;
 
-        OnBeginDraw?.Invoke(this, DrawEventArgs);
+        if (OnBeginDraw != null)
+        {
+            DrawEventArgs = new(DA);
+            OnBeginDraw.Invoke(this, DrawEventArgs);
+        }
 
         if (Visibility != Visibility.Visible || LayoutBounds.Width <= 0 || LayoutBounds.Height <= 0)
         {
@@ -5307,7 +5382,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         //  The local matrix lives in unscaled screen space (the space of DA.Offset and of the input hit-test) and is composed
         //  BEFORE the current transform, which already carries MGWindow.Scale. Nothing is pushed for an identity transform,
         //  so an element without transform never breaks the current batch.
-        IDisposable TempTransform = null;
+        DrawStateHandle TempTransform = default;
         var UnscaledBounds = LayoutBounds.GetTranslated(DA.Offset);
         if (TryGetRenderTransformMatrix(UnscaledBounds, out var LocalTransform))
         {
@@ -5320,12 +5395,12 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
         }
 
 
-        var SelfClipDefinition = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
-        var ContentsClipDefinition = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
+        var SelfClip = GetSelfClipDefinition(DA, LayoutBounds, TargetBounds);
+        var ContentsClip = GetContentsClipDefinition(DA, LayoutBounds, TargetBounds);
 
         if (!DA.DT.CurrentSettings.UsesScissorTest || !DA.DT.CurrentClipBounds.HasValue || TargetBounds.Intersects(DA.DT.CurrentClipBounds.Value))
         {
-            using (SelfClipDefinition == null ? null : DA.Context.PushClipTemporary(SelfClipDefinition))
+            using (SelfClip.Push(DA.Context))
             {
                 // Decorative layers follow the element's self clip. Content-only clipping starts later,
                 // so rounded shape paint remains independent from whichever clip backend gets selected.
@@ -5346,7 +5421,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
                 DrawSelf(DA, LayoutBounds);
 
-                using (ContentsClipDefinition == null ? null : DA.Context.PushClipTemporary(ContentsClipDefinition))
+                using (ContentsClip.Push(DA.Context))
                 {
                     foreach (var Component in _componentsDrawBeforeContents)
                     {
@@ -5366,7 +5441,12 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
                     DrawOverlayBrush(DA, LayoutBounds);
                 }
 
-                OnEndingDraw?.Invoke(this, DrawEventArgs);
+                EndingDrawInternal(DA);
+                if (OnEndingDraw != null)
+                {
+                    DrawEventArgs ??= new(DA);
+                    OnEndingDraw.Invoke(this, DrawEventArgs);
+                }
             }
         }
         else
@@ -5374,12 +5454,24 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
             RecentDrawWasClipped = true;
         }
 
-        TempTransform?.Dispose();
+        TempTransform.Dispose();
 
-        OnEndDraw?.Invoke(this, DrawEventArgs);
+        EndDrawInternal(DA);
+        if (OnEndDraw != null)
+        {
+            DrawEventArgs ??= new(DA);
+            OnEndDraw.Invoke(this, DrawEventArgs);
+        }
     }
 
     protected virtual void DrawContents(ElementDrawArgs DA) { }
+
+    /// <summary>Called just before <see cref="OnEndingDraw"/> is invoked, so that an element that has something to draw there does not have to subscribe to its own event
+    /// (a subscriber makes every draw of the element build the event arguments).</summary>
+    internal virtual void EndingDrawInternal(ElementDrawArgs DA) { }
+
+    /// <summary>Called just before <see cref="OnEndDraw"/> is invoked (so before any subscriber outside of the element), for the same reason as <see cref="EndingDrawInternal"/>.</summary>
+    internal virtual void EndDrawInternal(ElementDrawArgs DA) { }
 
     [DebuggerStepThrough]
     public class MGElementDrawEventArgs : EventArgs
@@ -5808,7 +5900,7 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
             IsLayoutValid = true;
             OnLayoutUpdated?.Invoke(this, EventArgs.Empty);
-            OnLayoutBoundsChanged?.Invoke(this, new(PreviousLayoutBounds, LayoutBounds));
+            OnLayoutBoundsChanged?.Invoke(this, GetLayoutBoundsChangedArgs(PreviousLayoutBounds, LayoutBounds));
         }
         finally
         {
@@ -5896,6 +5988,21 @@ public abstract class MGElement : XAMLBindableBase, IMouseHandlerHost, IKeyboard
 
     public event EventHandler<EventArgs> OnLayoutUpdated;
     public event EventHandler<EventArgs<Rectangle>> OnLayoutBoundsChanged;
+
+    //  The arguments of the last raise of OnLayoutBoundsChanged, kept: they are read-only and hold only the two rectangles, and a layout pass raises the event even when the bounds did
+    //  not change (previous and new bounds the same), so a layout that finds the same bounds again, at each frame of a hover that invalidates it, gets the same arguments.
+    private EventArgs<Rectangle> _LastLayoutBoundsChangedArgs;
+
+    private EventArgs<Rectangle> GetLayoutBoundsChangedArgs(Rectangle previous, Rectangle current)
+    {
+        var args = _LastLayoutBoundsChangedArgs;
+        if (args == null || args.PreviousValue != previous || args.NewValue != current)
+        {
+            args = _LastLayoutBoundsChangedArgs = new(previous, current);
+        }
+
+        return args;
+    }
 
     protected virtual void UpdateContentLayout(Rectangle Bounds) { }
     #endregion Arrange

@@ -662,6 +662,12 @@ public class MGWindow : MGSingleContentHost
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private readonly List<MGWindow> _NestedWindows;
+    //  The nested windows in the order Update and Draw walk them, rebuilt every frame in lists kept between frames; the flags tell a nested Update
+    //  or Draw of this same window (called by one of its nested windows) to take a list of its own.
+    private readonly List<MGWindow> _NestedUpdateOrderBuffer = new();
+    private bool _IsNestedUpdateOrderBufferInUse;
+    private readonly List<MGWindow> _NestedDrawOrderBuffer = new();
+    private bool _IsNestedDrawOrderBufferInUse;
     /// <summary>The last element represents the <see cref="MGWindow"/> that will be 
     /// drawn last (I.E., rendered overtop of everything else), and updated first (I.E., has the first chance to handle inputs)<br/>
     /// except in cases where a Topmost window is prioritized (See: <see cref="IsTopmost"/>)<para/>
@@ -1706,83 +1712,6 @@ public class MGWindow : MGSingleContentHost
             OnDirectOrNestedContentAdded += Element_Added;
             OnDirectOrNestedContentRemoved += Element_Removed;
 
-            OnBeginUpdate += (sender, e) =>
-            {
-                PressedElementAtBeginUpdate = PressedElement;
-                HoveredElementAtBeginUpdate = HoveredElement;
-
-                var hasActiveDragCapture = HasActiveMouseDragCapture();
-                var suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && hasActiveDragCapture;
-                var occlusionEnded = (_WasOccludedAtMousePos && !IsOccludedAtMousePos) || _RefreshHoveredElementAfterNestedOcclusion;
-                _WasOccludedAtMousePos = IsOccludedAtMousePos;
-                _RefreshHoveredElementAfterNestedOcclusion = false;
-                var shouldUpdateHoveredElement = !suppressHoveredElementUpdate
-                                                 && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements || occlusionEnded);
-
-                using (UIPerformanceProbe.BeginDesktopPhase("Window.ValidateAndLayout"))
-                {
-                    ValidateWindowSizeAndPosition();
-
-                    if (!IsLayoutValid || QueueLayoutRefresh)
-                    {
-                        QueueLayoutRefresh = false;
-                        if (RecentSizeToContentSettings.HasValue)
-                        {
-                            RevalidateSizeToContent(true);
-                        }
-                        else
-                        {
-                            UpdateLayout(new(this.Left, this.Top, WindowWidth, WindowHeight));
-                        }
-                    }
-                }
-
-                if (shouldUpdateHoveredElement)
-                {
-                    using (UIPerformanceProbe.BeginDesktopPhase("Window.HoveredElement"))
-                    {
-                        HoveredElement = GetTopmostHoveredElement(e.UA);
-                    }
-                }
-
-                //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, documented in Docs/input-architecture.md "Fenetres superposees"):
-                //  a window that is visually covered by a higher window at the current mouse position must not light up HoveredElement,
-                //  unless it already owns an active mouse-drag capture, which must keep following its owner regardless of occlusion.
-                if (IsOccludedAtMousePos && !hasActiveDragCapture)
-                {
-                    HoveredElement = null;
-                }
-
-                using (UIPerformanceProbe.BeginDesktopPhase("Window.PressedElement"))
-                {
-                    if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
-                    {
-                        //  Same occlusion rule as HoveredElement above: a brand-new press over an occluded window must not light up PressedElement.
-                        //  An already-in-progress drag is untouched here since this branch only runs on the exact press tick.
-                        PressedElement = IsOccludedAtMousePos ? null : GetTopmostHoveredElement(e.UA);
-                    }
-                    else if (MouseHandler.Tracker.MouseLeftButtonReleasedRecently)
-                    {
-                        PressedElement = null;
-                    }
-                }
-            };
-
-            OnEndUpdate += (sender, e) =>
-            {
-                //  These 2 events are intentionally deferred because they affect MGElement.VisualState,
-                //  and subscribing code probably wants to access the most up-to-date MGElement.VisualState values.
-                if (PressedElementAtBeginUpdate != PressedElement)
-                {
-                    PressedElementChanged?.Invoke(this, new(PressedElementAtBeginUpdate, PressedElement));
-                }
-
-                if (HoveredElementAtBeginUpdate != HoveredElement)
-                {
-                    HoveredElementChanged?.Invoke(this, new(HoveredElementAtBeginUpdate, HoveredElement));
-                }
-            };
-
             //  Ensure all mouse events that haven't already been handled by a child element of this window are handled, so that the mouse events won't fall-through to underneath this window
             //  ADR-0011 decision 6 (Y7): an exiting window (IsPlayingEnterExitExit -- ANY exit, not only the narrower IsClosing, Y12) never
             //  consumes a mouse event over its own bounds, so a click on a closing non-modal window's area, OR one merely fading out through a
@@ -1871,83 +1800,6 @@ public class MGWindow : MGSingleContentHost
                 }
             };
 
-            OnBeginUpdateContents += (sender, e) =>
-            {
-                var UpdateArgs = e.UA.ChangeOffset(Origin);
-
-                //  Pumped here, before this window's content children are updated below (OnBeginUpdateContents fires
-                //  before UpdateContents, see MGElement.Update), so a subscriber genuinely previews the tick's keys
-                //  regardless of whether keyboard focus is on this window or on any descendant (e.g. a focused MGTextBox).
-                using (UIPerformanceProbe.BeginDesktopPhase("Window.PreviewKeyboardHandler"))
-                {
-                    PreviewKeyboardHandler.ManualUpdate();
-                }
-
-                using (UIPerformanceProbe.BeginDesktopPhase("Window.NestedWindows"))
-                {
-                    //  ModalWindow is intentionally updated BEFORE NestedWindows so that it can mark mouse/keyboard
-                    //  events as handled first. Since event args are shared objects, once ModalWindow sets IsHandled=true,
-                    //  the subsequent NestedWindow updates will see the event as already handled and skip processing it.
-                    //  This ensures the ModalWindow effectively blocks all input to NestedWindows.
-                    //  For nested ModalWindows (e.g., a NestedWindow that itself has a ModalWindow), the recursive
-                    //  call to Nested.Update() will apply the same ordering inside each nested window.
-                    ModalWindow?.Update(UpdateArgs);
-
-                    //  Track ToolTip occlusion for nested windows, mirroring the logic in MGDesktop.Update().
-                    //  When a nested window is being hovered, windows beneath it should not be able to override the active ToolTip.
-                    var isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
-                    foreach (var Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))
-                    {
-                        var previousQueuedToolTip = GetDesktop().QueuedToolTip;
-                        Nested.Update(UpdateArgs);
-                        //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
-                        if (isNestedWindowOccludedAtMousePos)
-                        {
-                            GetDesktop().QueuedToolTip = previousQueuedToolTip;
-                        }
-                        else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough && !Nested.IsPlayingEnterExitExit)
-                        {
-                            //  ADR-0011 decision 6 (Y7): a nested window playing its exit (ANY exit, not only the narrower IsClosing,
-                            //  Y12) no longer suppresses this window's own hover, even though it is still geometrically hovered
-                            //  (Nested.Update above still runs it).
-                            isNestedWindowOccludedAtMousePos = true;
-                        }
-                    }
-
-                    //  Nested-window occlusion of this window's own content (same rule as the desktop's cross-window occlusion, option b,
-                    //  documented in Docs/input-architecture.md "Fenetres superposees"): when the modal window or a non-click-through nested window (e.g. a ComboBox dropdown)
-                    //  is hovered at the mouse position, the content beneath it must not light up HoveredElement/PressedElement - unless this
-                    //  window already owns an active mouse-drag capture, which keeps following its owner. This runs before UpdateContents,
-                    //  so the children see the suppressed state on this same tick.
-                    if (isNestedWindowOccludedAtMousePos && !HasActiveMouseDragCapture())
-                    {
-                        HoveredElement = null;
-                        if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
-                        {
-                            PressedElement = null;
-                        }
-                    }
-
-                    //  Once the nested occluder is gone, HoveredElement must be recomputed on the next tick even if the mouse did not move.
-                    if (_WasOccludedByNestedWindowAtMousePos && !isNestedWindowOccludedAtMousePos)
-                    {
-                        _RefreshHoveredElementAfterNestedOcclusion = true;
-                    }
-                    _WasOccludedByNestedWindowAtMousePos = isNestedWindowOccludedAtMousePos;
-                }
-            };
-
-            OnEndUpdateContents += (sender, e) =>
-            {
-                using (UIPerformanceProbe.BeginDesktopPhase("Window.WindowHandlers"))
-                {
-                    WindowMouseHandler.ManualUpdate();
-#pragma warning disable CS0618 // WindowKeyboardHandler is [Obsolete]; MGWindow itself must still pump it unchanged (it delivers nothing) for source compatibility with existing subscribers.
-                    WindowKeyboardHandler.ManualUpdate();
-#pragma warning restore CS0618
-                }
-            };
-
             //  Nested windows inherit their WindowDataContext from the parent if they don't have their own explicit value
             if (ParentWindow != null)
             {
@@ -1972,6 +1824,210 @@ public class MGWindow : MGSingleContentHost
         }
     }
     #endregion Constructors
+
+    #region End of draw of the submenus
+    //  The context menus created in this window draw their active submenu at the end of this window's draw, over its content. They used to subscribe to OnEndDraw of this window for it,
+    //  which made every draw of the window build the event arguments; the window now draws them from the hook that runs just before OnEndDraw (so, as before, before the subscribers
+    //  that came after the menus). A menu is kept for as long as the window, as the subscription was.
+    private List<MGContextMenu> _EndDrawSubmenuHosts;
+
+    internal void AddEndDrawSubmenuHost(MGContextMenu menu) => (_EndDrawSubmenuHosts ??= new()).Add(menu);
+
+    internal override void EndDrawInternal(ElementDrawArgs DA)
+    {
+        var hosts = _EndDrawSubmenuHosts;
+        if (hosts != null)
+        {
+            for (var i = 0; i < hosts.Count; i++)
+            {
+                hosts[i].DrawActiveSubmenus(DA);
+            }
+        }
+    }
+    #endregion End of draw of the submenus
+
+    #region Update hooks
+    //  What this window used to do in handlers it subscribed to its own update events (an event subscription makes every Update create an
+    //  ElementUpdateEventArgs): the same code, at the same point of Update, still before the handlers other code subscribed.
+    internal override void BeginUpdateInternal(ElementUpdateArgs UA)
+    {
+        PressedElementAtBeginUpdate = PressedElement;
+        HoveredElementAtBeginUpdate = HoveredElement;
+
+        var hasActiveDragCapture = HasActiveMouseDragCapture();
+        var suppressHoveredElementUpdate = !MouseHandler.Tracker.MouseLeftButtonReleasedRecently && hasActiveDragCapture;
+        var occlusionEnded = (_WasOccludedAtMousePos && !IsOccludedAtMousePos) || _RefreshHoveredElementAfterNestedOcclusion;
+        _WasOccludedAtMousePos = IsOccludedAtMousePos;
+        _RefreshHoveredElementAfterNestedOcclusion = false;
+        var shouldUpdateHoveredElement = !suppressHoveredElementUpdate
+                                         && (MouseHandler.Tracker.MouseMovedRecently || !IsLayoutValid || QueueLayoutRefresh || InvalidatePressedAndHoveredElements || occlusionEnded);
+
+        using (UIPerformanceProbe.BeginDesktopPhase("Window.ValidateAndLayout"))
+        {
+            ValidateWindowSizeAndPosition();
+
+            if (!IsLayoutValid || QueueLayoutRefresh)
+            {
+                QueueLayoutRefresh = false;
+                if (RecentSizeToContentSettings.HasValue)
+                {
+                    RevalidateSizeToContent(true);
+                }
+                else
+                {
+                    UpdateLayout(new(this.Left, this.Top, WindowWidth, WindowHeight));
+                }
+            }
+        }
+
+        if (shouldUpdateHoveredElement)
+        {
+            using (UIPerformanceProbe.BeginDesktopPhase("Window.HoveredElement"))
+            {
+                HoveredElement = GetTopmostHoveredElement(UA);
+            }
+        }
+
+        //  Cross-window hover occlusion (option b, decision utilisateur 2026-09-02, documented in Docs/input-architecture.md "Fenetres superposees"):
+        //  a window that is visually covered by a higher window at the current mouse position must not light up HoveredElement,
+        //  unless it already owns an active mouse-drag capture, which must keep following its owner regardless of occlusion.
+        if (IsOccludedAtMousePos && !hasActiveDragCapture)
+        {
+            HoveredElement = null;
+        }
+
+        using (UIPerformanceProbe.BeginDesktopPhase("Window.PressedElement"))
+        {
+            if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
+            {
+                //  Same occlusion rule as HoveredElement above: a brand-new press over an occluded window must not light up PressedElement.
+                //  An already-in-progress drag is untouched here since this branch only runs on the exact press tick.
+                PressedElement = IsOccludedAtMousePos ? null : GetTopmostHoveredElement(UA);
+            }
+            else if (MouseHandler.Tracker.MouseLeftButtonReleasedRecently)
+            {
+                PressedElement = null;
+            }
+        }
+    }
+
+    internal override void BeginUpdateContentsInternal(ElementUpdateArgs UA)
+    {
+        var UpdateArgs = UA.ChangeOffset(Origin);
+
+        //  Pumped here, before this window's content children are updated below (OnBeginUpdateContents fires
+        //  before UpdateContents, see MGElement.Update), so a subscriber genuinely previews the tick's keys
+        //  regardless of whether keyboard focus is on this window or on any descendant (e.g. a focused MGTextBox).
+        using (UIPerformanceProbe.BeginDesktopPhase("Window.PreviewKeyboardHandler"))
+        {
+            PreviewKeyboardHandler.ManualUpdate();
+        }
+
+        using (UIPerformanceProbe.BeginDesktopPhase("Window.NestedWindows"))
+        {
+            //  ModalWindow is intentionally updated BEFORE NestedWindows so that it can mark mouse/keyboard
+            //  events as handled first. Since event args are shared objects, once ModalWindow sets IsHandled=true,
+            //  the subsequent NestedWindow updates will see the event as already handled and skip processing it.
+            //  This ensures the ModalWindow effectively blocks all input to NestedWindows.
+            //  For nested ModalWindows (e.g., a NestedWindow that itself has a ModalWindow), the recursive
+            //  call to Nested.Update() will apply the same ordering inside each nested window.
+            ModalWindow?.Update(UpdateArgs);
+
+            //  Track ToolTip occlusion for nested windows, mirroring the logic in MGDesktop.Update().
+            //  When a nested window is being hovered, windows beneath it should not be able to override the active ToolTip.
+            var isNestedWindowOccludedAtMousePos = ModalWindow != null && ModalWindow.VisualState.IsPressedOrHovered;
+            //  The walk goes over a copy of the nested windows, in a list kept between frames (a nested Update of this same window takes its own).
+            var ownsNestedUpdateOrderBuffer = !_IsNestedUpdateOrderBufferInUse;
+            List<MGWindow> nestedUpdateOrder = ownsNestedUpdateOrderBuffer ? _NestedUpdateOrderBuffer : new List<MGWindow>(_NestedWindows.Count);
+            _IsNestedUpdateOrderBufferInUse = true;
+            try
+            {
+                MGDesktop.FillUpdateOrder(_NestedWindows, nestedUpdateOrder);
+                for (var i = 0; i < nestedUpdateOrder.Count; i++)
+                {
+                    var Nested = nestedUpdateOrder[i];
+                    var previousQueuedToolTip = GetDesktop().QueuedToolTip;
+                    Nested.Update(UpdateArgs);
+                    //  If a higher-priority nested window is occluding the mouse, prevent this window from overriding the ToolTip
+                    if (isNestedWindowOccludedAtMousePos)
+                    {
+                        GetDesktop().QueuedToolTip = previousQueuedToolTip;
+                    }
+                    else if (Nested.VisualState.IsPressedOrHovered && !Nested.AllowsClickThrough && !Nested.IsPlayingEnterExitExit)
+                    {
+                        //  ADR-0011 decision 6 (Y7): a nested window playing its exit (ANY exit, not only the narrower IsClosing,
+                        //  Y12) no longer suppresses this window's own hover, even though it is still geometrically hovered
+                        //  (Nested.Update above still runs it).
+                        isNestedWindowOccludedAtMousePos = true;
+                    }
+                }
+            }
+            finally
+            {
+                if (ownsNestedUpdateOrderBuffer)
+                {
+                    nestedUpdateOrder.Clear();
+                    _IsNestedUpdateOrderBufferInUse = false;
+                }
+            }
+
+            //  Nested-window occlusion of this window's own content (same rule as the desktop's cross-window occlusion, option b,
+            //  documented in Docs/input-architecture.md "Fenetres superposees"): when the modal window or a non-click-through nested window (e.g. a ComboBox dropdown)
+            //  is hovered at the mouse position, the content beneath it must not light up HoveredElement/PressedElement - unless this
+            //  window already owns an active mouse-drag capture, which keeps following its owner. This runs before UpdateContents,
+            //  so the children see the suppressed state on this same tick.
+            if (isNestedWindowOccludedAtMousePos && !HasActiveMouseDragCapture())
+            {
+                HoveredElement = null;
+                if (MouseHandler.Tracker.MouseLeftButtonPressedRecently)
+                {
+                    PressedElement = null;
+                }
+            }
+
+            //  Once the nested occluder is gone, HoveredElement must be recomputed on the next tick even if the mouse did not move.
+            if (_WasOccludedByNestedWindowAtMousePos && !isNestedWindowOccludedAtMousePos)
+            {
+                _RefreshHoveredElementAfterNestedOcclusion = true;
+            }
+            _WasOccludedByNestedWindowAtMousePos = isNestedWindowOccludedAtMousePos;
+        }
+
+        //  Pre-emptively handle mouse release events if user was dragging this window
+        //  so that the child content doesn't also react to the mouse release
+        //  (such as if you end the mouse drag by releasing the mouse overtop of a button)
+        if (IsDraggingWindowPosition)
+        {
+            MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
+        }
+    }
+
+    internal override void EndUpdateContentsInternal(ElementUpdateArgs UA)
+    {
+        using (UIPerformanceProbe.BeginDesktopPhase("Window.WindowHandlers"))
+        {
+            WindowMouseHandler.ManualUpdate();
+#pragma warning disable CS0618 // WindowKeyboardHandler is [Obsolete]; MGWindow itself must still pump it unchanged (it delivers nothing) for source compatibility with existing subscribers.
+            WindowKeyboardHandler.ManualUpdate();
+#pragma warning restore CS0618
+        }
+    }
+
+    internal override void EndUpdateInternal(ElementUpdateArgs UA)
+    {
+        //  These 2 events are intentionally deferred because they affect MGElement.VisualState,
+        //  and subscribing code probably wants to access the most up-to-date MGElement.VisualState values.
+        if (PressedElementAtBeginUpdate != PressedElement)
+        {
+            PressedElementChanged?.Invoke(this, new(PressedElementAtBeginUpdate, PressedElement));
+        }
+
+        if (HoveredElementAtBeginUpdate != HoveredElement)
+        {
+            HoveredElementChanged?.Invoke(this, new(HoveredElementAtBeginUpdate, HoveredElement));
+        }
+    }
+    #endregion Update hooks
 
     #region Drag Window Position
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -2076,17 +2132,6 @@ public class MGWindow : MGSingleContentHost
             {
                 IsDraggingWindowPosition = false;
                 DragWindowPositionOffset = null;
-            }
-        };
-
-        //  Pre-emptively handle mouse release events if user was dragging this window
-        //  so that the child content doesn't also react to the mouse release
-        //  (such as if you end the mouse drag by releasing the mouse overtop of a button)
-        OnBeginUpdateContents += (sender, e) =>
-        {
-            if (IsDraggingWindowPosition)
-            {
-                MouseHandler.Tracker.CurrentButtonReleasedEvents[MouseButton.Left]?.SetHandledBy(this, false);
             }
         };
     }
@@ -2354,17 +2399,20 @@ public class MGWindow : MGSingleContentHost
     public event EventHandler<ElementDrawArgs> OnBeginDrawNestedWindows;
     public event EventHandler<ElementDrawArgs> OnEndDrawNestedWindows;
 
-    private IEnumerable<MGWindow> ParentWindows
+    private bool HasScaledParentWindow()
     {
-        get
+        var Current = ParentWindow;
+        while (Current != null)
         {
-            var Current = ParentWindow;
-            while (Current != null)
+            if (Current.IsWindowScaled)
             {
-                yield return Current;
-                Current = Current.ParentWindow;
+                return true;
             }
+
+            Current = Current.ParentWindow;
         }
+
+        return false;
     }
 
     /// <summary>Draws this window, composing its internal enter/exit draw transform (Y7, <see cref="EnterExitWindowTransformOrNull"/>) with
@@ -2392,7 +2440,7 @@ public class MGWindow : MGSingleContentHost
 
     private void DrawWindowAndPopupStack(ElementDrawArgs DA)
     {
-        if (!IsWindowScaled && !ParentWindows.Any(x => x.IsWindowScaled))
+        if (!IsWindowScaled && !HasScaledParentWindow())
         {
             base.Draw(DA);
         }
@@ -2426,9 +2474,25 @@ public class MGWindow : MGSingleContentHost
             DA.DT.FillRectangle(DA.Offset.ToVector2(), LayoutBounds, Color.Black * 0.5f);
         }
 
-        foreach (var Nested in _NestedWindows.OrderBy(x => x.IsTopmost))
+        //  The walk goes over a copy of the nested windows, in a list kept between frames (a nested Draw of this same window takes its own).
+        var ownsNestedDrawOrderBuffer = !_IsNestedDrawOrderBufferInUse;
+        List<MGWindow> nestedDrawOrder = ownsNestedDrawOrderBuffer ? _NestedDrawOrderBuffer : new List<MGWindow>(_NestedWindows.Count);
+        _IsNestedDrawOrderBufferInUse = true;
+        try
         {
-            Nested.Draw(DA);
+            MGDesktop.FillDrawOrder(_NestedWindows, nestedDrawOrder);
+            for (var i = 0; i < nestedDrawOrder.Count; i++)
+            {
+                nestedDrawOrder[i].Draw(DA);
+            }
+        }
+        finally
+        {
+            if (ownsNestedDrawOrderBuffer)
+            {
+                nestedDrawOrder.Clear();
+                _IsNestedDrawOrderBufferInUse = false;
+            }
         }
 
         ModalWindow?.Draw(DA);

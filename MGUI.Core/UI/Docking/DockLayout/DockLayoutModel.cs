@@ -375,6 +375,36 @@ public class DockLayoutModel : INotifyPropertyChanged
         return GetAllTabGroupsRecursive(RootNode);
     }
 
+    /// <summary>The first group of <see cref="GetAllTabGroups"/> that is a document area and is not a hidden placeholder, or null: the same answer as
+    /// <c>GetAllTabGroups().FirstOrDefault(g =&gt; g.IsDocumentArea &amp;&amp; !g.IsHiddenInLayout)</c> in the same order, without the iterators and the closure.</summary>
+    internal DockTabGroupNode FindVisibleDocumentArea()
+        => RootNode == null ? null : FindVisibleDocumentArea(RootNode);
+
+    private static DockTabGroupNode FindVisibleDocumentArea(DockNode node)
+    {
+        switch (node)
+        {
+            case DockTabGroupNode tabGroup:
+                //  The children of a group are its panels, which have no children: no group below a group.
+                return tabGroup.IsDocumentArea && !tabGroup.IsHiddenInLayout ? tabGroup : null;
+            case DockSplitNode split:
+                return (split.FirstChild != null ? FindVisibleDocumentArea(split.FirstChild) : null)
+                    ?? (split.SecondChild != null ? FindVisibleDocumentArea(split.SecondChild) : null);
+            case DockPanelNode:
+                return null;
+            default:
+                foreach (var child in node.GetChildren())
+                {
+                    if (child != null && FindVisibleDocumentArea(child) is { } found)
+                    {
+                        return found;
+                    }
+                }
+
+                return null;
+        }
+    }
+
     private IEnumerable<DockTabGroupNode> GetAllTabGroupsRecursive(DockNode node)
     {
         if (node is DockTabGroupNode tabGroup)

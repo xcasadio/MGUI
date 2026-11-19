@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
@@ -20,6 +21,10 @@ public class MGPolygon : MGPolyline
 
     protected override bool StrokeThicknessAffectsLayout => true;
 
+    //  The clip geometry and definition of each use, kept while the points, the translation and the target bounds are the same (T1.2): one for the fill brush, one for the shape itself.
+    private MGTriangulatedClipEntry _fillClip;
+    private MGTriangulatedClipEntry _selfClip;
+
     public override void DrawSelf(ElementDrawArgs DA, Rectangle layoutBounds)
     {
         if (NormalizedPoints.Length < 3)
@@ -35,9 +40,8 @@ public class MGPolygon : MGPolyline
 
         if (hasBrushFill)
         {
-            var clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, origin);
-            DrawClippedFillBrush(DA, placement.Bounds,
-                CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), clipGeometry, $"{ElementType}.Fill", allowRectangleFallback: true));
+            _fillClip ??= new MGTriangulatedClipEntry($"{ElementType}.Fill", true);
+            DrawClippedFillBrush(DA, placement.Bounds, _fillClip.GetDefinition(NormalizedPoints, origin, TransformClipBounds(DA, placement.Bounds)));
         }
 
         if (hasSolidFill && HasVisibleStroke)
@@ -76,20 +80,20 @@ public class MGPolygon : MGPolyline
         return HasVisibleStroke && MGVectorShapeHelper.IsPointNearPolyline(NormalizedPoints, localPoint, StrokeThickness, true);
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         if (!ClipToBounds)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         var placement = GetPlacement(layoutBounds);
         if (NormalizedPoints.Length < 3)
         {
-            return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, placement.Bounds));
         }
 
-        var geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(NormalizedPoints, DA.Offset.ToVector2() + placement.GeometryOrigin);
-        return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
+        _selfClip ??= new MGTriangulatedClipEntry($"{ElementType}.Self", true);
+        return ElementClipRequest.FromDefinition(_selfClip.GetDefinition(NormalizedPoints, DA.Offset.ToVector2() + placement.GeometryOrigin, TransformClipBounds(DA, placement.Bounds)));
     }
 }

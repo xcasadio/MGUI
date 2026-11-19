@@ -539,13 +539,12 @@ public class MGDockHost : MGSingleContentHost
         if (!IsDragging)
         {
             var kb = ParentWindow.Desktop.InputTracker.Keyboard;
-            var ctrlHeld       = kb.IsControlDown;
-            var shiftHeld      = kb.IsShiftDown;
+            //  Tab is read first: IsControlDown and IsShiftDown only matter in the frame where Tab was pressed.
             var tabJustPressed = kb.CurrentKeyPressedEvents[Microsoft.Xna.Framework.Input.Keys.Tab] != null;
 
-            if (ctrlHeld && tabJustPressed)
+            if (tabJustPressed && kb.IsControlDown)
             {
-                CyclePanel(forward: !shiftHeld);
+                CyclePanel(forward: !kb.IsShiftDown);
             }
         }
 
@@ -631,8 +630,10 @@ public class MGDockHost : MGSingleContentHost
 
         // ── Find which panel group the mouse is hovering over ───────────────────
         MGDockTabGroup hoveredGroup = null;
-        foreach (var tabGroup in GetAllVisibleTabGroups())
+        var visibleTabGroups = CollectVisibleTabGroups();
+        for (var i = 0; i < visibleTabGroups.Count; i++)
         {
+            var tabGroup = visibleTabGroups[i];
             if (tabGroup != null && tabGroup.LayoutBounds.Contains(mousePosition))
             {
                 hoveredGroup = tabGroup;
@@ -671,7 +672,7 @@ public class MGDockHost : MGSingleContentHost
             _dropIndicators.UpdateHostEdgeActiveZone(new Point(-1, -1));
 
             var dropTarget = GetDropTargetForZone(hoveredGroup, panelJoystickZone, mousePosition);
-            CurrentDropTarget = dropTarget;
+            SetCurrentDropTarget(dropTarget);
 
             if (dropTarget != null && dropTarget.PreviewRect != default(Microsoft.Xna.Framework.Rectangle))
             {
@@ -691,8 +692,9 @@ public class MGDockHost : MGSingleContentHost
 
         if (hostEdgeZone != DockZone.None)
         {
-            // Compute (or reuse) host-edge drop targets for the current host bounds
-            var hostEdgeTargets = DockDropCalculator.CalculateHostEdgeZones(LayoutBounds);
+            // Compute the host-edge drop targets for the current host bounds, in the list this host keeps
+            var hostEdgeTargets = _hostEdgeZonesBuffer;
+            DockDropCalculator.CalculateHostEdgeZonesInto(hostEdgeTargets, LayoutBounds);
             DockDropTarget hostTarget = null;
             foreach (var t in hostEdgeTargets)
             {
@@ -703,7 +705,7 @@ public class MGDockHost : MGSingleContentHost
                 }
             }
 
-            CurrentDropTarget = hostTarget;
+            SetCurrentDropTarget(hostTarget);
 
             if (hostTarget != null)
             {
@@ -721,8 +723,10 @@ public class MGDockHost : MGSingleContentHost
         // When the mouse is hovering over any split container's splitter bar we offer a
         // "insert between" drop target.  hoveredGroup is typically null here because the
         // splitter bar lies in the gap between two groups.
-        foreach (var sc in GetAllSplitContainers())
+        var splitContainers = CollectSplitContainers();
+        for (var splitContainerIndex = 0; splitContainerIndex < splitContainers.Count; splitContainerIndex++)
         {
+            var sc = splitContainers[splitContainerIndex];
             var splitterBounds = sc.SplitterBarLayoutBounds;
             if (splitterBounds == Microsoft.Xna.Framework.Rectangle.Empty)
             {
@@ -790,7 +794,17 @@ public class MGDockHost : MGSingleContentHost
             }
 
             // Build the drop target reusing the normal zone calculator
-            var leafVisual = GetAllVisibleTabGroups().FirstOrDefault(tg => tg.GroupNode == leafGroup);
+            MGDockTabGroup leafVisual = null;
+            var leafCandidates = CollectVisibleTabGroups();
+            for (var i = 0; i < leafCandidates.Count; i++)
+            {
+                if (leafCandidates[i].GroupNode == leafGroup)
+                {
+                    leafVisual = leafCandidates[i];
+                    break;
+                }
+            }
+
             if (leafVisual == null)
             {
                 continue;
@@ -805,7 +819,7 @@ public class MGDockHost : MGSingleContentHost
             splitterDropTarget.IsSplitterDrop = true;
             splitterDropTarget.SplitterNode   = sc.ModelNode;
 
-            CurrentDropTarget = splitterDropTarget;
+            SetCurrentDropTarget(splitterDropTarget);
             ShowPreview(splitterDropTarget.PreviewRect);
             return;
         }
@@ -847,7 +861,7 @@ public class MGDockHost : MGSingleContentHost
                     var proximityTarget = GetDropTargetForZone(hoveredGroup, proximityZone, mousePosition);
                     if (proximityTarget != null)
                     {
-                        CurrentDropTarget = proximityTarget;
+                        SetCurrentDropTarget(proximityTarget);
                         ShowPreview(proximityTarget.PreviewRect);
                         return;
                     }
@@ -856,7 +870,7 @@ public class MGDockHost : MGSingleContentHost
         }
 
         // ── No active drop target ────────────────────────────────────────────────
-        CurrentDropTarget = null;
+        SetCurrentDropTarget(null);
         HidePreview();
     }
 
@@ -975,7 +989,7 @@ public class MGDockHost : MGSingleContentHost
 
         // Clear drag state
         CurrentDrag = null;
-        CurrentDropTarget = null;
+        SetCurrentDropTarget(null);
     }
 
     /// <summary>
@@ -1004,7 +1018,7 @@ public class MGDockHost : MGSingleContentHost
 
         // Clear drag state
         CurrentDrag = null;
-        CurrentDropTarget = null;
+        SetCurrentDropTarget(null);
     }
 
     /// <summary>
@@ -1020,7 +1034,11 @@ public class MGDockHost : MGSingleContentHost
         }
 
         var panel        = drag.DraggedPanel;
+        //  The target is the instance that CurrentDropTarget gives (ADR-0036): its fields are read once, here, so that nothing that runs during the drop can change what is applied.
         var targetNode   = target.TargetNode;
+        var zone         = target.Zone;
+        var tabIndex     = target.TabIndex;
+        var isHostEdge   = target.IsHostEdge;
         var fromFloating = drag.SourceFloatingWindow != null;
 
         void PerformDropOperation()
@@ -1031,7 +1049,7 @@ public class MGDockHost : MGSingleContentHost
                 DetachFromFloatingWindow(drag.SourceFloatingWindow, panel);
             }
 
-            switch (target.Zone)
+            switch (zone)
             {
                 case DockZone.Center:
                     // Dock as tab
@@ -1041,12 +1059,12 @@ public class MGDockHost : MGSingleContentHost
                         if (drag.SourceGroup == targetGroup && !fromFloating)
                         {
                             // Reorder within the same group
-                            DockOperation.ReorderTab(LayoutModel, panel, targetGroup, target.TabIndex);
+                            DockOperation.ReorderTab(LayoutModel, panel, targetGroup, tabIndex);
                         }
                         else
                         {
                             // Move to different group (or from floating → host)
-                            var insertIndex = target.TabIndex >= 0 ? target.TabIndex : -1;
+                            var insertIndex = tabIndex >= 0 ? tabIndex : -1;
                             DockOperation.DockAsTab(LayoutModel, panel, targetGroup, insertIndex);
                         }
                     }
@@ -1057,15 +1075,15 @@ public class MGDockHost : MGSingleContentHost
                 case DockZone.Top:
                 case DockZone.Bottom:
                     // Split dock: remove from source and create split
-                    if (target.IsHostEdge)
+                    if (isHostEdge)
                     {
                         // Host-edge drop: insert a new root-level split
-                        DockOperation.SplitDockAtRoot(LayoutModel, panel, target.Zone,
+                        DockOperation.SplitDockAtRoot(LayoutModel, panel, zone,
                             DockDropCalculator.HostEdgePreviewRatio);
                     }
                     else
                     {
-                        DockOperation.SplitDock(LayoutModel, panel, targetNode, target.Zone);
+                        DockOperation.SplitDock(LayoutModel, panel, targetNode, zone);
                     }
                     break;
 
@@ -2235,7 +2253,9 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     public DockTabGroupNode GetDocumentArea()
     {
-        return GetAllTabGroups().FirstOrDefault(g => g.IsDocumentArea && !g.IsHiddenInLayout);
+        //  The first tab group of the layout, in the order of GetAllTabGroups(), that is the visible document area; found without the iterators and the closure that the query makes
+        //  (the drag asks for it, through CanDockTo, at every frame).
+        return LayoutModel?.FindVisibleDocumentArea();
     }
 
     /// <summary>
@@ -2335,8 +2355,10 @@ public class MGDockHost : MGSingleContentHost
             var family = panel.Family;
             if (family != null)
             {
-                foreach (var p in targetGroup.Panels)
+                var targetPanels = targetGroup.Panels;
+                for (var i = 0; i < targetPanels.Count; i++)
                 {
+                    var p = targetPanels[i];
                     if (p.Id == panel.Id)
                     {
                         continue; // skip self
@@ -2360,7 +2382,9 @@ public class MGDockHost : MGSingleContentHost
     /// </summary>
     private HashSet<DockZone> GetForbiddenZones(DockPanelNode panel, DockTabGroupNode targetGroup)
     {
-        var forbidden = new HashSet<DockZone>();
+        //  The set is kept, emptied and refilled at each call (the callers read it at once): the drag asks for it at each frame.
+        var forbidden = _forbiddenZones;
+        forbidden.Clear();
         if (panel == null || targetGroup == null)
         {
             return forbidden;
@@ -2845,7 +2869,15 @@ public class MGDockHost : MGSingleContentHost
 
     #region Drop Zone Calculation
 
+    //  The drop target of the host (ADR-0036). _currentDropTarget is null, or the one instance _keptDropTarget, written again at each computation. The targets the
+    //  computation fills (the zones of the calculator, the centre target, the reorder target) are kept too, and filled in all their fields at each use.
     private DockDropTarget _currentDropTarget;
+    private readonly DockDropTarget _keptDropTarget = new();
+    private readonly DockDropTarget _centerDropTarget = new();
+    private readonly DockDropTarget _reorderDropTarget = new();
+    private readonly List<DockDropTarget> _dropZonesBuffer = new(5);
+    private readonly List<DockDropTarget> _hostEdgeZonesBuffer = new(4);
+    private readonly List<MGElement> _tabItemsBuffer = new();   // the walk of the tab items of a group, for the tab index and the reorder preview
     private MGDockPreviewOverlay _previewOverlay;
     private MGComponent<MGDockPreviewOverlay> _previewOverlayComponent;
     private MGDockDropIndicators _dropIndicators;
@@ -2862,18 +2894,37 @@ public class MGDockHost : MGSingleContentHost
 
     /// <summary>
     /// The current drop target based on the last mouse position.
-    /// Updated by calling GetDropTarget().
+    /// Updated by calling GetDropTarget().<para/>
+    /// The host keeps one <see cref="DockDropTarget"/> for this property and writes its fields again at each computation (ADR-0036): it is the same instance every time
+    /// the property is not null, so read the fields when you need them, and copy them to keep them. <c>PropertyChanged</c> is raised for <see cref="CurrentDropTarget"/>
+    /// when the target appears, when it disappears, and when a field of it changes; a computation that finds the same values raises nothing.
     /// </summary>
-    public DockDropTarget CurrentDropTarget
+    public DockDropTarget CurrentDropTarget => _currentDropTarget;
+
+    /// <summary>
+    /// Makes <paramref name="source"/> (a target the host filled, kept by the host, or null for no target) the current drop target: its eight fields are copied into the one
+    /// instance of the host. Raises <c>PropertyChanged</c> when the target appears or disappears, or when a field changes.
+    /// </summary>
+    private void SetCurrentDropTarget(DockDropTarget source)
     {
-        get => _currentDropTarget;
-        private set
+        if (source == null)
         {
-            if (_currentDropTarget != value)
+            //  The fields of the kept instance stay as they were: a drop that is being applied still reads them.
+            if (_currentDropTarget != null)
             {
-                _currentDropTarget = value;
+                _currentDropTarget = null;
                 NotifyPropertyChanged(nameof(CurrentDropTarget));
             }
+
+            return;
+        }
+
+        var changed = _currentDropTarget == null || !_keptDropTarget.HasSameValues(source);
+        _keptDropTarget.CopyFrom(source);
+        _currentDropTarget = _keptDropTarget;
+        if (changed)
+        {
+            NotifyPropertyChanged(nameof(CurrentDropTarget));
         }
     }
 
@@ -2882,7 +2933,7 @@ public class MGDockHost : MGSingleContentHost
     /// Also updates CurrentDropTarget property.
     /// </summary>
     /// <param name="screenPosition">The screen position to test.</param>
-    /// <returns>The drop target at the position, or null if none found.</returns>
+    /// <returns>The drop target at the position, or null if none found. It is the instance of <see cref="CurrentDropTarget"/>, written again by the next computation.</returns>
     public DockDropTarget GetDropTarget(Point screenPosition)
     {
         DockDropTarget bestTarget = null;
@@ -2905,26 +2956,23 @@ public class MGDockHost : MGSingleContentHost
                 tabGroup.TabHeadersBounds.Height > 0 &&
                 tabGroup.TabHeadersBounds.Contains(screenPosition))
             {
-                var reorderTarget = new DockDropTarget
-                {
-                    TargetNode = tabGroup.GroupNode,
-                    Zone = DockZone.Center,
-                    HitRect = tabGroup.TabHeadersBounds,
-                    PreviewRect = tabGroup.TabHeadersBounds
-                };
-                
+                var reorderTarget = _reorderDropTarget;
+                reorderTarget.Set(tabGroup.GroupNode, DockZone.Center, tabGroup.TabHeadersBounds, tabGroup.TabHeadersBounds);
+
                 // Calculate tab index and preview rect
                 reorderTarget.TabIndex = DockDropCalculator.CalculateTabIndex(
                     tabGroup, 
                     screenPosition.X, 
-                    CurrentDrag.DraggedPanel);
+                    CurrentDrag.DraggedPanel,
+                    _tabItemsBuffer);
                 
                 if (reorderTarget.TabIndex >= 0)
                 {
                     reorderTarget.PreviewRect = DockDropCalculator.CalculateTabReorderPreviewRect(
                         tabGroup, 
                         reorderTarget.TabIndex,
-                        CurrentDrag.DraggedPanel);
+                        CurrentDrag.DraggedPanel,
+                        _tabItemsBuffer);
                 }
                 
                 bestTarget = reorderTarget;
@@ -2932,8 +2980,9 @@ public class MGDockHost : MGSingleContentHost
             }
 
             // Normal drop zones (all split zones + center for merging tabs)
-            var zones = DockDropCalculator.CalculateDropZones(tabGroup, tabGroup.LayoutBounds, 
-                                                               DockDropCalculator.DefaultMarginPercent);
+            var zones = _dropZonesBuffer;
+            DockDropCalculator.CalculateDropZonesInto(zones, tabGroup, tabGroup.LayoutBounds,
+                                                      DockDropCalculator.DefaultMarginPercent);
 
             // Find matching zone at screen position
             var target = DockDropCalculator.GetDropTargetAtPosition(zones, screenPosition);
@@ -2945,7 +2994,8 @@ public class MGDockHost : MGSingleContentHost
                     target.TabIndex = DockDropCalculator.CalculateTabIndex(
                         tabGroup, 
                         screenPosition.X, 
-                        CurrentDrag.DraggedPanel);
+                        CurrentDrag.DraggedPanel,
+                        _tabItemsBuffer);
                 }
 
                 bestTarget = target;
@@ -2953,8 +3003,8 @@ public class MGDockHost : MGSingleContentHost
             }
         }
 
-        CurrentDropTarget = bestTarget;
-        return bestTarget;
+        SetCurrentDropTarget(bestTarget);
+        return _currentDropTarget;
     }
 
     /// <summary>
@@ -2985,13 +3035,8 @@ public class MGDockHost : MGSingleContentHost
         // Handle Center zone (tab merge or reorder)
         if (zone == DockZone.Center)
         {
-            var centerTarget = new DockDropTarget
-            {
-                TargetNode = targetGroup.GroupNode,
-                Zone = DockZone.Center,
-                HitRect = targetGroup.LayoutBounds,
-                PreviewRect = targetGroup.LayoutBounds
-            };
+            var centerTarget = _centerDropTarget;
+            centerTarget.Set(targetGroup.GroupNode, DockZone.Center, targetGroup.LayoutBounds, targetGroup.LayoutBounds);
 
             // Calculate tab index for positioning
             if (IsDragging && CurrentDrag != null)
@@ -2999,7 +3044,8 @@ public class MGDockHost : MGSingleContentHost
                 centerTarget.TabIndex = DockDropCalculator.CalculateTabIndex(
                     targetGroup, 
                     mousePosition.X, 
-                    CurrentDrag.DraggedPanel);
+                    CurrentDrag.DraggedPanel,
+                    _tabItemsBuffer);
 
                 // If reordering in same group, calculate preview line position
                 if (isDraggingFromSameGroup && centerTarget.TabIndex >= 0)
@@ -3007,7 +3053,8 @@ public class MGDockHost : MGSingleContentHost
                     centerTarget.PreviewRect = DockDropCalculator.CalculateTabReorderPreviewRect(
                         targetGroup, 
                         centerTarget.TabIndex,
-                        CurrentDrag.DraggedPanel);
+                        CurrentDrag.DraggedPanel,
+                        _tabItemsBuffer);
                 }
             }
 
@@ -3016,15 +3063,103 @@ public class MGDockHost : MGSingleContentHost
 
         // Handle split zones (Left, Right, Top, Bottom)
         // Calculate all drop zones and find the one matching the specified zone
-        var zones = DockDropCalculator.CalculateDropZones(
-            targetGroup, 
-            targetGroup.LayoutBounds, 
+        var zones = _dropZonesBuffer;
+        DockDropCalculator.CalculateDropZonesInto(
+            zones,
+            targetGroup,
+            targetGroup.LayoutBounds,
             DockDropCalculator.DefaultMarginPercent);
 
         // Find the target matching the specified zone
-        var matchingTarget = zones.FirstOrDefault(z => z.Zone == zone);
-        
+        //  A loop, not FirstOrDefault with a lambda: the lambda captures zone, so its closure would be made at every call of this method, whatever the zone.
+        DockDropTarget matchingTarget = null;
+        for (var i = 0; i < zones.Count; i++)
+        {
+            if (zones[i].Zone == zone)
+            {
+                matchingTarget = zones[i];
+                break;
+            }
+        }
+
         return matchingTarget;
+    }
+
+    private readonly HashSet<DockZone> _forbiddenZones = new();
+
+    //  The lists and the stack that the walks of the visual tree below fill, kept between calls (a walk is made in one go, nothing is called during it that starts another walk).
+    private readonly List<MGDockTabGroup> _visibleTabGroupsBuffer = new();
+    private readonly List<MGDockSplitContainer> _splitContainersBuffer = new();
+    private readonly List<MGElement> _treeWalkBuffer = new();
+
+    /// <summary>The tab groups that <see cref="GetAllVisibleTabGroups"/> gives, in the same order, in a list that this host keeps and refills at each call (read it before the next call).</summary>
+    internal List<MGDockTabGroup> CollectVisibleTabGroups()
+    {
+        _visibleTabGroupsBuffer.Clear();
+        if (Content != null)
+        {
+            FindTabGroupsInto(Content, _visibleTabGroupsBuffer);
+        }
+
+        return _visibleTabGroupsBuffer;
+    }
+
+    private void FindTabGroupsInto(MGElement element, List<MGDockTabGroup> results)
+    {
+        if (element == null)
+        {
+            return;
+        }
+
+        if (element is MGDockTabGroup tabGroup)
+        {
+            results.Add(tabGroup);
+        }
+
+        var start = _treeWalkBuffer.Count;
+        element.AddChildrenTo(_treeWalkBuffer);
+        var end = _treeWalkBuffer.Count;
+        for (var i = start; i < end; i++)
+        {
+            FindTabGroupsInto(_treeWalkBuffer[i], results);
+        }
+
+        _treeWalkBuffer.RemoveRange(start, end - start);
+    }
+
+    /// <summary>The split containers that <see cref="GetAllSplitContainers"/> gives, in the same order, in a list that this host keeps and refills at each call.</summary>
+    internal List<MGDockSplitContainer> CollectSplitContainers()
+    {
+        _splitContainersBuffer.Clear();
+        if (Content != null)
+        {
+            FindSplitContainersInto(Content, _splitContainersBuffer);
+        }
+
+        return _splitContainersBuffer;
+    }
+
+    private void FindSplitContainersInto(MGElement element, List<MGDockSplitContainer> results)
+    {
+        if (element == null)
+        {
+            return;
+        }
+
+        if (element is MGDockSplitContainer splitContainer)
+        {
+            results.Add(splitContainer);
+        }
+
+        var start = _treeWalkBuffer.Count;
+        element.AddChildrenTo(_treeWalkBuffer);
+        var end = _treeWalkBuffer.Count;
+        for (var i = start; i < end; i++)
+        {
+            FindSplitContainersInto(_treeWalkBuffer[i], results);
+        }
+
+        _treeWalkBuffer.RemoveRange(start, end - start);
     }
 
     /// <summary>

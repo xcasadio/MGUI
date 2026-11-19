@@ -172,3 +172,15 @@ public sealed class GpuDeviceCollection
 {
     public const string Name = "MGUI real-GPU rendering";
 }
+
+/// <summary>Like <see cref="GpuFactAttribute"/>, for a <see cref="TheoryAttribute"/>.</summary>
+public sealed class GpuTheoryAttribute : TheoryAttribute
+{
+    public GpuTheoryAttribute()
+    {
+        if (!GpuDeviceHost.Instance.IsAvailable)
+        {
+            Skip = GpuDeviceHost.Instance.UnavailableReason;
+        }
+    }
+}

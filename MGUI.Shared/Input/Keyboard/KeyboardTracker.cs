@@ -112,16 +112,60 @@ namespace MGUI.Shared.Input.Keyboard
         private readonly Dictionary<Keys, BaseKeyPressedEventArgs> RecentKeyPressedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyPressedEventArgs);
         private long _NextInputStreamId = 1;
 
+        //  The press, release and click events and the input streams are instances kept by the tracker per key (ADR-0034), created at the first use and refilled afterwards, with their
+        //  handled state reset. The press and the stream of a native text input that no key press goes with are other instances of the key: the release and the click that are built in the
+        //  same frame keep the press, its time and its stream. A Keys value is a byte, so it indexes these arrays.
+        private const int KeySlotCount = 256;
+        private readonly BaseKeyPressedEventArgs[] _ReusedPressedEvents = new BaseKeyPressedEventArgs[KeySlotCount];
+        private readonly KeyboardInputStream[] _ReusedStreams = new KeyboardInputStream[KeySlotCount];
+        private readonly BaseKeyPressedEventArgs[] _ReusedTextInputPressedEvents = new BaseKeyPressedEventArgs[KeySlotCount];
+        private readonly KeyboardInputStream[] _ReusedTextInputStreams = new KeyboardInputStream[KeySlotCount];
+        private readonly BaseKeyReleasedEventArgs[] _ReusedReleasedEvents = new BaseKeyReleasedEventArgs[KeySlotCount];
+        private readonly BaseKeyClickedEventArgs[] _ReusedClickedEvents = new BaseKeyClickedEventArgs[KeySlotCount];
+
+        /// <summary>The press instance of <paramref name="Key"/> in <paramref name="Presses"/>, created with its stream at the first use and refilled afterwards: the stream restarts with a new
+        /// identity (new id, start time, initial press, no owner) and the press with a reset handled state.</summary>
+        private BaseKeyPressedEventArgs GetPressedEvent(BaseKeyPressedEventArgs[] Presses, KeyboardInputStream[] Streams, Keys Key, string KeyValue, TimeSpan PressedAt)
+        {
+            int slot = (int)Key;
+            KeyboardInputStream stream = Streams[slot];
+            if (stream == null)
+            {
+                stream = new(_NextInputStreamId++, Key, PressedAt);
+                Streams[slot] = stream;
+            }
+            else
+            {
+                stream.Restart(_NextInputStreamId++, PressedAt);
+            }
+
+            BaseKeyPressedEventArgs press = Presses[slot];
+            if (press == null)
+            {
+                press = new(this, Key, KeyValue, PressedAt, stream);
+                Presses[slot] = press;
+            }
+            else
+            {
+                press.Set(KeyValue, PressedAt, stream);
+            }
+
+            return press;
+        }
+
         private readonly Dictionary<Keys, BaseKeyPressedEventArgs> _CurrentKeyPressedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyPressedEventArgs);
-        /// <summary>The Key Press events that occurred on the current Update tick, or null if the key wasn't just pressed on the current Update tick.</summary>
+        /// <summary>The Key Press events that occurred on the current Update tick, or null if the key wasn't just pressed on the current Update tick.<para/>
+        /// The instance of a key is refilled at each press of that key (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<Keys, BaseKeyPressedEventArgs> CurrentKeyPressedEvents => _CurrentKeyPressedEvents;
 
         private readonly Dictionary<Keys, BaseKeyReleasedEventArgs> _CurrentKeyReleasedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyReleasedEventArgs);
-        /// <summary>The Key Release events that occurred on the current Update tick, or null if the key wasn't just released on the current Update tick.</summary>
+        /// <summary>The Key Release events that occurred on the current Update tick, or null if the key wasn't just released on the current Update tick.<para/>
+        /// The instance of a key is refilled at each release of that key (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<Keys, BaseKeyReleasedEventArgs> CurrentKeyReleasedEvents => _CurrentKeyReleasedEvents;
 
         private readonly Dictionary<Keys, BaseKeyClickedEventArgs> _CurrentKeyClickedEvents = AllKeys.ToDictionary(x => x, x => null as BaseKeyClickedEventArgs);
-        /// <summary>The Key click events that occurred on the current Update tick, or null if the key wasn't just clicked on the current Update tick.</summary>
+        /// <summary>The Key click events that occurred on the current Update tick, or null if the key wasn't just clicked on the current Update tick.<para/>
+        /// The instance of a key is refilled at each click of that key (ADR-0034): read it during the event, do not keep it.</summary>
         public IReadOnlyDictionary<Keys, BaseKeyClickedEventArgs> CurrentKeyClickedEvents => _CurrentKeyClickedEvents;
 
         private readonly Dictionary<Keys, TimeSpan?> _HeldSince = AllKeys.ToDictionary(x => x, _ => (TimeSpan?)null);
@@ -129,7 +173,9 @@ namespace MGUI.Shared.Input.Keyboard
         private readonly List<KeyboardTextInputEvent> CurrentTextInputEvents = new();
         #endregion Events
 
+        /// <summary>Alias of <see cref="CurrentKeyPressedEvents"/>: the same reused instances, read them during the event.</summary>
         public IReadOnlyDictionary<Keys, BaseKeyPressedEventArgs> CurrentKeyDownEvents => _CurrentKeyPressedEvents;
+        /// <summary>Alias of <see cref="CurrentKeyReleasedEvents"/>: the same reused instances, read them during the event.</summary>
         public IReadOnlyDictionary<Keys, BaseKeyReleasedEventArgs> CurrentKeyUpEvents => _CurrentKeyReleasedEvents;
 
         public bool IsPressed(Keys Key) => RecentKeyPressedEvents[Key] != null;
@@ -139,9 +185,10 @@ namespace MGUI.Shared.Input.Keyboard
         public bool IsCapsLockOn => CurrentState.CapsLock;
         public bool IsNumLockOn => CurrentState.NumLock;
 
-        public bool IsShiftDown => IsAnyPressed(Keys.LeftShift, Keys.RightShift);
-        public bool IsControlDown => IsAnyPressed(Keys.LeftControl, Keys.RightControl);
-        public bool IsAltDown => IsAnyPressed(Keys.LeftAlt, Keys.RightAlt);
+        //  The modifiers are read at each key and each click: they use IsPressed, not IsAnyPressed(params Keys[]), which allocates an array and a closure per read (ADR-0034).
+        public bool IsShiftDown => IsPressed(Keys.LeftShift) || IsPressed(Keys.RightShift);
+        public bool IsControlDown => IsPressed(Keys.LeftControl) || IsPressed(Keys.RightControl);
+        public bool IsAltDown => IsPressed(Keys.LeftAlt) || IsPressed(Keys.RightAlt);
 
         internal bool TryGetInitialPressedEvent(Keys Key, out BaseKeyPressedEventArgs PressedArgs)
             => RecentKeyPressedEvents.TryGetValue(Key, out PressedArgs) && PressedArgs != null;
@@ -192,8 +239,7 @@ namespace MGUI.Shared.Input.Keyboard
                     string nativeTextValue = NormalizeNativeTextInputValue(TryConsumeNativeTextInputString(Key, fallbackKeyValue != null));
                     string KeyValue = nativeTextValue ?? fallbackKeyValue;
                     KeyboardInputProbe.RecordKeyPressed(Key, KeyValue, fallbackKeyValue, nativeTextValue != null);
-                    KeyboardInputStream stream = new(_NextInputStreamId++, Key, BA.TotalElapsed);
-                    BaseKeyPressedEventArgs PressedArgs = new(this, Key, KeyValue, BA.TotalElapsed, stream);
+                    BaseKeyPressedEventArgs PressedArgs = GetPressedEvent(_ReusedPressedEvents, _ReusedStreams, Key, KeyValue, BA.TotalElapsed);
                     RecentKeyPressedEvents[Key] = PressedArgs;
                     _CurrentKeyPressedEvents[Key] = PressedArgs;
                     _HeldSince[Key] = BA.TotalElapsed;
@@ -209,13 +255,33 @@ namespace MGUI.Shared.Input.Keyboard
 
                     if (RecentKeyPressedEvents.TryGetValue(Key, out BaseKeyPressedEventArgs PressedArgs) && PressedArgs != null)
                     {
-                        BaseKeyReleasedEventArgs ReleasedArgs = new(this, PressedArgs, Key, KeyValue, BA.TotalElapsed);
+                        BaseKeyReleasedEventArgs ReleasedArgs = _ReusedReleasedEvents[(int)Key];
+                        if (ReleasedArgs == null)
+                        {
+                            ReleasedArgs = new(this, PressedArgs, Key, KeyValue, BA.TotalElapsed);
+                            _ReusedReleasedEvents[(int)Key] = ReleasedArgs;
+                        }
+                        else
+                        {
+                            ReleasedArgs.Set(PressedArgs, KeyValue, BA.TotalElapsed);
+                        }
+
                         _CurrentKeyReleasedEvents[Key] = ReleasedArgs;
 
                         //  Detect keys that were clicked
                         if (ReleasedArgs.HeldDuration <= ClickTimeThreshold)
                         {
-                            BaseKeyClickedEventArgs ClickedArgs = new(this, ReleasedArgs, Key, KeyValue);
+                            BaseKeyClickedEventArgs ClickedArgs = _ReusedClickedEvents[(int)Key];
+                            if (ClickedArgs == null)
+                            {
+                                ClickedArgs = new(this, ReleasedArgs, Key, KeyValue);
+                                _ReusedClickedEvents[(int)Key] = ClickedArgs;
+                            }
+                            else
+                            {
+                                ClickedArgs.Set(ReleasedArgs, KeyValue);
+                            }
+
                             _CurrentKeyClickedEvents[Key] = ClickedArgs;
                         }
 
@@ -277,13 +343,19 @@ namespace MGUI.Shared.Input.Keyboard
                 inputEvent.Consumed = true;
                 CurrentTextInputEvents[index] = inputEvent;
 
-                string keyValue = NormalizeNativeTextInputValue(inputEvent.Character.ToString());
-                KeyboardInputStream stream = new(_NextInputStreamId++, inputEvent.Key, BA.TotalElapsed);
-                BaseKeyPressedEventArgs pressedArgs = new(this, inputEvent.Key, keyValue, BA.TotalElapsed, stream);
+                string keyValue = NormalizeNativeTextInputValue(CharacterToString(inputEvent.Character));
+                BaseKeyPressedEventArgs pressedArgs = GetPressedEvent(_ReusedTextInputPressedEvents, _ReusedTextInputStreams, inputEvent.Key, keyValue, BA.TotalElapsed);
                 _CurrentKeyPressedEvents[inputEvent.Key] = pressedArgs;
                 KeyboardInputProbe.RecordKeyPressed(inputEvent.Key, keyValue, null, true);
             }
         }
+
+        /// <summary>The strings of the characters below 256, made at their first use: a native text input of one of these characters (every key of a Latin keyboard layout) does not allocate its string
+        /// each time. A character above that (an IME text, for example) allocates its string, the value that the event carries.</summary>
+        private static readonly string[] CharacterStrings = new string[256];
+
+        private static string CharacterToString(char character)
+            => character < CharacterStrings.Length ? CharacterStrings[character] ??= character.ToString() : character.ToString();
 
         private static bool ShouldUseNativeTextInputCharacter(char character)
             => !char.IsControl(character) || character is '\t' or '\r' or '\n';
@@ -309,7 +381,7 @@ namespace MGUI.Shared.Input.Keyboard
                 {
                     inputEvent.Consumed = true;
                     CurrentTextInputEvents[index] = inputEvent;
-                    return inputEvent.Character.ToString();
+                    return CharacterToString(inputEvent.Character);
                 }
             }
 
@@ -325,7 +397,7 @@ namespace MGUI.Shared.Input.Keyboard
                 {
                     inputEvent.Consumed = true;
                     CurrentTextInputEvents[index] = inputEvent;
-                    return inputEvent.Character.ToString();
+                    return CharacterToString(inputEvent.Character);
                 }
             }
 

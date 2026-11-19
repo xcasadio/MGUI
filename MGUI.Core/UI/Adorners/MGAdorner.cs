@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Shared.Rendering.Clipping;
@@ -101,12 +102,11 @@ public abstract class MGAdorner : MGElement
         return false;
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         if (ClipToTargetBounds && TryGetAdornedBounds(out var adornedBounds))
         {
-            var clipBounds = TransformClipBounds(DA, adornedBounds);
-            return CreateRectangleClipDefinition(clipBounds, $"{GetType().Name}.Self");
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, adornedBounds));
         }
 
         return base.GetSelfClipDefinition(DA, layoutBounds, targetBounds);

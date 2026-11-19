@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
@@ -36,6 +37,12 @@ public class MGPathLite : MGVertexShapeElementBase
     }
 
     private MGPathLiteFigure[] _Figures = Array.Empty<MGPathLiteFigure>();
+
+    //  The clip geometry and definition of each use, kept while the points, the translation and the target bounds are the same (T1.2): one per figure for the fill brush (the
+    //  entries are made when the figure is first drawn with a brush; this array has one slot per figure), one for the shape itself (a path clips itself only when it has one figure).
+    private MGTriangulatedClipEntry[] _FillClips = Array.Empty<MGTriangulatedClipEntry>();
+    private MGTriangulatedClipEntry _SelfClip;
+    private string _FillClipName;
 
     public MGPathLite(MGWindow window)
         : this(window, Array.Empty<MGPathLiteCommand>(), Color.White, 1f, Color.Transparent)
@@ -77,9 +84,9 @@ public class MGPathLite : MGVertexShapeElementBase
 
             if (figure.IsClosed && figure.Points.Count >= 3 && hasBrushFill)
             {
-                var clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, origin);
-                DrawClippedFillBrush(DA, placement.Bounds,
-                    CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), clipGeometry, $"{ElementType}.Fill", allowRectangleFallback: true));
+                _FillClipName ??= $"{ElementType}.Fill";
+                MGTriangulatedClipEntry fillClip = _FillClips[i] ??= new MGTriangulatedClipEntry(_FillClipName, true);
+                DrawClippedFillBrush(DA, placement.Bounds, fillClip.GetDefinition(figure.Points, origin, TransformClipBounds(DA, placement.Bounds)));
             }
 
             if (figure.IsClosed && figure.Points.Count >= 3 && hasSolidFill && HasVisibleStroke)
@@ -135,22 +142,22 @@ public class MGPathLite : MGVertexShapeElementBase
         return false;
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         if (!ClipToBounds || _Figures.Length != 1)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         var figure = _Figures[0];
         var placement = GetPlacement(layoutBounds);
         if (!figure.IsClosed || figure.Points.Count < 3)
         {
-            return CreateRectangleClipDefinition(TransformClipBounds(DA, placement.Bounds), $"{ElementType}.Self");
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, placement.Bounds));
         }
 
-        var geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(figure.Points, DA.Offset.ToVector2() + placement.GeometryOrigin);
-        return CreateGeometryClipDefinition(TransformClipBounds(DA, placement.Bounds), geometry, $"{ElementType}.Self", allowRectangleFallback: true);
+        _SelfClip ??= new MGTriangulatedClipEntry($"{ElementType}.Self", true);
+        return ElementClipRequest.FromDefinition(_SelfClip.GetDefinition(figure.Points, DA.Offset.ToVector2() + placement.GeometryOrigin, TransformClipBounds(DA, placement.Bounds)));
     }
 
     private void RebuildGeometry()
@@ -192,6 +199,7 @@ public class MGPathLite : MGVertexShapeElementBase
         if (rawFigures.Count == 0)
         {
             _Figures = Array.Empty<MGPathLiteFigure>();
+            _FillClips = Array.Empty<MGTriangulatedClipEntry>();
             GeometrySize = new MonoGame.Extended.Size(0, 0);
             LayoutChanged(this, true);
             return;
@@ -218,6 +226,11 @@ public class MGPathLite : MGVertexShapeElementBase
         }
 
         _Figures = normalizedFigures;
+        if (_FillClips.Length != normalizedFigures.Length)
+        {
+            _FillClips = new MGTriangulatedClipEntry[normalizedFigures.Length];
+        }
+
         GeometrySize = new MonoGame.Extended.Size(Math.Max(0, (int)Math.Ceiling(bounds.Width)), Math.Max(0, (int)Math.Ceiling(bounds.Height)));
         LayoutChanged(this, true);
     }

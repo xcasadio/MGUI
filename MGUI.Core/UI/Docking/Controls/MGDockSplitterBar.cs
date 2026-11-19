@@ -191,6 +191,22 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
         return accentBounds;
     }
 
+    //  The solid brush of the accent part, kept with the color it was made for: a new brush at every sync (the update syncs at every frame) is garbage at every frame, and each new brush
+    //  that the part takes is a change that its background notifies. A brush for another color, whether the state or the overlay color property changed, replaces it.
+    private MGSolidFillBrush _accentBrush;
+    private Color _accentBrushColor;
+
+    private MGSolidFillBrush GetAccentBrush(Color color)
+    {
+        if (_accentBrush == null || _accentBrushColor != color)
+        {
+            _accentBrush = new MGSolidFillBrush(color);
+            _accentBrushColor = color;
+        }
+
+        return _accentBrush;
+    }
+
     private void SyncVisualParts()
     {
         if (SurfaceElement == null || AccentElement == null || GripElement == null)
@@ -206,7 +222,7 @@ public class MGDockSplitterBar : MGElement, IActiveMouseDragCapture
 
         var showAccent = IsHovered || IsDragging;
         AccentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Collapsed;
-        AccentElement.SetBackgroundSlot(UIValueSlot.Normal, new MGSolidFillBrush(IsDragging ? PressedOverlayColor : HoverOverlayColor), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
+        AccentElement.SetBackgroundSlot(UIValueSlot.Normal, GetAccentBrush(IsDragging ? PressedOverlayColor : HoverOverlayColor), UIValueResolutionSource.VisualState(UIInvalidationKind.Draw));
 
         GripElement.IsVertical = ParentSplitContainer?.Orientation == Orientation.Horizontal;
         GripElement.DotColor = (IsHovered || IsDragging)

@@ -50,6 +50,9 @@ public class InputEnhancedTests
         Assert.False(firstClick.IsDoubleClick);
         Assert.False(firstClick.IsMultiClick);
         Assert.Null(tracker.Mouse.CurrentButtonDoubleClickedEvents[button]);
+        //  The click object of a button is refilled by its next click: the identity of the first sequence is written now.
+        long firstSequenceId = firstClick.MultiClickSequenceId;
+        Assert.NotEqual(0, firstSequenceId);
 
         tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(12, 12), button), new KeyboardState()));
         tracker.Update(CreateUpdateArgs(80, CreateMouseState(new Point(12, 12)), new KeyboardState()));
@@ -60,7 +63,7 @@ public class InputEnhancedTests
         Assert.True(secondClick.IsDoubleClick);
         Assert.True(secondClick.IsMultiClick);
         Assert.NotNull(secondClick.Sequence);
-        Assert.Same(secondClick.Sequence, secondClick.PreviousClickInSequence.Sequence);
+        Assert.Equal(firstSequenceId, secondClick.Sequence.Id);
         Assert.Same(secondClick, tracker.Mouse.CurrentButtonDoubleClickedEvents[button]);
     }
 
@@ -172,6 +175,8 @@ public class InputEnhancedTests
         tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(49, 10), MouseButton.Left), new KeyboardState()));
         tracker.Mouse.UpdateHandlers();
         tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(49, 10)), new KeyboardState()));
+        //  The click object of the button is refilled by its next click: the identity of the first sequence is written now.
+        long firstSequenceId = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left].MultiClickSequenceId;
         tracker.Mouse.UpdateHandlers();
 
         tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(51, 10), MouseButton.Left), new KeyboardState()));
@@ -182,9 +187,9 @@ public class InputEnhancedTests
         BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
         Assert.NotNull(secondClick);
         Assert.Equal(2, secondClick.ClickCount);
-        Assert.NotNull(secondClick.PreviousClickInSequence);
+        Assert.NotEqual(0, firstSequenceId);
         Assert.NotNull(secondClick.Sequence);
-        Assert.Same(secondClick.PreviousClickInSequence.Sequence, secondClick.Sequence);
+        Assert.Equal(firstSequenceId, secondClick.Sequence.Id);
         Assert.Equal(0, leftDoubleClicks);
         Assert.Equal(0, rightDoubleClicks);
         Assert.Equal(1, rightClicks);
@@ -200,20 +205,21 @@ public class InputEnhancedTests
         tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
         tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(12, 12)), new KeyboardState()));
         BaseMouseClickedEventArgs firstSequenceClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        //  The click object of the button is refilled by its next click: what the first click says is written now, not read again from the kept object.
+        Assert.NotNull(firstSequenceClick);
+        int firstClickCount = firstSequenceClick.ClickCount;
+        Assert.NotNull(firstSequenceClick.Sequence);
+        long firstSequenceId = firstSequenceClick.Sequence.Id;
 
         tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(30, 30), MouseButton.Left), new KeyboardState()));
         tracker.Update(CreateUpdateArgs(70, CreateMouseState(new Point(30, 30)), new KeyboardState()));
         BaseMouseClickedEventArgs secondSequenceClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
 
-        Assert.NotNull(firstSequenceClick);
         Assert.NotNull(secondSequenceClick);
-        Assert.Equal(1, firstSequenceClick.ClickCount);
+        Assert.Equal(1, firstClickCount);
         Assert.Equal(1, secondSequenceClick.ClickCount);
-        Assert.NotNull(firstSequenceClick.Sequence);
         Assert.NotNull(secondSequenceClick.Sequence);
-        Assert.NotSame(firstSequenceClick.Sequence, secondSequenceClick.Sequence);
-        Assert.NotEqual(firstSequenceClick.Sequence.Id, secondSequenceClick.Sequence.Id);
-        Assert.Null(secondSequenceClick.PreviousClickInSequence);
+        Assert.NotEqual(firstSequenceId, secondSequenceClick.Sequence.Id);
     }
 
     [Fact]
@@ -226,18 +232,19 @@ public class InputEnhancedTests
         tracker.Update(CreateUpdateArgs(10, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
         tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(12, 12)), new KeyboardState()));
         BaseMouseClickedEventArgs firstClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
+        //  The click object of the button is refilled by its next click: what the first click says is written now, not read again from the kept object.
+        Assert.NotNull(firstClick);
+        Assert.NotNull(firstClick.Sequence);
+        long firstSequenceId = firstClick.Sequence.Id;
 
         tracker.Update(CreateUpdateArgs(250, CreateMouseState(new Point(12, 12), MouseButton.Left), new KeyboardState()));
         tracker.Update(CreateUpdateArgs(270, CreateMouseState(new Point(12, 12)), new KeyboardState()));
         BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
 
-        Assert.NotNull(firstClick);
         Assert.NotNull(secondClick);
         Assert.Equal(1, secondClick.ClickCount);
-        Assert.NotNull(firstClick.Sequence);
         Assert.NotNull(secondClick.Sequence);
-        Assert.NotSame(firstClick.Sequence, secondClick.Sequence);
-        Assert.Null(secondClick.PreviousClickInSequence);
+        Assert.NotEqual(firstSequenceId, secondClick.Sequence.Id);
     }
 
     [Fact]
@@ -262,6 +269,10 @@ public class InputEnhancedTests
         tracker.Update(CreateUpdateArgs(25, CreateMouseState(new Point(10, 10)), new KeyboardState()));
         BaseMouseClickedEventArgs firstClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
         tracker.Mouse.UpdateHandlers();
+        //  The click object of the button is refilled by its next click (its handled state reset): what the first click says is written now, after the handlers.
+        Assert.NotNull(firstClick);
+        bool firstClickHandled = firstClick.IsHandled;
+        IMouseHandlerHost firstClickHandledBy = firstClick.HandledBy;
 
         tracker.Update(CreateUpdateArgs(50, CreateMouseState(new Point(10, 10), MouseButton.Left), new KeyboardState()));
         tracker.Mouse.UpdateHandlers();
@@ -269,10 +280,9 @@ public class InputEnhancedTests
         BaseMouseClickedEventArgs secondClick = tracker.Mouse.CurrentButtonClickedEvents[MouseButton.Left];
         tracker.Mouse.UpdateHandlers();
 
-        Assert.NotNull(firstClick);
         Assert.NotNull(secondClick);
-        Assert.True(firstClick.IsHandled);
-        Assert.Same(sharedHost, firstClick.HandledBy);
+        Assert.True(firstClickHandled);
+        Assert.Same(sharedHost, firstClickHandledBy);
         Assert.NotNull(secondClick.Sequence);
         Assert.Equal(1, owningDoubleClicks);
         Assert.Equal(0, secondaryDoubleClicks);

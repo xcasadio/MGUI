@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MGUI.Core.UI.Clipping;
+using Microsoft.Xna.Framework;
 using MGUI.Shared.Helpers;
 using MGUI.Core.UI.Text;
 using System.Text;
@@ -1549,15 +1550,8 @@ public class MGTextBox : MGElement, ITextEntryHost
 
                         if ((IsBackspace && Index > 0) || (IsDelete && Index < CurrentText.Length))
                         {
-                            StringBuilder SB = new();
-                            string NewText;
-                            SB.Append(CurrentText.AsSpan(0, Index - 1 + Offset));
-                            if (Index < CurrentText.Length)
-                            {
-                                SB.Append(CurrentText.AsSpan(Index + Offset));
-                            }
-
-                            NewText = SB.ToString();
+                            //  The new text is the one string that this key makes: the two parts are joined without a StringBuilder.
+                            var NewText = string.Concat(CurrentText.AsSpan(0, Index - 1 + Offset), Index < CurrentText.Length ? CurrentText.AsSpan(Index + Offset) : default);
                             if (SetText(NewText))
                             {
                                 TextBlockElement.UpdateLines();
@@ -1730,7 +1724,7 @@ public class MGTextBox : MGElement, ITextEntryHost
                 }
                 else if (Caret.HasPosition)
                 {
-                    StringBuilder SB = new();
+                    //  The new text is the one string that this key makes: the parts are joined without a StringBuilder.
                     string NewText;
                     var CurrentText = GetTextBackingField();
                     var Index = NormalizeEditableCaretIndex(Caret.Position.Value.IndexInOriginalText, CurrentText.Length);
@@ -1738,24 +1732,10 @@ public class MGTextBox : MGElement, ITextEntryHost
                     switch (TextEntryMode)
                     {
                         case TextEntryMode.Insert:
-                            SB.Append(CurrentText.AsSpan(0, Index));
-                            SB.Append(e.PrintableValue);
-                            if (Index < CurrentText.Length)
-                            {
-                                SB.Append(CurrentText.AsSpan(Index));
-                            }
-
-                            NewText = SB.ToString();
+                            NewText = string.Concat(CurrentText.AsSpan(0, Index), e.PrintableValue.AsSpan(), Index < CurrentText.Length ? CurrentText.AsSpan(Index) : default);
                             break;
                         case TextEntryMode.Overwrite:
-                            SB.Append(CurrentText.AsSpan(0, Index));
-                            SB.Append(e.PrintableValue);
-                            if (Index + 1 < CurrentText.Length)
-                            {
-                                SB.Append(CurrentText.AsSpan(Index + 1));
-                            }
-
-                            NewText = SB.ToString();
+                            NewText = string.Concat(CurrentText.AsSpan(0, Index), e.PrintableValue.AsSpan(), Index + 1 < CurrentText.Length ? CurrentText.AsSpan(Index + 1) : default);
                             break;
                         default: throw new NotImplementedException($"Unrecognized {nameof(UI.TextEntryMode)}: {TextEntryMode}");
                     }
@@ -1802,6 +1782,6 @@ public class MGTextBox : MGElement, ITextEntryHost
         Caret.Draw(DA, LayoutBounds);
     }
 
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => CreateBorderBackedContentsClipDefinition(DA, layoutBounds, $"{ElementType}.Contents");
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => GetBorderBackedContentsClip(DA, layoutBounds, ContentsClipDebugName);
 }

@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using MGUI.Core.UI.Shapes;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework;
@@ -64,6 +65,10 @@ public class MGEllipse : MGShapeElementBase
     private bool _geometryDirty = true;
     private Vector2[] _cachedVertices = Array.Empty<Vector2>();
 
+    //  The clip geometry and definition of each use, kept while the vertices, the translation and the target bounds are the same (T1.2): one for the fill brush, one for the shape itself.
+    private MGTriangulatedClipEntry _fillClip;
+    private MGTriangulatedClipEntry _selfClip;
+
     public MGEllipse(MGWindow window, int width, int height)
         : this(window, width, height, Color.White, 1f, Color.Transparent)
     {
@@ -110,9 +115,8 @@ public class MGEllipse : MGShapeElementBase
 
         if (hasBrushFill)
         {
-            MGUI.Shared.Rendering.Clipping.ClipGeometry clipGeometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_cachedVertices, origin);
-            DrawClippedFillBrush(DA, bounds,
-                CreateGeometryClipDefinition(TransformClipBounds(DA, bounds), clipGeometry, $"{ElementType}.Fill"));
+            _fillClip ??= new MGTriangulatedClipEntry($"{ElementType}.Fill", false);
+            DrawClippedFillBrush(DA, bounds, _fillClip.GetDefinition(_cachedVertices, origin, TransformClipBounds(DA, bounds)));
         }
 
         if (hasSolidFill && HasVisibleStroke)
@@ -145,28 +149,28 @@ public class MGEllipse : MGShapeElementBase
         return MGVectorShapeHelper.ContainsEllipse(bounds.Width, bounds.Height, localPoint, HasVisibleFill, HasVisibleStroke, StrokeThickness);
     }
 
-    internal override MGUI.Shared.Rendering.Clipping.ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
     {
         if (!ClipToBounds)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         Rectangle bounds = GetEllipseBounds(layoutBounds);
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
-            return null;
+            return ElementClipRequest.None;
         }
 
         EnsureGeometry();
         if (_cachedVertices.Length < 3)
         {
-            return CreateRectangleClipDefinition(TransformClipBounds(DA, bounds), $"{ElementType}.Self");
+            return ElementClipRequest.Rectangle(TransformClipBounds(DA, bounds));
         }
 
         Vector2 translation = DA.Offset.ToVector2() + bounds.Location.ToVector2();
-        MGUI.Shared.Rendering.Clipping.ClipGeometry geometry = MGVectorShapeHelper.CreateTriangulatedClipGeometry(_cachedVertices, translation);
-        return CreateGeometryClipDefinition(TransformClipBounds(DA, bounds), geometry, $"{ElementType}.Self");
+        _selfClip ??= new MGTriangulatedClipEntry($"{ElementType}.Self", false);
+        return ElementClipRequest.FromDefinition(_selfClip.GetDefinition(_cachedVertices, translation, TransformClipBounds(DA, bounds)));
     }
 
     protected override bool StrokeThicknessAffectsLayout => false;

@@ -71,14 +71,14 @@ public class PrimitiveBatchBlendStateGpuTests
         device.Clear(ClearOptions.Target | ClearOptions.Stencil, background, 1.0f, 0);
 
         MainRenderer renderer = CreateRenderer(game);
-        using DrawTransaction dt = (DrawTransaction)renderer.CreateDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Primitives);
+        using DrawTransaction dt = (DrawTransaction)renderer.BeginDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Primitives);
 
         MGBoxShape clipShape = new(clipBounds, new Thickness(0), new MGCornerRadius(cornerRadius));
         MGBoxGeometry clipGeometry = MGBoxGeometryBuilder.Build(clipShape, 24);
         ClipDefinition clipDefinition = ClipDefinition.RoundedRectangle(clipBounds, new ClipCornerRadius(cornerRadius),
             geometry: clipGeometry.ToClipGeometry(), intersectWithCurrentClip: false, debugName: "GpuStencilClipRegressionTest");
 
-        ClipScope scope = dt.PushClipTemporary(clipDefinition);
+        ClipHandle scope = dt.PushClipTemporary(clipDefinition);
         Assert.Equal(ClipStrategy.Stencil, scope.Resolution.Strategy);
 
         dt.FillRectangle(Vector2.Zero, new RectangleF(0, 0, targetSize, targetSize), fill, DrawContext.Primitives);
@@ -116,7 +116,7 @@ public class PrimitiveBatchBlendStateGpuTests
             device.Clear(Color.Black);
 
             MainRenderer renderer = CreateRenderer(GpuDeviceHost.Instance.Game);
-            using DrawTransaction dt = (DrawTransaction)renderer.CreateDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Primitives);
+            using DrawTransaction dt = (DrawTransaction)renderer.BeginDrawTransaction(DrawSettings.Default, DeferBegin: true, DrawContext.Primitives);
 
             dt.FillRectangle(Vector2.Zero, new RectangleF(0, 0, TargetSize, TargetSize), premultipliedHalfWhite, DrawContext.Primitives);
             dt.Dispose();

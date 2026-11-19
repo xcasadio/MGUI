@@ -625,6 +625,26 @@ public class MGRatingControl : MGElement
             ? new(destination.Left, destination.Top, destination.Width, (int)(destination.Height * filledPercent))
             : new(destination.Left, destination.Top, (int)(destination.Width * filledPercent), destination.Height);
 
+    /// <summary>The scaled vertices of the shapes that are drawn as polygons, indexed by <see cref="RatingItemShape"/>. Kept per thread: the draw context reads the
+    /// vertices during the call, so a new list at every draw would be garbage at every frame.</summary>
+    [ThreadStatic]
+    private static Vector2[][] ScaledShapeBuffers;
+
+    /// <summary>The vertices of <paramref name="Shape"/> multiplied by <paramref name="ScaleFactor"/>, in the same order, in a buffer that is overwritten by the next call for the same shape.</summary>
+    private static Vector2[] GetScaledVertices(RatingItemShape Shape, float ScaleFactor)
+    {
+        //  One slot per value of the enum: the index is the shape, whichever shapes have vertices
+        ScaledShapeBuffers ??= new Vector2[(int)RatingItemShape.Triangle + 1][];
+        ReadOnlyCollection<Vector2> Source = ShapeVertices256[Shape];
+        Vector2[] Scaled = ScaledShapeBuffers[(int)Shape] ??= new Vector2[Source.Count];
+        for (var i = 0; i < Scaled.Length; i++)
+        {
+            Scaled[i] = Source[i] * ScaleFactor;
+        }
+
+        return Scaled;
+    }
+
     private void DrawValue(ElementDrawArgs DA, Rectangle Destination, float FilledPercent,
         int StrokeThickness, Color StrokeColor, Color FillColor, bool IsVertical)
     {
@@ -645,7 +665,7 @@ public class MGRatingControl : MGElement
             case RatingItemShape.Star:
             case RatingItemShape.Diamond:
                 var Origin = Offset + Destination.TopLeft().ToVector2();
-                var Vertices = ShapeVertices256[ItemShape].Select(x => x * ScaleFactor).ToList();
+                var Vertices = GetScaledVertices(ItemShape, ScaleFactor);
 
                 if (IsCompletelyFilled)
                 {
@@ -653,9 +673,18 @@ public class MGRatingControl : MGElement
                 }
                 else if (IsPartiallyFilled)
                 {
+                    float MinVertexX = Vertices[0].X, MaxVertexX = MinVertexX, MinVertexY = Vertices[0].Y, MaxVertexY = MinVertexY;
+                    for (var i = 1; i < Vertices.Length; i++)
+                    {
+                        MinVertexX = Math.Min(MinVertexX, Vertices[i].X);
+                        MaxVertexX = Math.Max(MaxVertexX, Vertices[i].X);
+                        MinVertexY = Math.Min(MinVertexY, Vertices[i].Y);
+                        MaxVertexY = Math.Max(MaxVertexY, Vertices[i].Y);
+                    }
+
                     Rectangle UnscaledClipTarget = IsVertical
-                        ? new(Destination.Left, Destination.Top, Destination.Width, (int)(Vertices.Min(v => v.Y) + (Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y)) * FilledPercent))
-                        : new(Destination.Left, Destination.Top, (int)(Vertices.Min(v => v.X) + (Vertices.Max(v => v.X) - Vertices.Min(v => v.X)) * FilledPercent), Destination.Height);
+                        ? new(Destination.Left, Destination.Top, Destination.Width, (int)(MinVertexY + (MaxVertexY - MinVertexY) * FilledPercent))
+                        : new(Destination.Left, Destination.Top, (int)(MinVertexX + (MaxVertexX - MinVertexX) * FilledPercent), Destination.Height);
                     //  Y10: built from the ambient draw transform (TransformClipBounds), not a coordinate-space conversion that only
                     //  knew about MGWindow.Scale - see MGScrollViewer.GetContentsClipDefinition for the same fix.
                     var ClipTarget = TransformClipBounds(DA, UnscaledClipTarget);
@@ -708,40 +737,53 @@ public class MGRatingControl : MGElement
                 break;
             case RatingItemShape.Triangle:
                 Origin = Offset + Destination.TopLeft().ToVector2();
-                IList<Vector2> TriangleVertices = ShapeVertices256[RatingItemShape.Triangle].Select(x => x * ScaleFactor).ToList();
+                Vertices = GetScaledVertices(RatingItemShape.Triangle, ScaleFactor);
 
                 if (IsCompletelyFilled)
                 {
-                    DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);
-                    if (StrokeThickness > 0)
-                    {
-                        foreach (var LineSegment in TriangleVertices.SelectConsecutivePairs(true))
-                        {
-                            DA.DT.StrokeLineSegment(Origin, LineSegment.Item1, LineSegment.Item2, StrokeColor, StrokeThickness);
-                        }
-                    }
+                    DrawTriangle(DA, Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
                 }
                 else if (IsPartiallyFilled)
                 {
+                    //  The strict comparisons keep the first of equal values, like Enumerable.Min and Enumerable.Max did on these floats (which are never NaN: the scale comes from an integer)
+                    float MinVertexX = Vertices[0].X, MaxVertexX = MinVertexX, MinVertexY = Vertices[0].Y, MaxVertexY = MinVertexY;
+                    for (var i = 1; i < Vertices.Length; i++)
+                    {
+                        if (Vertices[i].X < MinVertexX)
+                            MinVertexX = Vertices[i].X;
+                        if (Vertices[i].X > MaxVertexX)
+                            MaxVertexX = Vertices[i].X;
+                        if (Vertices[i].Y < MinVertexY)
+                            MinVertexY = Vertices[i].Y;
+                        if (Vertices[i].Y > MaxVertexY)
+                            MaxVertexY = Vertices[i].Y;
+                    }
+
                     Rectangle UnscaledClipTarget = IsVertical
-                        ? new(Destination.Left, Destination.Top, Destination.Width, (int)(TriangleVertices.Min(v => v.Y) + (TriangleVertices.Max(v => v.Y) - TriangleVertices.Min(v => v.Y)) * FilledPercent))
-                        : new(Destination.Left, Destination.Top, (int)(TriangleVertices.Min(v => v.X) + (TriangleVertices.Max(v => v.X) - TriangleVertices.Min(v => v.X)) * FilledPercent), Destination.Height);
+                        ? new(Destination.Left, Destination.Top, Destination.Width, (int)(MinVertexY + (MaxVertexY - MinVertexY) * FilledPercent))
+                        : new(Destination.Left, Destination.Top, (int)(MinVertexX + (MaxVertexX - MinVertexX) * FilledPercent), Destination.Height);
                     //  Y10: built from the ambient draw transform (TransformClipBounds), not a coordinate-space conversion that only
                     //  knew about MGWindow.Scale - see MGScrollViewer.GetContentsClipDefinition for the same fix.
                     var ClipTarget = TransformClipBounds(DA, UnscaledClipTarget);
                     using (DA.DT.PushRectangleClip(ClipTarget, true))
                     {
-                        DA.DT.FillTriangle(Origin, TriangleVertices[0], FillColor, TriangleVertices[1], FillColor, TriangleVertices[2], FillColor);
-                        if (StrokeThickness > 0)
-                        {
-                            foreach (var LineSegment in TriangleVertices.SelectConsecutivePairs(true))
-                            {
-                                DA.DT.StrokeLineSegment(Origin, LineSegment.Item1, LineSegment.Item2, StrokeColor, StrokeThickness);
-                            }
-                        }
+                        DrawTriangle(DA, Origin, Vertices, StrokeColor, FillColor, StrokeThickness);
                     }
                 }
                 break;
+        }
+    }
+
+    /// <summary>Fills the triangle given by the three <paramref name="Vertices"/>, then strokes its three edges in the order of the vertices, the last edge going from the last vertex back to the first.</summary>
+    private static void DrawTriangle(ElementDrawArgs DA, Vector2 Origin, Vector2[] Vertices, Color StrokeColor, Color FillColor, int StrokeThickness)
+    {
+        DA.DT.FillTriangle(Origin, Vertices[0], FillColor, Vertices[1], FillColor, Vertices[2], FillColor);
+        if (StrokeThickness > 0)
+        {
+            for (var i = 0; i < Vertices.Length; i++)
+            {
+                DA.DT.StrokeLineSegment(Origin, Vertices[i], Vertices[i + 1 < Vertices.Length ? i + 1 : 0], StrokeColor, StrokeThickness);
+            }
         }
     }
 

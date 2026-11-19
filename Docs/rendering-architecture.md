@@ -103,7 +103,7 @@ public interface IUIDesktopRuntime
     event EventHandler<EventArgs<ITextMeasurementEngine>> TextEngineChanged;
     event EventHandler<EventArgs> EndUpdate;
     UpdateBaseArgs UpdateArgs { get; }
-    IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin);
+    IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin);
     void RegisterView(IUIView View);
 }
 ```
@@ -134,7 +134,7 @@ Boucle par frame :
 1. le host emet `PreviewUpdate` ; `MainRenderer` reconstruit `UpdateArgs` (temps total, delta, etats bruts souris/clavier via `IRawInputSource`) et appelle `Input.Update(...)` ;
 2. l'application appelle `desktop.Update()` ;
 3. le host emet `EndUpdate` ; `MainRenderer` releve l'evenement `IUIDesktopRuntime.EndUpdate` consomme par `MGDesktop` pour ses finalisations de frame ;
-4. draw : `desktop.Draw()` cree sa propre transaction via `CreateDrawTransaction(...)`, ou l'application appelle `MGDesktop.Draw(IUIDrawTransaction, float)` / `UIView.Draw(IUIDrawTransaction, float)` avec une transaction qu'elle possede.
+4. draw : `desktop.Draw()` cree sa propre transaction via `BeginDrawTransaction(...)`, ou l'application appelle `MGDesktop.Draw(IUIDrawTransaction, float)` / `UIView.Draw(IUIDrawTransaction, float)` avec une transaction qu'elle possede.
 
 ### Surfaces
 
@@ -149,6 +149,8 @@ Le clipping est un contrat logique, pas un effet de bord scissor code en dur. Qu
 3. `ClipManager` (`MGUI.MonoGame.Integration/Rendering/Clipping/ClipManager.cs`, compile dans LegacyRenderer) pousse et depile l'etat GPU ;
 4. `DrawTransaction` garde coherents `SpriteBatch`, `PrimitiveBatch`, render targets et transforms a travers les transitions.
 
+Transaction du backend MonoGame : un `MainRenderer` garde une seule `DrawTransaction`, creee au premier `BeginDrawTransaction` puis rearmee a chaque appel (ADR-0032). Une seule est ouverte a la fois : une seconde demande leve `InvalidOperationException`, et la transaction ne s'utilise plus apres son `Dispose`. Les changements temporaires (`SetDrawSettingsTemporary`, `SetRenderTargetTemporary`, `SetTransformTemporary`, `SetEffectTemporary`) rendent une poignee `DrawStateHandle` et n'allouent rien ; une transformation ou un effet dont la valeur ne change pas retrouve ses reglages derives (`DerivedDrawSettingsCache`, 32 entrees), une valeur nouvelle a chaque appel derive encore un `DrawSettings` (ADR-0031).
+
 Etat GPU du chemin primitives : `PrimitiveBatch.Begin` (MonoGame.Extended 6) assigne lui-meme le `BlendState` du device (`BlendState.NonPremultiplied` si aucun n'est fourni) et le restaure a `End`. `DrawTransaction.BeginDraw` lui transmet donc toujours le blend state resolu depuis `DrawSettings` ; l'extension `RenderUtils.Begin` rend ce parametre obligatoire. Sans lui, `BlendType.ColorWriteDisable` est perdu : la geometrie de clip stencil se peint en blanc par-dessus le contenu clippe, et les remplissages semi-transparents melangent en non premultiplie.
 
 ### Modele
@@ -159,13 +161,13 @@ Namespace `MGUI.Shared.Rendering.Clipping` (`ClipAbstractions.cs`) :
 - `ClipDefinition` : requete logique emise par la couche UI ; factories `ClipDefinition.None(...)`, `.Rectangle(...)`, `.RoundedRectangle(...)`, `.ArbitraryGeometry(...)` ; options `IntersectWithCurrentClip`, `ClipStrategyPreference`, `AllowRectangleFallback`, `DebugName` ;
 - `ClipShape` : bounds, corner radius optionnel, geometrie optionnelle ;
 - `ClipResolveResult` : clip demande, clip effectif, strategie choisie, info de fallback, profondeur stencil eventuelle ;
-- `ClipScope` : lifetime disposable qui restaure l'etat precedent.
+- `ClipHandle` : poignee `struct` a liberer (`using`) qui restaure l'etat precedent ; elle designe un emplacement du backend et une generation, donc une poignee gardee apres sa liberation ne libere rien (ADR-0031). `GenerationSlots<T>`, `ClipSlots` et `CallbackClipHandleOwner` aident un backend a tenir ses emplacements.
 
 Les controles ne choisissent jamais scissor, stencil ou mask : ils retournent des definitions logiques.
 
 ### API sur `IUIRenderContext`
 
-- `PushClipTemporary(ClipDefinition)` : chemin general, retourne un `ClipScope` ;
+- `PushClipTemporary(ClipDefinition)` : chemin general, retourne un `ClipHandle` ;
 - `PushRectangleClip(Rectangle?, bool intersect)` : chemin prefere pour les clips rectangulaires ;
 - `ResolveClip(ClipDefinition)` : resolution sans push (diagnostic/inspection) ;
 - `SetClipTargetTemporary(Rectangle?, bool intersect)` : shim de compatibilite rectangle-only, conserve pour la migration — le nouveau code doit preferer les deux premiers.
@@ -222,7 +224,10 @@ Hooks sur `MGElement` (`MGUI.Core/UI/MGElement.cs`) :
 
 - `GetSelfClipDefinition(...)` (internal virtual) : clip applique autour du dessin decoratif/self ;
 - `GetContentsClipDefinition(...)` (internal virtual) : clip applique uniquement autour du contenu heberge ;
-- `CreateBorderBackedContentsClipDefinition(...)` (protected) : helper pour les clips de contenu arrondis adosses au border.
+- `GetBorderBackedContentsClip(...)` (internal) : clip de contenu adosse au border, rectangle ou arrondi ;
+- `CreateBorderBackedContentsClipDefinition(...)` (protected) : le meme clip sous forme de `ClipDefinition`, pour un controle qui le pousse lui-meme avec `PushClipTemporary` (le clip des pastilles de `MGGridColorPicker`).
+
+Les deux hooks rendent un `ElementClipRequest` (`MGUI.Core/UI/Clipping/`, struct) : rien, un rectangle, ou une `ClipDefinition`. Un clip rectangulaire n'est jamais une `ClipDefinition` : `MGElement.Draw` le pousse avec `PushRectangleClip(bounds, true)`, qui resout au meme scissor (`ClipStrategyResolver` : `ClipKind.Rectangle` donne `ClipStrategy.Scissor`, bounds et intersection identiques) sans creer d'objet, quelles que soient les bounds. Un contenu defile pose ainsi deux clips par image a des bounds nouvelles sans allouer. Les clips arrondis et a geometrie restent des `ClipDefinition` poussees avec `PushClipTemporary`. Consequence pour le journal des appels de dessin : un clip rectangulaire d'element s'y lit `PushRectangleClip/2` (bounds, intersect) et ne porte plus de nom de debug ; l'affichage est inchange (ADR-0035).
 
 Trois categories de visuels :
 
@@ -240,7 +245,7 @@ Migrer un controle existant :
 
 1. garder la logique de draw inchangee ;
 2. deplacer l'intention de clip dans `GetSelfClipDefinition(...)` ou `GetContentsClipDefinition(...)` ;
-3. retourner `ClipDefinition.Rectangle(...)` / `.RoundedRectangle(...)` / `.ArbitraryGeometry(...)` ;
+3. retourner `ElementClipRequest.Rectangle(bounds)` pour un rectangle, ou `ElementClipRequest.FromDefinition(...)` avec `ClipDefinition.RoundedRectangle(...)` / `.ArbitraryGeometry(...)` (`ElementClipRequest.None` pour aucun clip) ;
 4. supprimer tout scope de clip local qui n'existait que pour emuler la meme intention dans `Draw(...)`.
 
 Ajouter un nouveau type de clip :
@@ -276,6 +281,10 @@ Preuve executable dans le repo : `MGUI.Tests/Integration/EngineOwnedRenderingPro
 
 Guide pas-a-pas : `Docs/custom-render-backend-integration.md`.
 
+## Triangulation d'un polygone rempli
+
+`MGUI.Shared.Rendering.PolygonTriangulator` (ADR-0038) triangule un polygone sans allouer : classe publique scellee, une instance par utilisateur (transaction de dessin, rendu du moteur), aucun etat statique, tampons qui grandissent jusqu'au plus grand polygone vu et ne retrecissent pas. Il porte l'algorithme de `Triangulator.Triangulate` de MonoGame.Extended 6.1.1 (decoupe d'oreilles) et rend les memes sommets ordonnes et les memes indices, entree par entree, y compris pour un polygone degenere dont le remplissage n'est que partiel ; un polygone convexe (aucun sommet reflexe) prend directement l'eventail que la decoupe d'origine produit. `Triangulate(Vector2[])` et `Triangulate(IReadOnlyList<Vector2>)` rendent le nombre de triangles ; `Vertices` et `Indices` sont lus en place et valent jusqu'a l'appel suivant de `Triangulate` sur la meme instance (ne pas garder un span au-dela). Il n'emploie que `Vector2` et des entiers : `MGUI.Shared` ne nomme toujours aucun type de backend. Les deux backends (`DrawTransaction` de MGUI et le rendu historique du moteur) l'emploient pour `FillPolygon` et pour `FillRectangle` en contexte primitives, a la place de `PrimitiveDrawing.DrawSolidPolygon` : ils gardent un triangulateur par transaction (ou par rendu), gardent le tableau de quatre sommets du rectangle, et envoient au `PrimitiveBatch` les sommets que `DrawSolidPolygon` envoyait (trois `AddVertex` par triangle, dans l'ordre des indices, meme somme `sommet + origine`). La garde d'un lot non pret (meme exception, meme message) et le polygone de deux sommets (delegue a `DrawSolidPolygon`, un contour) sont conserves ; un polygone nul ou vide leve toujours `ArgumentException`. `FillPolygonGpuTests` lit par reflexion le tampon prive du `PrimitiveBatch` (champs `_triangleVertices` et `_triangleVertsCount` de MonoGame.Extended 6.1.1) et prouve, sur tout le corpus de T1.1 et sur des rectangles, que les sommets (position avec Z, couleur, ordre) sont ceux de `DrawSolidPolygon`.
+
 ## Garde-fous : tests d'architecture
 
 La frontiere est epinglee par des suites de tests dans `MGUI.Tests/Architecture/` qui ne doivent pas etre affaiblies : `RenderingBoundaryArchitectureTests`, `Phase4RenderingArchitectureTests`, `BackendProjectSplitTests`, `HostRuntimeContractTests`, `RenderContextTests`, `SurfaceAbstractionTests`, `AssetProviderTests`, `UIViewTests`, `ClipPipelineStrategyTests`, plus `MGUI.Tests/Integration/EngineOwnedRenderingProofTests`. Reintroduire des tokens `GraphicsDevice`, `SpriteBatch`, `PrimitiveBatch`, `Texture2D`, `RenderTarget2D`, `ContentManager` ou `MainRenderer` dans `MGUI.Shared` / `MGUI.Core` les fait echouer.
@@ -288,6 +297,9 @@ La frontiere est epinglee par des suites de tests dans `MGUI.Tests/Architecture/
 - Le shim `SetClipTargetTemporary` a encore des call sites legacy (`MGDesktop`, `MGContextMenu`, `MGRatingControl`) ; voir les taches.
 - Profondeur stencil plafonnee a 255 ; le backend mask a un cout memoire/batching eleve et ne doit pas devenir un chemin chaud.
 - Le dossier racine `MGUI.MonoGame/` est mort (bin/obj uniquement, hors solution).
+- `FillPolygon` et `FillRectangle` en contexte primitives n'allouent plus rien dans les deux backends (0 octet sur 500 appels apres 500 de chauffe, GPU reel ; avant : 376 octets pour un triangle, 928 a 992 pour sept ou huit sommets, 3968 pour une ellipse de 32 segments, 552 pour un rectangle). La geometrie de clip triangulee des formes a remplissage par pinceau est traitee dans le point suivant sur `MGTriangulatedClipEntry`. Un polygone de deux sommets reste delegue a `DrawSolidPolygon` (un contour).
+- `StrokePolygon` et `StrokeAndFillPolygon` n'allouent plus rien dans les deux backends quand les sommets arrivent en tableau ou en `IReadOnlyList` (0 octet sur 500 appels apres 500 de chauffe, GPU reel, contextes primitives et sprites, aretes centrees sur les sommets ou interieures, sens donne ou calcule ; avant : 280 octets pour des aretes centrees, 400 a 632 pour des aretes interieures au sens calcule en primitives, 48 a 632 en sprites). Les aretes sont parcourues par index (la derniere arete, du dernier sommet au premier, seulement au-dela de deux sommets, comme `SelectConsecutivePairs(true)`) et le sens est calcule par la meme somme, dans le meme ordre, que `Triangulator.DetermineWindingOrder` sur le polygone ferme. En sprites, `SpriteBatch.DrawPolygon` de MonoGame.Extended (qui n'alloue pas, ne modifie pas son polygone et ne le garde pas) recoit le polygone de l'appelant, ou une vue de ce polygone dans l'ordre inverse (`ReversedPolygonView`, un objet garde par la transaction ou par le rendu du moteur) quand le polygone n'est pas dans le bon sens. Un `IEnumerable` qui n'est pas une `IReadOnlyList` garde sa copie (`ToList()`). Les sommets envoyes au lot et les pixels sont inchanges (comparaison bit a bit contre l'ancien algorithme sur tout le corpus de polygones, et empreintes figees sur l'ancien code).
+- `MGEllipse`, `MGPolygon` et `MGPathLite` ne recreent plus la geometrie de clip triangulee ni le `ClipDefinition` de leurs clips a chaque dessin (0 octet sur 500 images apres 500 de chauffe, au repos et avec une opacite animee a chaque image ; avant : 4392 octets par clip et par image pour une ellipse de 32 segments, 1152 pour le polygone et le chemin de sept sommets, 1136 pour les deux triangles d'un chemin a deux figures, dont 48 octets de formatage du nom du clip, plus 4872 octets a la premiere image mesuree). Chaque forme garde une entree `MGTriangulatedClipEntry` (fichier `MGVectorShapeHelper.cs`) PAR USAGE : une pour le remplissage par pinceau (`.Fill`), une pour son propre clip (`.Self`, `ClipToBounds`), et pour `MGPathLite` une par figure fermee remplie plus celle du clip propre. Une entree garde sa definition tant que la reference du tableau de sommets source (une forme remplace ce tableau quand sa geometrie change et ne l'ecrit jamais en place), la translation et les bornes de la cible du clip sont les memes ; des qu'un des trois change elle construit une definition NEUVE, jamais reecrite en place, car le pipeline de clips garde une definition de son `Push` a son `Pop` (un clip stencil redessine sa geometrie a la liberation, l'emplacement de tout clip garde sa resolution, donc sa definition, jusqu'a la liberation). Personne ne garde ni ne compare une definition au-dela de ce couple Push/Pop (`ClipManager` de MGUI, `CasaClipManager` et les executeurs stencil et masque du moteur ne lisent que `Shape.Geometry` et `Shape.Bounds`, aucun cache par nom ou par reference). La triangulation passe par `PolygonTriangulator` (ADR-0038, une instance par entree, ses spans copies dans des tableaux propres a la definition) et rend les sommets et indices de `CreateTriangulatedClipGeometry`, qui reste inchangee (comparaison bit a bit sur tout le corpus de polygones) ; les noms des clips sont construits une fois. Une forme qui se deplace ou change de taille a chaque image reconstruit ses definitions (operation ponctuelle, hors cible) : 760 octets par image pour une ellipse de 32 segments et 264 pour le polygone ou le chemin de sept sommets, avec un remplissage par pinceau et un clip propre (avant : 8794 et 2314). Preuves : `ShapeClipGeometryTests` (journaux de dessin et sommets figes sur l'ancien code a travers une suite d'etats, geometrie egale a celle d'un `CreateTriangulatedClipGeometry` neuf apres chaque changement, definitions gardees au repos) et `ShapeDrawAllocationTests`. Constat laisse tel quel : `MGEllipse` ne recalcule pas ses sommets quand `StrokeThickness` ou `Stroke` change (le tampon n'est invalide que par `Width`, `Height` et `SegmentCount`) ; la geometrie de clip suit ces sommets, donc rien ne change pour le clip.
 
 ## Reste a faire
 

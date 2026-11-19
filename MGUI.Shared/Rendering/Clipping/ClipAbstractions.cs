@@ -83,26 +83,4 @@ namespace MGUI.Shared.Rendering.Clipping
 
     public readonly record struct ClipResolveResult(ClipDefinition Requested, ClipDefinition Effective, ClipStrategy Strategy, bool UsedFallback,
         int? StencilDepth = null);
-
-    public sealed class ClipScope : IDisposable
-    {
-        public ClipResolveResult Resolution { get; }
-        private readonly Action _DisposeAction;
-        private bool _IsDisposed;
-
-        public ClipScope(ClipResolveResult resolution, Action disposeAction)
-        {
-            Resolution = resolution;
-            _DisposeAction = disposeAction ?? throw new ArgumentNullException(nameof(disposeAction));
-        }
-
-        public void Dispose()
-        {
-            if (!_IsDisposed)
-            {
-                _IsDisposed = true;
-                _DisposeAction();
-            }
-        }
-    }
 }

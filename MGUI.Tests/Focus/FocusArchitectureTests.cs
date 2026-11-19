@@ -84,7 +84,7 @@ public class FocusArchitectureTests
         string windowSource = File.ReadAllText(TestRepository.Combine("MGUI.Core", "UI", "MGWindow.cs"));
 
         int modalUpdateIndex = windowSource.IndexOf("ModalWindow?.Update(UpdateArgs);");
-        int nestedUpdateIndex = windowSource.IndexOf("foreach (var Nested in _NestedWindows.Reverse<MGWindow>().OrderByDescending(x => x.IsTopmost))");
+        int nestedUpdateIndex = windowSource.IndexOf("MGDesktop.FillUpdateOrder(_NestedWindows,");
 
         Assert.True(modalUpdateIndex >= 0);
         Assert.True(nestedUpdateIndex > modalUpdateIndex);

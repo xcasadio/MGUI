@@ -23,14 +23,16 @@ namespace MGUI.Shared.Rendering
     //Anytime the effect is being changed, must call SetDrawSettings/SetDrawSettingsTemporary just like SetTransform/SetTransformTemporary do
     // --> SetEffect/SetEffectTemporary are now implemented via DrawSettings.Effect; see SetEffect() and SetEffectTemporary() below.
 
-    internal sealed class DrawTransaction : IMonoGameDrawContext
+    internal sealed class DrawTransaction : IMonoGameDrawContext, IClipSlotRestorer
     {
         private MainRenderer Backend { get; }
+        private DerivedDrawSettingsCache DerivedSettings => Backend.DerivedSettings;
+        internal DerivedDrawSettingsCache StencilSettings => Backend.StencilSettings;
         IUIDesktopRuntime IUIRenderContext.Renderer => Backend;
         Rectangle? IUIRenderContext.CurrentClipBounds => CurrentClipBounds;
-        IDisposable IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings)
+        DrawStateHandle IUIRenderContext.SetDrawSettingsTemporary(DrawSettings Settings)
             => SetDrawSettingsTemporary(Settings);
-        IDisposable IUIRenderContext.SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        DrawStateHandle IUIRenderContext.SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
             => SetRenderTargetTemporary(New, ClearColor);
         void IUIDrawContext.FillRectangle(Vector2 Origin, RectangleF Destination, Color Color)
             => FillRectangle(Origin, Destination, Color, null);
@@ -66,7 +68,7 @@ namespace MGUI.Shared.Rendering
 
         private DrawContext CurrentContext = DrawContext.None;
 
-        private Matrix PrimitiveProjectionMatrix { get; }
+        private Matrix PrimitiveProjectionMatrix { get; set; }
         private ClipManager ClipManager { get; }
         private Rectangle? CurrentClipBounds => CurrentSettings.UsesScissorTest ? GraphicsDevice.ScissorRectangle : null;
         private RasterizerState CurrentRasterizerState => MonoGameRenderInterop.GetRasterizerState(CurrentSettings);
@@ -88,14 +90,52 @@ namespace MGUI.Shared.Rendering
             PrimitiveDrawing = new PrimitiveDrawing(PrimitiveBatch);
             CurrentSettings = Settings ?? throw new ArgumentNullException(nameof(Settings));
             ClipManager = new(this);
+            _ClipSlots = new ClipSlots(this);
 
-            PrimitiveProjectionMatrix = Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
+            PrimitiveProjectionMatrix = CreatePrimitiveProjectionMatrix();
 
             if (!DeferBegin)
             {
                 BeginDraw(DefaultContext);
             }
         }
+
+        /// <summary>Puts the transaction in the state a new <see cref="DrawTransaction"/> built with the same arguments would be in at this moment: the
+        /// initial settings, no previous settings, no batch open, the projection of the primitives from the current viewport, the clip diagnostics at
+        /// zero, and the context started unless <paramref name="DeferBegin"/> (ADR-0032). What the previous use left on the
+        /// <see cref="GraphicsDevice"/> (render target, scissor, states) stays, as it does for a new transaction.<para/>
+        /// The previous use must have ended its batch (<see cref="Dispose"/>): an open batch is not ended here. The temporary changes and the clips
+        /// that the previous use did not dispose are forgotten, and their handles restore nothing (ADR-0031). A mask clip left open keeps the render
+        /// target it rented.</summary>
+        internal void Rearm(DrawSettings Settings, bool DeferBegin, DrawContext DefaultContext = DrawContext.Sprites)
+        {
+            ArgumentNullException.ThrowIfNull(Settings);
+
+            PrimitiveProjectionMatrix = CreatePrimitiveProjectionMatrix();
+            CurrentContext = DrawContext.None;
+            CurrentSettings = Settings;
+            PreviousSettings = null;
+            _TemporarySettings.ReleaseAll();
+            _TemporaryTargets.ReleaseAll();
+            _ClipSlots.ReleaseAll();
+            ClipManager.Rearm();
+
+            //  The pair is kept only for the settings this use starts with: a pair made from other settings could not be found again, and would keep
+            //  those settings and their effect alive.
+            if (!ReferenceEquals(Settings, _RasterizerVariantA) && !ReferenceEquals(Settings, _RasterizerVariantB))
+            {
+                _RasterizerVariantA = null;
+                _RasterizerVariantB = null;
+            }
+
+            if (!DeferBegin)
+            {
+                BeginDraw(DefaultContext);
+            }
+        }
+
+        private Matrix CreatePrimitiveProjectionMatrix()
+            => Matrix.CreateOrthographicOffCenter(0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, 0, 0, 1);
 
         /// <summary>Should only be invoked if you intend to make a draw-related call that isn't already funneled through <see cref="DrawTransaction"/>.<para/>
         /// Draw-related calls that are funneled through <see cref="DrawTransaction"/> (such as <see cref="DrawTransaction.StrokeRectangle(Vector2, RectangleF, Color, Thickness, DrawContext?)"/>) will already call the begin methods if necessary.</summary>
@@ -257,6 +297,27 @@ namespace MGUI.Shared.Rendering
             TextRenderer.DrawText(this, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Flip);
         }
 
+        /// <summary>Draws a span of characters through the active text engine, without building a string.</summary>
+        public void DrawTextViaEngine(
+            MGUI.Shared.Text.ResolvedFont Font,
+            ReadOnlySpan<char> Text,
+            Vector2 Position,
+            Color Color,
+            Vector2 Origin,
+            float Scale,
+            float Rotation = 0f,
+            float Depth    = 0f,
+            UIDrawFlip Flip = UIDrawFlip.None)
+        {
+            if (Text.IsEmpty || Font?.IsAvailable != true)
+            {
+                return;
+            }
+
+            BeginDraw(DrawContext.Sprites);
+            TextRenderer.DrawText(this, Font, Text, Position, Color, Origin, Scale, Rotation, Depth, Flip);
+        }
+
         /// <param name="Family">The font to use</param>
         /// <param name="DesiredFontSize">The desired size of the text, in points. The text is drawn at the scale it is measured with (ADR-0023).</param>
         public Vector2 DrawShadowedText(string Family, string Text, Vector2 Position, Color TextColor, Color ShadowColor,
@@ -338,9 +399,27 @@ namespace MGUI.Shared.Rendering
         #endregion Draw Text
 
         #region Draw Geometry
-        /// <summary>Returns the first non-null, non-None <see cref="DrawContext"/> from given <paramref name="Values"/></summary>
-        private static DrawContext GetFirstValidDrawContext(params DrawContext?[] Values)
-            => Values == null ? DrawContext.Sprites : Values.First(x => x.HasValue && x != DrawContext.None).Value;
+        /// <summary>Returns the first of the three contexts that is set and is not <see cref="DrawContext.None"/>. Three parameters, not a
+        /// <see langword="params"/> array: this runs for every shape drawn, and an array per call was 48 bytes.</summary>
+        private static DrawContext GetFirstValidDrawContext(DrawContext? First, DrawContext Second, DrawContext Third)
+        {
+            if (First.HasValue && First.Value != DrawContext.None)
+            {
+                return First.Value;
+            }
+
+            if (Second != DrawContext.None)
+            {
+                return Second;
+            }
+
+            if (Third != DrawContext.None)
+            {
+                return Third;
+            }
+
+            throw new InvalidOperationException("Sequence contains no matching element");
+        }
 
         #region Rectangles
         public void StrokeAndFillRectangle(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, int StrokeThickness, DrawContext? PreferredContext = null)
@@ -407,14 +486,11 @@ namespace MGUI.Shared.Rendering
                     SpriteBatch.FillRectangle(Destination.GetTranslated(Origin), Color);
                     break;
                 case DrawContext.Primitives:
-                    Vector2[] RectangleVertices = new Vector2[4]
-                    {
-                        new Vector2(0, 0),
-                        new Vector2(Destination.Width, 0),
-                        new Vector2(Destination.Width, Destination.Height),
-                        new Vector2(0, Destination.Height)
-                    };
-                    PrimitiveDrawing.DrawSolidPolygon(Destination.Position + Origin, RectangleVertices, Color, false);
+                    RectangleVertices[0] = new Vector2(0, 0);
+                    RectangleVertices[1] = new Vector2(Destination.Width, 0);
+                    RectangleVertices[2] = new Vector2(Destination.Width, Destination.Height);
+                    RectangleVertices[3] = new Vector2(0, Destination.Height);
+                    FillPolygonPrimitive(Destination.Position + Origin, RectangleVertices, Color);
                     //PD.DrawSolidRectangle(Origin + Destination.Position, Destination.Width, Destination.Height, Color); // This defaults to DrawSolidPolygon(outline: true) which renders differently
                     //https://github.com/craftworkgames/MonoGame.Extended/blob/a3373ac26d90c9801b71b55679f1199fa4ec22a6/src/cs/MonoGame.Extended/VectorDraw/PrimitiveDrawing.cs
                     break;
@@ -627,7 +703,7 @@ namespace MGUI.Shared.Rendering
         public void StrokeAndFillPolygon(Vector2 Origin, IReadOnlyList<Vector2> Vertices, Color StrokeColor, Color FillColor, float StrokeThickness = 1.0f,
             bool CenterLinesOnVertices = true, WindingOrder? Order = null)
         {
-            if (Vertices == null || !Vertices.Any())
+            if (Vertices == null || Vertices.Count == 0)
             {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
             }
@@ -653,7 +729,7 @@ namespace MGUI.Shared.Rendering
             {
                 return;
             }
-            else if (Vertices == null || !Vertices.Any())
+            else if (Vertices == null || Vertices.Count == 0)
             {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
             }
@@ -661,40 +737,55 @@ namespace MGUI.Shared.Rendering
             DrawContext Ctx = GetFirstValidDrawContext(PreferredContext, CurrentContext, DrawContext.Sprites);
             BeginDraw(Ctx);
 
+            //  The edges are the consecutive pairs of vertices, and the last vertex paired with the first one when there are more than two vertices
+            //  (what GeneralUtils.SelectConsecutivePairs(true) enumerates), walked by index: a contour allocates nothing.
+            int Count = Vertices.Count;
+            int EdgeCount = Count < 3 ? Count - 1 : Count;
+
             if (CenterLinesOnVertices)
             {
-                var Edges = Vertices.SelectConsecutivePairs(true);
-                foreach ((Vector2 Start, Vector2 End) in Edges)
+                for (int i = 0; i < EdgeCount; i++)
                 {
-                    StrokeLineSegment(Origin, Start, End, Color, Thickness, Ctx);
+                    StrokeLineSegment(Origin, Vertices[i], Vertices[i + 1 == Count ? 0 : i + 1], Color, Thickness, Ctx);
                 }
             }
             else
             {
-                Order = Order ?? Triangulator.DetermineWindingOrder(Vertices.Append(Vertices[0]).ToArray());
-
                 switch (Ctx)
                 {
                     case DrawContext.Sprites:
-                        SpriteBatch.DrawPolygon(Origin, Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise), Color, Thickness, 0.0f);
+                        //  DrawPolygon draws the polygon counter-clockwise: the polygon of the caller as it is, or a view of it in the opposite order. It reads the polygon during the call and neither modifies nor keeps it.
+                        if (GetWindingOrder(Vertices, false) == WindingOrder.CounterClockwise)
+                        {
+                            SpriteBatch.DrawPolygon(Origin, Vertices, Color, Thickness, 0.0f);
+                        }
+                        else
+                        {
+                            ReversedPolygon.Source = Vertices;
+                            SpriteBatch.DrawPolygon(Origin, ReversedPolygon, Color, Thickness, 0.0f);
+                            ReversedPolygon.Source = null;
+                        }
                         break;
                     case DrawContext.Primitives:
-                        var Edges = Vertices.SelectConsecutivePairs(true);
-                        switch (Order.Value)
+                        switch (Order ?? GetWindingOrder(Vertices, true))
                         {
                             //  Note: We offset the vertices towards the center by the thickness amount when drawing the triangles,
                             //  so that the vertices represent the outer bounds of the shape and the line is drawn inwards
                             case WindingOrder.Clockwise:
-                                foreach ((Vector2 Start, Vector2 End) in Edges)
+                                for (int i = 0; i < EdgeCount; i++)
                                 {
+                                    Vector2 Start = Vertices[i];
+                                    Vector2 End = Vertices[i + 1 == Count ? 0 : i + 1];
                                     Vector2 Offset = (End - Start).RightNormal().NormalizedCopy().Scale(Thickness);
                                     FillTrianglePrimitive(Origin, Start, End, End + Offset, Color);
                                     FillTrianglePrimitive(Origin, End + Offset, Start + Offset, Start, Color);
                                 }
                                 break;
                             case WindingOrder.CounterClockwise:
-                                foreach ((Vector2 Start, Vector2 End) in Edges)
+                                for (int i = 0; i < EdgeCount; i++)
                                 {
+                                    Vector2 Start = Vertices[i];
+                                    Vector2 End = Vertices[i + 1 == Count ? 0 : i + 1];
                                     Vector2 Offset = (End - Start).LeftNormal().NormalizedCopy().Scale(Thickness);
                                     FillTrianglePrimitive(Origin, Start, End, End + Offset, Color);
                                     FillTrianglePrimitive(Origin, End + Offset, Start + Offset, Start, Color);
@@ -708,17 +799,127 @@ namespace MGUI.Shared.Rendering
             }
         }
 
+        /// <summary>The winding order that <see cref="Triangulator.DetermineWindingOrder"/> gives, by the same sum in the same order, without the array it takes.
+        /// <paramref name="Closed"/> true: the polygon closed by its first vertex, as <c>Triangulator.DetermineWindingOrder(Vertices.Append(Vertices[0]).ToArray())</c> (the winding of the lines inside the vertices).
+        /// <paramref name="Closed"/> false: the polygon as it is, as <c>Triangulator.DetermineWindingOrder(Vertices.ToArray())</c> (the winding that <c>EnsureWindingOrder</c> tests in the sprites context).</summary>
+        private static WindingOrder GetWindingOrder(IReadOnlyList<Vector2> Vertices, bool Closed)
+        {
+            int Count = Vertices.Count;
+            Vector2 Previous = Closed ? Vertices[0] : Vertices[Count - 1];
+            float Sum = 0f;
+            for (int i = 0; i <= (Closed ? Count : Count - 1); i++)
+            {
+                Vector2 Current = i == Count ? Vertices[0] : Vertices[i];
+                Sum += (Current.X - Previous.X) * (Current.Y + Previous.Y);
+                Previous = Current;
+            }
+
+            return Sum > 0f ? WindingOrder.Clockwise : WindingOrder.CounterClockwise;
+        }
+
+        /// <summary>The polygon that <c>Triangulator.ReverseWindingOrder</c> gives (the first vertex, then the others in the opposite order), read through the polygon it reverses instead of copied.
+        /// The transaction keeps one: <see cref="StrokePolygon"/> sets <see cref="Source"/> for the duration of one call.</summary>
+        private sealed class ReversedPolygonView : IReadOnlyList<Vector2>
+        {
+            public IReadOnlyList<Vector2> Source;
+
+            public int Count => Source.Count;
+            public Vector2 this[int index] => index == 0 ? Source[0] : Source[Source.Count - index];
+
+            public IEnumerator<Vector2> GetEnumerator()
+            {
+                for (int i = 0; i < Count; i++)
+                {
+                    yield return this[i];
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private readonly ReversedPolygonView ReversedPolygon = new();
+
+        /// <summary>Triangulates the polygons that <see cref="FillPolygon"/> and <see cref="FillRectangle"/> (primitives context) fill: it keeps its buffers, so a fill allocates nothing
+        /// once they have grown to the biggest polygon seen (MGUI ADR-0038). It gives the triangles that <c>PrimitiveDrawing.DrawSolidPolygon</c> would give.</summary>
+        private readonly PolygonTriangulator FillTriangulator = new();
+
+        /// <summary>The four vertices of the rectangle that <see cref="FillRectangle"/> fills in the primitives context. Rewritten at each call, read during it.</summary>
+        private readonly Vector2[] RectangleVertices = new Vector2[4];
+
+        /// <summary>The array of <see cref="FillPolygonPrimitive"/> for a polygon of two vertices that does not come as an array (<c>DrawSolidPolygon</c> takes an array).</summary>
+        private readonly Vector2[] TwoVertices = new Vector2[2];
+
         public void FillPolygon(Vector2 Origin, IEnumerable<Vector2> Vertices, Color Color)
         {
+            IReadOnlyList<Vector2> Polygon = GetPolygonVertices(Vertices);
+
+            BeginDraw(DrawContext.Primitives);
+            //Vector2[] CCWVertices = Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise);
+            //PD.DrawSolidPolygon(Origin, CCWVertices, Color, false);
+            FillPolygonPrimitive(Origin, Polygon, Color);
+        }
+
+        /// <summary>An array or a list is returned as it is, and only another enumeration is copied to a new array.</summary>
+        private static IReadOnlyList<Vector2> GetPolygonVertices(IEnumerable<Vector2> Vertices)
+        {
+            if (Vertices is IReadOnlyList<Vector2> VertexList)
+            {
+                if (VertexList.Count == 0)
+                {
+                    throw new ArgumentException(null, $"{nameof(Vertices)}");
+                }
+
+                return VertexList;
+            }
+
             if (Vertices == null || !Vertices.Any())
             {
                 throw new ArgumentException(null, $"{nameof(Vertices)}");
             }
 
-            BeginDraw(DrawContext.Primitives);
-            //Vector2[] CCWVertices = Triangulator.EnsureWindingOrder(Vertices.ToArray(), WindingOrder.CounterClockwise);
-            //PD.DrawSolidPolygon(Origin, CCWVertices, Color, false);
-            PrimitiveDrawing.DrawSolidPolygon(Origin, Vertices.ToArray(), Color, false);
+            return Vertices.ToArray();
+        }
+
+        /// <summary>What <c>PrimitiveDrawing.DrawSolidPolygon(Origin, Polygon, Color, false)</c> of MonoGame.Extended does, without its allocations (it triangulates with a
+        /// <c>Triangulator</c> that allocates at each call): the same guard when the batch is not ready, the same outline for a polygon of two vertices (it is still delegated to
+        /// <c>DrawSolidPolygon</c>), otherwise the same triangles, each vertex added to the batch as <c>DrawSolidPolygon</c> adds it (<c>FillPolygonGpuTests</c> reads the batch to prove it).</summary>
+        private void FillPolygonPrimitive(Vector2 Origin, IReadOnlyList<Vector2> Polygon, Color Color)
+        {
+            if (!PrimitiveBatch.IsReady())
+            {
+                throw new InvalidOperationException("BeginCustomDraw must be called before drawing anything.");
+            }
+
+            if (Polygon is Vector2[] PolygonArray)
+            {
+                if (PolygonArray.Length == 2)
+                {
+                    PrimitiveDrawing.DrawSolidPolygon(Origin, PolygonArray, Color, false);
+                    return;
+                }
+
+                FillTriangulator.Triangulate(PolygonArray);
+            }
+            else
+            {
+                if (Polygon.Count == 2)
+                {
+                    TwoVertices[0] = Polygon[0];
+                    TwoVertices[1] = Polygon[1];
+                    PrimitiveDrawing.DrawSolidPolygon(Origin, TwoVertices, Color, false);
+                    return;
+                }
+
+                FillTriangulator.Triangulate(Polygon);
+            }
+
+            ReadOnlySpan<Vector2> OrderedVertices = FillTriangulator.Vertices;
+            ReadOnlySpan<int> Indices = FillTriangulator.Indices;
+            for (int i = 0; i < Indices.Length; i++)
+            {
+                Vector2 Vertex = OrderedVertices[Indices[i]];
+                PrimitiveBatch.AddVertex(new Vector2(Vertex.X + Origin.X, Vertex.Y + Origin.Y), Color, PrimitiveType.TriangleList);
+            }
         }
         #endregion Polygons
 
@@ -960,11 +1161,33 @@ namespace MGUI.Shared.Rendering
         #endregion Draw Geometry
         #endregion Draw
 
+        private readonly RenderTargetBinding[] _SingleRenderTargetBinding = new RenderTargetBinding[1];
+
+        /// <summary>The first render target bound to the device, or null for the back buffer. Read without the array that
+        /// <see cref="GraphicsDevice.GetRenderTargets()"/> creates when one target is bound, which is the case of every target this transaction sets.</summary>
+        private RenderTarget2D GetCurrentRenderTarget()
+        {
+            int count = GraphicsDevice.RenderTargetCount;
+            if (count == 0)
+            {
+                return null;
+            }
+
+            if (count == 1)
+            {
+                GraphicsDevice.GetRenderTargets(_SingleRenderTargetBinding);
+                RenderTarget2D target = _SingleRenderTargetBinding[0].RenderTarget as RenderTarget2D;
+                _SingleRenderTargetBinding[0] = default;
+                return target;
+            }
+
+            return GraphicsDevice.GetRenderTargets()[0].RenderTarget as RenderTarget2D;
+        }
+
         /// <param name="ClearColor">Optional. If not null, the new render target will be immediately cleared with this color. Only used if the render target actually changed.</param>
         public void SetRenderTarget(RenderTarget2D New, Color? ClearColor)
         {
-            RenderTargetBinding[] RTBs = GraphicsDevice.GetRenderTargets();
-            RenderTarget2D CurrentTarget = RTBs.Length == 0 ? null : RTBs[0].RenderTarget as RenderTarget2D;
+            RenderTarget2D CurrentTarget = GetCurrentRenderTarget();
             if (New != CurrentTarget)
             {
                 EndDraw(CurrentContext);
@@ -991,15 +1214,16 @@ namespace MGUI.Shared.Rendering
         /// }</code>
         /// </summary>
         /// <param name="ClearColor">Optional. If not null, the new render target will be immediately cleared with this color. Only used if the render target actually changed.</param>
-        public IDisposable SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor)
+        public DrawStateHandle SetRenderTargetTemporary(RenderTarget2D New, Color? ClearColor)
         {
-            RenderTargetBinding[] RTBs = GraphicsDevice.GetRenderTargets();
-            RenderTarget2D CurrentTarget = RTBs.Length == 0 ? null : RTBs[0].RenderTarget as RenderTarget2D;
+            RenderTarget2D CurrentTarget = GetCurrentRenderTarget();
 
-            return new TemporaryChange<RenderTarget2D, Color?>(CurrentTarget, New, null, ClearColor, SetRenderTarget);
+            int slot = _TemporaryTargets.Acquire(CurrentTarget, out int generation);
+            SetRenderTarget(New, ClearColor);
+            return new DrawStateHandle(_TemporaryTargetOwner ??= new TemporaryTargetOwner(this), slot, generation);
         }
 
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
             => SetRenderTargetTemporary(New.GetRenderTarget2D(), ClearColor);
 
         internal RenderTargetLease RentTemporaryRenderTarget(int width, int height, bool preserveContents)
@@ -1020,105 +1244,180 @@ namespace MGUI.Shared.Rendering
         }
 
         /// <param name="New">To change current settings, consider using '<see cref="CurrentSettings"/> with { ... }' record syntax.</param>
-        public IDisposable SetDrawSettingsTemporary(DrawSettings New)
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings New)
         {
-            return new TemporaryChange<DrawSettings>(CurrentSettings, New, SetDrawSettings);
+            int slot = _TemporarySettings.Acquire(CurrentSettings, out int generation);
+            SetDrawSettings(New);
+            return new DrawStateHandle(_TemporarySettingsOwner ??= new TemporarySettingsOwner(this), slot, generation);
         }
 
-        public IDisposable SetTransformTemporary(Matrix Transform)
+        public DrawStateHandle SetTransformTemporary(Matrix Transform)
         {
-            return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
+            return SetDrawSettingsTemporary(DerivedSettings.WithTransform(CurrentSettings, Transform));
+        }
+
+        //  What each temporary change in force restores, one slot per change (ADR-0031).
+        private readonly GenerationSlots<DrawSettings> _TemporarySettings = new();
+        private readonly GenerationSlots<RenderTarget2D> _TemporaryTargets = new();
+        private TemporarySettingsOwner _TemporarySettingsOwner;
+        private TemporaryTargetOwner _TemporaryTargetOwner;
+
+        private sealed class TemporarySettingsOwner : IDrawStateHandleOwner
+        {
+            private readonly DrawTransaction _Transaction;
+
+            public TemporarySettingsOwner(DrawTransaction Transaction)
+            {
+                _Transaction = Transaction;
+            }
+
+            public void ReleaseDrawState(int Slot, int Generation)
+            {
+                if (_Transaction._TemporarySettings.TryRelease(Slot, Generation, out DrawSettings previous))
+                {
+                    _Transaction.SetDrawSettings(previous);
+                }
+            }
+        }
+
+        private sealed class TemporaryTargetOwner : IDrawStateHandleOwner
+        {
+            private readonly DrawTransaction _Transaction;
+
+            public TemporaryTargetOwner(DrawTransaction Transaction)
+            {
+                _Transaction = Transaction;
+            }
+
+            public void ReleaseDrawState(int Slot, int Generation)
+            {
+                if (_Transaction._TemporaryTargets.TryRelease(Slot, Generation, out RenderTarget2D previous))
+                {
+                    _Transaction.SetRenderTarget(previous, null);
+                }
+            }
         }
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
             => ClipManager.Resolve(Definition);
 
-        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        public ClipHandle PushClipTemporary(ClipDefinition Definition)
             => ClipManager.Push(Definition);
 
         public string GetClipDiagnosticsDebugText()
             => ClipDiagnostics.ToDebugString();
 
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
             if (!Bounds.HasValue)
             {
-                Rectangle previousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
-                bool previousScissorState = CurrentSettings.UsesScissorTest;
-                SetClipTarget(null, false);
-                Rectangle currentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
-                bool currentScissorState = CurrentSettings.UsesScissorTest;
-                bool clipChanged = currentBounds != previousBounds || currentScissorState != previousScissorState;
-
-                ClipDefinition requested = ClipDefinition.None(false);
-                ClipResolveResult resolution = new(requested, requested, ClipStrategy.None, false);
-                return new ClipScope(resolution, () =>
-                {
-                    if (!clipChanged)
-                    {
-                        return;
-                    }
-
-                    EndDraw(CurrentContext);
-                    SpriteBatch.GraphicsDevice.ScissorRectangle = previousBounds;
-
-                    bool activeScissorState = CurrentSettings.UsesScissorTest;
-                    if (previousScissorState && !activeScissorState)
-                    {
-                        SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
-                    }
-                    else if (!previousScissorState && activeScissorState)
-                    {
-                        SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
-                    }
-                });
+                return PushScissorClip(null, false, NoClipResolution);
             }
 
-            ClipDefinition definition = Bounds.HasValue
-                ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
-                : ClipDefinition.None();
-            return PushClipTemporary(definition);
+            return ClipManager.PushRectangle(Bounds.Value, IntersectWithCurrentClipTarget);
         }
 
-        internal ClipScope PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult Resolution)
+        internal ClipHandle PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult Resolution)
+            => PushScissorClip(Bounds, IntersectWithCurrentClipTarget, Resolution);
+
+        /// <summary>A scissor push whose handle reports the rectangle clip it was asked for, without creating the <see cref="ClipDefinition"/> that says so.</summary>
+        internal ClipHandle PushRectangleClipCore(Rectangle Bounds, bool IntersectWithCurrentClipTarget)
+            => PushScissorClip(Bounds, IntersectWithCurrentClipTarget, null);
+
+        private ClipHandle PushScissorClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget, ClipResolveResult? Resolution)
         {
-            Rectangle PreviousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
-            bool PreviousScissorState = CurrentSettings.UsesScissorTest;
+            Rectangle previousBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
+            bool previousScissorState = CurrentSettings.UsesScissorTest;
 
             SetClipTarget(Bounds, IntersectWithCurrentClipTarget);
             Rectangle currentBounds = SpriteBatch.GraphicsDevice.ScissorRectangle;
             bool currentScissorState = CurrentSettings.UsesScissorTest;
-            bool clipChanged = currentBounds != PreviousBounds || currentScissorState != PreviousScissorState;
+            bool clipChanged = currentBounds != previousBounds || currentScissorState != previousScissorState;
 
-            return new ClipScope(Resolution, () =>
-            {
-                if (!clipChanged)
-                {
-                    return;
-                }
-
-                EndDraw(CurrentContext);
-                SpriteBatch.GraphicsDevice.ScissorRectangle = PreviousBounds;
-
-                bool activeScissorState = CurrentSettings.UsesScissorTest;
-                if (PreviousScissorState && !activeScissorState)
-                {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
-                }
-                else if (!PreviousScissorState && activeScissorState)
-                {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
-                }
-            });
+            return _ClipSlots.Push(Resolution.HasValue
+                ? ClipSlotState.Scissor(Resolution.Value, previousBounds, previousScissorState, clipChanged)
+                : ClipSlotState.ScissorRectangle(Bounds.Value, IntersectWithCurrentClipTarget, previousBounds, previousScissorState, clipChanged));
         }
+
+        /// <summary>The clips in force of this transaction: scissor, stencil and mask clips each take a slot, which holds what their release restores
+        /// (ADR-0031).</summary>
+        internal ClipSlots ClipSlots => _ClipSlots;
+
+        void IClipSlotRestorer.RestoreClip(in ClipSlotState State)
+        {
+            if (State.Strategy == ClipStrategy.Scissor)
+            {
+                if (State.ScissorChanged)
+                {
+                    RestoreScissor(State.PreviousScissorBounds, State.PreviousScissorState);
+                }
+            }
+            else if (State.Strategy == ClipStrategy.Stencil && State.Restore == null)
+            {
+                ClipManager.RestoreStencil(in State);
+            }
+            else
+            {
+                State.Restore?.Invoke();
+            }
+        }
+
+        private void RestoreScissor(Rectangle PreviousBounds, bool PreviousScissorState)
+        {
+            EndDraw(CurrentContext);
+            SpriteBatch.GraphicsDevice.ScissorRectangle = PreviousBounds;
+
+            bool activeScissorState = CurrentSettings.UsesScissorTest;
+            if (PreviousScissorState && !activeScissorState)
+            {
+                SetDrawSettings(WithRasterizerType(RasterizerType.SolidScissorTest));
+            }
+            else if (!PreviousScissorState && activeScissorState)
+            {
+                SetDrawSettings(WithRasterizerType(RasterizerType.Solid));
+            }
+        }
+
+        /// <summary>The current settings with another rasterizer type. The last pair of settings that differed by that alone is kept, so that a clip that
+        /// turns the scissor test off and a restore that turns it back on find each other's settings instead of creating new ones.</summary>
+        private DrawSettings WithRasterizerType(RasterizerType Type)
+        {
+            DrawSettings current = CurrentSettings;
+            if (ReferenceEquals(current, _RasterizerVariantA) && _RasterizerVariantB.RasterizerType == Type)
+            {
+                return _RasterizerVariantB;
+            }
+            if (ReferenceEquals(current, _RasterizerVariantB) && _RasterizerVariantA.RasterizerType == Type)
+            {
+                return _RasterizerVariantA;
+            }
+
+            DrawSettings changed = current with { RasterizerType = Type };
+            _RasterizerVariantA = current;
+            _RasterizerVariantB = changed;
+            return changed;
+        }
+
+        /// <summary>What <see cref="PushRectangleClip"/> reports when it is given no bounds.</summary>
+        private static readonly ClipResolveResult NoClipResolution = CreateNoClipResolution();
+
+        private static ClipResolveResult CreateNoClipResolution()
+        {
+            ClipDefinition none = ClipDefinition.None(false);
+            return new ClipResolveResult(none, none, ClipStrategy.None, false);
+        }
+
+        private readonly ClipSlots _ClipSlots;
+        private DrawSettings _RasterizerVariantA;
+        private DrawSettings _RasterizerVariantB;
 
         /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering.</summary>
         public void SetEffect(Effect Effect)
             => SetDrawSettings(CurrentSettings with { BackendEffect = Effect });
 
-        /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering, and restores the previous effect when the returned <see cref="IDisposable"/> is disposed.</summary>
-        public IDisposable SetEffectTemporary(Effect Effect)
-            => SetDrawSettingsTemporary(CurrentSettings with { BackendEffect = Effect });
+        /// <summary>Sets the shader <see cref="Effect"/> applied during sprite batch rendering, and restores the previous effect when the returned handle is disposed.</summary>
+        public DrawStateHandle SetEffectTemporary(Effect Effect)
+            => SetDrawSettingsTemporary(DerivedSettings.WithEffect(CurrentSettings, Effect));
 
         internal void ClearStencil(int StencilValue = 0)
         {
@@ -1162,11 +1461,11 @@ namespace MGUI.Shared.Rendering
                 SpriteBatch.GraphicsDevice.ScissorRectangle = Bounds ?? Backend.GetViewport(0);
                 if (ShouldScissorTest && !IsScissorTesting)
                 {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.SolidScissorTest });
+                    SetDrawSettings(WithRasterizerType(RasterizerType.SolidScissorTest));
                 }
                 else if (!ShouldScissorTest && IsScissorTesting)
                 {
-                    SetDrawSettings(CurrentSettings with { RasterizerType = RasterizerType.Solid });
+                    SetDrawSettings(WithRasterizerType(RasterizerType.Solid));
                 }
             }
         }
@@ -1174,7 +1473,7 @@ namespace MGUI.Shared.Rendering
         /// <summary>Compatibility wrapper kept for rectangle-only migration paths.</summary>
         /// <param name="IntersectWithCurrentClipTarget">If true, rather than replacing the clip target with the given <paramref name="Bounds"/>,<br/>
         /// the clip target will be the intersection of the current clip target and the given <paramref name="Bounds"/></param>
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         {
             return PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
         }
@@ -1188,9 +1487,18 @@ namespace MGUI.Shared.Rendering
             }
         }
 
+        /// <summary>Ends the batch and closes the transaction: the renderer hands this same object to its next draw, so it is not to be used after
+        /// this call. The transaction is closed whether ending the batch succeeds or throws.</summary>
         public void Dispose()
         {
-            EndDraw(CurrentContext);
+            try
+            {
+                EndDraw(CurrentContext);
+            }
+            finally
+            {
+                Backend.CloseDrawTransaction(this);
+            }
         }
     }
 }

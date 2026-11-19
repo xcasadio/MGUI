@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using MGUI.Core.UI.Styling;
@@ -355,6 +356,21 @@ public class MGDockDropIndicators : MGElement
         SyncZoneVisuals();
     }
 
+    /// <summary>The same as <see cref="SetDisabledZones(IEnumerable{DockZone})"/> for a set, read with the enumerator of the set itself (a <c>foreach</c> over the interface boxes it).</summary>
+    internal void SetDisabledZones(HashSet<DockZone> disabledZones)
+    {
+        _disabledZones.Clear();
+        if (disabledZones != null)
+        {
+            foreach (var z in disabledZones)
+            {
+                _disabledZones.Add(z);
+            }
+        }
+
+        SyncZoneVisuals();
+    }
+
     // ── Host-edge indicator API ──────────────────────────────────────────────
 
     /// <summary>
@@ -385,11 +401,11 @@ public class MGDockDropIndicators : MGElement
         SyncZoneVisuals();
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 
     /// <summary>
     /// Returns the host-edge zone whose indicator square contains <paramref name="screenPosition"/>,
@@ -652,10 +668,21 @@ public class MGDockDropIndicators : MGElement
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates (the zones exist together or not at all).
+        if (LeftZoneElement == null)
         {
-            child?.Draw(DA);
+            return;
         }
+
+        LeftZoneElement.Draw(DA);
+        RightZoneElement?.Draw(DA);
+        TopZoneElement?.Draw(DA);
+        BottomZoneElement?.Draw(DA);
+        CenterZoneElement?.Draw(DA);
+        HostLeftZoneElement?.Draw(DA);
+        HostRightZoneElement?.Draw(DA);
+        HostTopZoneElement?.Draw(DA);
+        HostBottomZoneElement?.Draw(DA);
     }
 
 }

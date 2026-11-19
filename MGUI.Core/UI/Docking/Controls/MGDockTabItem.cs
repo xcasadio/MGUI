@@ -568,6 +568,23 @@ public class MGDockTabItem : MGElement
     /// <summary>
     /// Updates the visual appearance based on panel data and active state.
     /// </summary>
+    //  The solid brush of the accent part, kept with the color it was made for, as MGDockSplitterBar keeps its own: the visuals are synced at every change of the
+    //  hover, and a mouse that goes from one tab to another during a drag changes it at every frame, so a new brush at every sync is garbage at every frame. A
+    //  brush for another color (the tab became active, or the theme changed) replaces it.
+    private MGSolidFillBrush _accentBrush;
+    private Color _accentBrushColor;
+
+    private MGSolidFillBrush GetAccentBrush(Color color)
+    {
+        if (_accentBrush == null || _accentBrushColor != color)
+        {
+            _accentBrush = new MGSolidFillBrush(color);
+            _accentBrushColor = color;
+        }
+
+        return _accentBrush;
+    }
+
     private void UpdateVisuals()
     {
         if (_titleText != null && Panel != null)
@@ -604,7 +621,7 @@ public class MGDockTabItem : MGElement
             _accentElement.Visibility = showAccent ? Visibility.Visible : Visibility.Hidden;
             _accentElement.Width = LayoutBounds.Width;
             _accentElement.Height = IsActive ? 3 : 2;
-            _accentElement.Fill = accentColor.AsFillBrush();
+            _accentElement.Fill = GetAccentBrush(accentColor);
         }
 
         // Reveal on hover/active: the close/pin accessories (button + icon) are shown only while
@@ -729,10 +746,29 @@ public class MGDockTabItem : MGElement
         }
     }
 
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        if (_titleText != null)
+        {
+            buffer.Add(_titleText);
+        }
+
+        if (_pinButton != null && Panel?.CanAutoHide == true)
+        {
+            buffer.Add(_pinButton);
+        }
+
+        if (_closeButton != null && Panel?.CanClose == true)
+        {
+            buffer.Add(_closeButton);
+        }
+    }
+
     public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
     {
         SharedSize = new Thickness(0);
-            
+
         // MGDockTabItem has no padding/borders/margins of its own
         // The content (title + close button) is measured in UpdateContentMeasurement()
         return new Thickness(0);
@@ -795,9 +831,21 @@ public class MGDockTabItem : MGElement
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        DrawChild(_titleText, DA);
+        if (Panel?.CanAutoHide == true)
         {
-            child?.Draw(DA);
+            DrawChild(_pinButton, DA);
         }
+
+        if (Panel?.CanClose == true)
+        {
+            DrawChild(_closeButton, DA);
+        }
+    }
+
+    private static void DrawChild(MGElement child, ElementDrawArgs DA)
+    {
+        child?.Draw(DA);
     }
 }

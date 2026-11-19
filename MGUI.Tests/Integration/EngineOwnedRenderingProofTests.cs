@@ -26,7 +26,7 @@ public class EngineOwnedRenderingProofTests
         ResolvedFont font = runtime.ProofTextEngine.ResolveFont(FontSpec.Normal(runtime.DefaultFontFamily, 14));
         ProofRenderTarget buffer = new("proof-buffer", 128, 64);
 
-        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.CreateDrawTransaction(DrawSettings.Default, false));
+        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.BeginDrawTransaction(DrawSettings.Default, false));
         using (transaction.SetRenderTargetTemporary(buffer, Color.Transparent))
         {
             transaction.FillRectangle(Vector2.Zero, new RectangleF(0, 0, 40, 20), Color.Red);
@@ -63,7 +63,7 @@ public class EngineOwnedRenderingProofTests
 
         desktop.Update();
 
-        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.CreateDrawTransaction(DrawSettings.Default, false));
+        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.BeginDrawTransaction(DrawSettings.Default, false));
         desktop.View.Draw(transaction, 1.0f);
 
         Assert.Contains(runtime.RegisteredViews, x => ReferenceEquals(x, desktop.View));
@@ -95,7 +95,7 @@ public class EngineOwnedRenderingProofTests
         desktop.Windows.Add(window);
         desktop.Update();
 
-        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.CreateDrawTransaction(DrawSettings.Default, false));
+        using ProofDrawTransaction transaction = Assert.IsType<ProofDrawTransaction>(runtime.BeginDrawTransaction(DrawSettings.Default, false));
         desktop.View.Draw(transaction, 1.0f);
 
         Assert.Contains(transaction.Calls, x => x.Kind == ProofDrawCallKind.StrokeAndFillPolygon);
@@ -197,7 +197,7 @@ public class EngineOwnedRenderingProofTests
             EndUpdate?.Invoke(this, EventArgs.Empty);
         }
 
-        public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+        public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
             => new ProofDrawTransaction(this, Settings ?? DrawSettings.Default);
 
         public void RegisterView(IUIView View)
@@ -300,35 +300,38 @@ public class EngineOwnedRenderingProofTests
             Record(ProofDrawCallKind.SetDrawSettings, ProofDrawCallCategory.State);
         }
 
-        public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+        private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+        private readonly CallbackClipHandleOwner _ClipScopes = new();
+
+        public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
         {
             DrawSettings previous = CurrentSettings;
             SetDrawSettings(Settings);
 
-            return new DisposableAction(() => CurrentSettings = previous);
+            return _DrawStateScopes.Push(() => CurrentSettings = previous);
         }
 
-        public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
         {
             ProofRenderTarget next = New as ProofRenderTarget ?? throw new InvalidOperationException("Proof backend requires proof render targets.");
             ProofRenderTarget? previous = _currentRenderTarget;
             _currentRenderTarget = next;
             Record(ProofDrawCallKind.SetRenderTarget, ProofDrawCallCategory.State, renderTargetId: next.Id, clearColor: ClearColor);
 
-            return new DisposableAction(() =>
+            return _DrawStateScopes.Push(() =>
             {
                 _currentRenderTarget = previous;
                 Record(ProofDrawCallKind.SetRenderTarget, ProofDrawCallCategory.State, renderTargetId: previous?.Id, clearColor: null);
             });
         }
 
-        public IDisposable SetTransformTemporary(Matrix Transform)
+        public DrawStateHandle SetTransformTemporary(Matrix Transform)
             => SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
 
         public ClipResolveResult ResolveClip(ClipDefinition Definition)
             => ClipStrategyResolver.Resolve(Definition ?? ClipDefinition.None(), ClipBackendCapabilities.Default);
 
-        public ClipScope PushClipTemporary(ClipDefinition Definition)
+        public ClipHandle PushClipTemporary(ClipDefinition Definition)
         {
             ClipResolveResult resolution = ResolveClip(Definition);
             Rectangle? previous = _currentClipBounds;
@@ -341,17 +344,17 @@ public class EngineOwnedRenderingProofTests
             _currentClipBounds = next;
             Record(ProofDrawCallKind.SetClip, ProofDrawCallCategory.Clip, clipBounds: _currentClipBounds);
 
-            return new ClipScope(resolution, () =>
+            return _ClipScopes.Push(resolution, () =>
             {
                 _currentClipBounds = previous;
                 Record(ProofDrawCallKind.SetClip, ProofDrawCallCategory.Clip, clipBounds: _currentClipBounds);
             });
         }
 
-        public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
             => PushClipTemporary(Bounds.HasValue ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget) : ClipDefinition.None(false));
 
-        public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+        public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
             => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
         public void Dispose()
@@ -501,26 +504,6 @@ public class EngineOwnedRenderingProofTests
             if (call.Category is ProofDrawCallCategory.Shape or ProofDrawCallCategory.Text or ProofDrawCallCategory.Image)
             {
                 RecordedCalls.Add(call);
-            }
-        }
-    }
-
-    private sealed class DisposableAction : IDisposable
-    {
-        private readonly Action _disposeAction;
-        private bool _isDisposed;
-
-        public DisposableAction(Action disposeAction)
-        {
-            _disposeAction = disposeAction ?? throw new ArgumentNullException(nameof(disposeAction));
-        }
-
-        public void Dispose()
-        {
-            if (!_isDisposed)
-            {
-                _isDisposed = true;
-                _disposeAction();
             }
         }
     }

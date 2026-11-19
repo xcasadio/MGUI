@@ -63,8 +63,19 @@ public class MGTabControl : MGHeaderedContentPresenter
         }
     }
 
+    //  The lists returned by GetVisualTreeChildren, one per combination of its two arguments, kept between calls. A list is never changed once returned (a caller may be
+    //  walking it): when the tabs or the selection differ from what a kept list holds, a new list takes its place.
+    private readonly List<MGElement>[] _VisualTreeChildrenByArguments = new List<MGElement>[4];
+
     public override IReadOnlyList<MGElement> GetVisualTreeChildren(bool IncludeInactive, bool IncludeActive)
     {
+        var key = (IncludeInactive ? 1 : 0) | (IncludeActive ? 2 : 0);
+        var kept = _VisualTreeChildrenByArguments[key];
+        if (kept != null && HoldsVisualTreeChildren(kept, IncludeInactive, IncludeActive))
+        {
+            return kept;
+        }
+
         List<MGElement> result = new(_Tabs.Count + 1);
         if (IncludeInactive)
         {
@@ -81,7 +92,42 @@ public class MGTabControl : MGHeaderedContentPresenter
             result.Add(SelectedTab);
         }
 
+        _VisualTreeChildrenByArguments[key] = result;
         return result;
+    }
+
+    /// <summary>True when <paramref name="kept"/> is, element for element, what <see cref="GetVisualTreeChildren"/> would build now: the unselected tabs in order (if inactive ones are
+    /// included) then the selected tab (if active ones are included). Reads the tabs by index, which allocates nothing.</summary>
+    private bool HoldsVisualTreeChildren(List<MGElement> kept, bool IncludeInactive, bool IncludeActive)
+    {
+        var index = 0;
+        if (IncludeInactive)
+        {
+            for (var i = 0; i < _Tabs.Count; i++)
+            {
+                var Item = _Tabs[i];
+                if (!Item.IsTabSelected)
+                {
+                    if (index >= kept.Count || !ReferenceEquals(kept[index], Item))
+                    {
+                        return false;
+                    }
+
+                    index++;
+                }
+            }
+        }
+        if (IncludeActive && SelectedTab != null)
+        {
+            if (index >= kept.Count || !ReferenceEquals(kept[index], SelectedTab))
+            {
+                return false;
+            }
+
+            index++;
+        }
+
+        return index == kept.Count;
     }
 
     protected override void UpdateContents(ElementUpdateArgs UA)

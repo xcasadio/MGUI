@@ -561,6 +561,90 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 		PaintLifecycle.Update(Underlay, UA);
 	}
 
+	[ThreadStatic]
+	private static List<Vector2> PolygonVerticesBuffer;
+
+	/// <summary>The lists, the dictionary and the arrays that <see cref="HighlightAnimation.Progress"/> and <see cref="HighlightAnimation.Scan"/> fill at each draw, kept
+	/// (cleared and refilled, never shrunk) so that a draw allocates nothing once they are large enough. One set per thread, like <see cref="PolygonVerticesBuffer"/>: a brush can be frozen and
+	/// shared by several elements, and <see cref="Copy"/> must not hand a buffer to its clone; a draw fills them from the start, uses them, and calls nothing that draws with this brush
+	/// before it is done.</summary>
+	private sealed class DrawScratch
+	{
+		public readonly List<Point> OuterVertices = new();
+		public readonly List<Point> Polygon = new();
+		public readonly Dictionary<Rectangle, Point> CornerBounds = new();
+		public readonly List<Rectangle> Edges = new();
+		public readonly List<Rectangle> Scanlines = new();
+		public readonly List<Vector2> QuadPolygon = new(4);
+		public readonly List<Vector2> Clipped = new(8);
+		public readonly List<Vector2> ClipScratch = new(8);
+		public int[] Order = new int[32];
+		public double[] ArcPositions = new double[33];
+
+		/// <summary>The array of contour indices, at least <paramref name="length"/> long. Its content is whatever the last draw left.</summary>
+		public int[] GetOrder(int length)
+		{
+			if (Order.Length < length)
+			{
+				Order = new int[Math.Max(length, Order.Length * 2)];
+			}
+
+			return Order;
+		}
+
+		/// <summary>The array of cumulative arc lengths, at least <paramref name="length"/> long. Its content is whatever the last draw left.</summary>
+		public double[] GetArcPositions(int length)
+		{
+			if (ArcPositions.Length < length)
+			{
+				ArcPositions = new double[Math.Max(length, ArcPositions.Length * 2)];
+			}
+
+			return ArcPositions;
+		}
+	}
+
+	[ThreadStatic]
+	private static DrawScratch ScratchBuffers;
+
+	/// <summary>Removes from <paramref name="points"/> the points that equal an earlier one, keeping the first occurrence of each, in the order of first occurrence: what
+	/// <c>Distinct().ToList()</c> does (it compares with the equality of <see cref="Point"/>), without the allocation.</summary>
+	private static void RemoveDuplicates(List<Point> points)
+	{
+		var kept = 0;
+		for (var i = 0; i < points.Count; i++)
+		{
+			var point = points[i];
+			var isDuplicate = false;
+			for (var j = 0; j < kept; j++)
+			{
+				if (points[j] == point)
+				{
+					isDuplicate = true;
+					break;
+				}
+			}
+
+			if (!isDuplicate)
+			{
+				points[kept] = point;
+				kept++;
+			}
+		}
+
+		points.RemoveRange(kept, points.Count - kept);
+	}
+
+	/// <summary>The corner of <paramref name="bounds"/> that the progress passes when it goes from edge <paramref name="edge"/> - 1 to edge <paramref name="edge"/> (0 = top-left, 1 = top-right, 2 = bottom-right, 3 = bottom-left).</summary>
+	private static Point GetOuterCorner(Rectangle bounds, int edge) => edge switch
+	{
+		0 => bounds.TopLeft(),
+		1 => bounds.TopRight(),
+		2 => bounds.BottomRight(),
+		3 => bounds.BottomLeft(),
+		_ => throw new ArgumentOutOfRangeException(nameof(edge), edge, null)
+	};
+
 	private static int PositiveModulo(int x, int m)
 	{
 		var r = x % m;
@@ -603,26 +687,7 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 				break;
 			case HighlightAnimation.Progress:
 			{
-				var Edges = new List<Rectangle>();
-				if (BT.Left > 0)
-				{
-					Edges.Add(new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
-				}
-
-				if (BT.Right > 0)
-				{
-					Edges.Add(new(Bounds.Right - BT.Right, Bounds.Top, BT.Right, Bounds.Height));
-				}
-
-				if (BT.Top > 0)
-				{
-					Edges.Add(new(Bounds.Left + BT.Left, Bounds.Top, Bounds.Width - BT.Width, BT.Top));
-				}
-
-				if (BT.Bottom > 0)
-				{
-					Edges.Add(new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
-				}
+				var Buffers = ScratchBuffers ??= new DrawScratch();
 
 				var OuterPerimeterLength = Bounds.Width * 2 + (Bounds.Height - 1) * 2;
 				var InnerPerimeterLength = OuterPerimeterLength - BT.Width * 2 - BT.Height * 2;
@@ -699,18 +764,12 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 				var StartPosition = GetPerimeterPosition(Progress - ProgressSize / 2.0, ProgressFlowDirection == HighlightFlowDirection.CounterClockwise, out var StartEdge);
 				var EndPosition = GetPerimeterPosition(Progress + ProgressSize / 2.0, ProgressFlowDirection == HighlightFlowDirection.CounterClockwise, out var EndEdge);
 
-				//  Create a list of vertices representing the outer bounds of the polygon we want to fill in
-				List<Point> OuterVertices = new() { StartPosition };
+				//  Create a list of vertices representing the outer bounds of the polygon we want to fill in (a list that is kept, like the ones below)
+				List<Point> OuterVertices = Buffers.OuterVertices;
+				OuterVertices.Clear();
+				OuterVertices.Add(StartPosition);
 				if (StartEdge != EndEdge) // If the start and end are on different edges of the bounds, append all the corners that they pass through
 				{
-					IReadOnlyDictionary<int, Point> OuterCornerLookup = new Dictionary<int, Point>()
-					{
-						{ 0, Bounds.TopLeft() },
-						{ 1, Bounds.TopRight() },
-						{ 2, Bounds.BottomRight() },
-						{ 3, Bounds.BottomLeft() }
-					};
-
 					const int NumEdges = 4;
 					var CurrentEdge = StartEdge;
 					if (ProgressFlowDirection == HighlightFlowDirection.Clockwise)
@@ -718,14 +777,14 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 						while (CurrentEdge != EndEdge)
 						{
 							CurrentEdge = (CurrentEdge + 1) % NumEdges;
-							OuterVertices.Add(OuterCornerLookup[CurrentEdge]);
+							OuterVertices.Add(GetOuterCorner(Bounds, CurrentEdge));
 						}
 					}
 					else if (ProgressFlowDirection == HighlightFlowDirection.CounterClockwise)
 					{
 						while (CurrentEdge != EndEdge)
 						{
-							OuterVertices.Add(OuterCornerLookup[CurrentEdge]);
+							OuterVertices.Add(GetOuterCorner(Bounds, CurrentEdge));
 							CurrentEdge = PositiveModulo(CurrentEdge - 1, NumEdges);
 						}
 					}
@@ -735,20 +794,27 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 					}
 				}
 				OuterVertices.Add(EndPosition);
-				OuterVertices = OuterVertices.Distinct().ToList(); // There will be duplicate vertices if a start or end point was on a corner
+				RemoveDuplicates(OuterVertices); // There will be duplicate vertices if a start or end point was on a corner
 
-				//  Key = Bounds of a corner, Value = the inner corner point
-				var CornerBounds = new Dictionary<Rectangle, Point>()
-				{
-					{ new Rectangle(Bounds.Left, Bounds.Top, BT.Left, BT.Top), Bounds.TopLeft() + new Point(BT.Left, BT.Top) },
-					{ new Rectangle(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top), Bounds.TopRight() + new Point(-BT.Right, BT.Top) },
-					{ new Rectangle(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom), Bounds.BottomRight() + new Point(-BT.Right, -BT.Bottom) },
-					{ new Rectangle(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom), Bounds.BottomLeft() + new Point(BT.Left, -BT.Bottom) }
-				};
+				//  Key = Bounds of a corner, Value = the inner corner point. Added in this order, one by one: a key that is already there (two equal corner rectangles) throws, as it always has.
+				Dictionary<Rectangle, Point> CornerBounds = Buffers.CornerBounds;
+				CornerBounds.Clear();
+				CornerBounds.Add(new Rectangle(Bounds.Left, Bounds.Top, BT.Left, BT.Top), Bounds.TopLeft() + new Point(BT.Left, BT.Top));
+				CornerBounds.Add(new Rectangle(Bounds.Right - BT.Right, Bounds.Top, BT.Right, BT.Top), Bounds.TopRight() + new Point(-BT.Right, BT.Top));
+				CornerBounds.Add(new Rectangle(Bounds.Right - BT.Right, Bounds.Bottom - BT.Bottom, BT.Right, BT.Bottom), Bounds.BottomRight() + new Point(-BT.Right, -BT.Bottom));
+				CornerBounds.Add(new Rectangle(Bounds.Left, Bounds.Bottom - BT.Bottom, BT.Left, BT.Bottom), Bounds.BottomLeft() + new Point(BT.Left, -BT.Bottom));
 
-				List<Point> Polygon = new(OuterVertices);
-				foreach (var OuterVertex in OuterVertices.AsEnumerable().Reverse())
+				List<Point> Polygon = Buffers.Polygon;
+				Polygon.Clear();
+				for (int i = 0; i < OuterVertices.Count; i++)
 				{
+					Polygon.Add(OuterVertices[i]);
+				}
+
+				//  The outer vertices again, from the last to the first, each with the inner vertex that opposes it
+				for (int v = OuterVertices.Count - 1; v >= 0; v--)
+				{
+					var OuterVertex = OuterVertices[v];
 					//  Compute the inner vertex that opposes this outer vertex
 					var InnerVertex = Point.Zero;
 
@@ -791,14 +857,24 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 
 					Polygon.Add(InnerVertex);
 				}
-				Polygon = Polygon.Distinct().ToList();
+				RemoveDuplicates(Polygon);
 
-				DA.DT.FillPolygon(DA.Offset.ToVector2(), Polygon.Select(x => x.ToVector2()), HighlightColor);
+				//  The vertices go into a list kept per thread, which FillPolygon reads during the call: a Select iterator at every draw would be garbage at every frame.
+				List<Vector2> PolygonVertices = PolygonVerticesBuffer ??= new List<Vector2>();
+				PolygonVertices.Clear();
+				for (int i = 0; i < Polygon.Count; i++)
+				{
+					PolygonVertices.Add(Polygon[i].ToVector2());
+				}
+
+				DA.DT.FillPolygon(DA.Offset.ToVector2(), PolygonVertices, HighlightColor);
 			}
 				break;
 			case HighlightAnimation.Scan:
 			{
-				var Edges = new List<Rectangle>();
+				var Buffers = ScratchBuffers ??= new DrawScratch();
+				List<Rectangle> Edges = Buffers.Edges;
+				Edges.Clear();
 				if (BT.Left > 0)
 				{
 					Edges.Add(new(Bounds.Left, Bounds.Top, BT.Left, Bounds.Height));
@@ -819,9 +895,10 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 					Edges.Add(new(Bounds.Left + BT.Left, Bounds.Bottom - BT.Bottom, Bounds.Width - BT.Width, BT.Bottom));
 				}
 
-				if (Edges.Any())
+				if (Edges.Count > 0)
 				{
-					var Scanlines = new List<Rectangle>();
+					List<Rectangle> Scanlines = Buffers.Scanlines;
+					Scanlines.Clear();
 
 					switch (ScanOrientation)
 					{
@@ -984,8 +1061,11 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 
 		//  order[k] = contour index of the k-th vertex visited in sweep order, starting at the anchor.
 		//  arcPos[k] = cumulative arc length (along the outer contour) from the anchor to order[k]; arcPos[n] closes the loop.
-		var order = new int[n];
-		var arcPos = new double[n + 1];
+		//  The arrays are kept and may be longer than n (with whatever an earlier draw left past it): only the first n and n + 1 entries are read.
+		var buffers = ScratchBuffers ??= new DrawScratch();
+		var order = buffers.GetOrder(n);
+		var arcPos = buffers.GetArcPositions(n + 1);
+		arcPos[0] = 0.0;
 		for (var k = 0; k < n; k++)
 		{
 			order[k] = isReversed ? PositiveModulo(anchorIndex - k, n) : PositiveModulo(anchorIndex + k, n);
@@ -1088,7 +1168,9 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 		}
 
 		var bounds = Geometry.Shape.OuterBounds;
-		List<Rectangle> scanlines = new();
+		var buffers = ScratchBuffers ??= new DrawScratch();
+		List<Rectangle> scanlines = buffers.Scanlines;
+		scanlines.Clear();
 
 		switch (ScanOrientation)
 		{
@@ -1148,9 +1230,9 @@ public class MGHighlightBorderBrush : UIFreezableBrush, IBorderBrush
 		}
 
 		var origin = DA.Offset.ToVector2();
-		List<Vector2> quadPolygon = new(4);
-		List<Vector2> clipped = new(8);
-		List<Vector2> scratch = new(8);
+		List<Vector2> quadPolygon = buffers.QuadPolygon;
+		List<Vector2> clipped = buffers.Clipped;
+		List<Vector2> scratch = buffers.ClipScratch;
 
 		foreach (var scanline in scanlines)
 		{

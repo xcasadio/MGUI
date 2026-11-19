@@ -49,7 +49,7 @@ internal sealed class GraphTestRuntime : IUIDesktopRuntime
         _textEngine = new GraphTestTextEngine(DefaultFontFamily);
     }
 
-    public IUIDrawTransaction CreateDrawTransaction(DrawSettings Settings, bool DeferBegin)
+    public IUIDrawTransaction BeginDrawTransaction(DrawSettings Settings, bool DeferBegin)
         => new GraphNoOpDrawTransaction(this, Settings ?? DrawSettings.Default);
 
     public void ApplyFrame(UpdateBaseArgs updateArgs)
@@ -85,6 +85,7 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
     public List<GraphDrawTextureAtCall> DrawTextureAtCalls { get; } = new();
     public List<GraphTexturedTriangleListCall> TexturedTriangleListCalls { get; } = new();
     public List<GraphDrawTextCall> DrawTextCalls { get; } = new();
+    public List<GraphFillQuadrilateralCall> FillQuadrilateralCalls { get; } = new();
 
     public GraphNoOpDrawTransaction(IUIDesktopRuntime renderer, DrawSettings settings)
     {
@@ -105,7 +106,12 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
 
     public void DrawTextViaEngine(ResolvedFont Font, string Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
         float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
-        => DrawTextCalls.Add(new(Font, Text, Position, Origin, Scale, Rotation));
+        => DrawTextCalls.Add(new(Font, Text, Position, Origin, Scale, Rotation, Color));
+
+    /// <summary>A recording transaction: the span is turned into a string to be recorded. Never use it in a zero allocation test.</summary>
+    public void DrawTextViaEngine(ResolvedFont Font, ReadOnlySpan<char> Text, Vector2 Position, Color Color, Vector2 Origin, float Scale,
+        float Rotation = 0f, float Depth = 0f, UIDrawFlip Flip = UIDrawFlip.None)
+        => DrawTextCalls.Add(new(Font, Text.ToString(), Position, Origin, Scale, Rotation, Color));
 
     public void FillRectangle(Vector2 Origin, RectangleF Destination, Color Color)
         => FillRectangleCalls.Add(new(Origin, Destination, Color));
@@ -129,7 +135,8 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         => TexturedTriangleListCalls.Add(new(Origin, Texture, Vertices.ToArray(), TextureCoordinates.ToArray(), Indices.ToArray(), ColorMask, CurrentSettings.SamplerType, _currentClipBounds));
 
     public void FillQuadrilateralLinearClamp(Vector2 Origin, Vector2 topLeft, Color topLeftColor, Vector2 topRight, Color topRightColor,
-        Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor) { }
+        Vector2 bottomRight, Color bottomRightColor, Vector2 bottomLeft, Color bottomLeftColor)
+        => FillQuadrilateralCalls.Add(new(Origin, topLeft, topLeftColor, topRight, topRightColor, bottomRight, bottomRightColor, bottomLeft, bottomLeftColor));
 
     public void StrokeLineSegment(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness = 1.0f)
         => StrokeLineCalls.Add(new(Origin, Start, End, Color, Thickness));
@@ -146,17 +153,20 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         CurrentSettings = Settings ?? DrawSettings.Default;
     }
 
-    public IDisposable SetDrawSettingsTemporary(DrawSettings Settings)
+    private readonly CallbackDrawStateOwner _DrawStateScopes = new();
+    private readonly CallbackClipHandleOwner _ClipScopes = new();
+
+    public DrawStateHandle SetDrawSettingsTemporary(DrawSettings Settings)
     {
         DrawSettings previous = CurrentSettings;
         SetDrawSettings(Settings);
-        return new GraphDisposableAction(() => CurrentSettings = previous);
+        return _DrawStateScopes.Push(() => CurrentSettings = previous);
     }
 
-    public IDisposable SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
-        => new GraphDisposableAction(() => { });
+    public DrawStateHandle SetRenderTargetTemporary(IUIRenderTarget New, Color? ClearColor)
+        => default;
 
-    public IDisposable SetTransformTemporary(Matrix Transform)
+    public DrawStateHandle SetTransformTemporary(Matrix Transform)
     {
         TransformPushes.Add(Transform);
         return SetDrawSettingsTemporary(CurrentSettings with { Transform = Transform });
@@ -168,16 +178,16 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         return new(effective, effective, ClipStrategy.Scissor, false);
     }
 
-    public ClipScope PushClipTemporary(ClipDefinition Definition)
+    public ClipHandle PushClipTemporary(ClipDefinition Definition)
     {
         ClipResolveResult resolution = ResolveClip(Definition);
         Rectangle? previous = _currentClipBounds;
         _currentClipBounds = resolution.Effective.Kind == ClipKind.None ? null : resolution.Effective.Shape.Bounds;
         ClipPushes.Add((Definition?.DebugName, _currentClipBounds));
-        return new(resolution, () => _currentClipBounds = previous);
+        return _ClipScopes.Push(resolution, () => _currentClipBounds = previous);
     }
 
-    public ClipScope PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+    public ClipHandle PushRectangleClip(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
     {
         ClipDefinition definition = Bounds.HasValue
             ? ClipDefinition.Rectangle(Bounds.Value, IntersectWithCurrentClipTarget)
@@ -185,7 +195,7 @@ internal sealed class GraphNoOpDrawTransaction : IUIDrawTransaction
         return PushClipTemporary(definition);
     }
 
-    public IDisposable SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
+    public ClipHandle SetClipTargetTemporary(Rectangle? Bounds, bool IntersectWithCurrentClipTarget)
         => PushRectangleClip(Bounds, IntersectWithCurrentClipTarget);
 
     public void Dispose()
@@ -261,19 +271,36 @@ internal sealed class GraphTestTextEngine : ITextMeasurementEngine
         DefaultFamily = defaultFamily;
     }
 
+    //  Like the engines of the backends (SpriteFontTextEngine, FontStashSharpTextEngine), which cache the font they resolve by spec: a second request for the same spec returns the same
+    //  ResolvedFont, so that an element that resolves its font at each draw does not allocate in a measurement made on this engine.
+    private readonly Dictionary<FontSpec, ResolvedFont> ResolvedFonts = new();
+
     public ResolvedFont ResolveFont(FontSpec spec)
     {
+        if (ResolvedFonts.TryGetValue(spec, out ResolvedFont cached))
+        {
+            return cached;
+        }
+
         int size = Math.Max(1, spec.Size);
         FontSpec effectiveSpec = string.IsNullOrWhiteSpace(spec.Family)
             ? FontSpec.Normal(DefaultFamily, size)
             : spec;
 
-        return new ResolvedFont(effectiveSpec, size, 1.0f, 1.0f, size, Math.Max(1.0f, size * 0.5f), Vector2.Zero, false, new object());
+        ResolvedFont resolved = new(effectiveSpec, size, 1.0f, 1.0f, size, Math.Max(1.0f, size * 0.5f), Vector2.Zero, false, new object());
+        ResolvedFonts[spec] = resolved;
+        return resolved;
     }
 
     public Vector2 MeasureText(ResolvedFont font, string text)
     {
         float width = (text?.Length ?? 0) * Math.Max(font.SpaceWidth, 1.0f);
+        return new(width, font.LineHeight);
+    }
+
+    public Vector2 MeasureText(ResolvedFont font, ReadOnlySpan<char> text)
+    {
+        float width = text.Length * Math.Max(font.SpaceWidth, 1.0f);
         return new(width, font.LineHeight);
     }
 
@@ -284,35 +311,14 @@ internal sealed class GraphTestTextEngine : ITextMeasurementEngine
 
     public float GetSpaceWidth(ResolvedFont font) => font.SpaceWidth;
 
-    public void InvalidateCache() { }
-}
-
-internal sealed class GraphDisposableAction : IDisposable
-{
-    private readonly Action DisposeAction;
-    private bool _disposed;
-
-    public GraphDisposableAction(Action disposeAction)
-    {
-        DisposeAction = disposeAction;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-        DisposeAction();
-    }
+    public void InvalidateCache() => ResolvedFonts.Clear();
 }
 
 internal readonly record struct GraphStrokeLineCall(Vector2 Origin, Vector2 Start, Vector2 End, Color Color, float Thickness);
 internal readonly record struct GraphFillRectangleCall(Vector2 Origin, RectangleF Destination, Color Color);
-internal readonly record struct GraphDrawTextCall(ResolvedFont Font, string Text, Vector2 Position, Vector2 Origin, float Scale, float Rotation);
+internal readonly record struct GraphDrawTextCall(ResolvedFont Font, string Text, Vector2 Position, Vector2 Origin, float Scale, float Rotation, Color Color = default);
 internal readonly record struct GraphStrokeAndFillRectangleCall(Vector2 Origin, RectangleF Destination, Color StrokeColor, Color FillColor, Thickness StrokeThickness);
+internal readonly record struct GraphFillQuadrilateralCall(Vector2 Origin, Vector2 TopLeft, Color TopLeftColor, Vector2 TopRight, Color TopRightColor, Vector2 BottomRight, Color BottomRightColor, Vector2 BottomLeft, Color BottomLeftColor);
 internal readonly record struct GraphFillTriangleCall(Vector2 Origin, Vector2 V0, Color C0, Vector2 V1, Color C1, Vector2 V2, Color C2);
 internal readonly record struct GraphStrokeAndFillCircleCall(Vector2 Center, Color StrokeColor, Color FillColor, float Radius, float StrokeThickness, int NumSides);
 internal readonly record struct GraphDrawTextureToCall(IUIImageResource Texture, Rectangle? Source, Rectangle Destination, Color ColorMask);

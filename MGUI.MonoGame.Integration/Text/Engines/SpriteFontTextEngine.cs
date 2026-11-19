@@ -47,6 +47,11 @@ namespace MGUI.Shared.Text.Engines
         /// <summary>Cache: FontSpec → ResolvedFont (+ embedded SpriteFontHandle as NativeFont).</summary>
         private readonly Dictionary<FontSpec, ResolvedFont> _cache = new();
 
+        // Characters of a span overload are copied here, then handed to the font through its StringBuilder overloads:
+        // the font API takes no span, and a reused builder keeps the call free of allocation.
+        private readonly System.Text.StringBuilder _spanBuffer = new();
+
+
         // ── Constructor ──────────────────────────────────────────────────────────
 
         /// <param name="fontManager">The shared <see cref="FontManager"/> instance from
@@ -165,6 +170,26 @@ namespace MGUI.Shared.Text.Engines
         }
 
         /// <inheritdoc/>
+        public Vector2 MeasureText(ResolvedFont font, ReadOnlySpan<char> text)
+        {
+            if (text.IsEmpty)
+            {
+                return Vector2.Zero;
+            }
+
+            var h = GetHandle(font);
+            if (h is null)
+            {
+                return Vector2.Zero;
+            }
+
+            _spanBuffer.Clear();
+            _spanBuffer.Append(text);
+            float width = h.SF.MeasureString(_spanBuffer).X * h.ExactScale;
+            return new Vector2(width, h.LineBox.Height * h.ExactScale);
+        }
+
+        /// <inheritdoc/>
         public GlyphMetrics MeasureGlyph(ResolvedFont font, char c)
         {
             var h = GetHandle(font);
@@ -230,6 +255,41 @@ namespace MGUI.Shared.Text.Engines
             // SpriteFont line) lands where the caller's origin lands, so the box top is the draw point (ADR-0023).
             Vector2 nativeOrigin = new(origin.X, origin.Y + h.LineBox.Top);
             monoGameContext.SpriteBatch.DrawString(h.SF, text, position, color, rotation, nativeOrigin, scale, MonoGameRenderInterop.ToSpriteEffects(flip), depth);
+        }
+
+        /// <inheritdoc/>
+        public void DrawText(
+            IUIDrawContext drawContext,
+            ResolvedFont font,
+            ReadOnlySpan<char> text,
+            Vector2 position,
+            Color color,
+            Vector2 origin,
+            float scale,
+            float rotation    = 0f,
+            float depth       = 0f,
+            UIDrawFlip flip = UIDrawFlip.None)
+        {
+            if (text.IsEmpty)
+            {
+                return;
+            }
+
+            var h = GetHandle(font);
+            if (h is null)
+            {
+                return;
+            }
+
+            if (drawContext is not IMonoGameDrawContext monoGameContext)
+            {
+                throw new InvalidOperationException($"{nameof(SpriteFontTextEngine)} requires a {nameof(IMonoGameDrawContext)} for the MonoGame backend.");
+            }
+
+            _spanBuffer.Clear();
+            _spanBuffer.Append(text);
+            Vector2 nativeOrigin = new(origin.X, origin.Y + h.LineBox.Top);
+            monoGameContext.SpriteBatch.DrawString(h.SF, _spanBuffer, position, color, rotation, nativeOrigin, new Vector2(scale), MonoGameRenderInterop.ToSpriteEffects(flip), depth);
         }
 
         /// <inheritdoc/>

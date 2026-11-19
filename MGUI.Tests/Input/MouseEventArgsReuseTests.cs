@@ -161,6 +161,105 @@ public class MouseEventArgsReuseTests
         Assert.True(drags > 0);
     }
 
+    [Fact]
+    public void TheScrollEvent_IsTheSameInstanceAtEachWheelTick_WithItsDeltaAndPosition_AndNullWithoutWheel()
+    {
+        InputTracker tracker = new();
+
+        tracker.Update(CreateUpdateArgs(0, new Point(10, 10), ButtonState.Released));
+        Assert.Null(tracker.Mouse.CurrentScrollEvent);
+
+        tracker.Update(CreateUpdateArgs(16, new Point(10, 10), ButtonState.Released, 120));
+        BaseMouseScrolledEventArgs first = tracker.Mouse.CurrentScrollEvent;
+        Assert.NotNull(first);
+        Assert.Same(tracker.Mouse, first.Tracker);
+        Assert.Equal(120, first.ScrollWheelDelta);
+        Assert.Equal(new Point(10, 10), first.Position);
+
+        tracker.Update(CreateUpdateArgs(32, new Point(30, 20), ButtonState.Released, 120));
+        Assert.Null(tracker.Mouse.CurrentScrollEvent);
+
+        tracker.Update(CreateUpdateArgs(48, new Point(30, 20), ButtonState.Released, -120));
+        Assert.Same(first, tracker.Mouse.CurrentScrollEvent);
+        Assert.Equal(-240, first.ScrollWheelDelta);
+        Assert.Equal(new Point(30, 20), first.Position);
+
+        tracker.Update(CreateUpdateArgs(64, new Point(5, 6), ButtonState.Released, 360));
+        Assert.Same(first, tracker.Mouse.CurrentScrollEvent);
+        Assert.Equal(480, first.ScrollWheelDelta);
+        Assert.Equal(new Point(5, 6), first.Position);
+    }
+
+    [Fact]
+    public void TheScrollEvent_StartsEachTickNotHandled_EvenIfThePreviousTickWasHandled()
+    {
+        InputTracker tracker = new();
+        MouseHandlerHost host = new(() => new Rectangle(0, 0, 100, 100));
+        tracker.Update(CreateUpdateArgs(0, new Point(10, 10), ButtonState.Released));
+
+        tracker.Update(CreateUpdateArgs(16, new Point(10, 10), ButtonState.Released, 120));
+        BaseMouseScrolledEventArgs scrolled = tracker.Mouse.CurrentScrollEvent;
+        Assert.False(scrolled.IsHandled);
+        scrolled.SetHandledBy(host);
+        Assert.True(scrolled.IsHandled);
+        Assert.Same(host, scrolled.HandledBy);
+
+        tracker.Update(CreateUpdateArgs(32, new Point(10, 10), ButtonState.Released, 240));
+        Assert.Same(scrolled, tracker.Mouse.CurrentScrollEvent);
+        Assert.False(scrolled.IsHandled);
+        Assert.Null(scrolled.HandledBy);
+    }
+
+    [Fact]
+    public void AHandlerMarkingTheScrollEventHandled_DoesNotHideTheNextTickFromTheOthers()
+    {
+        InputTracker tracker = new();
+        int taken = 0;
+        int seenByTheLowerPriorityHandler = 0;
+        MouseHandlerHost host = new(() => new Rectangle(0, 0, 100, 100));
+        MouseHandler high = tracker.Mouse.CreateHandler(host, 20);
+        high.Scrolled += (_, e) =>
+        {
+            taken++;
+            e.SetHandledBy(host);
+        };
+        MouseHandler low = tracker.Mouse.CreateHandler(new MouseHandlerHost(() => new Rectangle(0, 0, 100, 100)), 10);
+        low.Scrolled += (_, _) => seenByTheLowerPriorityHandler++;
+
+        tracker.Update(CreateUpdateArgs(0, new Point(10, 10), ButtonState.Released));
+        tracker.Mouse.UpdateHandlers();
+        for (int i = 1; i <= 3; i++)
+        {
+            tracker.Update(CreateUpdateArgs(i * 16, new Point(10, 10), ButtonState.Released, i * 120));
+            tracker.Mouse.UpdateHandlers();
+        }
+
+        //  The higher priority handler receives each tick (not handled at the start of each tick); the lower one never does, the event being handled.
+        Assert.Equal(3, taken);
+        Assert.Equal(0, seenByTheLowerPriorityHandler);
+    }
+
+    [Fact]
+    public void ScrollFrames_WithAScrolledSubscriber_AllocateNothing()
+    {
+        InputTracker tracker = new();
+        int scrolls = 0;
+        MouseHandler handler = tracker.Mouse.CreateHandler(new MouseHandlerHost(() => new Rectangle(0, 0, 100, 100)), 10);
+        handler.Scrolled += (_, _) => scrolls++;
+        UpdateBaseArgs up = CreateUpdateArgs(0, new Point(10, 10), ButtonState.Released, 120);
+        UpdateBaseArgs down = CreateUpdateArgs(16, new Point(10, 10), ButtonState.Released, 0);
+        int frame = 0;
+
+        long bytes = Measure(() =>
+        {
+            tracker.Update(frame++ % 2 == 0 ? up : down);
+            tracker.Mouse.UpdateHandlers();
+        });
+
+        Assert.Equal(0, bytes);
+        Assert.True(scrolls > 0);
+    }
+
     private static long Measure(Action Action)
     {
         for (int i = 0; i < WarmupIterations; i++)
@@ -176,8 +275,8 @@ public class MouseEventArgsReuseTests
         return GC.GetAllocatedBytesForCurrentThread() - before;
     }
 
-    private static UpdateBaseArgs CreateUpdateArgs(int ElapsedMilliseconds, Point Position, ButtonState Left)
+    private static UpdateBaseArgs CreateUpdateArgs(int ElapsedMilliseconds, Point Position, ButtonState Left, int ScrollWheelValue = 0)
         => new(TimeSpan.FromMilliseconds(ElapsedMilliseconds), TimeSpan.FromMilliseconds(16),
-            new MouseState(Position.X, Position.Y, 0, Left, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released),
+            new MouseState(Position.X, Position.Y, ScrollWheelValue, Left, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released),
             new KeyboardState());
 }

@@ -325,6 +325,25 @@ public class MGDockSplitContainer : MGContentHost
         }
     }
 
+    internal override void AddChildrenTo(List<MGElement> buffer)
+    {
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        if (FirstChild != null)
+        {
+            buffer.Add(FirstChild);
+        }
+
+        if (_splitterBar != null)
+        {
+            buffer.Add(_splitterBar);
+        }
+
+        if (SecondChild != null)
+        {
+            buffer.Add(SecondChild);
+        }
+    }
+
     protected override Thickness UpdateContentMeasurement(Size AvailableSize)
     {
         if (FirstChild == null && SecondChild == null)
@@ -407,12 +426,17 @@ public class MGDockSplitContainer : MGContentHost
         SecondChild?.UpdateLayout(secondBounds);
     }
 
+    private static void DrawChild(MGElement child, ElementDrawArgs DA)
+    {
+        child?.Draw(DA);
+    }
+
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
-        {
-            child?.Draw(DA);
-        }
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates.
+        DrawChild(FirstChild, DA);
+        DrawChild(_splitterBar, DA);
+        DrawChild(SecondChild, DA);
     }
 
 }

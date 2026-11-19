@@ -214,6 +214,12 @@ public class VirtualizingStackPanel : MGMultiContentHost
         }
     }
 
+    /// <summary>The height (item count times item height) is known before any width is: before its first layout pass, a panel
+    /// measured with an unbounded width has no viewport and no bounds to take a width from (<see cref="GetFiniteContentWidth"/>
+    /// returns 0). Without this, <see cref="MGElement.UpdateMeasurement"/> zeroed that measurement, the parent scroll viewer
+    /// cached it, and the panel stayed empty with nothing realized until something else invalidated its layout.</summary>
+    protected override bool CanConsumeSpaceInSingleDimension => true;
+
     protected override Thickness UpdateContentMeasurement(Size availableSize)
     {
         if (TotalItemCount <= 0 || UniformItemHeight <= 0)

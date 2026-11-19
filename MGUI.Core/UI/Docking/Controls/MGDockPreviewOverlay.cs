@@ -1,3 +1,4 @@
+using MGUI.Core.UI.Clipping;
 using System.ComponentModel;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
@@ -260,15 +261,17 @@ public class MGDockPreviewOverlay : MGBoundsAdorner
 
     protected override void DrawContents(ElementDrawArgs DA)
     {
-        foreach (var child in GetChildren())
+        //  The children GetChildren() yields, in the same order, without the iterator it allocates (the two parts are attached together).
+        if (SurfaceElement != null)
         {
-            child?.Draw(DA);
+            SurfaceElement.Draw(DA);
+            BorderElement?.Draw(DA);
         }
     }
 
-    internal override ClipDefinition GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal override ElementClipRequest GetSelfClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 
-    internal override ClipDefinition GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
-        => null;
+    internal override ElementClipRequest GetContentsClipDefinition(ElementDrawArgs DA, Rectangle layoutBounds, Rectangle targetBounds)
+        => ElementClipRequest.None;
 }

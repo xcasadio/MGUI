@@ -3,6 +3,7 @@ using MGUI.Shared.Helpers;
 using System.Globalization;
 using ColorTranslator = System.Drawing.ColorTranslator;
 using System.Text;
+using System.Text.RegularExpressions;
 using MGUI.Core.UI.Brushes.FillBrushes;
 using Microsoft.Xna.Framework.Graphics;
 using MGUI.Core.UI.XAML;
@@ -33,6 +34,7 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
     public MGTextRunConfig ApplyAction(FTAction Action, IList<float> PreviousOpacities, IList<Color?> PreviousForegrounds,
         IList<MGTextRunUnderlineConfig> PreviousUnderlines, IList<MGTextRunBackgroundConfig> PreviousBackgrounds, IList<MGTextRunShadowConfig> PreviousShadows)
     {
+        //  A closing tag with no opening one before it changes nothing: each revert below falls back to the current value.
         switch (Action.ActionType)
         {
             //  Bold
@@ -54,13 +56,12 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 MGTextRunUnderlineConfig UnderlineConfig = new(true);
                 if (!string.IsNullOrEmpty(Action.Parameter))
                 {
-                    (var Height, var VerticalOffset, var Brush) = FTTokenizer.ParseUnderlineValue(Action.Parameter.Substring(1));
-                    UnderlineConfig = new MGTextRunUnderlineConfig(true, Height ?? 1, VerticalOffset ?? 0, Brush);
+                    UnderlineConfig = ParseUnderlineValue(Action.Parameter.Substring(1));
                 }
                 return this with { Underline = UnderlineConfig };
             }
             case FTActionType.RevertUnderline:
-                return this with { Underline = GeneralUtils.RemoveLast(PreviousUnderlines, default) };
+                return this with { Underline = GeneralUtils.RemoveLast(PreviousUnderlines, Underline) };
 
             //  Opacity
             case FTActionType.SetOpacity:
@@ -70,39 +71,35 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this with { Opacity = Value };
             }
             case FTActionType.RevertOpacity:
-                return this with { Opacity = GeneralUtils.RemoveLast(PreviousOpacities, 1.0f) };
+                return this with { Opacity = GeneralUtils.RemoveLast(PreviousOpacities, Opacity) };
 
             //  Foreground
             case FTActionType.SetForeground:
             {
                 PreviousForegrounds.Add(Foreground);
-                var Value = ColorStringConverter.ParseColor(Action.Parameter.Substring(1)).ToXNAColor(); //ColorTranslator.FromHtml(Action.Parameter.Substring(1)).AsXNAColor();
+                var Value = ParseForegroundValue(Action.Parameter.Substring(1));
                 return this with { Foreground = Value };
             }
             case FTActionType.RevertForeground:
-                return this with { Foreground = GeneralUtils.RemoveLast(PreviousForegrounds, null) };
+                return this with { Foreground = GeneralUtils.RemoveLast(PreviousForegrounds, Foreground) };
 
             //  Background
             case FTActionType.SetBackground:
             {
                 PreviousBackgrounds.Add(Background);
-                (var Brush, var Padding) = FTTokenizer.ParseBackgroundValue(Action.Parameter.Substring(1));
-                return this with { Background = new MGTextRunBackgroundConfig(Brush, Padding) };
+                return this with { Background = ParseBackgroundValue(Action.Parameter.Substring(1)) };
             }
             case FTActionType.RevertBackground:
-                return this with { Background = GeneralUtils.RemoveLast(PreviousBackgrounds, default) };
+                return this with { Background = GeneralUtils.RemoveLast(PreviousBackgrounds, Background) };
 
             //  Shadowing
             case FTActionType.SetShadowing:
             {
                 PreviousShadows.Add(Shadow);
-                var Words = Action.Parameter.Substring(1).Split(' ');
-                var ParsedShadowColor = ColorTranslator.FromHtml(Words[0]).AsXNAColor();
-                Vector2 ParsedShadowOffset = Words.Length == 3 ? new(int.Parse(Words[1]), int.Parse(Words[2])) : new(1, 1);
-                return this with { Shadow = new MGTextRunShadowConfig(ParsedShadowColor, ParsedShadowOffset) };
+                return this with { Shadow = ParseShadowValue(Action.Parameter.Substring(1)) };
             }
             case FTActionType.RevertShadowing:
-                return this with { Shadow = GeneralUtils.RemoveLast(PreviousShadows, default) };
+                return this with { Shadow = GeneralUtils.RemoveLast(PreviousShadows, Shadow) };
 
             //  Image
             case FTActionType.Image:
@@ -129,6 +126,48 @@ public record struct MGTextRunConfig(bool IsBold, bool IsItalic = false, float O
                 return this;
             default: throw new NotImplementedException($"Unrecognized {nameof(FTActionType)}: {Action.ActionType}");
         }
+    }
+
+    internal readonly MGTextRunConfig WithForeground(Color? Value) => this with { Foreground = Value };
+
+    //  The interpretation of the value of a tag (the text after the '=' sign), shared by ApplyAction and the allocation-free scanner (FormattedTextScanner),
+    //  so both read a value the same way.
+
+    /// <summary>The color of a <c>[color=...]</c> tag.</summary>
+    internal static Color ParseForegroundValue(string Value)
+        => ColorStringConverter.ParseColor(Value).ToXNAColor(); //ColorTranslator.FromHtml(Value).AsXNAColor();
+
+    /// <summary>The underline of a <c>[underline=...]</c> tag with a (possibly empty) value.</summary>
+    internal static MGTextRunUnderlineConfig ParseUnderlineValue(string Value)
+    {
+        (var Height, var VerticalOffset, var Brush) = FTTokenizer.ParseUnderlineValue(Value);
+        return new MGTextRunUnderlineConfig(true, Height ?? 1, VerticalOffset ?? 0, Brush);
+    }
+
+    /// <summary>The background of a <c>[background=...]</c> tag.</summary>
+    internal static MGTextRunBackgroundConfig ParseBackgroundValue(string Value)
+    {
+        (var Brush, var Padding) = FTTokenizer.ParseBackgroundValue(Value);
+        return new MGTextRunBackgroundConfig(Brush, Padding);
+    }
+
+    //  The offset that may end the value of a shadow: two numbers separated by a space or a comma, as the tokenizer accepts them.
+    private static readonly Regex ShadowOffsetParser = new(@" (?<X>-?[0-9]{1,2})( |,)(?<Y>-?[0-9]{1,2})$", RegexOptions.CultureInvariant);
+
+    /// <summary>The shadow of a <c>[shadow=...]</c> tag: a color, then an optional offset (<c>Red 1 2</c> or <c>Red 1,2</c>; (1,1) without one).</summary>
+    internal static MGTextRunShadowConfig ParseShadowValue(string Value)
+    {
+        var ColorString = Value;
+        Vector2 ParsedShadowOffset = new(1, 1);
+        var Match = ShadowOffsetParser.Match(Value);
+        if (Match.Success)
+        {
+            ColorString = Value.Substring(0, Match.Index);
+            ParsedShadowOffset = new(int.Parse(Match.Groups["X"].Value, CultureInfo.InvariantCulture), int.Parse(Match.Groups["Y"].Value, CultureInfo.InvariantCulture));
+        }
+
+        var ParsedShadowColor = ColorTranslator.FromHtml(ColorString).AsXNAColor();
+        return new MGTextRunShadowConfig(ParsedShadowColor, ParsedShadowOffset);
     }
 }
 
@@ -175,36 +214,41 @@ public abstract class MGTextRun
 
         FormattedText = FormattedText.Replace("\t", TabReplacement);
 
-        if (!Tokenizer.TryTokenize(FormattedText, true, out var Tokens))
-        {
-            //FTTokenMatch InvalidToken = Tokens.First(x => x.TokenType == FTTokenType.InvalidToken);
-            //throw new InvalidDataException($"Formatted text does not match valid format: {FormattedText}\n\nError at token #{Tokens.IndexOf(InvalidToken) + 1} with value: {InvalidToken.Value}");
-
-            //  Parse as much as we can until hitting an InvalidToken.
-            //  Once we do, convert all remaining text into a StringLiteral token
-            var Temp = Tokens;
-            Tokens = new List<FTTokenMatch>();
-            for (var i = 0; i < Temp.Count; i++)
-            {
-                var CurrentToken = Temp[i];
-                if (i + 1 < Temp.Count)
-                {
-                    var NextToken = Temp[i + 1];
-                    if (NextToken.TokenType == FTTokenType.InvalidToken)
-                    {
-                        var Value = CurrentToken.Value + CurrentToken.RemainingText;
-                        Tokens.Add(new FTTokenMatch(FTTokenType.StringLiteral, Value, ""));
-                        break;
-                    }
-                }
-
-                Tokens.Add(CurrentToken);
-            }
-        }
-
+        //  The tokenizer only returns the tokens of well formed tags (see IsWellFormedTag), so no markup makes the parsing below fail.
+        var Tokens = Tokenizer.Tokenize(FormattedText, true).ToList();
         foreach (var Run in ParseRuns(Tokens, DefaultSettings))
         {
             yield return Run;
+        }
+    }
+
+    /// <summary>True if <paramref name="TagTokens"/>, the tokens of one tag from <see cref="FTTokenType.OpenTag"/> to <see cref="FTTokenType.CloseTag"/>, are a tag the parser knows whose value
+    /// can be interpreted (a color that exists, a number that fits, ...). The tokenizer asks, and reads the open tag character of anything else as a literal character (MGUI ADR-0030).</summary>
+    internal static bool IsWellFormedTag(IReadOnlyList<FTTokenMatch> TagTokens)
+    {
+        try
+        {
+            var Count = 0;
+            foreach (var Action in Parser.ParseTokens(TagTokens))
+            {
+                Count++;
+                if (Action.ActionType == FTActionType.Image)
+                {
+                    FTTokenizer.ParseImageValue(Action.Parameter.Substring(1));
+                }
+                else
+                {
+                    //  Interprets the value as the parsing of the runs will, on settings and lists that are thrown away
+                    default(MGTextRunConfig).ApplyAction(Action, new List<float>(), new List<Color?>(), new List<MGTextRunUnderlineConfig>(), new List<MGTextRunBackgroundConfig>(), new List<MGTextRunShadowConfig>());
+                }
+            }
+
+            return Count == 1;
+        }
+        catch (Exception)
+        {
+            //  The parser knows no such tag, or the interpretation of the value rejected it
+            return false;
         }
     }
 

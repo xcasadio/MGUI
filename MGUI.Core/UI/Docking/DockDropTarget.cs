@@ -6,6 +6,8 @@ namespace MGUI.Core.UI.Docking;
 /// <summary>
 /// Represents a potential drop target for a dragged panel.
 /// Contains information about where the panel would be docked and how to preview it.
+/// The one that <see cref="Controls.MGDockHost.CurrentDropTarget"/> gives is kept by the host and written again at each computation (ADR-0036):
+/// read its fields when needed, and copy them to keep them.
 /// </summary>
 public class DockDropTarget
 {
@@ -75,6 +77,49 @@ public class DockDropTarget
         Zone = zone;
         HitRect = hitRect;
         PreviewRect = previewRect;
+    }
+
+    /// <summary>
+    /// Writes the eight fields as a new object made with the four values would have them: <see cref="TabIndex"/> at -1, <see cref="IsHostEdge"/> and
+    /// <see cref="IsSplitterDrop"/> false, <see cref="SplitterNode"/> null. A target that its owner keeps and fills again (ADR-0036) is filled with this method, so that
+    /// a field written after the last fill (the index of a tab, the splitter of a splitter drop) never survives into the next one.
+    /// </summary>
+    internal void Set(DockNode targetNode, DockZone zone, Rectangle hitRect, Rectangle previewRect)
+    {
+        TargetNode = targetNode;
+        Zone = zone;
+        HitRect = hitRect;
+        PreviewRect = previewRect;
+        TabIndex = -1;
+        IsHostEdge = false;
+        IsSplitterDrop = false;
+        SplitterNode = null;
+    }
+
+    /// <summary>Writes the eight fields of <paramref name="source"/> into this target.</summary>
+    internal void CopyFrom(DockDropTarget source)
+    {
+        TargetNode = source.TargetNode;
+        Zone = source.Zone;
+        HitRect = source.HitRect;
+        PreviewRect = source.PreviewRect;
+        TabIndex = source.TabIndex;
+        IsHostEdge = source.IsHostEdge;
+        IsSplitterDrop = source.IsSplitterDrop;
+        SplitterNode = source.SplitterNode;
+    }
+
+    /// <summary>Whether the eight fields of <paramref name="other"/> are the ones of this target (nodes by reference).</summary>
+    internal bool HasSameValues(DockDropTarget other)
+    {
+        return ReferenceEquals(TargetNode, other.TargetNode)
+            && Zone == other.Zone
+            && HitRect == other.HitRect
+            && PreviewRect == other.PreviewRect
+            && TabIndex == other.TabIndex
+            && IsHostEdge == other.IsHostEdge
+            && IsSplitterDrop == other.IsSplitterDrop
+            && ReferenceEquals(SplitterNode, other.SplitterNode);
     }
 
     public override string ToString()
